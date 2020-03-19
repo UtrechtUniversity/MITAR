@@ -1,0 +1,59 @@
+---
+title: "SimpleModelForSupernatantPaper"
+author: "Egil Fischer"
+date: "19-3-2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+
+## Description
+The model is a very simple model of conjugation and the fraction of plasmid carrying bacteria:
+
+ $\frac{dp}{dt}= m \, \frac{\Delta\psi\, p\, (1-p)}{\psi + \Delta\psi\,  p} + \gamma \, N \, p \, (1-p) $
+
+The following stability conditions hold for this model for the trivial ($p^* =0$) 
+
+$\Delta \psi > -\frac{N \gamma \psi}{m + N \, \gamma}$
+
+and the fixation ($p^* =1$) equilibrium:
+
+$\Delta \psi < -\frac{N \gamma \psi}{m }$
+
+The coexistence equilibrium exists and is stable if 
+$-\frac{N \gamma \psi}{m } < \Delta \psi <  -\frac{N \gamma \psi}{m + N \, \gamma }$
+
+## R functions
+```{r}
+stab.trivial = function( m, psi,  N, gamma){- N*gamma*psi/(m + N * gamma)}
+
+stab.fixation = function(m, psi,  N, gamma){- N*gamma*psi/(m )}
+```
+
+## Plot functions
+```{r}
+stepsN <- 2; minN = 6; maxN =8;#log 10
+stepsloggamma <-100;minloggamma = -12; maxloggamma = -6
+plot.data <- data.frame(N = rep(minN + c(0:stepsN)*(maxN-minN)/stepsN, stepsloggamma +1),
+                         loggamma = rep(minloggamma+ c(0:stepsloggamma)*(maxloggamma-minloggamma)/stepsloggamma, each = stepsN + 1))
+
+stab.triv.f <- function(loggamma, logN){stab.trivial(m  =.1, psi = 1, N = 10^logN, gamma= 10^loggamma)}
+stab.fix.f <- function(loggamma, logN){stab.fixation(m  =.1, psi = 1, N = 10^logN, gamma= 10^loggamma)}
+plot.data$trivial <- mapply(FUN = stab.triv.f, plot.data$loggamma,plot.data$N)
+plot.data$fixation <- mapply(FUN = stab.fix.f, plot.data$loggamma,plot.data$N)
+```
+
+
+##Plots
+```{r}
+ggplot2::ggplot(data = plot.data)+
+  geom_path(aes(loggamma, trivial), color = "blue")+
+  geom_path(aes(loggamma, fixation))+
+  ylim(-.5,.25)+ylab("Dpsi")+
+  facet_grid(.~N)
+```
