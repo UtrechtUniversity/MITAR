@@ -8,14 +8,14 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = F)
 library(ggplot2)
 ```
 
 ## Description
 The model is a very simple model of conjugation and the fraction of plasmid carrying bacteria:
 
- $\frac{dp}{dt}= m \, \frac{\Delta\psi\, p\, (1-p)}{\psi + \Delta\psi\,  p} + \gamma \, N \, p \, (1-p) $
+$\frac{dp}{dt}= m \, \frac{\Delta\psi\, p\, (1-p)}{\psi + \Delta\psi\,  p} + \gamma \, N \, p \, (1-p)$
 
 The following stability conditions hold for this model for the trivial ($p^* =0$) 
 
@@ -30,30 +30,189 @@ $-\frac{N \gamma \psi}{m } < \Delta \psi <  -\frac{N \gamma \psi}{m + N \, \gamm
 
 ## R functions
 ```{r}
-stab.trivial = function( m, psi,  N, gamma){- N*gamma*psi/(m + N * gamma)}
+stab.dpsi.trivial = function( m, psi,  N, gamma){- N*gamma*psi/(m + N * gamma)}
 
-stab.fixation = function(m, psi,  N, gamma){- N*gamma*psi/(m )}
+stab.dpsi.fixation = function(m, psi,  N, gamma){- N*gamma*psi/m}
+
+stab.gamma.trivial = function( m, psi,  N, dpsi){- (dpsi * m) /((psi + dpsi) * N)}
+
+stab.gamma.fixation = function(m, psi,  N, dpsi){-(dpsi * m)/(N*psi)}
+
 ```
 
 ## Plot functions
 ```{r}
-stepsN <- 2; minN = 6; maxN =8;#log 10
-stepsloggamma <-100;minloggamma = -12; maxloggamma = -6
-plot.data <- data.frame(N = rep(minN + c(0:stepsN)*(maxN-minN)/stepsN, stepsloggamma +1),
+stepsN <- 2; minN = 6; maxN =10;#log 10
+#dpsi as function of gamma
+stepsloggamma <-100;minloggamma = -12; maxloggamma = -7
+plot.data.gammaX <- data.frame(N = rep(minN + c(0:stepsN)*(maxN-minN)/stepsN, stepsloggamma +1),
                          loggamma = rep(minloggamma+ c(0:stepsloggamma)*(maxloggamma-minloggamma)/stepsloggamma, each = stepsN + 1))
 
-stab.triv.f <- function(loggamma, logN){stab.trivial(m  =.1, psi = 1, N = 10^logN, gamma= 10^loggamma)}
-stab.fix.f <- function(loggamma, logN){stab.fixation(m  =.1, psi = 1, N = 10^logN, gamma= 10^loggamma)}
-plot.data$trivial <- mapply(FUN = stab.triv.f, plot.data$loggamma,plot.data$N)
-plot.data$fixation <- mapply(FUN = stab.fix.f, plot.data$loggamma,plot.data$N)
+stab.triv.f <- function(loggamma, logN){stab.dpsi.trivial(m  =.1, psi = 1, N = 10^logN, gamma= 10^loggamma)}
+stab.fix.f <- function(loggamma, logN){stab.dpsi.fixation(m  =.1, psi = 1, N = 10^logN, gamma= 10^loggamma)}
+plot.data.gammaX$trivial <- mapply(FUN = stab.triv.f, plot.data.gammaX$loggamma,plot.data.gammaX$N)
+plot.data.gammaX$fixation <- mapply(FUN = stab.fix.f, plot.data.gammaX$loggamma,plot.data.gammaX$N)
+
+#gamma as function of dpsi
+stepsdpsi <-100;mindpsi = -0.5; maxdpsi = 0.
+plot.data.dpsiX <- data.frame(N = rep(minN + c(0:stepsN)*(maxN-minN)/stepsN, stepsdpsi +1),
+                         dpsi = rep(mindpsi+ c(0:stepsdpsi)*(maxdpsi-mindpsi)/stepsdpsi, each = stepsN + 1))#TODO schaal gamma ook naar psi
+
+stab.triv.logf <- function(dpsi, logN){log10(stab.gamma.trivial(m  =.1, psi = 1, N = 10^logN, dpsi= dpsi))}
+stab.fix.logf <- function(dpsi, logN){log10(stab.gamma.fixation(m  =.1, psi = 1, N = 10^logN, dpsi= dpsi))}
+plot.data.dpsiX$trivial <- mapply(FUN = stab.triv.logf, plot.data.dpsiX$dpsi,plot.data.dpsiX$N)
+plot.data.dpsiX$fixation <- mapply(FUN = stab.fix.logf, plot.data.dpsiX$dpsi,plot.data.dpsiX$N)
+
+
 ```
 
+###Single boundary plot with annotation
 
-##Plots
 ```{r}
-ggplot2::ggplot(data = plot.data)+
-  geom_path(aes(loggamma, trivial), color = "blue")+
-  geom_path(aes(loggamma, fixation))+
-  ylim(-.5,.25)+ylab("Dpsi")+
-  facet_grid(.~N)
+ynull =-11; ymax =-8;xmin = -0.5; xmax = .25;
+singleboundary.plot <- ggplot2::ggplot(data = plot.data.dpsiX[plot.data.dpsiX$N==8,])+
+  geom_ribbon(aes(ymin = ynull,ymax = trivial, x = dpsi),fill = "grey", color = "black",alpha = 0.7)+
+  geom_ribbon(aes(ymin = trivial,ymax = fixation, x = dpsi), fill = "black", color = "black", alpha = .7)+
+  ylim(ynull,ymax)+
+  xlim(xmin,xmax)+
+  xlab(c(expression(paste(Delta, psi))))+
+  ylab(expression(log10(gamma)))+
+  theme_linedraw()+coord_fixed(ratio = (xmax -xmin)/(ymax-ynull))
+singleboundary.plot+
+  geom_label(aes(x = c(0.125), y = c(-8.5)), label= c("p* = 1"))+
+  geom_label(aes(x = c(-0.375), y = c(-10.5)), label= c("p* = 0"))+
+  geom_label(aes(x = c(-0.25), y = c(-9.5)), label= c("0 < p* < 1"))
+```
+
+##Boundary plots
+```{r}
+ynull =-15
+boundary.plots <- ggplot2::ggplot(data = plot.data.dpsiX)+
+  geom_ribbon(aes(ymin = ynull,ymax = trivial, x = dpsi),fill = "grey", color = "black",alpha = 0.7)+
+  geom_ribbon(aes(ymin = trivial,ymax = fixation, x = dpsi), fill = "black", color = "black", alpha = .7)+
+  ylim(ynull,-6)+
+  xlim(-.5,.5)+
+  ylab("loggamma")+
+  facet_grid(.~10^N)+theme_linedraw()
+boundary.plots
+```
+## Simulation in three regions
+```{r}
+ode.model <- function(Time, State, Pars){
+  with(as.list(c(State, Pars)),{
+    dp <- m * dpsi *  p *  (1 - p)/(psi + dpsi * p) + gamma * N * p * (1-p)
+    return(list(c(dp)))
+  })
+  
+}
+sim.length = 10^4
+sol.trivial <- deSolve::ode(y = c(p = .5), 
+                            times = c(0:sim.length),
+                            func = ode.model, 
+                            parms = c(dpsi =-0.25,
+                                      gamma = 10^-10,
+                                      psi = 1,
+                                      m = 0.1,
+                                      N = 10^6))
+sol.fixation<- deSolve::ode(y = c(p = .5), 
+                            times = c(0:sim.length),
+                            func = ode.model, 
+                            parms = c(dpsi =-0.25,
+                                      gamma = 10^-6,
+                                      psi = 1,
+                                      m = 0.1,
+                                      N = 10^6))
+
+sol.coexist<- deSolve::ode(y = c(p = .5), 
+                            times = c(0:sim.length),
+                            func = ode.model, 
+                            parms = c(dpsi =-0.25,
+                                      gamma = 10^-7.5,
+                                      psi = 1,
+                                      m = 0.1,
+                                      N = 10^6))
+plot(sol.trivial,sol.fixation,sol.coexist, xlab = "Time",ylab = "Fraction with plasmid", main ="")
+
+boundary.plots + geom_point(aes(x = dpsi, y = loggamma, color =color),
+                            data = data.frame(dpsi=c(-.25,-0.25,-0.25),
+                                              loggamma = c(-10,-6,-7.6),
+                                              N = c(6,6,6), 
+                                              color = c("trivial","fixation","coexistence") 
+                                                )
+                                                )
+```
+
+## Data plots
+```{r}
+#load estimated data
+
+input.dir <- "C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/"
+conjugation.dataD <- read.csv(paste0(input.dir, "Figure2_D_R_conjug_rates_huisman_4h.csv"))
+conjugation.dataT <- read.csv(paste0(input.dir, "Figure3_T_R_conjug_rates_huisman_4h.csv"))
+growth.data <- read.csv(paste0(input.dir, "Figure1_date_24_01_20_monoculture_new_growth_rates_D1_R_T_N1.csv"))
+
+data.combinations <- reshape2::dcast(growth.data,formula =Medium+ Replicate   ~ Strain, fun.aggregate = mean )
+data.combinations$dpsiDR.scaled  <- (data.combinations$D_1 -data.combinations$R)/data.combinations$R
+data.combinations$dpsiTR.scaled  <- (data.combinations$T -data.combinations$R)/data.combinations$R
+data.combinations<- data.combinations[order(data.combinations$Medium,data.combinations$Replicate),]
+conjugation.dataD<- conjugation.dataD[order(conjugation.dataD$Experiment,conjugation.dataD$Replicate),]
+conjugation.dataT<- conjugation.dataT[order(conjugation.dataT$Experiment,conjugation.dataT$Replicate),]
+colnames(conjugation.dataD)<- paste0("D",colnames(conjugation.dataD))
+colnames(conjugation.dataT)<- paste0("T",colnames(conjugation.dataT))
+data.combinations<-cbind(data.combinations, conjugation.dataD, conjugation.dataT)
+
+data.combinations$loggamma.scaled.D <- log10(data.combinations$DConjugation_huisman/data.combinations$R)
+data.combinations$loggamma.scaled.T <- log10(data.combinations$TConjugation_huisman/data.combinations$R)
+
+#create plottable data
+plot.data <- reshape2::melt(data.combinations[,c("Medium","Replicate","dpsiDR.scaled","dpsiTR.scaled","loggamma.scaled.D","loggamma.scaled.T")],id.vars = c("Medium","Replicate","dpsiDR.scaled","dpsiTR.scaled"),value.name ="loggamma.scaled")
+plot.data$dpsi.scaled <- plot.data$dpsiDR.scaled*(plot.data$variable == "loggamma.scaled.D")+plot.data$dpsiTR.scaled*(plot.data$variable == "loggamma.scaled.T")
+plot.data$Plasmid <-gsub(pattern = "loggamma.scaled.", replacement ="", x =plot.data$variable)
+new.plot.data <- NULL; for(s in c(6,8,10)) {new.plot.data <- rbind(new.plot.data,cbind(plot.data,N = s))  }
+plot.data <- new.plot.data
+#plot
+boundary.plots + 
+  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, color = Medium, shape = Plasmid), data = plot.data)+
+  scale_shape_manual(values = c(1:8))+
+  xlab(c(expression(paste(Delta, psi))))+
+  ylab(expression(log10(gamma)))+
+  ylim(c(-15,-7))+xlim(-.25,.25)
+
+  
+ggsave("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium.tiff")
+```
+```{r}
+#count number of estimates in each of the regions.
+all.data.combinations$fixequi <- 10^mapply(stab.fix.logf,all.data.combinations$dpsi.scaled,all.data.combinations$N)>10^all.data.combinations$loggamma.scaled
+all.data.combinations$trivequi <- 10^mapply(stab.triv.logf,all.data.combinations$dpsi.scaled,all.data.combinations$N)<10^all.data.combinations$loggamma.scaled
+all.data.combinations$coexequi<- !all.data.combinations$trivequi & !all.data.combinations$fixequi
+all.data.combinations$defequi<- as.numeric(all.data.combinations$trivequi) - as.numeric(all.data.combinations$fixequi)
+all.data.combinations$defequi[is.na(all.data.combinations$defequi)]<- 1
+all.data.combinations$Stable<-c("trivial","coexistence","fixation")[all.data.combinations$defequi+2]
+
+boundary.plots + geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = medium, color = Stable),
+                            data = all.data.combinations) +
+  scale_shape_manual(values = c(1:8))+
+  scale_color_manual(values = c("blue","green","red"))+
+  xlab(c(expression(paste(Delta, psi))))+
+  ylab(expression(log10(gamma)))+
+  ylim(c(-15,-7))+xlim(-.25,.25)
+
+ggsave("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibriumtype.tiff")
+
+table(all.data.combinations$defequi[all.data.combinations$N ==6],all.data.combinations$medium[all.data.combinations$N ==6])
+table(all.data.combinations$defequi[all.data.combinations$N ==8],all.data.combinations$medium[all.data.combinations$N ==8])
+table(all.data.combinations$defequi[all.data.combinations$N ==10],all.data.combinations$medium[all.data.combinations$N ==10])
+
+table(all.data.combinations$dpsi.scaled[all.data.combinations$N ==6]>= 0,all.data.combinations$medium[all.data.combinations$N ==6])
+
+```
+## Critical time
+
+```{r}
+all.data.combinations
+all.data.combinations$t.crit1<- 
+all.data.combinations$t.crit2
+all.data.combinations$t.crit3 
+
 ```
