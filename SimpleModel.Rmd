@@ -171,15 +171,16 @@ plot.data$Plasmid <-gsub(pattern = "loggamma.scaled.", replacement ="", x =plot.
 new.plot.data <- NULL; for(s in c(6,8,10)) {new.plot.data <- rbind(new.plot.data,cbind(plot.data,N = s))  }
 plot.data <- new.plot.data
 #plot
+medium.colours <- setNames(c("darkgreen", "lightgreen", colorRampPalette(c("yellow", "orange"))(6)), unique(plot.data$Medium))
 boundary.plots + 
-  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, color = Medium, shape = Plasmid), data = plot.data)+
-  scale_shape_manual(values = c(1:8))+
+  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, colour = Medium, shape = Plasmid), data = plot.data, size =1.5, alpha =.5)+
+  scale_colour_manual(values = medium.colours, name = "Growth medium")+
+  scale_shape_manual(values = c(15,17), name = "Plasmid carrying strain")+
   xlab(c(expression(paste(Delta, psi))))+
-  ylab(expression(log10(gamma)))+
-  ylim(c(-15,-7))+xlim(-.25,.25)
+  ylab(expression(log10(gamma)))+facet_grid(Plasmid~10^N)
 
   
-ggsave("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium.tiff")
+ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium",format(Sys.Date(),"%Y%m%d"),".tiff"))
 ```
 ```{r}
 #count number of estimates in each of the regions.
