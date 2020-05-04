@@ -219,6 +219,34 @@ ggplot2::ggplot(data = plot.data.dpsiX)+
 
   
 ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_zoomed",format(Sys.Date(),"%Y%m%d"),".tiff"))
+
+
+zoom.x <- c(-.15,.25)
+zoom.y <- c(-13,-10)
+plot.data.dpsiX$trivial[plot.data.dpsiX$trivial< min(zoom.y)] <- min(zoom.y)
+plot.data.dpsiX$trivial[plot.data.dpsiX$trivial >= max(zoom.y)] <- max(zoom.y)
+plot.data.dpsiX$fixation[plot.data.dpsiX$fixation< min(zoom.y)] <- min(zoom.y)
+plot.data.dpsiX$fixation[plot.data.dpsiX$fixation >= max(zoom.y)] <- max(zoom.y)
+
+ggplot2::ggplot(data = plot.data.dpsiX[plot.data.dpsiX$N==8,])+
+  geom_ribbon(aes(ymin = ynull,ymax = trivial, x = dpsi),fill = "grey", color = "black",alpha = 0.7)+
+  geom_ribbon(aes(ymin = trivial,ymax = fixation, x = dpsi), fill = "black", color = "black", alpha = .7)+
+  ylim(ynull,ymax)+
+  xlim(xmin,xmax)+
+  ylab("loggamma")+
+  theme_linedraw() + 
+  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = Medium,colour = Medium), data = plot.data, size =1.75, alpha =.75)+
+  scale_colour_manual(values = medium.colours, name = "Growth medium")+
+  scale_shape_manual(values = medium.shapes, name = "Growth medium")+
+  xlab(c(expression(paste(Delta, psi))))+
+  ylab(expression(log10(gamma)))+
+  xlim(zoom.x)+
+  ylim(zoom.y)+
+  facet_grid(Plasmid~.)
+
+  
+ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_zoomedN8",format(Sys.Date(),"%Y%m%d"),".tiff"))
+
 ```
 
 ```
