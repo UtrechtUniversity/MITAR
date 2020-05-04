@@ -69,7 +69,7 @@ plot.data.dpsiX$fixation <- mapply(FUN = stab.fix.logf, plot.data.dpsiX$dpsi,plo
 ###Single boundary plot with annotation
 
 ```{r}
-ynull =-11; ymax =-8;xmin = -0.5; xmax = .25;
+ynull =-12; ymax =-8;xmin = -0.5; xmax = .25;
 singleboundary.plot <- ggplot2::ggplot(data = plot.data.dpsiX[plot.data.dpsiX$N==8,])+
   geom_ribbon(aes(ymin = ynull,ymax = trivial, x = dpsi),fill = "grey", color = "black",alpha = 0.7)+
   geom_ribbon(aes(ymin = trivial,ymax = fixation, x = dpsi), fill = "black", color = "black", alpha = .7)+
@@ -77,7 +77,10 @@ singleboundary.plot <- ggplot2::ggplot(data = plot.data.dpsiX[plot.data.dpsiX$N=
   xlim(xmin,xmax)+
   xlab(c(expression(paste(Delta, psi))))+
   ylab(expression(log10(gamma)))+
-  theme_linedraw()+coord_fixed(ratio = (xmax -xmin)/(ymax-ynull))
+  theme(panel.grid = element_line(colour = "DarkGray"),
+        panel.background = element_rect(fill = NA), 
+        axis.text = element_text(colour = NA))+
+  coord_fixed(ratio = (xmax -xmin)/(ymax-ynull))
 singleboundary.plot+
   geom_label(aes(x = c(0.125), y = c(-8.5)), label= c("p* = 1"))+
   geom_label(aes(x = c(-0.375), y = c(-10.5)), label= c("p* = 0"))+
@@ -188,6 +191,41 @@ boundary.plots +
   
 ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium",format(Sys.Date(),"%Y%m%d"),".tiff"))
 ```
+## Data plots zoomed in
+```{r}
+
+zoom.x <- c(-.15,.25)
+zoom.y <- c(-13,-10)
+plot.data.dpsiX$trivial[plot.data.dpsiX$trivial< min(zoom.y)] <- min(zoom.y)
+plot.data.dpsiX$trivial[plot.data.dpsiX$trivial >= max(zoom.y)] <- max(zoom.y)
+plot.data.dpsiX$fixation[plot.data.dpsiX$fixation< min(zoom.y)] <- min(zoom.y)
+plot.data.dpsiX$fixation[plot.data.dpsiX$fixation >= max(zoom.y)] <- max(zoom.y)
+
+ggplot2::ggplot(data = plot.data.dpsiX)+
+  geom_ribbon(aes(ymin = ynull,ymax = trivial, x = dpsi),fill = "grey", color = "black",alpha = 0.7)+
+  geom_ribbon(aes(ymin = trivial,ymax = fixation, x = dpsi), fill = "black", color = "black", alpha = .7)+
+  ylim(ynull,ymax)+
+  xlim(xmin,xmax)+
+  ylab("loggamma")+
+  facet_grid(.~10^N)+theme_linedraw() + 
+  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = Medium,colour = Medium), data = plot.data, size =1.75, alpha =.75)+
+  scale_colour_manual(values = medium.colours, name = "Growth medium")+
+  scale_shape_manual(values = medium.shapes, name = "Growth medium")+
+  xlab(c(expression(paste(Delta, psi))))+
+  ylab(expression(log10(gamma)))+
+  xlim(zoom.x)+
+  ylim(zoom.y)+
+  facet_grid(Plasmid~10^N)
+
+  
+ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_zoomed",format(Sys.Date(),"%Y%m%d"),".tiff"))
+```
+
+```
+
+
+
+## counts
 ```{r}
 #count number of estimates in each of the regions.
 all.data.combinations$fixequi <- 10^mapply(stab.fix.logf,all.data.combinations$dpsi.scaled,all.data.combinations$N)>10^all.data.combinations$loggamma.scaled
