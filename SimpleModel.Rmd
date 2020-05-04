@@ -82,16 +82,19 @@ singleboundary.plot+
   geom_label(aes(x = c(0.125), y = c(-8.5)), label= c("p* = 1"))+
   geom_label(aes(x = c(-0.375), y = c(-10.5)), label= c("p* = 0"))+
   geom_label(aes(x = c(-0.25), y = c(-9.5)), label= c("0 < p* < 1"))
+
+ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_theoryexplained",format(Sys.Date(),"%Y%m%d"),".tiff"))
+
 ```
 
 ##Boundary plots
 ```{r}
-ynull =-15
+ynull =-13; ymax = -7; xmin = -0.25; xmax = 0.25;
 boundary.plots <- ggplot2::ggplot(data = plot.data.dpsiX)+
   geom_ribbon(aes(ymin = ynull,ymax = trivial, x = dpsi),fill = "grey", color = "black",alpha = 0.7)+
   geom_ribbon(aes(ymin = trivial,ymax = fixation, x = dpsi), fill = "black", color = "black", alpha = .7)+
-  ylim(ynull,-6)+
-  xlim(-.5,.5)+
+  ylim(ynull,ymax)+
+  xlim(xmin,xmax)+
   ylab("loggamma")+
   facet_grid(.~10^N)+theme_linedraw()
 boundary.plots
@@ -170,12 +173,15 @@ plot.data$dpsi.scaled <- plot.data$dpsiDR.scaled*(plot.data$variable == "loggamm
 plot.data$Plasmid <-gsub(pattern = "loggamma.scaled.", replacement ="", x =plot.data$variable)
 new.plot.data <- NULL; for(s in c(6,8,10)) {new.plot.data <- rbind(new.plot.data,cbind(plot.data,N = s))  }
 plot.data <- new.plot.data
+
 #plot
-medium.colours <- setNames(c("darkgreen", "lightgreen", colorRampPalette(c("yellow", "orange"))(6)), unique(plot.data$Medium))
+medium.colours <- setNames(c(rep("darkblue",2), rep("orange",6)), unique(plot.data$Medium))
+medium.shapes <- setNames(c(15:19,8,3,12), unique(plot.data$Medium))
+
 boundary.plots + 
-  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, colour = Medium, shape = Plasmid), data = plot.data, size =1.5, alpha =.5)+
+  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = Medium,colour = Medium), data = plot.data, size =1.75, alpha =.75)+
   scale_colour_manual(values = medium.colours, name = "Growth medium")+
-  scale_shape_manual(values = c(15,17), name = "Plasmid carrying strain")+
+  scale_shape_manual(values = medium.shapes, name = "Growth medium")+
   xlab(c(expression(paste(Delta, psi))))+
   ylab(expression(log10(gamma)))+facet_grid(Plasmid~10^N)
 
