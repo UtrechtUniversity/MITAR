@@ -77,9 +77,9 @@
 # Change approximation of gtbulk to only include transconjugants and recipients
 # Change approximation of gdbulk to include as few as possible transconjugants (i.e., much donors and and recipients)
 
-# Meer uit loop halen ?
-# De runs die tmax bereikten gingen ontzettend snel toen ik die niet in een loop,
-# maar alle variabelen met hand goede waarde gaf en model runde.
+# Remove more out of loop?
+# The runs which reach tmax were finished very quickly when I ran them
+# out of the loop (manually setting the variables to the right numbers).
 
 # QUESTION: have the resources to be considered for stability analysis?
 # Imran does exclude them from stability analysis?
