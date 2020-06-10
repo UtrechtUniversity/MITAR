@@ -129,10 +129,9 @@ Mytstep <- c(10)
 eValue <- c(1E-6)
 
 #### Model functions ####
-# First grow monoculture of plasmid-free population of R1 with nutrients,
-# search for equilibria and check stability. Note that I do not use this equation
-# in the script, because instead I use the analytical solution for the equilibria
-# of this system as found with Matlab.
+# Model a population of plasmid-free recipients with nutrients. I do not use
+# this model in the script, because instead I use the analytical solution for
+# the plasmid-free equilibrium as found with Matlab.
 ModelRecipNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutr <- (NI - Nutr)*w - e*bR*Nutr*R
@@ -142,12 +141,12 @@ ModelRecipNutr <- function(t, state, parms) {
 }
 
 # The pair-formation conjugation model. Mdr pairs and Mrt pairs are formed with
-# rate kp if recipients meet donors or transconjugants, respectively. Then
-# conjugation occurs in these Mdr and Mrt pairs, with intrinsic conjugation rate
+# rate kp*R if recipients meet donors or transconjugants, respectively.
+# Conjugation occurs in these Mdr and Mrt pairs, with intrinsic conjugation rate
 # gd and gt, respectively. From conjugation, Mdt and Mtt pairs arise. The
 # different pairs fall apart again with rate kn. In this structure of pair-formation 
 # I follow Zhong's model. As addition to Zhong's model, I included costs, washout,
-# and nutrients, which are not included in Zhong's model.
+# and nutrients.
 ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutr <- (NI - Nutr)*w - e*Nutr*((1 - cd)*bR*(D + Mdr + Mdt) + bR*(R + Mdr + Mrt) +
@@ -227,19 +226,22 @@ eventfunBulk <- function(t, stateBulk, parmsBulk) {
 # Mating pair attachment rate (mL * cell^-1 * h^-1): kp (k+ in Zhong's notation)
 # Mating pair detachment rate (1/h): kn (k- in Zhong's notation)
 # Nutrient concentration in the inflowing liquid (microgram * mL^-1): NI
-# ? Resource conversion rate (microgram * cell^-1 * h^-1 (?): e
+# Resource conversion rate (microgram per cell division): e
 # Washout rate (1/h): w
 
 ### Parameter values
-# Stable co-existence of plasmid?
+# Stable co-existence of recipients, transconjugants, and Mrt and Mtt pairs
+# time = 816943.9, Nutr = 0.02427729 D = 0, R = 3829218, Trans = 6142815, Mdr = Mdt = 0, Mrt = 324.6586, Mtt = 1520.435
 # bRSet <- c(1.7)
 # NISet <- c(10)
 # log10kpSet <- c(-9.6)
 # log10knSet <- c(0.5)
 # eSet <- c(1E-6)
 # wSet <- c(0.04)
-# cSet <- c(0.05)
-# log10gSet <- c(1.176)
+# cdSet <- c(0.05)
+# ctSet <- c(0.05)
+# log10gdSet <- c(1.176)
+# log10gtSet <- c(1.176)
 
 # Single run, invasion not possible
 DinitSet <- c(1E3)
@@ -451,7 +453,7 @@ for(bRValue in bRSet) {
                     SignEigValEqualBulk <- identical(rep(sign(DomEigValBulk), length(EigValEqBulk)),
                                                      sign(Re(EigValEqBulk)))
                     
-                    if(SignDomEigVal == "-1") {
+                    if(SignDomEigVal == -1) {
                       # No invasion possible in the pair-formation model
                       EqAfterInvDonor <- c(time = 0, EqFull)
                     } else {
@@ -521,7 +523,7 @@ for(bRValue in bRSet) {
                       } # End of simulation part
                     }
                     
-                    if(SignDomEigValBulk == "-1") {
+                    if(SignDomEigValBulk == -1) {
                       # No invasion possible in the bulk-conjugation model
                       EqAfterInvDonorBulk <- c(time = 0, EqFullBulk)
                     } else {
