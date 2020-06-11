@@ -419,7 +419,7 @@ for(bRValue in bRSet) {
                   for(log10gtValue in log10gtSet) {
                     
                     CurrentIteration <- CurrentIteration + 1
-                    if(round(CurrentIteration / 1) == CurrentIteration / 1) {
+                    if(round(CurrentIteration / 500) == CurrentIteration / 500) {
                       print(paste0("Current iteration = ", CurrentIteration,
                                    ", time = ",
                                    format(Sys.time(), format = "%H:%M:%S")))
@@ -699,56 +699,64 @@ ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = BioEq / BioEqBulk)) +
 # only takes pair-formation model into account !
 
 ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigVal)) + 
-  ggtitle("Sign dominant eigenvalue, pair-formation model") +
-  geom_tile(colour = "white") + 
+  ggtitle("Sign dominant eigenvalue of the pair-formation model") +
+  geom_raster() + 
   scale_fill_gradient2(midpoint = 0) +
   facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
   labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)")
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
 ggsave(paste0(DateTimeStamp, "outputSignDomEigVal.png"))
 
 ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigValBulk)) + 
-  ggtitle("Sign dominant eigenvalue, bulk-conjugation model") +
-  geom_tile(colour = "white") + 
+  ggtitle("Sign dominant eigenvalue of the bulk-conjugation model") +
+  geom_raster() + 
   scale_fill_gradient2(midpoint = 0) +
   facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
   labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)")
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
 ggsave(paste0(DateTimeStamp, "outputSignDomEigValBulk.png"))
 
 ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigVal / SignDomEigValBulk)) + 
   ggtitle("Difference in sign of the dominant eigenvalue") +
-  geom_tile(colour = "white") + 
+  geom_raster() + 
   scale_fill_gradient2(midpoint = 0) +
   facet_grid(cd ~ ct, labeller = label_both) +
   theme(legend.position = "bottom") +
   labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)")
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
 ggsave(paste0(DateTimeStamp, "outputSignDomEigValRatio.png"))
+
+summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
+summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
 
 limitsbulkrates <- c(floor(min(log10(c(MyData$gtbulk, MyData$gdbulk)))),
                      ceiling(max(log10(c(MyData$gtbulk, MyData$gdbulk)))))
 
 ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(gdbulk))) + 
   ggtitle("Bulk-conjugation rate from the donor") +
-  geom_tile(colour = "white") + 
-  scale_fill_gradientn(colours = MyColorBrew2, limits = limitsbulkrates) +
+  geom_raster() + 
+  scale_fill_gradientn(colours = MyColorBrew, limits = limitsbulkrates) +
   facet_grid(cd ~ ct, labeller = label_both) +
   theme(legend.position = "bottom") +
   labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)")
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
 ggsave(paste0(DateTimeStamp, "outputLog10gdbulk.png"))
 
 ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(gtbulk))) + 
   ggtitle("Bulk-conjugation rate from the transconjugant") +
-  geom_tile(colour = "white") + 
-  scale_fill_gradientn(colours = MyColorBrew2, limits = limitsbulkrates) +
+  geom_raster() + 
+  scale_fill_gradientn(colours = MyColorBrew, limits = limitsbulkrates) +
   facet_grid(cd ~ ct, labeller = label_both) +
   theme(legend.position = "bottom") +
   labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)")
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
 ggsave(paste0(DateTimeStamp, "outputLog10gtbulk.png"))
 
 ### NOTE: ! HARDCODED limits c(-0.3, 0) !
