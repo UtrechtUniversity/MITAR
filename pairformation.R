@@ -116,6 +116,7 @@ mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
 mycol <- c("black", brewer.pal(7, "Set1"))
 MyColorBrew <- brewer.pal(11, "Spectral") # see display.brewer.all()
 MyColorBrew2 <- brewer.pal(9, "YlOrRd")
+timesParmsEst <- seq(from = 0, to = 3, by = 0.1)
 myylim <- c(1E-4, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 runsimulation <- 1 # if runsimulation == 0, no simulation is run, and only the
@@ -160,6 +161,33 @@ ModelPairsNutr <- function(t, state, parms) {
     dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt - 10^(log10gt)*Mrt - w*Mrt
     dMtt <- 10^(log10gt)*Mrt - 10^(log10kn)*Mtt - w*Mtt
     return(list(c(dNutr, dD, dR, dTrans, dMdr, dMdt, dMrt, dMtt)))
+  })
+}
+
+# Model to approximate the bulk-conjugation rate of the donor.
+# Nutrients, growth, washout, conjugation from transconjugants, and Mtt-pairs
+# are not included in this model.
+ModelEstConjBulkDonor <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dD <- - 10^(log10kp)*D*R + 10^(log10kn)*(Mdr + Mdt)
+    dR <- - 10^(log10kp)*R*(D + Trans) + 10^(log10kn)*(Mdr + Mrt)
+    dTrans <- - 10^(log10kp)*R*Trans + 10^(log10kn)*(Mdt + Mrt)
+    dMdr <- 10^(log10kp)*D*R - 10^(log10kn)*Mdr - 10^(log10gd)*Mdr
+    dMdt <- 10^(log10gd)*Mdr - 10^(log10kn)*Mdt
+    dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt
+    return(list(c(dD, dR, dTrans, dMdr, dMdt, dMrt)))
+  })
+}
+
+# Model to approximate the bulk-conjugation rate of the transconjugant.
+# Nutrients, growth, washout, and donors are not included in this model.
+ModelEstConjBulkTrans <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dR <- - 10^(log10kp)*R*Trans + 10^(log10kn)*Mrt
+    dTrans <- - 10^(log10kp)*R*Trans + 10^(log10kn)*(Mrt + 2*Mtt)
+    dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt - 10^(log10gt)*Mrt
+    dMtt <- 10^(log10gt)*Mrt - 10^(log10kn)*Mtt
+    return(list(c(dR, dTrans, dMrt, dMtt)))
   })
 }
 
@@ -413,33 +441,32 @@ for(bRValue in bRSet) {
                     SignDomEigVal <- sign(DomEigVal)
                     SignEigValEqual <- identical(rep(SignDomEigVal, length(EigValEq)), sign(Re(EigValEq)))
                     
+                    # Run simulation with adjusted pair-formation models for a
+                    # short timespan and calculate approximations of gdbulk and
+                    # gtbulk from the output at t = 3 hours, following Zhong's
+                    # approach for the calculations. NOTE: I used timesteps of
+                    # 0.1 instead of 1, because 3 timesteps is too few to get
+                    # stable estimates. I did not use root- or eventfunctions
+                    # here because they lead to unstable behaviour (in the early
+                    # timesteps if invasion is possible, or over the whole
+                    # simulation if invasion is not possible), leading to
+                    # unstable estimates of gdbulk and gtbulk.
+                    stateDonor <- c(D = Dinit, R = RAna1, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+                    parmsEst <- tail(ode(t = timesParmsEst, y = stateDonor,
+                                  func = ModelEstConjBulkDonor, parms = parmspair), 1)
+                    TotalDparmsEst <- parmsEst[, "D"] + parmsEst[, "Mdr"] + parmsEst[, "Mdt"]
+                    TotalRparmsEst <- parmsEst[, "R"] + parmsEst[, "Mdr"] + parmsEst[, "Mrt"]
+                    gdbulk <- (10^log10gdValue) * parmsEst[, "Mdr"] / (TotalRparmsEst * TotalDparmsEst)
+
+                    stateTrans <- c(R = RAna1, Trans = Dinit, Mrt = 0, Mtt = 0)
+                    parmsEst <- tail(ode(t = timesParmsEst, y = stateTrans,
+                                  func = ModelEstConjBulkTrans, parms = parmspair), 1)
+                    TotalTparmsEst <- parmsEst[, "Trans"] + parmsEst[, "Mrt"] + 2*parmsEst[, "Mtt"]
+                    TotalRparmsEst <- parmsEst[, "R"] + parmsEst[, "Mrt"]
+                    gtbulk <- (10^log10gtValue) * parmsEst[, "Mrt"] / (TotalRparmsEst * TotalTparmsEst)
                     
-                    # Run simulation with pair-formation model for a short timespan to calculate
-                    # Zhong's approximation of gdbulk and gtbulk from the output of the pair-formation
-                    # model at t = 3 hours (NOTE: I used timesteps of 0.1 instead of 1, because
-                    # otherwise t=0 is the initial state, at t=1 the pairs are formed, at t=2 the pairs can interact,
-                    # and t=3 is used to calculate gdbulk and gtbulk;
-                    # Using root- and event function here leads to unstable behaviour (in the early timesteps if invasion is possible, or over the
-                    # whole simulation if invasion is not possible), leading to unstable estimates of
-                    # gdbulk and gtbulk)
-                    outpar <- tail(ode(t = seq(from = 0, to = 3, by = 0.1), y = state,
-                                       func = ModelPairsNutr, parms = parmspair), 1)
-                    
-                    
-                    bulkpar <- data.frame(
-                      time = outpar[, "time"],
-                      Mdr = outpar[, "Mdr"],
-                      Mrt = outpar[, "Mrt"],
-                      TotalD = outpar[, "D"] + outpar[, "Mdr"] + outpar[, "Mdt"],
-                      TotalR = outpar[, "R"] + outpar[, "Mdr"] + outpar[, "Mrt"],
-                      TotalT = outpar[, "Trans"] + outpar[, "Mdt"] + outpar[, "Mrt"] + 2*outpar[, "Mtt"]
-                    )
-                    bulkpar$gdbulk = (10^log10gdValue) * outpar[, "Mdr"] / (bulkpar$TotalR * bulkpar$TotalD)
-                    bulkpar$gtbulk = (10^log10gtValue) * outpar[, "Mrt"] / (bulkpar$TotalR * bulkpar$TotalT)
-                    gdbulk <- bulkpar$gdbulk
-                    gtbulk <- bulkpar$gtbulk
                     parmsBulk <- c(parmspair, gdbulk = gdbulk, gtbulk = gtbulk)
-                    
+
                     # Determine eigenvalues of the jacobian matrix of the plasmid-free equilibrium
                     # of the bulk-conjugation model. If only.values = FALSE, the eigenvectors are
                     # stored in $vectors. See ?jacobian.full() for an example.
