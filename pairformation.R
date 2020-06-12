@@ -119,9 +119,9 @@ MyColorBrew2 <- brewer.pal(9, "YlOrRd")
 timesParmsEst <- seq(from = 0, to = 3, by = 0.1)
 myylim <- c(1E-4, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
-runsimulation <- 1 # if runsimulation == 0, no simulation is run, and only the
+runsimulation <- 0 # if runsimulation == 0, no simulation is run, and only the
 # parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
-plotoutput <- 1
+plotoutput <- 0
 extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
 smallchange <- c(1E-5)
@@ -332,16 +332,16 @@ log10gtSet <- c(1.176)
 # log10gtSet <- c(1.176)
 
 # # Vary kp, kn, gd, gt, cd, and ct
-# DinitSet <- c(1E3)
-# bRSet <- c(1.7)
-# NISet <- c(10)
-# wSet <- c(0.04)
-# log10kpSet <- seq(from = -11, to = -5, by = 1)
-# log10knSet <- seq(from = -1, to = 3, by = 1)
-# cdSet <- c(0.01, 0.05)
-# ctSet <- c(0.01, 0.05)
-# log10gdSet <- c(1, 1.176)
-# log10gtSet <- c(1, 1.176)
+DinitSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- c(10)
+wSet <- c(0.04)
+log10kpSet <- seq(from = -11, to = -5, by = 0.1)
+log10knSet <- seq(from = -1, to = 3, by = 0.1)
+cdSet <- c(0.01, 0.025, 0.05)
+ctSet <- c(0.01, 0.025, 0.05)
+log10gdSet <- c(1, 1.176)
+log10gtSet <- c(1, 1.176)
 
 # # Extensive dataset
 # DinitSet <- c(1E3)
@@ -355,6 +355,16 @@ log10gtSet <- c(1.176)
 # log10gdSet <- c(1, 1.176)
 # log10gtSet <- c(1, 1.176)
 
+DinitSet <- c(500, 1E3)
+bRSet <- c(0.8, 1.7)
+NISet <- c(10, 100)
+wSet <- c(0.04, 0.06)
+log10kpSet <- seq(from = -11, to = -5, by = 1)
+log10knSet <- seq(from = -1, to = 3, by = 1)
+cdSet <- c(0.01, 0.05)
+ctSet <- c(0.01, 0.05)
+log10gdSet <- c(1, 1.176)
+log10gtSet <- c(1, 1.176)
 
 #### Create matrix to store data ####
 TotalIterations <- length(bRSet)*length(NISet)*length(log10kpSet)*
@@ -413,11 +423,44 @@ for(bRValue in bRSet) {
         
         for(log10kpValue in log10kpSet) {
           for(log10knValue in log10knSet) {            
-            for(cdValue in cdSet) {
-              for(ctValue in ctSet) {
-                for(log10gdValue in log10gdSet) {
-                  for(log10gtValue in log10gtSet) {
-                    
+            for(log10gdValue in log10gdSet) {
+              for(log10gtValue in log10gtSet) {  
+
+                parmsEstConjBulk <- c(bR = bRValue, NI = NIValue,
+                                      e = eValue, w = wValue,
+                                      log10kp = log10kpValue,
+                                      log10kn = log10knValue,
+                                      log10gd = log10gdValue,
+                                      log10gt = log10gtValue)
+                
+                # Run simulation with adjusted pair-formation models for a
+                # short timespan and calculate approximations of gdbulk and
+                # gtbulk from the output at t = 3 hours, following Zhong's
+                # approach for the calculations. NOTE: I used timesteps of
+                # 0.1 instead of 1, because 3 timesteps is too few to get
+                # stable estimates. I did not use root- or eventfunctions
+                # here because they lead to unstable behaviour (in the early
+                # timesteps if invasion is possible, or over the whole
+                # simulation if invasion is not possible), leading to
+                # unstable estimates of gdbulk and gtbulk.
+                
+                stateDonor <- c(D = Dinit, R = RAna1, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+                DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = stateDonor,
+                                     func = ModelEstConjBulkDonor, parms = parmsEstConjBulk), 1)
+                TotalDEstConjBulkDonor <- DataEstConjBulkDonor[, "D"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mdt"]
+                TotalREstConjBulkDonor <- DataEstConjBulkDonor[, "R"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mrt"]
+                gdbulk <- (10^log10gdValue) * DataEstConjBulkDonor[, "Mdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
+                
+                stateTrans <- c(R = RAna1, Trans = Dinit, Mrt = 0, Mtt = 0)
+                DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = stateTrans,
+                                     func = ModelEstConjBulkTrans, parms = parmsEstConjBulk), 1)
+                TotalTEstConjBulkTrans <- DataEstConjBulkTrans[, "Trans"] + DataEstConjBulkTrans[, "Mrt"] + 2*DataEstConjBulkTrans[, "Mtt"]
+                TotalREstConjBulkTrans <- DataEstConjBulkTrans[, "R"] + DataEstConjBulkTrans[, "Mrt"]
+                gtbulk <- (10^log10gtValue) * DataEstConjBulkTrans[, "Mrt"] / (TotalREstConjBulkTrans * TotalTEstConjBulkTrans)
+                
+                for(cdValue in cdSet) {
+                  for(ctValue in ctSet) {
+
                     CurrentIteration <- CurrentIteration + 1
                     if(round(CurrentIteration / 500) == CurrentIteration / 500) {
                       print(paste0("Current iteration = ", CurrentIteration,
@@ -430,6 +473,8 @@ for(bRValue in bRSet) {
                                    cd = cdValue, ct = ctValue, log10gd = log10gdValue,
                                    log10gt = log10gtValue)
                     
+                    parmsBulk <- c(parmspair, gdbulk = gdbulk, gtbulk = gtbulk)
+                    
                     # Numerically estimate the Jacobian matrix of the plasmid-free
                     # equilibrium of the pair-formation model, then calculate
                     # (or approximate?) the eigenvalues of this matrix.
@@ -441,32 +486,6 @@ for(bRValue in bRSet) {
                     SignDomEigVal <- sign(DomEigVal)
                     SignEigValEqual <- identical(rep(SignDomEigVal, length(EigValEq)), sign(Re(EigValEq)))
                     
-                    # Run simulation with adjusted pair-formation models for a
-                    # short timespan and calculate approximations of gdbulk and
-                    # gtbulk from the output at t = 3 hours, following Zhong's
-                    # approach for the calculations. NOTE: I used timesteps of
-                    # 0.1 instead of 1, because 3 timesteps is too few to get
-                    # stable estimates. I did not use root- or eventfunctions
-                    # here because they lead to unstable behaviour (in the early
-                    # timesteps if invasion is possible, or over the whole
-                    # simulation if invasion is not possible), leading to
-                    # unstable estimates of gdbulk and gtbulk.
-                    stateDonor <- c(D = Dinit, R = RAna1, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
-                    parmsEst <- tail(ode(t = timesParmsEst, y = stateDonor,
-                                  func = ModelEstConjBulkDonor, parms = parmspair), 1)
-                    TotalDparmsEst <- parmsEst[, "D"] + parmsEst[, "Mdr"] + parmsEst[, "Mdt"]
-                    TotalRparmsEst <- parmsEst[, "R"] + parmsEst[, "Mdr"] + parmsEst[, "Mrt"]
-                    gdbulk <- (10^log10gdValue) * parmsEst[, "Mdr"] / (TotalRparmsEst * TotalDparmsEst)
-
-                    stateTrans <- c(R = RAna1, Trans = Dinit, Mrt = 0, Mtt = 0)
-                    parmsEst <- tail(ode(t = timesParmsEst, y = stateTrans,
-                                  func = ModelEstConjBulkTrans, parms = parmspair), 1)
-                    TotalTparmsEst <- parmsEst[, "Trans"] + parmsEst[, "Mrt"] + 2*parmsEst[, "Mtt"]
-                    TotalRparmsEst <- parmsEst[, "R"] + parmsEst[, "Mrt"]
-                    gtbulk <- (10^log10gtValue) * parmsEst[, "Mrt"] / (TotalRparmsEst * TotalTparmsEst)
-                    
-                    parmsBulk <- c(parmspair, gdbulk = gdbulk, gtbulk = gtbulk)
-
                     # Determine eigenvalues of the jacobian matrix of the plasmid-free equilibrium
                     # of the bulk-conjugation model. If only.values = FALSE, the eigenvectors are
                     # stored in $vectors. See ?jacobian.full() for an example.
