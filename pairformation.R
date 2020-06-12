@@ -594,8 +594,14 @@ for(bRValue in bRSet) {
                       }
                     }
                     
-                    MyData[CurrentIteration, c(1:51)] <- unname(c(
-                      parmsBulk, Eq, EqAfterInvDonor, EqAfterInvDonorBulk,
+                    MyData[CurrentIteration, c(1:14)] <- unname(c(parmsBulk, Eq))
+                    if(runsimulation == 1) {
+                      MyData[CurrentIteration, c(15:28)] <- unname(c(
+                        EqAfterInvDonor, EqAfterInvDonorBulk))                      
+                    } else {
+                      MyData[CurrentIteration, c(15:28)] <- rep(NA, 14)
+                    }
+                    MyData[CurrentIteration, c(29:51)] <- unname(c(
                       EigValEq, DomEigVal, SignDomEigVal, SignEigValEqual,
                       ComplexEigVal, EigValEqBulk, DomEigValBulk,
                       SignDomEigValBulk, SignEigValEqualBulk,
@@ -610,7 +616,6 @@ for(bRValue in bRSet) {
     }
   }
 }
-
 
 BackupMyData <- MyData
 colnames(MyData) <- c(
