@@ -74,9 +74,6 @@
 # Run bulk-model for short time (same as short pair-model) and compare them
 # to see if the bulk-conjugation parameter holds (automated analysis somehow)
 
-# Change approximation of gtbulk to only include transconjugants and recipients
-# Change approximation of gdbulk to include as few as possible transconjugants (i.e., much donors and and recipients)
-
 # Remove more out of loop?
 # The runs which reach tmax were finished very quickly when I ran them
 # out of the loop (manually setting the variables to the right numbers).
@@ -674,6 +671,97 @@ MyData <- as.data.frame(MyData)
 write.csv(MyData, file = paste0(DateTimeStamp, "outputdeSolveChangedContact", ".csv"),
           quote = FALSE, row.names = FALSE)
 
+ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigVal)) + 
+  ggtitle("Sign dominant eigenvalue of the pair-formation model") +
+  geom_raster() + 
+  scale_fill_gradient2(midpoint = 0) +
+  facet_grid(cd + log10gd ~ ct + log10gt, labeller = label_both) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  labs(x = "log10(Attachment rate)",
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
+ggsave(paste0(DateTimeStamp, "outputSignDomEigValPair.png"))
+
+ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigValBulk)) + 
+  ggtitle("Sign dominant eigenvalue of the bulk-conjugation model") +
+  geom_raster() + 
+  scale_fill_gradient2(midpoint = 0) +
+  facet_grid(cd + log10gd ~ ct + log10gt, labeller = label_both) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  labs(x = "log10(Attachment rate)",
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
+ggsave(paste0(DateTimeStamp, "outputSignDomEigValBulk.png"))
+
+ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigVal / SignDomEigValBulk)) + 
+  ggtitle("Differences in sign of the dominant eigenvalue") +
+  geom_raster() + 
+  scale_fill_gradient2(midpoint = 0) +
+  facet_grid(cd + log10gd ~ ct + log10gt, labeller = label_both) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  labs(x = "log10(Attachment rate)",
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
+ggsave(paste0(DateTimeStamp, "outputSignDomEigVals.png"))
+
+summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
+summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
+
+summary(MyData$DomEigVal)
+summary(MyData$DomEigValBulk)
+DomEigVals <- c(MyData$DomEigVal, MyData$DomEigValBulk)
+summary(DomEigVals)
+
+limitseigenvalues <- log10(range(DomEigVals[DomEigVals > 0]))
+limitseigenvalues <- c(floor(limitseigenvalues[1]), ceiling(limitseigenvalues[2]))
+
+ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(DomEigVal))) + 
+  ggtitle("Dominant eigenvalues of the pair-formation model") +
+  geom_raster() + 
+  scale_fill_gradientn(colours = MyColorBrew, limits = limitseigenvalues) +
+  facet_grid(cd ~ ct, labeller = label_both) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  labs(x = "log10(Attachment rate)",
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
+ggsave(paste0(DateTimeStamp, "outputDomEigVal", ".png"))
+
+ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(DomEigValBulk))) + 
+  ggtitle("Dominant eigenvalues of the bulk-conjugation model") +
+  geom_raster() + 
+  scale_fill_gradientn(colours = MyColorBrew, limits = limitseigenvalues) +
+  facet_grid(cd ~ ct, labeller = label_both) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  labs(x = "log10(Attachment rate)",
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
+ggsave(paste0(DateTimeStamp, "outputDomEigValBulk", ".png"))
+
+limitsbulkrates <- c(floor(min(log10(c(MyData$gtbulk, MyData$gdbulk)))),
+                     ceiling(max(log10(c(MyData$gtbulk, MyData$gdbulk)))))
+
+ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(gdbulk))) + 
+  ggtitle("Bulk-conjugation rate from the donor") +
+  geom_raster() + 
+  scale_fill_gradientn(colours = MyColorBrew, limits = limitsbulkrates) +
+  facet_grid(cd + log10gd ~ ct + log10gt, labeller = label_both) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  labs(x = "log10(Attachment rate)",
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
+ggsave(paste0(DateTimeStamp, "outputLog10gdbulk.png"))
+
+ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(gtbulk))) + 
+  ggtitle("Bulk-conjugation rate from the transconjugant") +
+  geom_raster() + 
+  scale_fill_gradientn(colours = MyColorBrew, limits = limitsbulkrates) +
+  facet_grid(cd + log10gd ~ ct + log10gt, labeller = label_both) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  labs(x = "log10(Attachment rate)",
+       y = "log10(Detachment rate)",
+       caption = DateTimeStamp)
+ggsave(paste0(DateTimeStamp, "outputLog10gtbulk.png"))
+
 ## Some controls
 any(MyData$time == MyData$tmax) # simulation not complete
 length(which(MyData$time == MyData$tmax))
@@ -701,7 +789,7 @@ ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = BioEq / BioEqBulk)) +
   theme(legend.position = "bottom")
 
 # A <- ggplot(data = MyData, aes(x = log10kp, y = log10(PlasmidsEq))) +
-#   ggtitle("Invasion of donor in (R*, Mrr*, Nutr*)") +
+#   ggtitle("Invasion of donor in (R*, Nutr*)") +
 #   scale_x_continuous() +
 #   scale_y_continuous() +
 #   facet_grid(smallchange ~ log10kn, labeller = label_both) +
@@ -716,72 +804,9 @@ ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = BioEq / BioEqBulk)) +
 ## cd = 0.025, ct = c(0.01, 0.025, 0.05) (dus kleiner dan, gelijk aan, groter dan)
 ## en zelfdde voor gd en gt, dus gd = 15, gt = 10, 15, 20.
 
-# + scale_fill_viridis_c(option = "plasma")
-
 ### Plots controleren: facet_grid verschilt
 # Note that geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) 
 # only takes pair-formation model into account !
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigVal)) + 
-  ggtitle("Sign dominant eigenvalue of the pair-formation model") +
-  geom_raster() + 
-  scale_fill_gradient2(midpoint = 0) +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputSignDomEigVal.png"))
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigValBulk)) + 
-  ggtitle("Sign dominant eigenvalue of the bulk-conjugation model") +
-  geom_raster() + 
-  scale_fill_gradient2(midpoint = 0) +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputSignDomEigValBulk.png"))
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigVal / SignDomEigValBulk)) + 
-  ggtitle("Difference in sign of the dominant eigenvalue") +
-  geom_raster() + 
-  scale_fill_gradient2(midpoint = 0) +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom") +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputSignDomEigValRatio.png"))
-
-summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
-summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
-
-limitsbulkrates <- c(floor(min(log10(c(MyData$gtbulk, MyData$gdbulk)))),
-                     ceiling(max(log10(c(MyData$gtbulk, MyData$gdbulk)))))
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(gdbulk))) + 
-  ggtitle("Bulk-conjugation rate from the donor") +
-  geom_raster() + 
-  scale_fill_gradientn(colours = MyColorBrew, limits = limitsbulkrates) +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom") +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputLog10gdbulk.png"))
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(gtbulk))) + 
-  ggtitle("Bulk-conjugation rate from the transconjugant") +
-  geom_raster() + 
-  scale_fill_gradientn(colours = MyColorBrew, limits = limitsbulkrates) +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom") +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputLog10gtbulk.png"))
 
 ### NOTE: ! HARDCODED limits c(-0.3, 0) !
 if(length(log10gdSet)*length(log10gdSet) > 1) {
@@ -965,17 +990,6 @@ E <- ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignEigValEqual)
   theme(legend.position = "bottom")
 print(E)
 ggsave(paste0(DateTimeStamp, "outputEqualEigenvalues", ".png"), plot = E)
-
-G <- ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(DomEigVal))) + 
-  ggtitle("pair-formation model") +
-  geom_tile(colour = "white") + 
-  scale_fill_gradient(low = "red", high = "green") +
-  geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-  scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom")
-print(G)
-ggsave(paste0(DateTimeStamp, "outputDominantEigenvalues", ".png"), plot = G)
 
 ## An alternative way to highlight where equilibrium was not reached, but I could
 # not figure out how to include info on the rectangles in the legend, and the
