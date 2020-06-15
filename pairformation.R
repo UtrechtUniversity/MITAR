@@ -94,11 +94,6 @@
 # estimation of plasmid transfer rates for surface-associated and well-mixed
 # bacterial populations. Journal of Theoretical Biology 294:144-152.
 
-library(deSolve) # To solve differential equations
-library(rootSolve) # To get jacobian matrix for stability-analyses
-library(ggplot2) # For plotting data
-library(RColorBrewer) # For better color schemes
-
 # To read data from csv-file
 # FileName <- "2020_mei_28_10_outputdeSolveChangedContact_Samengevoegd.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
@@ -107,24 +102,6 @@ library(RColorBrewer) # For better color schemes
 # MyData <- as.data.frame(MyData)
 
 
-#### Plotting options ####
-mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
-# mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
-mycol <- c("black", brewer.pal(7, "Set1"))
-MyColorBrew <- brewer.pal(11, "Spectral") # see display.brewer.all()
-MyColorBrew2 <- brewer.pal(9, "YlOrRd")
-timesParmsEst <- seq(from = 0, to = 3, by = 0.1)
-myylim <- c(1E-4, 1E7) # Defining the limits for the y-axis
-yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
-runsimulation <- 0 # if runsimulation == 0, no simulation is run, and only the
-# parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
-plotoutput <- 0
-extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
-verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
-smallchange <- c(1E-5)
-Mytmax <- c(1E5)
-Mytstep <- c(10)
-eValue <- c(1E-6)
 
 #### Model functions ####
 # Model a population of plasmid-free recipients with nutrients. I do not use
@@ -158,21 +135,6 @@ ModelPairsNutr <- function(t, state, parms) {
     dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt - 10^(log10gt)*Mrt - w*Mrt
     dMtt <- 10^(log10gt)*Mrt - 10^(log10kn)*Mtt - w*Mtt
     return(list(c(dNutr, dD, dR, dTrans, dMdr, dMdt, dMrt, dMtt)))
-  })
-}
-
-# Model to approximate the bulk-conjugation rate of the donor.
-# Nutrients, growth, washout, conjugation from transconjugants, and Mtt-pairs
-# are not included in this model.
-ModelEstConjBulkDonor <- function(t, state, parms) {
-  with(as.list(c(state, parms)), {
-    dD <- - 10^(log10kp)*D*R + 10^(log10kn)*(Mdr + Mdt)
-    dR <- - 10^(log10kp)*R*(D + Trans) + 10^(log10kn)*(Mdr + Mrt)
-    dTrans <- - 10^(log10kp)*R*Trans + 10^(log10kn)*(Mdt + Mrt)
-    dMdr <- 10^(log10kp)*D*R - 10^(log10kn)*Mdr - 10^(log10gd)*Mdr
-    dMdt <- 10^(log10gd)*Mdr - 10^(log10kn)*Mdt
-    dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt
-    return(list(c(dD, dR, dTrans, dMdr, dMdt, dMrt)))
   })
 }
 
@@ -279,6 +241,8 @@ cdSet <- c(0.05)
 ctSet <- c(0.05)
 log10gdSet <- c(1.176)
 log10gtSet <- c(1.176)
+NutrConv <- c(1E-6)
+
 
 # Single run, invasion possible
 DinitSet <- c(1E3)
@@ -291,6 +255,7 @@ cdSet <- c(0.05)
 ctSet <- c(0.05)
 log10gdSet <- c(1.176)
 log10gtSet <- c(1.176)
+NutrConv <- c(1E-6)
 
 # Vary kp
 DinitSet <- c(1E3)
@@ -303,6 +268,7 @@ cdSet <- c(0.05)
 ctSet <- c(0.05)
 log10gdSet <- c(1.176)
 log10gtSet <- c(1.176)
+NutrConv <- c(1E-6)
 
 # # Vary kp and kn
 # DinitSet <- c(1E3)
@@ -315,6 +281,7 @@ log10gtSet <- c(1.176)
 # ctSet <- c(0.05)
 # log10gdSet <- c(1.176)
 # log10gtSet <- c(1.176)
+# NutrConv <- c(1E-6)
 
 # # Vary kp, kn, cd, and ct
 # DinitSet <- c(1E3)
@@ -327,6 +294,7 @@ log10gtSet <- c(1.176)
 # ctSet <- c(0.01, 0.05)
 # log10gdSet <- c(1.176)
 # log10gtSet <- c(1.176)
+# NutrConv <- c(1E-6)
 
 # # Vary kp, kn, gd, gt, cd, and ct
 DinitSet <- c(1E3)
@@ -339,6 +307,7 @@ cdSet <- c(0.01, 0.025, 0.05)
 ctSet <- c(0.01, 0.025, 0.05)
 log10gdSet <- c(1, 1.176)
 log10gtSet <- c(1, 1.176)
+NutrConv <- c(1E-6)
 
 # # Extensive dataset
 # DinitSet <- c(1E3)
@@ -351,11 +320,10 @@ log10gtSet <- c(1, 1.176)
 # ctSet <- c(0.01, 0.025, 0.05)
 # log10gdSet <- c(1, 1.176)
 # log10gtSet <- c(1, 1.176)
+# NutrConv <- c(1E-6)
 
-DinitSet <- c(500, 1E3)
-bRSet <- c(0.8, 1.7)
-NISet <- c(10, 100)
-wSet <- c(0.04, 0.06)
+
+DinitSet <- c(1E3)
 log10kpSet <- seq(from = -11, to = -5, by = 1)
 log10knSet <- seq(from = -1, to = 3, by = 1)
 cdSet <- c(0.01, 0.05)
@@ -364,6 +332,11 @@ log10gdSet <- c(1, 1.176)
 log10gtSet <- c(1, 1.176)
 
 #### Create matrix to store data ####
+Mydf <- expand.grid(Dinit = DinitSet, bR = bRSet, NI = NISet, w = wSet, log10kpSet = log10kpSet,
+                    log10knSet = log10knSet, cdSet = cdSet, ctSet = ctSet,
+                    log10gdSet = log10gdSet, log10gtSet = log10gtSet, KEEP.OUT.ATTRS = FALSE)
+
+
 TotalIterations <- length(bRSet)*length(NISet)*length(log10kpSet)*
   length(log10knSet)*length(wSet)*length(DinitSet)*length(cdSet)*length(ctSet)*
   length(log10gdSet)*length(log10gtSet)
@@ -392,68 +365,283 @@ if(runsimulation == 1) {
   times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep)) 
 }
 
-for(bRValue in bRSet) {
-  for(NIValue in NISet) {
-    for(wValue in wSet) {
-      for(Dinit in DinitSet) {
-        
-        # Calculate the plasmid-free equilibrium (R*, Nutr*)
-        RAna1 <- ((NIValue - wValue / bRValue)) / eValue
-        NutrAna <- wValue/bRValue
-        
-        # Check if plasmid-free equilibrium is positive, warn if not.
-        # Store equilibria for determination of stability, add donors 
-        # to make state the starting point for simulations.
-        if(RAna1 <= 0) {
-          cat("ERROR: equilibrium condition is not positive!\n",
-              "Increase the nutrient concentration in the inflowing liquid?\n")
-        } else {
-          Eq <- c(Nutr = NutrAna, R = RAna1)
-          EqFull <- c(Nutr = NutrAna, D = 0, R = RAna1, Trans = 0,
-                      Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0) 
-          state <- EqFull
-          state["D"] <- Dinit
-          EqFullBulk <- c(Nutr = NutrAna, D = 0, R = RAna1, Trans = 0)
-          stateBulk <- EqFullBulk
-          stateBulk["D"] <- Dinit
-        }
-        
-        for(log10kpValue in log10kpSet) {
-          for(log10knValue in log10knSet) {            
-            for(log10gdValue in log10gdSet) {
-              for(log10gtValue in log10gtSet) {  
+################################################################################
 
-                parmsEstConjBulk <- c(bR = bRValue, NI = NIValue,
-                                      e = eValue, w = wValue,
-                                      log10kp = log10kpValue,
-                                      log10kn = log10knValue,
-                                      log10gd = log10gdValue,
-                                      log10gt = log10gtValue)
+library(deSolve) # To solve differential equations
+library(rootSolve) # To get jacobian matrix for stability-analyses
+library(tidyr) # for 'expand.grid()' with dataframe as input
+library(dplyr)
+library(ggplot2) # For plotting data
+library(RColorBrewer) # For better color schemes
+
+#### Plotting options ####
+mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
+# mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
+mycol <- c("black", brewer.pal(7, "Set1"))
+MyColorBrew <- brewer.pal(11, "Spectral") # see display.brewer.all()
+MyColorBrew2 <- brewer.pal(9, "YlOrRd")
+timesParmsEst <- seq(from = 0, to = 3, by = 0.1)
+myylim <- c(1E-4, 1E7) # Defining the limits for the y-axis
+yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
+runsimulation <- 0 # if runsimulation == 0, no simulation is run, and only the
+# parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
+plotoutput <- 0
+extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
+verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
+smallchange <- c(1E-5)
+Mytmax <- c(1E5)
+Mytstep <- c(10)
+# Model to approximate the bulk-conjugation rate of the donor.
+# Nutrients, growth, washout, conjugation from transconjugants, and Mtt-pairs
+# are not included in this model.
+ModelEstConjBulkDonor <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dD <- - 10^(log10kp)*D*R + 10^(log10kn)*(Mdr + Mdt)
+    dR <- - 10^(log10kp)*R*(D + Trans) + 10^(log10kn)*(Mdr + Mrt)
+    dTrans <- - 10^(log10kp)*R*Trans + 10^(log10kn)*(Mdt + Mrt)
+    dMdr <- 10^(log10kp)*D*R - 10^(log10kn)*Mdr - 10^(log10gd)*Mdr
+    dMdt <- 10^(log10gd)*Mdr - 10^(log10kn)*Mdt
+    dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt
+    return(list(c(dD, dR, dTrans, dMdr, dMdt, dMrt)))
+  })
+}
+
+## Small parameterset for tests
+bRSet <- c(1.7)
+NISet <- c(10, 100)
+wSet <- c(0.04)
+NutrConv <- c(1E-6)
+log10kpSet <- c(-10, -6)
+log10knSet <- c(0.3)
+cdSet <- c(0.05)
+ctSet <- c(0.01, 0.05)
+log10gdSet <- c(1.176)
+log10gtSet <- c(1.176)
+Dinit <- 1000
+
+## Calculate plasmid-free equilibrium for all parameter combinations
+MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
+if(any(MyData <= 0)) warning("All parameters should have positive values.")
+
+# Calculate the plasmid-free equilibrium (R*, Nutr*)
+
+calceqplasmidfree <- function(MyData) {
+  with(as.list(MyData), {
+    REq <- ((NI - w / bR)) / NutrConv
+    NutrEq <- w / bR
+    Eq <- c(NutrEq = NutrEq, REq = REq)
+    return(Eq)
+  })
+}
+
+dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = calceqplasmidfree)
+dfeqplasmidfree <- t(dfeqplasmidfree)     # ToDo: change the function to get the transpose as output
+
+# Check if plasmid-free equilibrium is positive, warn if not.
+if(any(dfeqplasmidfree[, "REq"] <= 0)) warning("The number of recipients at equilibrium is not positive!
+Increase the nutrient concentration in the inflowing liquid by changing NI?")
+
+MyData <- cbind(MyData, dfeqplasmidfree)
+
+# Add combinations with the parameters needed to approximate gdbulk and gtbulk to MyData and MyData
+MyData <- expand_grid(MyData, log10kp = log10kpSet, log10kn = log10knSet,
+                       log10gd = log10gdSet, log10gt = log10gtSet, Dinit = Dinit)
+
+## Test if nesting ode(...) in another function (to be used by apply(...)) works on a single row
+state <- c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0) # HARDCODED R abundance !!!
+parms <- MyData[1, ]
+
+# werkt
+DataEstConjBulkDonor <- ode(t = timesParmsEst, y = state, func = ModelEstConjBulkDonor, parms = parms)
+
+# Nu de bovenstaande regel vanuit een functie doen
+SolveONEode <- function(Test) {
+  stateTest <- c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+  parmsTest <- MyData[1, ]
+  DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = stateTest,
+                                   func = ModelEstConjBulkDonor, parms = parmsTest), 1)
+  return(DataEstConjBulkDonor)
+}
+
+# Dit werkt ook
+TestReturn <- SolveONEode(3)
+
+SolveONEode <- function(Test) {
+  stateTest <- c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+  parmsTest <- MyData
+  DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = stateTest,
+                                   func = ModelEstConjBulkDonor, parms = parmsTest), 1)
+  return(DataEstConjBulkDonor)
+}
+
+
+# En dan daar met (l?)apply omheen werken (en de [1, ] na MyData weghalen)
+resultsolvingodes <- t(apply(X = MyData, MARGIN = 1, FUN = SolveONEode))
+
+# Controleren door met hand alle 4 na te rekenen
+out1 <- tail(ode(t = timesParmsEst, y = c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
+                func = ModelEstConjBulkDonor, parms = MyData[1, ]), 1)
+out2 <- tail(ode(t = timesParmsEst, y = c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
+                 func = ModelEstConjBulkDonor, parms = MyData[2, ]), 1)
+out3 <- tail(ode(t = timesParmsEst, y = c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
+                 func = ModelEstConjBulkDonor, parms = MyData[3, ]), 1)
+out4 <- tail(ode(t = timesParmsEst, y = c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
+                 func = ModelEstConjBulkDonor, parms = MyData[4, ]), 1)
+outtot <- rbind(out1, out2, out3, out4)
+
+names(resultsolvingodes) <- names(outtot)
+resultsolvingodes
+outtot
+
+
+head(out1)
+tail(out1)
+matplot.deSolve(out1, log = "y")
+grid()
+
+
+
+solveodes <- function(MyData) {
+  with(as.list(timesParmsEst, state, parms), {
+    state <- c(D = Dinit, R = REq, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    out <- tail(ode(t = timesParmsEst, y = state, func = ModelEstConjBulkDonor, parms = MyData), 1)
+    return(out)
+  })
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+solveodes(parms)
+
+
+for(mycounter in 1:nrow(MyData)) {
+  out <- tail(ode(t = timesParmsEst, y = state, func = ModelEstConjBulkDonor, parms = MyData[mycounter, ]), 1)
+  print(out)
+}
+
+
+solveodes <- function(MyData) {
+  with(as.list(state, timesParmsEst, stateDonor, MyData), {
+    state <- c(D = Dinit, R = REq, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    out <- tail(ode(t = timesParmsEst, y = state, func = ModelEstConjBulkDonor, parms = MyData), 1)
+    return(out)
+  })
+}
+
+
+resultsolvingodes <- t(apply(X = MyData, MARGIN = 1, FUN = solveodes))
+
+
+
+
+
+# Erin: times, state, model, MyData
+# Eruit: een opgelost ODE voor elke rij in MyData
+
+
+solveodemoreiterations <- function(MyData) {
+  out <- ode(t = timesParmsEst, y = stateDonor, func = ModelEstConjBulkDonor, parms = MyData)
+  return(out)
+}
+  
+dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = solveodemoreiterations)
+
+DataEstConjBulkDonor <- 
+
+
+
+
+
+dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = DataEstConjBulkDonor)
+
+
+
+
+
+parmsEstConjBulk <- c(bR = bR, NI = NI,
+                      e = NutrConv, w = w,
+                      log10kp = log10kp,
+                      log10kn = log10kn,
+                      log10gd = log10gd,
+                      log10gt = log10gt)
+
+# Run simulation with adjusted pair-formation models for a
+# short timespan and calculate approximations of gdbulk and
+# gtbulk from the output at t = 3 hours, following Zhong's
+# approach for the calculations. NOTE: I used timesteps of
+# 0.1 instead of 1, because 3 timesteps is too few to get
+# stable estimates. I did not use root- or eventfunctions
+# here because they lead to unstable behaviour (in the early
+# timesteps if invasion is possible, or over the whole
+# simulation if invasion is not possible), leading to
+# unstable estimates of gdbulk and gtbulk.
+
+determinegdbulk <- function(MyData) {
+  with(as.list(MyData), {
+    
+    TotalDEstConjBulkDonor <- DataEstConjBulkDonor[, "D"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mdt"]
+    TotalREstConjBulkDonor <- DataEstConjBulkDonor[, "R"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mrt"]
+    gdbulk <- (10^log10gd) * DataEstConjBulkDonor[, "Mdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
+    return(gdbulk)
+  })
+}
+
+
+
+DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = stateDonor,
+                                 func = ModelEstConjBulkDonor, parms = parmsEstConjBulk), 1)
+TotalDEstConjBulkDonor <- DataEstConjBulkDonor[, "D"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mdt"]
+TotalREstConjBulkDonor <- DataEstConjBulkDonor[, "R"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mrt"]
+gdbulk <- (10^log10gdValue) * DataEstConjBulkDonor[, "Mdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
+
+stateTrans <- c(R = RAna1, Trans = Dinit, Mrt = 0, Mtt = 0)
+DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = stateTrans,
+                                 func = ModelEstConjBulkTrans, parms = parmsEstConjBulk), 1)
+TotalTEstConjBulkTrans <- DataEstConjBulkTrans[, "Trans"] + DataEstConjBulkTrans[, "Mrt"] + 2*DataEstConjBulkTrans[, "Mtt"]
+TotalREstConjBulkTrans <- DataEstConjBulkTrans[, "R"] + DataEstConjBulkTrans[, "Mrt"]
+gtbulk <- (10^log10gtValue) * DataEstConjBulkTrans[, "Mrt"] / (TotalREstConjBulkTrans * TotalTEstConjBulkTrans)
+
+
                 
-                # Run simulation with adjusted pair-formation models for a
-                # short timespan and calculate approximations of gdbulk and
-                # gtbulk from the output at t = 3 hours, following Zhong's
-                # approach for the calculations. NOTE: I used timesteps of
-                # 0.1 instead of 1, because 3 timesteps is too few to get
-                # stable estimates. I did not use root- or eventfunctions
-                # here because they lead to unstable behaviour (in the early
-                # timesteps if invasion is possible, or over the whole
-                # simulation if invasion is not possible), leading to
-                # unstable estimates of gdbulk and gtbulk.
                 
-                stateDonor <- c(D = Dinit, R = RAna1, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
-                DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = stateDonor,
-                                     func = ModelEstConjBulkDonor, parms = parmsEstConjBulk), 1)
-                TotalDEstConjBulkDonor <- DataEstConjBulkDonor[, "D"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mdt"]
-                TotalREstConjBulkDonor <- DataEstConjBulkDonor[, "R"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mrt"]
-                gdbulk <- (10^log10gdValue) * DataEstConjBulkDonor[, "Mdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
+                # # Store equilibria for determination of stability, add donors 
+                # # to make state the starting point for simulations.
+                # 
+                # EqFull <- c(Nutr = NutrAna, D = 0, R = RAna1, Trans = 0,
+                #             Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0) 
+                # state <- EqFull
+                # state["D"] <- Dinit
+                # EqFullBulk <- c(Nutr = NutrAna, D = 0, R = RAna1, Trans = 0)
+                # stateBulk <- EqFullBulk
+                # stateBulk["D"] <- Dinit
                 
-                stateTrans <- c(R = RAna1, Trans = Dinit, Mrt = 0, Mtt = 0)
-                DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = stateTrans,
-                                     func = ModelEstConjBulkTrans, parms = parmsEstConjBulk), 1)
-                TotalTEstConjBulkTrans <- DataEstConjBulkTrans[, "Trans"] + DataEstConjBulkTrans[, "Mrt"] + 2*DataEstConjBulkTrans[, "Mtt"]
-                TotalREstConjBulkTrans <- DataEstConjBulkTrans[, "R"] + DataEstConjBulkTrans[, "Mrt"]
-                gtbulk <- (10^log10gtValue) * DataEstConjBulkTrans[, "Mrt"] / (TotalREstConjBulkTrans * TotalTEstConjBulkTrans)
+                
+                
                 
                 for(cdValue in cdSet) {
                   for(ctValue in ctSet) {
@@ -465,7 +653,7 @@ for(bRValue in bRSet) {
                                    format(Sys.time(), format = "%H:%M:%S")))
                     }
                     
-                    parmspair <- c(bR = bRValue, NI = NIValue, e = eValue, w = wValue,
+                    parmspair <- c(bR = bRValue, NI = NIValue, e = NutrConv, w = wValue,
                                    log10kp = log10kpValue, log10kn = log10knValue, 
                                    cd = cdValue, ct = ctValue, log10gd = log10gdValue,
                                    log10gt = log10gtValue)
@@ -535,7 +723,7 @@ for(bRValue in bRSet) {
                                                  " NI=", NIValue,
                                                  " log10kp=", log10kpValue,
                                                  " log10kn=", log10knValue,
-                                                 " e=", eValue,
+                                                 " e=", NutrConv,
                                                  " w=", wValue,
                                                  " cd=", cdValue,
                                                  " ct=", ctValue,
@@ -590,7 +778,7 @@ for(bRValue in bRSet) {
                                                  " NI=", NIValue,
                                                  " log10kp=", log10kpValue,
                                                  " log10kn=", log10knValue,
-                                                 " e=", eValue,
+                                                 " e=", NutrConv,
                                                  " w=", wValue,
                                                  " cd=", cdValue,
                                                  " ct=", ctValue,
@@ -624,14 +812,7 @@ for(bRValue in bRSet) {
                       ComplexEigValBulk, smallchange, Mytmax, Mytstep))
                   }
                 }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
+
 
 BackupMyData <- MyData
 colnames(MyData) <- c(
