@@ -419,6 +419,18 @@ log10gdSet <- c(1.176)
 log10gtSet <- c(1.176)
 DinitSet <- 1000
 
+## Large dataset for tests
+DinitSet <- c(1E3)
+bRSet <- c(0.6, 1.7)
+NISet <- c(10, 100)
+wSet <- c(0.04)
+NutrConv <- c(1e-6)
+log10kpSet <- seq(from = -11, to = -5, by = 1)
+log10knSet <- seq(from = -1, to = 3, by = 1)
+log10gdSet <- c(1, 1.176)
+log10gtSet <- c(1, 1.176)
+
+
 ## Calculate plasmid-free equilibrium for all parameter combinations
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
 if(any(MyData <= 0)) warning("All parameters should have positive values.")
@@ -443,169 +455,50 @@ Increase the nutrient concentration in the inflowing liquid by changing NI?")
 
 MyData <- cbind(MyData, dfeqplasmidfree)
 
-# Add combinations with the parameters needed to approximate gdbulk and gtbulk to MyData and MyData
-MyData <- expand_grid(MyData, log10kp = log10kpSet, log10kn = log10knSet,
-                       log10gd = log10gdSet, log10gt = log10gtSet, Dinit = DinitSet)
-
-EstConjBulkDonor <- function(MyData) {
-  stateTest <- c(D = MyData[["Dinit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
-  parmsTest <- MyData
-  DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = stateTest,
-                                   func = ModelEstConjBulkDonor, parms = parmsTest), 1)
-  print("DataEstConjBulkDonor=")
-  print(DataEstConjBulkDonor)
-  return(DataEstConjBulkDonor)
-}
-
-resultsolvingodes <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulkDonor)
-transposeresultsolvingodes <- t(resultsolvingodes)
-
-
-# Controleren door met hand alle 4 na te rekenen
-out1 <- tail(ode(t = timesParmsEst, y = c(D = MyData[[1, "Dinit"]], R =  MyData[[1, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
-                 func = ModelEstConjBulkDonor, parms = MyData[1, ]), 1)
-out2 <- tail(ode(t = timesParmsEst, y = c(D = MyData[[2, "Dinit"]], R =  MyData[[2, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
-                 func = ModelEstConjBulkDonor, parms = MyData[2, ]), 1)
-out3 <- tail(ode(t = timesParmsEst, y = c(D = MyData[[3, "Dinit"]], R =  MyData[[3, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
-                 func = ModelEstConjBulkDonor, parms = MyData[3, ]), 1)
-out4 <- tail(ode(t = timesParmsEst, y = c(D = MyData[[4, "Dinit"]], R =  MyData[[4, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
-                 func = ModelEstConjBulkDonor, parms = MyData[4, ]), 1)
-outtot <- rbind(out1, out2, out3, out4)
-
-
-
-
-
-
-
-
 # Note on indexing of tibbles: use MyData[[1, "REq"]] to return a vector (MyData[1, "REq"] returns a LIST)
 # See is.vector(state) and is.numeric(state)
 # Using MyData$Dinit[i] in a loop does work with tibbles as well
 
+# Add combinations with the parameters needed to approximate gdbulk and gtbulk to MyData
+MyData <- expand_grid(MyData, log10kp = log10kpSet, log10kn = log10knSet,
+                       log10gd = log10gdSet, log10gt = log10gtSet, Dinit = DinitSet)
 
+# ToDo: try to find method to obtain the order in which I specify the state from EstConjBulkDonor
+# or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object.
 
-names(resultsolvingodes) <- names(outtot)
-resultsolvingodes
-outtot
-
-
-head(out1)
-tail(out1)
-matplot.deSolve(out1, log = "y")
-grid()
-
-
-
-solveodes <- function(MyData) {
-  with(as.list(timesParmsEst, state, parms), {
-    state <- c(D = Dinit, R = REq, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
-    out <- tail(ode(t = timesParmsEst, y = state, func = ModelEstConjBulkDonor, parms = MyData), 1)
-    return(out)
-  })
+# Run simulation with adjusted pair-formation models for a short timespan and
+# calculate approximations of gdbulk and gtbulk from the output at t = 3 hours,
+# following Zhong's approach for the calculations. NOTE: I used timesteps of 0.1
+# instead of 1, because 3 timesteps is too few to get stable estimates. I did
+# not use root- or eventfunctions here because they lead to unstable behaviour
+# (in the early timesteps if invasion is possible, or over the whole simulation
+# if invasion is not possible), leading to unstable estimates of gdbulk and
+# gtbulk.
+EstConjBulkDonor <- function(MyData) {
+  state <- c(D = MyData[["Dinit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+  parms <- MyData
+  DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
+                                   func = ModelEstConjBulkDonor, parms = parms), 1)
+  #print("DataEstConjBulkDonor=")
+  #print(DataEstConjBulkDonor)
+  return(DataEstConjBulkDonor)
 }
 
+DataEstConjBulkDonor <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulkDonor)
+DataEstConjBulkDonor <- t(DataEstConjBulkDonor)
+colnames(DataEstConjBulkDonor) <- c("time", "D", "R", "Trans", "Mdr", "Mdt", "Mrt")
+
+TotalDEstConjBulkDonor <- DataEstConjBulkDonor[, "D"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mdt"]
+TotalREstConjBulkDonor <- DataEstConjBulkDonor[, "R"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mrt"]
+gdbulk <- (10^MyData[, "log10gd"]) * DataEstConjBulkDonor[, "Mdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
+gdbulk <- unname(gdbulk)
+MyData <- cbind(MyData, gdbulk = gdbulk)
+MyData
+
+# This works and results of gdbulk are identical to those of earlier versions of the script containing the nested for-loops.
+write.csv(MyData, file = "Calculategdbulkapply.csv", quote = FALSE, row.names = FALSE)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-solveodes(parms)
-
-
-for(mycounter in 1:nrow(MyData)) {
-  out <- tail(ode(t = timesParmsEst, y = state, func = ModelEstConjBulkDonor, parms = MyData[mycounter, ]), 1)
-  print(out)
-}
-
-
-solveodes <- function(MyData) {
-  with(as.list(state, timesParmsEst, stateDonor, MyData), {
-    state <- c(D = Dinit, R = REq, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
-    out <- tail(ode(t = timesParmsEst, y = state, func = ModelEstConjBulkDonor, parms = MyData), 1)
-    return(out)
-  })
-}
-
-
-resultsolvingodes <- t(apply(X = MyData, MARGIN = 1, FUN = solveodes))
-
-
-
-
-
-# Erin: times, state, model, MyData
-# Eruit: een opgelost ODE voor elke rij in MyData
-
-
-solveodemoreiterations <- function(MyData) {
-  out <- ode(t = timesParmsEst, y = stateDonor, func = ModelEstConjBulkDonor, parms = MyData)
-  return(out)
-}
-  
-dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = solveodemoreiterations)
-
-DataEstConjBulkDonor <- 
-
-
-
-
-
-dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = DataEstConjBulkDonor)
-
-
-
-
-
-parmsEstConjBulk <- c(bR = bR, NI = NI,
-                      e = NutrConv, w = w,
-                      log10kp = log10kp,
-                      log10kn = log10kn,
-                      log10gd = log10gd,
-                      log10gt = log10gt)
-
-# Run simulation with adjusted pair-formation models for a
-# short timespan and calculate approximations of gdbulk and
-# gtbulk from the output at t = 3 hours, following Zhong's
-# approach for the calculations. NOTE: I used timesteps of
-# 0.1 instead of 1, because 3 timesteps is too few to get
-# stable estimates. I did not use root- or eventfunctions
-# here because they lead to unstable behaviour (in the early
-# timesteps if invasion is possible, or over the whole
-# simulation if invasion is not possible), leading to
-# unstable estimates of gdbulk and gtbulk.
-
-determinegdbulk <- function(MyData) {
-  with(as.list(MyData), {
-    
-    TotalDEstConjBulkDonor <- DataEstConjBulkDonor[, "D"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mdt"]
-    TotalREstConjBulkDonor <- DataEstConjBulkDonor[, "R"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mrt"]
-    gdbulk <- (10^log10gd) * DataEstConjBulkDonor[, "Mdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
-    return(gdbulk)
-  })
-}
 
 
 
