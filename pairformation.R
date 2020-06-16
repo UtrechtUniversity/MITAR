@@ -138,18 +138,6 @@ ModelPairsNutr <- function(t, state, parms) {
   })
 }
 
-# Model to approximate the bulk-conjugation rate of the transconjugant.
-# Nutrients, growth, washout, and donors are not included in this model.
-ModelEstConjBulkTrans <- function(t, state, parms) {
-  with(as.list(c(state, parms)), {
-    dR <- - 10^(log10kp)*R*Trans + 10^(log10kn)*Mrt
-    dTrans <- - 10^(log10kp)*R*Trans + 10^(log10kn)*(Mrt + 2*Mtt)
-    dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt - 10^(log10gt)*Mrt
-    dMtt <- 10^(log10gt)*Mrt - 10^(log10kn)*Mtt
-    return(list(c(dR, dTrans, dMrt, dMtt)))
-  })
-}
-
 # The bulk-conjugation model
 ModelBulkNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
@@ -406,6 +394,18 @@ ModelEstConjBulkDonor <- function(t, state, parms) {
   })
 }
 
+# Model to approximate the bulk-conjugation rate of the transconjugant.
+# Nutrients, growth, washout, and donors are not included in this model.
+ModelEstConjBulkTrans <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dR <- - 10^(log10kp)*R*Trans + 10^(log10kn)*Mrt
+    dTrans <- - 10^(log10kp)*R*Trans + 10^(log10kn)*(Mrt + 2*Mtt)
+    dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt - 10^(log10gt)*Mrt
+    dMtt <- 10^(log10gt)*Mrt - 10^(log10kn)*Mtt
+    return(list(c(dR, dTrans, dMrt, dMtt)))
+  })
+}
+
 ## Small parameterset for tests
 bRSet <- c(1.7)
 NISet <- c(10, 100)
@@ -420,18 +420,21 @@ log10gtSet <- c(1.176)
 DinitSet <- 1000
 
 ## Large dataset for tests
-DinitSet <- c(1E3)
-bRSet <- c(0.6, 1.7)
+DinitSet <- c(500, 1E3)
+bRSet <- c(0.8, 1.7)
 NISet <- c(10, 100)
-wSet <- c(0.04)
-NutrConv <- c(1e-6)
-log10kpSet <- seq(from = -11, to = -5, by = 1)
-log10knSet <- seq(from = -1, to = 3, by = 1)
-log10gdSet <- c(1, 1.176)
-log10gtSet <- c(1, 1.176)
+eValue <- 1e-6
+wSet <- c(0.04, 0.06)
+log10kpSet <- seq(from = -11, to = -5, by = 0.25)
+log10knSet <- seq(from = -1, to = 3, by = 0.25)
+cdSet <- c(0.05)
+ctSet <- c(0.05)
+# log10gdSet <- c(1, 1.176)
+# log10gtSet <- c(1, 1.176)
 
-
+system.time({
 ## Calculate plasmid-free equilibrium for all parameter combinations
+NutrConv <- 1e-6
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
 if(any(MyData <= 0)) warning("All parameters should have positive values.")
 
@@ -479,8 +482,8 @@ EstConjBulkDonor <- function(MyData) {
   parms <- MyData
   DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
                                    func = ModelEstConjBulkDonor, parms = parms), 1)
-  #print("DataEstConjBulkDonor=")
-  #print(DataEstConjBulkDonor)
+  # print("DataEstConjBulkDonor=")
+  # print(DataEstConjBulkDonor)
   return(DataEstConjBulkDonor)
 }
 
@@ -496,26 +499,36 @@ MyData <- cbind(MyData, gdbulk = gdbulk)
 MyData
 
 # This works and results of gdbulk are identical to those of earlier versions of the script containing the nested for-loops.
-write.csv(MyData, file = "Calculategdbulkapply.csv", quote = FALSE, row.names = FALSE)
 
+# Now do the same for calculation of gtbulk
 
+EstConjBulkTrans <- function(MyData) {
+  state <- c(R = MyData[["REq"]], Trans = MyData[["Dinit"]], Mrt = 0, Mtt = 0)
+  parms <- MyData
+  DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = state,
+                                   func = ModelEstConjBulkTrans, parms = parms), 1)
+  # print("DataEstConjBulkTrans=")
+  # print(DataEstConjBulkTrans)
+  return(DataEstConjBulkTrans)
+}
 
+DataEstConjBulkTrans <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulkTrans)
+DataEstConjBulkTrans <- t(DataEstConjBulkTrans)
+colnames(DataEstConjBulkTrans) <- c("time", "R", "Trans", "Mrt", "Mtt")
+DataEstConjBulkTrans
 
-
-DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = stateDonor,
-                                 func = ModelEstConjBulkDonor, parms = parmsEstConjBulk), 1)
-TotalDEstConjBulkDonor <- DataEstConjBulkDonor[, "D"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mdt"]
-TotalREstConjBulkDonor <- DataEstConjBulkDonor[, "R"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mrt"]
-gdbulk <- (10^log10gdValue) * DataEstConjBulkDonor[, "Mdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
-
-stateTrans <- c(R = RAna1, Trans = Dinit, Mrt = 0, Mtt = 0)
-DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = stateTrans,
-                                 func = ModelEstConjBulkTrans, parms = parmsEstConjBulk), 1)
 TotalTEstConjBulkTrans <- DataEstConjBulkTrans[, "Trans"] + DataEstConjBulkTrans[, "Mrt"] + 2*DataEstConjBulkTrans[, "Mtt"]
 TotalREstConjBulkTrans <- DataEstConjBulkTrans[, "R"] + DataEstConjBulkTrans[, "Mrt"]
-gtbulk <- (10^log10gtValue) * DataEstConjBulkTrans[, "Mrt"] / (TotalREstConjBulkTrans * TotalTEstConjBulkTrans)
+gtbulk <- (10^MyData[, "log10gt"]) * DataEstConjBulkTrans[, "Mrt"] / (TotalREstConjBulkTrans * TotalTEstConjBulkTrans)
+gtbulk <- unname(gtbulk)
+MyData <- cbind(MyData, gtbulk = gtbulk)
+MyData
+})
+write.csv(MyData, file = "Calculategdbulkgtbulkapply.csv", quote = FALSE, row.names = FALSE)
+## 6800 iterations Loop-version: 117.64/0.05/118.16s ; apply version (2 separate calles): 109.64/0.09/109.81 s
+# So using apply is only slightly faster (but gave the same results)
 
-
+# Mrge the functions for gdbulk and gtbulk into one function and use apply(...) once.
                 
                 
                 # # Store equilibria for determination of stability, add donors 
