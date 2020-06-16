@@ -417,7 +417,7 @@ cdSet <- c(0.05)
 ctSet <- c(0.01, 0.05)
 log10gdSet <- c(1.176)
 log10gtSet <- c(1.176)
-Dinit <- 1000
+DinitSet <- 1000
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
@@ -445,49 +445,45 @@ MyData <- cbind(MyData, dfeqplasmidfree)
 
 # Add combinations with the parameters needed to approximate gdbulk and gtbulk to MyData and MyData
 MyData <- expand_grid(MyData, log10kp = log10kpSet, log10kn = log10knSet,
-                       log10gd = log10gdSet, log10gt = log10gtSet, Dinit = Dinit)
+                       log10gd = log10gdSet, log10gt = log10gtSet, Dinit = DinitSet)
 
-## Test if nesting ode(...) in another function (to be used by apply(...)) works on a single row
-state <- c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0) # HARDCODED R abundance !!!
-parms <- MyData[1, ]
-
-# werkt
-DataEstConjBulkDonor <- ode(t = timesParmsEst, y = state, func = ModelEstConjBulkDonor, parms = parms)
-
-# Nu de bovenstaande regel vanuit een functie doen
-SolveONEode <- function(Test) {
-  stateTest <- c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
-  parmsTest <- MyData[1, ]
-  DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = stateTest,
-                                   func = ModelEstConjBulkDonor, parms = parmsTest), 1)
-  return(DataEstConjBulkDonor)
-}
-
-# Dit werkt ook
-TestReturn <- SolveONEode(3)
-
-SolveONEode <- function(Test) {
-  stateTest <- c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+EstConjBulkDonor <- function(MyData) {
+  stateTest <- c(D = MyData[["Dinit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
   parmsTest <- MyData
   DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = stateTest,
                                    func = ModelEstConjBulkDonor, parms = parmsTest), 1)
+  print("DataEstConjBulkDonor=")
+  print(DataEstConjBulkDonor)
   return(DataEstConjBulkDonor)
 }
 
+resultsolvingodes <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulkDonor)
+transposeresultsolvingodes <- t(resultsolvingodes)
 
-# En dan daar met (l?)apply omheen werken (en de [1, ] na MyData weghalen)
-resultsolvingodes <- t(apply(X = MyData, MARGIN = 1, FUN = SolveONEode))
 
 # Controleren door met hand alle 4 na te rekenen
-out1 <- tail(ode(t = timesParmsEst, y = c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
-                func = ModelEstConjBulkDonor, parms = MyData[1, ]), 1)
-out2 <- tail(ode(t = timesParmsEst, y = c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
+out1 <- tail(ode(t = timesParmsEst, y = c(D = MyData[[1, "Dinit"]], R =  MyData[[1, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
+                 func = ModelEstConjBulkDonor, parms = MyData[1, ]), 1)
+out2 <- tail(ode(t = timesParmsEst, y = c(D = MyData[[2, "Dinit"]], R =  MyData[[2, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
                  func = ModelEstConjBulkDonor, parms = MyData[2, ]), 1)
-out3 <- tail(ode(t = timesParmsEst, y = c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
+out3 <- tail(ode(t = timesParmsEst, y = c(D = MyData[[3, "Dinit"]], R =  MyData[[3, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
                  func = ModelEstConjBulkDonor, parms = MyData[3, ]), 1)
-out4 <- tail(ode(t = timesParmsEst, y = c(D = Dinit, R = 1e6, Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
+out4 <- tail(ode(t = timesParmsEst, y = c(D = MyData[[4, "Dinit"]], R =  MyData[[4, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0),
                  func = ModelEstConjBulkDonor, parms = MyData[4, ]), 1)
 outtot <- rbind(out1, out2, out3, out4)
+
+
+
+
+
+
+
+
+# Note on indexing of tibbles: use MyData[[1, "REq"]] to return a vector (MyData[1, "REq"] returns a LIST)
+# See is.vector(state) and is.numeric(state)
+# Using MyData$Dinit[i] in a loop does work with tibbles as well
+
+
 
 names(resultsolvingodes) <- names(outtot)
 resultsolvingodes
