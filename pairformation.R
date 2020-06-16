@@ -394,6 +394,19 @@ ModelEstConjBulkDonor <- function(t, state, parms) {
   })
 }
 
+# Same model as above, without the 10^(log10X) (saves ~20% time on 7400 iterations)
+ModelEstConjBulkDonorNologs <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dD <- - kp*D*R + kn*(Mdr + Mdt)
+    dR <- - kp*R*(D + Trans) + kn*(Mdr + Mrt)
+    dTrans <- - kp*R*Trans + kn*(Mdt + Mrt)
+    dMdr <- kp*D*R - kn*Mdr - gd*Mdr
+    dMdt <- gd*Mdr - kn*Mdt
+    dMrt <- kp*R*Trans - kn*Mrt
+    return(list(c(dD, dR, dTrans, dMdr, dMdt, dMrt)))
+  })
+}
+
 # Model to approximate the bulk-conjugation rate of the transconjugant.
 # Nutrients, growth, washout, and donors are not included in this model.
 ModelEstConjBulkTrans <- function(t, state, parms) {
@@ -402,6 +415,17 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
     dTrans <- - 10^(log10kp)*R*Trans + 10^(log10kn)*(Mrt + 2*Mtt)
     dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt - 10^(log10gt)*Mrt
     dMtt <- 10^(log10gt)*Mrt - 10^(log10kn)*Mtt
+    return(list(c(dR, dTrans, dMrt, dMtt)))
+  })
+}
+
+# Same model as above, without the 10^(log10X) (saves ~20% time on 7400 iterations)
+ModelEstConjBulkTransNologs <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dR <- - kp*R*Trans + kn*Mrt
+    dTrans <- - kp*R*Trans + kn*(Mrt + 2*Mtt)
+    dMrt <- kp*R*Trans - kn*Mrt - gt*Mrt
+    dMtt <- gt*Mrt - kn*Mtt
     return(list(c(dR, dTrans, dMrt, dMtt)))
   })
 }
@@ -462,8 +486,11 @@ MyData <- cbind(MyData, dfeqplasmidfree)
 # Using MyData$Dinit[i] in a loop does work with tibbles as well
 
 # Add combinations with the parameters needed to approximate gdbulk and gtbulk to MyData
-MyData <- expand_grid(MyData, log10kp = log10kpSet, log10kn = log10knSet,
-                       log10gd = log10gdSet, log10gt = log10gtSet, Dinit = DinitSet)
+# MyData <- expand_grid(MyData, log10kp = log10kpSet, log10kn = log10knSet,
+#                        log10gd = log10gdSet, log10gt = log10gtSet, Dinit = DinitSet)
+MyData <- expand_grid(MyData, kp = 10^log10kpSet, kn = 10^log10knSet,
+                      gd = 10^log10gdSet, gt = 10^log10gtSet, Dinit = DinitSet)
+dim(MyData)
 
 # ToDo: try to find method to obtain the order in which I specify the state from EstConjBulkDonor
 # or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object.
@@ -494,6 +521,8 @@ system.time({
 DataEstConjBulk <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulk)
 DataEstConjBulk <- t(DataEstConjBulk)
 }) # 117.14/0.12/121.29 for 7488 iterations
+# WHEN I used the model notation with kp instead of 10^log10kp ect. THIS DROPPED TO 96 s.
+
 colnames(DataEstConjBulk) <- c("Dtime", "DD", "DR", "DTrans", "DMdr", "DMdt", "DMrt", "Ttime", "TR", "TTrans", "TMrt", "TMtt")
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DD"] + DataEstConjBulk[, "DMdr"] + DataEstConjBulk[, "DMdt"]
