@@ -477,26 +477,40 @@ MyData <- expand_grid(MyData, log10kp = log10kpSet, log10kn = log10knSet,
 # (in the early timesteps if invasion is possible, or over the whole simulation
 # if invasion is not possible), leading to unstable estimates of gdbulk and
 # gtbulk.
-EstConjBulkDonor <- function(MyData) {
+EstConjBulk <- function(MyData) {
   state <- c(D = MyData[["Dinit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
   parms <- MyData
   DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
                                    func = ModelEstConjBulkDonor, parms = parms), 1)
   # print("DataEstConjBulkDonor=")
   # print(DataEstConjBulkDonor)
-  return(DataEstConjBulkDonor)
+  state <- c(R = MyData[["REq"]], Trans = MyData[["Dinit"]], Mrt = 0, Mtt = 0)
+  DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = state,
+                                   func = ModelEstConjBulkTrans, parms = parms), 1)  
+  # print("DataEstConjBulkTrans=")
+  # print(DataEstConjBulkTrans)
+  return(cbind(DataEstConjBulkDonor, DataEstConjBulkTrans))
 }
 
-DataEstConjBulkDonor <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulkDonor)
-DataEstConjBulkDonor <- t(DataEstConjBulkDonor)
-colnames(DataEstConjBulkDonor) <- c("time", "D", "R", "Trans", "Mdr", "Mdt", "Mrt")
+DataEstConjBulk <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulk)
+DataEstConjBulk <- t(DataEstConjBulk)
 
-TotalDEstConjBulkDonor <- DataEstConjBulkDonor[, "D"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mdt"]
-TotalREstConjBulkDonor <- DataEstConjBulkDonor[, "R"] + DataEstConjBulkDonor[, "Mdr"] + DataEstConjBulkDonor[, "Mrt"]
-gdbulk <- (10^MyData[, "log10gd"]) * DataEstConjBulkDonor[, "Mdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
+colnames(DataEstConjBulk) <- c("Dtime", "DD", "DR", "DTrans", "DMdr", "DMdt", "DMrt", "Ttime", "TR", "TTrans", "TMrt", "TMtt")
+
+TotalDEstConjBulkDonor <- DataEstConjBulk[, "DD"] + DataEstConjBulk[, "DMdr"] + DataEstConjBulk[, "DMdt"]
+TotalREstConjBulkDonor <- DataEstConjBulk[, "DR"] + DataEstConjBulk[, "DMdr"] + DataEstConjBulk[, "DMrt"]
+gdbulk <- (10^MyData[, "log10gd"]) * DataEstConjBulk[, "DMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
 gdbulk <- unname(gdbulk)
 MyData <- cbind(MyData, gdbulk = gdbulk)
-MyData
+
+TotalTEstConjBulkTrans <- DataEstConjBulk[, "TTrans"] + DataEstConjBulk[, "TMrt"] + 2*DataEstConjBulk[, "TMtt"]
+TotalREstConjBulkTrans <- DataEstConjBulk[, "TR"] + DataEstConjBulk[, "TMrt"]
+gtbulk <- (10^MyData[, "log10gt"]) * DataEstConjBulk[, "TMrt"] / (TotalREstConjBulkTrans * TotalTEstConjBulkTrans)
+gtbulk <- unname(gtbulk)
+MyData <- cbind(MyData, gtbulk = gtbulk)
+})
+
+write.csv(MyData, file = "Calculategdbulkgtbulkapplyonce.csv", quote = FALSE, row.names = FALSE)
 
 # This works and results of gdbulk are identical to those of earlier versions of the script containing the nested for-loops.
 
@@ -523,12 +537,11 @@ gtbulk <- (10^MyData[, "log10gt"]) * DataEstConjBulkTrans[, "Mrt"] / (TotalREstC
 gtbulk <- unname(gtbulk)
 MyData <- cbind(MyData, gtbulk = gtbulk)
 MyData
-})
+
 write.csv(MyData, file = "Calculategdbulkgtbulkapply.csv", quote = FALSE, row.names = FALSE)
 ## 6800 iterations Loop-version: 117.64/0.05/118.16s ; apply version (2 separate calles): 109.64/0.09/109.81 s
 # So using apply is only slightly faster (but gave the same results)
-
-# Mrge the functions for gdbulk and gtbulk into one function and use apply(...) once.
+# After merging the functions for gdbulk and gtbulk into one function and use apply(...) once, it became 106.72/0.05/106.88
                 
                 
                 # # Store equilibria for determination of stability, add donors 
