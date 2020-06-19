@@ -138,6 +138,7 @@ ModelPairsNutr <- function(t, state, parms) {
   })
 }
 
+## NOTE: collecting growth and washout terms will speed execution up?
 # The bulk-conjugation model
 ModelBulkNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
@@ -384,19 +385,6 @@ Mytstep <- c(10)
 # are not included in this model.
 ModelEstConjBulkDonor <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dD <- - 10^(log10kp)*D*R + 10^(log10kn)*(Mdr + Mdt)
-    dR <- - 10^(log10kp)*R*(D + Trans) + 10^(log10kn)*(Mdr + Mrt)
-    dTrans <- - 10^(log10kp)*R*Trans + 10^(log10kn)*(Mdt + Mrt)
-    dMdr <- 10^(log10kp)*D*R - 10^(log10kn)*Mdr - 10^(log10gd)*Mdr
-    dMdt <- 10^(log10gd)*Mdr - 10^(log10kn)*Mdt
-    dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt
-    return(list(c(dD, dR, dTrans, dMdr, dMdt, dMrt)))
-  })
-}
-
-# Same model as above, without the 10^(log10X) (saves ~20% time on 7400 iterations)
-ModelEstConjBulkDonorNologs <- function(t, state, parms) {
-  with(as.list(c(state, parms)), {
     dD <- - kp*D*R + kn*(Mdr + Mdt)
     dR <- - kp*R*(D + Trans) + kn*(Mdr + Mrt)
     dTrans <- - kp*R*Trans + kn*(Mdt + Mrt)
@@ -410,17 +398,6 @@ ModelEstConjBulkDonorNologs <- function(t, state, parms) {
 # Model to approximate the bulk-conjugation rate of the transconjugant.
 # Nutrients, growth, washout, and donors are not included in this model.
 ModelEstConjBulkTrans <- function(t, state, parms) {
-  with(as.list(c(state, parms)), {
-    dR <- - 10^(log10kp)*R*Trans + 10^(log10kn)*Mrt
-    dTrans <- - 10^(log10kp)*R*Trans + 10^(log10kn)*(Mrt + 2*Mtt)
-    dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt - 10^(log10gt)*Mrt
-    dMtt <- 10^(log10gt)*Mrt - 10^(log10kn)*Mtt
-    return(list(c(dR, dTrans, dMrt, dMtt)))
-  })
-}
-
-# Same model as above, without the 10^(log10X) (saves ~20% time on 7400 iterations)
-ModelEstConjBulkTransNologs <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dR <- - kp*R*Trans + kn*Mrt
     dTrans <- - kp*R*Trans + kn*(Mrt + 2*Mtt)
@@ -474,6 +451,7 @@ calceqplasmidfree <- function(MyData) {
 
 dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = calceqplasmidfree)
 dfeqplasmidfree <- t(dfeqplasmidfree)     # ToDo: change the function to get the transpose as output
+dfeqplasmidfree
 
 # Check if plasmid-free equilibrium is positive, warn if not.
 if(any(dfeqplasmidfree[, "REq"] <= 0)) warning("The number of recipients at equilibrium is not positive!
@@ -490,6 +468,7 @@ MyData <- cbind(MyData, dfeqplasmidfree)
 #                        log10gd = log10gdSet, log10gt = log10gtSet, Dinit = DinitSet)
 MyData <- expand_grid(MyData, kp = 10^log10kpSet, kn = 10^log10knSet,
                       gd = 10^log10gdSet, gt = 10^log10gtSet, Dinit = DinitSet)
+MyData
 dim(MyData)
 
 # ToDo: try to find method to obtain the order in which I specify the state from EstConjBulkDonor
@@ -508,56 +487,36 @@ EstConjBulk <- function(MyData) {
   parms <- MyData
   DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
                                    func = ModelEstConjBulkDonor, parms = parms), 1)
-  # print("DataEstConjBulkDonor=")
-  # print(DataEstConjBulkDonor)
   state <- c(R = MyData[["REq"]], Trans = MyData[["Dinit"]], Mrt = 0, Mtt = 0)
   DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = state,
                                    func = ModelEstConjBulkTrans, parms = parms), 1)  
-  # print("DataEstConjBulkTrans=")
-  # print(DataEstConjBulkTrans)
   return(cbind(DataEstConjBulkDonor, DataEstConjBulkTrans))
 }
 system.time({
 DataEstConjBulk <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulk)
 DataEstConjBulk <- t(DataEstConjBulk)
-}) # 117.14/0.12/121.29 for 7488 iterations
-# WHEN I used the model notation with kp instead of 10^log10kp ect. THIS DROPPED TO 96 s.
+}) # 117.14/0.12/121.29 for 7488 iterations (7.61/0.02/7.67 for 468 iterations)
+# WHEN I used the model notation with kp instead of 10^log10kp ect. THIS DROPPED TO 96 s (6.29 for 468 iterations.
 
-colnames(DataEstConjBulk) <- c("Dtime", "DD", "DR", "DTrans", "DMdr", "DMdt", "DMrt", "Ttime", "TR", "TTrans", "TMrt", "TMtt")
 
-TotalDEstConjBulkDonor <- DataEstConjBulk[, "DD"] + DataEstConjBulk[, "DMdr"] + DataEstConjBulk[, "DMdt"]
-TotalREstConjBulkDonor <- DataEstConjBulk[, "DR"] + DataEstConjBulk[, "DMdr"] + DataEstConjBulk[, "DMrt"]
-gdbulk <- (10^MyData[, "log10gd"]) * DataEstConjBulk[, "DMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
+colnames(DataEstConjBulk) <- c("DonorTime", "DonorD", "DonorR", "DonorTrans", "DonorMdr", "DonorMdt", "DonorMrt",
+                               "TransTime", "TransR", "TransTrans", "TransMrt", "TransMtt")
+
+TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
+TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
+gdbulk <- MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
 gdbulk <- unname(gdbulk)
 MyData <- cbind(MyData, gdbulk = gdbulk)
 
-TotalTEstConjBulkTrans <- DataEstConjBulk[, "TTrans"] + DataEstConjBulk[, "TMrt"] + 2*DataEstConjBulk[, "TMtt"]
-TotalREstConjBulkTrans <- DataEstConjBulk[, "TR"] + DataEstConjBulk[, "TMrt"]
-gtbulk <- (10^MyData[, "log10gt"]) * DataEstConjBulk[, "TMrt"] / (TotalREstConjBulkTrans * TotalTEstConjBulkTrans)
+TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
+TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
+gtbulk <- MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans)
 gtbulk <- unname(gtbulk)
 MyData <- cbind(MyData, gtbulk = gtbulk)
 
+write.csv(MyData, file = paste0(DateTimeStamp, "outputeigenvaluesnew", ".csv"),
+          quote = FALSE, row.names = FALSE)
 # This works and results of gdbulk are identical to those of earlier versions of the script containing the nested for-loops.
-
-####################
-## Using numeric indices [[6]] and [[11]] instead of [["Dinit"]] and [["Req"]] did not change speed
-
-system.time({
-  DataEstConjBulk <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulk)
-  DataEstConjBulk <- t(DataEstConjBulk)
-})
-
-#####################
-
-
-####################
-## Try without c(D = MyData[["Dinit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0) ect.
-StateDonor <- cbind(D = MyData[["Dinit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
-StateTrans <- cbind(R = MyData[["REq"]], Trans = MyData[["Dinit"]], Mrt = 0, Mtt = 0)
-
-
-
-
 
 ############################
 
