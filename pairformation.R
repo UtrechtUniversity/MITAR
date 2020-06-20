@@ -115,40 +115,9 @@ ModelRecipNutr <- function(t, state, parms) {
   })
 }
 
-# The pair-formation conjugation model. Mdr pairs and Mrt pairs are formed with
-# rate kp*R if recipients meet donors or transconjugants, respectively.
-# Conjugation occurs in these Mdr and Mrt pairs, with intrinsic conjugation rate
-# gd and gt, respectively. From conjugation, Mdt and Mtt pairs arise. The
-# different pairs fall apart again with rate kn. In this structure of pair-formation 
-# I follow Zhong's model. As addition to Zhong's model, I included costs, washout,
-# and nutrients.
-ModelPairsNutr <- function(t, state, parms) {
-  with(as.list(c(state, parms)), {
-    dNutr <- (NI - Nutr)*w - e*Nutr*((1 - cd)*bR*(D + Mdr + Mdt) + bR*(R + Mdr + Mrt) +
-                                       (1 - ct)*bR*(Trans + Mdt + Mrt + 2*Mtt))
-    dD <- (1 - cd)*bR*Nutr*(D + Mdr + Mdt) - 10^(log10kp)*D*R + 10^(log10kn)*(Mdr + Mdt) - w*D
-    dR <- bR*Nutr*(R + Mdr + Mrt) - 10^(log10kp)*R*(D + Trans) + 10^(log10kn)*(Mdr + Mrt) - w*R
-    dTrans <- (1 - ct)*bR*Nutr*(Trans + Mdt + Mrt + 2*Mtt) - 10^(log10kp)*R*Trans + 10^(log10kn)*(Mdt + Mrt + 2*Mtt) -
-      w*Trans
-    dMdr <- 10^(log10kp)*D*R - 10^(log10kn)*Mdr - 10^(log10gd)*Mdr - w*Mdr
-    dMdt <- 10^(log10gd)*Mdr - 10^(log10kn)*Mdt - w*Mdt
-    dMrt <- 10^(log10kp)*R*Trans - 10^(log10kn)*Mrt - 10^(log10gt)*Mrt - w*Mrt
-    dMtt <- 10^(log10gt)*Mrt - 10^(log10kn)*Mtt - w*Mtt
-    return(list(c(dNutr, dD, dR, dTrans, dMdr, dMdt, dMrt, dMtt)))
-  })
-}
 
 ## NOTE: collecting growth and washout terms will speed execution up?
-# The bulk-conjugation model
-ModelBulkNutr <- function(t, state, parms) {
-  with(as.list(c(state, parms)), {
-    dNutr <- (NI - Nutr)*w - e*Nutr*((1 - cd)*bR*D + bR*R + (1 - ct)*bR*Trans)
-    dD <- (1 - cd)*bR*Nutr*D - w*D
-    dR <- bR*Nutr*R - gdbulk*D*R - gtbulk*Trans*R - w*R
-    dTrans <- (1 - ct)*bR*Nutr*Trans + gdbulk*D*R + gtbulk*Trans*R - w*Trans
-    return(list(c(dNutr, dD, dR, dTrans)))
-  })
-}
+
 # The plasmid-free equilibrium is R* = (NI - (w/bR))/e, Nutr* = w/bR, D* = Trans* = 0
 # with condition w < NI*bR (otherwise it becomes a cell-free equilibrium ?) and
 # the stability of this equilibrium is determined by the following eigenvalue
@@ -380,6 +349,30 @@ verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and 
 smallchange <- c(1E-5)
 Mytmax <- c(1E5)
 Mytstep <- c(10)
+
+# The pair-formation conjugation model. Mdr pairs and Mrt pairs are formed with
+# rate kp*R if recipients meet donors or transconjugants, respectively.
+# Conjugation occurs in these Mdr and Mrt pairs, with intrinsic conjugation rate
+# gd and gt, respectively. From conjugation, Mdt and Mtt pairs arise. The
+# different pairs fall apart again with rate kn. In this structure of pair-formation 
+# I follow Zhong's model. As addition to Zhong's model, I included costs, washout,
+# and nutrients.
+ModelPairsNutr <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dNutr <- (NI - Nutr)*w - NutrConv*Nutr*((1 - cd)*bR*(D + Mdr + Mdt) + bR*(R + Mdr + Mrt) +
+                                              (1 - ct)*bR*(Trans + Mdt + Mrt + 2*Mtt))
+    dD <- (1 - cd)*bR*Nutr*(D + Mdr + Mdt) - kp*D*R + kn*(Mdr + Mdt) - w*D
+    dR <- bR*Nutr*(R + Mdr + Mrt) - kp*R*(D + Trans) + kn*(Mdr + Mrt) - w*R
+    dTrans <- (1 - ct)*bR*Nutr*(Trans + Mdt + Mrt + 2*Mtt) - kp*R*Trans + kn*(Mdt + Mrt + 2*Mtt) -
+      w*Trans
+    dMdr <- kp*D*R - kn*Mdr - gd*Mdr - w*Mdr
+    dMdt <- gd*Mdr - kn*Mdt - w*Mdt
+    dMrt <- kp*R*Trans - kn*Mrt - gt*Mrt - w*Mrt
+    dMtt <- gt*Mrt - kn*Mtt - w*Mtt
+    return(list(c(dNutr, dD, dR, dTrans, dMdr, dMdt, dMrt, dMtt)))
+  })
+}
+
 # Model to approximate the bulk-conjugation rate of the donor.
 # Nutrients, growth, washout, conjugation from transconjugants, and Mtt-pairs
 # are not included in this model.
@@ -407,6 +400,17 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
   })
 }
 
+# The bulk-conjugation model
+ModelBulkNutr <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dNutr <- (NI - Nutr)*w - NutrConv*Nutr*((1 - cd)*bR*D + bR*R + (1 - ct)*bR*Trans)
+    dD <- (1 - cd)*bR*Nutr*D - w*D
+    dR <- bR*Nutr*R - gdbulk*D*R - gtbulk*Trans*R - w*R
+    dTrans <- (1 - ct)*bR*Nutr*Trans + gdbulk*D*R + gtbulk*Trans*R - w*Trans
+    return(list(c(dNutr, dD, dR, dTrans)))
+  })
+}
+
 ## Small parameterset for tests
 bRSet <- c(1.7)
 NISet <- c(10, 100)
@@ -421,6 +425,21 @@ log10gtSet <- c(1.176)
 DinitSet <- c(100, 1000)
 
 ## Large dataset for tests
+# DinitSet <- c(500, 1E3)
+# bRSet <- c(0.8, 1.7)
+# NISet <- c(10, 100)
+# eValue <- 1e-6
+# wSet <- c(0.04, 0.06)
+# log10kpSet <- seq(from = -11, to = -5, by = 0.5)
+# log10knSet <- seq(from = -1, to = 3, by = 0.5)
+# cdSet <- c(0.05)
+# ctSet <- c(0.05)
+# log10gdSet <- c(1, 1.176)
+# log10gtSet <- c(1, 1.176)
+
+# Testset
+# with old nested loops script 148.19/0.10/149.67 seconds if runsimulation==0)
+# with this apply-based script:  134.39/0.34/143.33 seconds, only slightly faster
 DinitSet <- c(500, 1E3)
 bRSet <- c(0.8, 1.7)
 NISet <- c(10, 100)
@@ -428,18 +447,22 @@ eValue <- 1e-6
 wSet <- c(0.04, 0.06)
 log10kpSet <- seq(from = -11, to = -5, by = 0.5)
 log10knSet <- seq(from = -1, to = 3, by = 0.5)
-cdSet <- c(0.05)
-ctSet <- c(0.05)
+cdSet <- c(0.01, 0.05)
+ctSet <- c(0.01, 0.05)
 log10gdSet <- c(1, 1.176)
 log10gtSet <- c(1, 1.176)
+runsimulation <- 0
+plotoutput <- 0
 
+
+print(Sys.time())
+system.time({
 ## Calculate plasmid-free equilibrium for all parameter combinations
 NutrConv <- 1e-6
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
 if(any(MyData <= 0)) warning("All parameters should have positive values.")
 
 # Calculate the plasmid-free equilibrium (R*, Nutr*)
-
 calceqplasmidfree <- function(MyData) {
   with(as.list(MyData), {
     REq <- ((NI - w / bR)) / NutrConv
@@ -452,7 +475,8 @@ calceqplasmidfree <- function(MyData) {
 dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = calceqplasmidfree)
 dfeqplasmidfree <- t(dfeqplasmidfree)     # ToDo: change the function to get the transpose as output
 dfeqplasmidfree
-
+print("Plasmid-free eq calculated:")
+print(Sys.time())
 # Check if plasmid-free equilibrium is positive, warn if not.
 if(any(dfeqplasmidfree[, "REq"] <= 0)) warning("The number of recipients at equilibrium is not positive!
 Increase the nutrient concentration in the inflowing liquid by changing NI?")
@@ -492,12 +516,9 @@ EstConjBulk <- function(MyData) {
                                    func = ModelEstConjBulkTrans, parms = parms), 1)  
   return(cbind(DataEstConjBulkDonor, DataEstConjBulkTrans))
 }
-system.time({
+
 DataEstConjBulk <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulk)
 DataEstConjBulk <- t(DataEstConjBulk)
-}) # 117.14/0.12/121.29 for 7488 iterations (7.61/0.02/7.67 for 468 iterations)
-# WHEN I used the model notation with kp instead of 10^log10kp ect. THIS DROPPED TO 96 s (6.29 for 468 iterations.
-
 
 colnames(DataEstConjBulk) <- c("DonorTime", "DonorD", "DonorR", "DonorTrans", "DonorMdr", "DonorMdt", "DonorMrt",
                                "TransTime", "TransR", "TransTrans", "TransMrt", "TransMtt")
@@ -514,201 +535,203 @@ gtbulk <- MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBul
 gtbulk <- unname(gtbulk)
 MyData <- cbind(MyData, gtbulk = gtbulk)
 
-write.csv(MyData, file = paste0(DateTimeStamp, "outputeigenvaluesnew", ".csv"),
-          quote = FALSE, row.names = FALSE)
-# This works and results of gdbulk are identical to those of earlier versions of the script containing the nested for-loops.
+print("bulk-conjugation rates estimated:")
+print(Sys.time())
 
 ############################
 
-# write.csv(MyData, file = "Calculategdbulkgtbulkapplyonce.csv", quote = FALSE, row.names = FALSE)
-## 6800 iterations Loop-version: 117.64/0.05/118.16s ; apply version (2 separate calles): 109.64/0.09/109.81 s
-# So using apply is only slightly faster (but gave the same results)
-# After merging the functions for gdbulk and gtbulk into one function and use apply(...) once, it became 106.72/0.05/106.88
-# Note that the script using the loops performed more work because it approximated the eigenvalues (but that step is very fast).
-                
-# # Store equilibria for determination of stability, add donors 
-# # to make state the starting point for simulations.
+MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
+
+# parmspair <- c(bR = bRValue, NI = NIValue, NutrConv = NutrConv, w = wValue,
+#                log10kp = log10kpValue, log10kn = log10knValue, 
+#                cd = cdValue, ct = ctValue, log10gd = log10gdValue,
+#                log10gt = log10gtValue)
 # 
-# EqFull <- c(Nutr = NutrAna, D = 0, R = RAna1, Trans = 0,
-#             Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0) 
-# state <- EqFull
-# state["D"] <- Dinit
-# EqFullBulk <- c(Nutr = NutrAna, D = 0, R = RAna1, Trans = 0)
-# stateBulk <- EqFullBulk
-# stateBulk["D"] <- Dinit
+# parmspair <- c(bR = 1.7, NI = 10, NutrConv = 1e-6, w = 0.04,
+#                kp = 1e-8, kn = 0.3, 
+#                cd = 0.05, ct = 0.05, gd = 15,
+#                gt = 15)
+# Numerically estimate the Jacobian matrix of the plasmid-free
+# equilibrium of the pair-formation model, then calculate
+# (or approximate?) the eigenvalues of this matrix.
+# Eqfull <- c(Nutr = MyData[[1, "NutrEq"]], D = 0, R = MyData[[1, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+# MyJac <- jacobian.full(y = Eqfull, func = ModelPairsNutr, parms = parmspair)
+# EigValEq <- eigen(x = MyJac, symmetric = FALSE, only.values = TRUE)$values
+# 
+# # Dit werkt ook
+# Eqfull <- c(Nutr = MyData[[1, "NutrEq"]], D = 0, R = MyData[[1, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+# MyJac <- jacobian.full(y = Eqfull, func = ModelPairsNutr, parms = MyData[1, ])
+# EigValEq <- eigen(x = MyJac, symmetric = FALSE, only.values = TRUE)$values
 
+# Numerically estimate the Jacobian matrix of the plasmid-free equilibrium of
+# the models, then calculate (or approximate?) the eigenvalues of this matrix.
+CalcEigenvalues <- function(MyData) {
+  parms <- MyData
+  EqFull <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+  EigVal <- eigen(x = jacobian.full(y = EqFull, func = ModelPairsNutr, parms = parms),
+                    symmetric = FALSE, only.values = TRUE)$values
+  ComplexEigVal <- is.complex(EigVal) 
+  EigVal <- Re(EigVal) # selecting real part of the eigenvalues
+  DomEigVal <- max(EigVal) # selecting maximum real part of the eigenvalues
+  SignDomEigVal <- sign(DomEigVal)
+  SignEigValEqual <- identical(rep(SignDomEigVal, length(EigVal)), sign(Re(EigVal)))
+  
+  EqFullBulk <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0)
+  EigValBulk <- eigen(x = jacobian.full(y = EqFullBulk, func = ModelBulkNutr, parms = parms),
+                        symmetric = FALSE, only.values = TRUE)$values
+  ComplexEigValBulk <- is.complex(EigValBulk) 
+  EigValBulk <- Re(EigValBulk) # selecting real part of the eigenvalues
+  DomEigValBulk <- max(EigValBulk) # selecting maximum real part of the eigenvalues
+  SignDomEigValBulk <- sign(DomEigValBulk)
+  SignEigValEqualBulk <- identical(rep(sign(DomEigValBulk), length(EigValBulk)),
+                                   sign(Re(EigValBulk)))
+  InfoEigVal <- c(EigVal, DomEigVal, SignDomEigVal, SignEigValEqual,
+                  EigValBulk, DomEigValBulk, SignDomEigValBulk, SignEigValEqualBulk)
+  return(InfoEigVal)
+}
 
+MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
+colnames(MyInfoEigVal) <- c(paste0("EigVal", 1:8), "DomEigVal", "SignDomEigVal", "SignEigValEqual",
+                            paste0("EigValBulk", 1:4), "DomEigValBulk", "SignDomEigValBulk", "SignEigValEqualBulk")
+MyData <- cbind(MyData, MyInfoEigVal)
+print("Eigenvalues estimated:")
+print(Sys.time())
+})
+DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
+write.csv(MyData, file = paste0(DateTimeStamp, "outputusingapply", ".csv"),
+          quote = FALSE, row.names = FALSE)
 
+# This works and the found plasmid-free equilibria, bulk-conjugation rates, and
+# eigenvalues are identical to those of earlier versions of the script containing
+# the nested for-loops. It is only slightly faster (134.39/0.34/143.33 seconds
+# for 29952 iterations compared to 148.19/0.10/149.67 with the nested-loops)
 
-for(cdValue in cdSet) {
-  for(ctValue in ctSet) {
+if(SignDomEigVal == -1) {
+  # No invasion possible in the pair-formation model
+  EqAfterInvDonor <- c(time = 0, EqFull)
+} else {
+  if(runsimulation == 1) {
     
-    CurrentIteration <- CurrentIteration + 1
-    if(round(CurrentIteration / 500) == CurrentIteration / 500) {
-      print(paste0("Current iteration = ", CurrentIteration,
-                   ", time = ",
-                   format(Sys.time(), format = "%H:%M:%S")))
+    # Invasion is possible, run simulation to see how
+    # many plasmid-bearing bacteria are present at equilibrium
+    
+    # The initial state for phase 2 is the plasmid-free
+    # equilibrium (R*, Nutr*) with the addition of
+    # Dinit donor bacteria per mL
+    out2 <- ode(t = times, y = state, func = ModelPairsNutr,
+                parms = parmspair, rootfun = rootfun,
+                events = list(func = eventfun, root = TRUE, terminalroot = 1))
+    if(verbose == TRUE) {
+      print(diagnostics(out2))
+      print(attributes(out2))
     }
+    EqAfterInvDonor <- tail(out2, 1)[, ]
     
-    parmspair <- c(bR = bRValue, NI = NIValue, e = NutrConv, w = wValue,
-                   log10kp = log10kpValue, log10kn = log10knValue, 
-                   cd = cdValue, ct = ctValue, log10gd = log10gdValue,
-                   log10gt = log10gtValue)
-    
-    parmsBulk <- c(parmspair, gdbulk = gdbulk, gtbulk = gtbulk)
-    
-    # Numerically estimate the Jacobian matrix of the plasmid-free
-    # equilibrium of the pair-formation model, then calculate
-    # (or approximate?) the eigenvalues of this matrix.
-    EigValEq <- eigen(x = jacobian.full(y = EqFull, func = ModelPairsNutr, parms = parmspair),
-                      symmetric = FALSE, only.values = TRUE)$values
-    ComplexEigVal <- is.complex(EigValEq) 
-    EigValEq <- Re(EigValEq) # selecting real part of the eigenvalues
-    DomEigVal <- max(EigValEq) # selecting the maximum real part of the eigenvalues
-    SignDomEigVal <- sign(DomEigVal)
-    SignEigValEqual <- identical(rep(SignDomEigVal, length(EigValEq)), sign(Re(EigValEq)))
-    
-    # Determine eigenvalues of the jacobian matrix of the plasmid-free equilibrium
-    # of the bulk-conjugation model. If only.values = FALSE, the eigenvectors are
-    # stored in $vectors. See ?jacobian.full() for an example.
-    EigValEqBulk <- eigen(x = jacobian.full(y = EqFullBulk, func = ModelBulkNutr,
-                                            parms = parmsBulk),
-                          symmetric = FALSE, only.values = TRUE)$values
-    ComplexEigValBulk <- is.complex(EigValEqBulk) 
-    EigValEqBulk <- Re(EigValEqBulk) # selecting real part of the eigenvalues
-    DomEigValBulk <- max(EigValEqBulk) # selecting the maximum real part of the eigenvalues
-    SignDomEigValBulk <- sign(DomEigValBulk)
-    SignEigValEqualBulk <- identical(rep(sign(DomEigValBulk), length(EigValEqBulk)),
-                                     sign(Re(EigValEqBulk)))
-    
-    if(SignDomEigVal == -1) {
-      # No invasion possible in the pair-formation model
-      EqAfterInvDonor <- c(time = 0, EqFull)
-    } else {
-      if(runsimulation == 1) {
-        
-        # Invasion is possible, run simulation to see how
-        # many plasmid-bearing bacteria are present at equilibrium
-        
-        # The initial state for phase 2 is the plasmid-free
-        # equilibrium (R*, Nutr*) with the addition of
-        # Dinit donor bacteria per mL
-        out2 <- ode(t = times, y = state, func = ModelPairsNutr,
-                    parms = parmspair, rootfun = rootfun,
-                    events = list(func = eventfun, root = TRUE, terminalroot = 1))
-        if(verbose == TRUE) {
-          print(diagnostics(out2))
-          print(attributes(out2))
+    if(plotoutput == 1) {
+      
+      Ratio <- EqAfterInvDonor["Trans"]/(EqAfterInvDonor["Trans"] + EqAfterInvDonor["R"])
+      if(is.na(Ratio)==FALSE) {
+        if(Ratio > 0.001 & Ratio < 0.999) {
+          Coexistence <- 1
+        } else {
+          Coexistence <- 0
         }
-        EqAfterInvDonor <- tail(out2, 1)[, ]
-        
-        if(plotoutput == 1) {
-          
-          Ratio <- EqAfterInvDonor["Trans"]/(EqAfterInvDonor["Trans"] + EqAfterInvDonor["R"])
-          if(is.na(Ratio)==FALSE) {
-            if(Ratio > 0.001 & Ratio < 0.999) {
-              Coexistence <- 1
-            } else {
-              Coexistence <- 0
-            }
-          } else {
-            Coexistence <- 0
-          }
-          # if(Coexistence == 1) {
-          maintitle <- c("Pair-formation model")
-          subtitlepair <- paste0("bR=", bRValue,
-                                 " NI=", NIValue,
-                                 " log10kp=", log10kpValue,
-                                 " log10kn=", log10knValue,
-                                 " e=", NutrConv,
-                                 " w=", wValue,
-                                 " cd=", cdValue,
-                                 " ct=", ctValue,
-                                 " log10gd=", log10gdValue,
-                                 " log10gt=", log10gtValue)
-          # png(filename = paste0(DateTimeStamp, "longrun", CurrentIteration + 1, ".png"))
-          if(verbose == TRUE) {
-            matplot.deSolve(out2, main = maintitle,
-                            sub = subtitlepair, ylim = myylim,
-                            xlim = c(0, tail(attributes(out2)$troot, 2)[1]),
-                            log = if(yaxislog == 1) {"y"},
-                            col = mycol, lty = mylty, lwd = 2,
-                            legend = list(x = "topright"))
-            abline(h = extinctionthreshold)
-            abline(v =  attributes(out2)$troot)
-            grid()
-          } else {
-            matplot.deSolve(out2, main = maintitle, sub = subtitlepair, ylim = myylim,
-                            log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                            legend = list(x = "bottomright"))
-            grid()                                      
-          }
-          
-          
-          # dev.off()
-          # }
-        } # End of preparing and plotting
-      } # End of simulation part
-    }
-    
-    if(SignDomEigValBulk == -1) {
-      # No invasion possible in the bulk-conjugation model
-      EqAfterInvDonorBulk <- c(time = 0, EqFullBulk)
-    } else {
-      if(runsimulation == 1) {
-        # Run bulk-model
-        out2bulk <- ode(t = times, y = stateBulk,
-                        func = ModelBulkNutr,
-                        parms = parmsBulk,
-                        rootfun = rootfunBulk,
-                        events = list(func = eventfunBulk,
-                                      root = TRUE,
-                                      terminalroot = 1))
-        if(verbose == TRUE) {
-          print(diagnostics(out2bulk))
-          print(attributes(out2bulk))
-        }
-        EqAfterInvDonorBulk <- tail(out2bulk, 1)[, ]
-        
-        if(plotoutput == 1) {
-          subtitlebulk <- paste0("bR=", bRValue,
-                                 " NI=", NIValue,
-                                 " log10kp=", log10kpValue,
-                                 " log10kn=", log10knValue,
-                                 " e=", NutrConv,
-                                 " w=", wValue,
-                                 " cd=", cdValue,
-                                 " ct=", ctValue,
-                                 " log10gd=", log10gdValue,
-                                 " log10gt=", log10gtValue,
-                                 " gdbulk=", signif(gdbulk, digits = 4),
-                                 " gtbulk=", signif(gtbulk, digits = 4))
-          matplot.deSolve(out2bulk, main = "Bulk-conjugation model", sub = subtitlebulk, ylim = myylim,
-                          log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                          legend = list(x = "bottomright"))
-          if(verbose == TRUE) {
-            abline(h = extinctionthreshold)
-            abline(v =  attributes(out2bulk)$troot)
-          }
-          grid()
-        }
+      } else {
+        Coexistence <- 0
       }
+      # if(Coexistence == 1) {
+      maintitle <- c("Pair-formation model")
+      subtitlepair <- paste0("bR=", bRValue,
+                             " NI=", NIValue,
+                             " log10kp=", log10kpValue,
+                             " log10kn=", log10knValue,
+                             " e=", NutrConv,
+                             " w=", wValue,
+                             " cd=", cdValue,
+                             " ct=", ctValue,
+                             " log10gd=", log10gdValue,
+                             " log10gt=", log10gtValue)
+      # png(filename = paste0(DateTimeStamp, "longrun", CurrentIteration + 1, ".png"))
+      if(verbose == TRUE) {
+        matplot.deSolve(out2, main = maintitle,
+                        sub = subtitlepair, ylim = myylim,
+                        xlim = c(0, tail(attributes(out2)$troot, 2)[1]),
+                        log = if(yaxislog == 1) {"y"},
+                        col = mycol, lty = mylty, lwd = 2,
+                        legend = list(x = "topright"))
+        abline(h = extinctionthreshold)
+        abline(v =  attributes(out2)$troot)
+        grid()
+      } else {
+        matplot.deSolve(out2, main = maintitle, sub = subtitlepair, ylim = myylim,
+                        log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
+                        legend = list(x = "bottomright"))
+        grid()                                      
+      }
+      
+      
+      # dev.off()
+      # }
+    } # End of preparing and plotting
+  } # End of simulation part
+}
+
+if(SignDomEigValBulk == -1) {
+  # No invasion possible in the bulk-conjugation model
+  EqAfterInvDonorBulk <- c(time = 0, EqFullBulk)
+} else {
+  if(runsimulation == 1) {
+    # Run bulk-model
+    out2bulk <- ode(t = times, y = stateBulk,
+                    func = ModelBulkNutr,
+                    parms = parmsBulk,
+                    rootfun = rootfunBulk,
+                    events = list(func = eventfunBulk,
+                                  root = TRUE,
+                                  terminalroot = 1))
+    if(verbose == TRUE) {
+      print(diagnostics(out2bulk))
+      print(attributes(out2bulk))
     }
+    EqAfterInvDonorBulk <- tail(out2bulk, 1)[, ]
     
-    MyData[CurrentIteration, c(1:14)] <- unname(c(parmsBulk, Eq))
-    if(runsimulation == 1) {
-      MyData[CurrentIteration, c(15:28)] <- unname(c(
-        EqAfterInvDonor, EqAfterInvDonorBulk))                      
-    } else {
-      MyData[CurrentIteration, c(15:28)] <- rep(NA, 14)
+    if(plotoutput == 1) {
+      subtitlebulk <- paste0("bR=", bRValue,
+                             " NI=", NIValue,
+                             " log10kp=", log10kpValue,
+                             " log10kn=", log10knValue,
+                             " e=", NutrConv,
+                             " w=", wValue,
+                             " cd=", cdValue,
+                             " ct=", ctValue,
+                             " log10gd=", log10gdValue,
+                             " log10gt=", log10gtValue,
+                             " gdbulk=", signif(gdbulk, digits = 4),
+                             " gtbulk=", signif(gtbulk, digits = 4))
+      matplot.deSolve(out2bulk, main = "Bulk-conjugation model", sub = subtitlebulk, ylim = myylim,
+                      log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
+                      legend = list(x = "bottomright"))
+      if(verbose == TRUE) {
+        abline(h = extinctionthreshold)
+        abline(v =  attributes(out2bulk)$troot)
+      }
+      grid()
     }
-    MyData[CurrentIteration, c(29:51)] <- unname(c(
-      EigValEq, DomEigVal, SignDomEigVal, SignEigValEqual,
-      ComplexEigVal, EigValEqBulk, DomEigValBulk,
-      SignDomEigValBulk, SignEigValEqualBulk,
-      ComplexEigValBulk, smallchange, Mytmax, Mytstep))
   }
 }
+
+MyData[CurrentIteration, c(1:14)] <- unname(c(parmsBulk, Eq))
+if(runsimulation == 1) {
+  MyData[CurrentIteration, c(15:28)] <- unname(c(
+    EqAfterInvDonor, EqAfterInvDonorBulk))                      
+} else {
+  MyData[CurrentIteration, c(15:28)] <- rep(NA, 14)
+}
+MyData[CurrentIteration, c(29:51)] <- unname(c(
+  EigValEq, DomEigVal, SignDomEigVal, SignEigValEqual,
+  ComplexEigVal, EigValEqBulk, DomEigValBulk,
+  SignDomEigValBulk, SignEigValEqualBulk,
+  ComplexEigValBulk, smallchange, Mytmax, Mytstep))
 
 
 BackupMyData <- MyData
