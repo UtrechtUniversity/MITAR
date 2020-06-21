@@ -350,6 +350,8 @@ smallchange <- c(1E-5)
 Mytmax <- c(1E5)
 Mytstep <- c(10)
 
+###### Functions
+
 # The pair-formation conjugation model. Mdr pairs and Mrt pairs are formed with
 # rate kp*R if recipients meet donors or transconjugants, respectively.
 # Conjugation occurs in these Mdr and Mrt pairs, with intrinsic conjugation rate
@@ -400,6 +402,23 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
   })
 }
 
+# Run simulation with adjusted pair-formation models for a short timespan and
+# calculate approximations of gdbulk and gtbulk from the output at t = 3 hours,
+# following Zhong's approach for the calculations. I did not use root- or
+# eventfunctions here because they lead to unstable behaviour (in the early
+# timesteps if invasion is possible, or over the whole simulation if invasion is
+# not possible), leading to unstable estimates of gdbulk and gtbulk.
+EstConjBulk <- function(MyData) {
+  state <- c(D = MyData[["Dinit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+  parms <- MyData
+  DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
+                                   func = ModelEstConjBulkDonor, parms = parms), 1)
+  state <- c(R = MyData[["REq"]], Trans = MyData[["Dinit"]], Mrt = 0, Mtt = 0)
+  DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = state,
+                                   func = ModelEstConjBulkTrans, parms = parms), 1)  
+  return(cbind(DataEstConjBulkDonor, DataEstConjBulkTrans))
+}
+
 # The bulk-conjugation model
 ModelBulkNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
@@ -411,18 +430,78 @@ ModelBulkNutr <- function(t, state, parms) {
   })
 }
 
+# Calculate the plasmid-free equilibrium (R*, Nutr*)
+calceqplasmidfree <- function(MyData) {
+  with(as.list(MyData), {
+    REq <- ((NI - w / bR)) / NutrConv
+    NutrEq <- w / bR
+    Eq <- c(NutrEq = NutrEq, REq = REq)
+    return(Eq)
+  })
+}
+
+# Numerically estimate the Jacobian matrix of the plasmid-free equilibrium of
+# the models, then calculate (or approximate?) the eigenvalues of this matrix.
+CalcEigenvalues <- function(MyData) {
+  parms <- MyData
+  EqFull <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+  EigVal <- eigen(x = jacobian.full(y = EqFull, func = ModelPairsNutr, parms = parms),
+                  symmetric = FALSE, only.values = TRUE)$values
+  ComplexEigVal <- is.complex(EigVal) 
+  EigVal <- Re(EigVal) # selecting real part of the eigenvalues
+  DomEigVal <- max(EigVal) # selecting maximum real part of the eigenvalues
+  SignDomEigVal <- sign(DomEigVal)
+  SignEigValEqual <- identical(rep(SignDomEigVal, length(EigVal)), sign(Re(EigVal)))
+  
+  EqFullBulk <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0)
+  EigValBulk <- eigen(x = jacobian.full(y = EqFullBulk, func = ModelBulkNutr, parms = parms),
+                      symmetric = FALSE, only.values = TRUE)$values
+  ComplexEigValBulk <- is.complex(EigValBulk) 
+  EigValBulk <- Re(EigValBulk) # selecting real part of the eigenvalues
+  DomEigValBulk <- max(EigValBulk) # selecting maximum real part of the eigenvalues
+  SignDomEigValBulk <- sign(DomEigValBulk)
+  SignEigValEqualBulk <- identical(rep(sign(DomEigValBulk), length(EigValBulk)),
+                                   sign(Re(EigValBulk)))
+  InfoEigVal <- c(EigVal, DomEigVal, SignDomEigVal, SignEigValEqual,
+                  EigValBulk, DomEigValBulk, SignDomEigValBulk, SignEigValEqualBulk)
+  return(InfoEigVal)
+}
+
+## Plotfunction
+## On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
+CreatePlot <- function(fillvar, gradienttype = 2, limits = NULL, data = MyData, xvar = "log10(kp)", yvar = "log10(kn)", save = FALSE) {
+  if(exists("DateTimeStamp") == FALSE) {
+    warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
+    DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
+  }
+  p <- ggplot(data = MyData, aes_string(x = xvar, y = yvar, fill = fillvar)) + 
+    geom_raster() + 
+    facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+    labs(caption = DateTimeStamp) +
+    theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
+  if(gradienttype == 2) {
+    p <- p + scale_fill_gradient2(midpoint = 0)
+  } else {
+    p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
+  }
+  print(p)
+  if(save == TRUE) {
+    ggsave(paste0(DateTimeStamp, "output", fillvar, ".png"))
+  }
+}
+
 ## Small parameterset for tests
 bRSet <- c(1.7)
 NISet <- c(10, 100)
 wSet <- c(0.04)
 NutrConv <- c(1E-6)
-log10kpSet <- c(-10, -6)
-log10knSet <- c(0.3)
-cdSet <- c(0.05)
+log10kpSet <- seq(-10, -6, 0.5)
+log10knSet <- seq(-1, 3, 0.5)
+cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 log10gdSet <- c(1.176)
 log10gtSet <- c(1.176)
-DinitSet <- c(100, 1000)
+DinitSet <- c(1000)
 
 ## Large dataset for tests
 # DinitSet <- c(500, 1E3)
@@ -440,37 +519,27 @@ DinitSet <- c(100, 1000)
 # Testset
 # with old nested loops script 148.19/0.10/149.67 seconds if runsimulation==0)
 # with this apply-based script:  134.39/0.34/143.33 seconds, only slightly faster
-DinitSet <- c(500, 1E3)
-bRSet <- c(0.8, 1.7)
-NISet <- c(10, 100)
-eValue <- 1e-6
-wSet <- c(0.04, 0.06)
-log10kpSet <- seq(from = -11, to = -5, by = 0.5)
-log10knSet <- seq(from = -1, to = 3, by = 0.5)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
-log10gdSet <- c(1, 1.176)
-log10gtSet <- c(1, 1.176)
-runsimulation <- 0
-plotoutput <- 0
+# DinitSet <- c(500, 1E3)
+# bRSet <- c(0.8, 1.7)
+# NISet <- c(10, 100)
+# eValue <- 1e-6
+# wSet <- c(0.04, 0.06)
+# log10kpSet <- seq(from = -11, to = -5, by = 0.5)
+# log10knSet <- seq(from = -1, to = 3, by = 0.5)
+# cdSet <- c(0.01, 0.05)
+# ctSet <- c(0.01, 0.05)
+# log10gdSet <- c(1, 1.176)
+# log10gtSet <- c(1, 1.176)
+# runsimulation <- 0
+# plotoutput <- 0
 
 
 print(Sys.time())
-system.time({
+
 ## Calculate plasmid-free equilibrium for all parameter combinations
 NutrConv <- 1e-6
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
 if(any(MyData <= 0)) warning("All parameters should have positive values.")
-
-# Calculate the plasmid-free equilibrium (R*, Nutr*)
-calceqplasmidfree <- function(MyData) {
-  with(as.list(MyData), {
-    REq <- ((NI - w / bR)) / NutrConv
-    NutrEq <- w / bR
-    Eq <- c(NutrEq = NutrEq, REq = REq)
-    return(Eq)
-  })
-}
 
 dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = calceqplasmidfree)
 dfeqplasmidfree <- t(dfeqplasmidfree)     # ToDo: change the function to get the transpose as output
@@ -498,25 +567,6 @@ dim(MyData)
 # ToDo: try to find method to obtain the order in which I specify the state from EstConjBulkDonor
 # or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object.
 
-# Run simulation with adjusted pair-formation models for a short timespan and
-# calculate approximations of gdbulk and gtbulk from the output at t = 3 hours,
-# following Zhong's approach for the calculations. NOTE: I used timesteps of 0.1
-# instead of 1, because 3 timesteps is too few to get stable estimates. I did
-# not use root- or eventfunctions here because they lead to unstable behaviour
-# (in the early timesteps if invasion is possible, or over the whole simulation
-# if invasion is not possible), leading to unstable estimates of gdbulk and
-# gtbulk.
-EstConjBulk <- function(MyData) {
-  state <- c(D = MyData[["Dinit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
-  parms <- MyData
-  DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
-                                   func = ModelEstConjBulkDonor, parms = parms), 1)
-  state <- c(R = MyData[["REq"]], Trans = MyData[["Dinit"]], Mrt = 0, Mtt = 0)
-  DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = state,
-                                   func = ModelEstConjBulkTrans, parms = parms), 1)  
-  return(cbind(DataEstConjBulkDonor, DataEstConjBulkTrans))
-}
-
 DataEstConjBulk <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulk)
 DataEstConjBulk <- t(DataEstConjBulk)
 
@@ -538,57 +588,7 @@ MyData <- cbind(MyData, gtbulk = gtbulk)
 print("bulk-conjugation rates estimated:")
 print(Sys.time())
 
-############################
-
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
-
-# parmspair <- c(bR = bRValue, NI = NIValue, NutrConv = NutrConv, w = wValue,
-#                log10kp = log10kpValue, log10kn = log10knValue, 
-#                cd = cdValue, ct = ctValue, log10gd = log10gdValue,
-#                log10gt = log10gtValue)
-# 
-# parmspair <- c(bR = 1.7, NI = 10, NutrConv = 1e-6, w = 0.04,
-#                kp = 1e-8, kn = 0.3, 
-#                cd = 0.05, ct = 0.05, gd = 15,
-#                gt = 15)
-# Numerically estimate the Jacobian matrix of the plasmid-free
-# equilibrium of the pair-formation model, then calculate
-# (or approximate?) the eigenvalues of this matrix.
-# Eqfull <- c(Nutr = MyData[[1, "NutrEq"]], D = 0, R = MyData[[1, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-# MyJac <- jacobian.full(y = Eqfull, func = ModelPairsNutr, parms = parmspair)
-# EigValEq <- eigen(x = MyJac, symmetric = FALSE, only.values = TRUE)$values
-# 
-# # Dit werkt ook
-# Eqfull <- c(Nutr = MyData[[1, "NutrEq"]], D = 0, R = MyData[[1, "REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-# MyJac <- jacobian.full(y = Eqfull, func = ModelPairsNutr, parms = MyData[1, ])
-# EigValEq <- eigen(x = MyJac, symmetric = FALSE, only.values = TRUE)$values
-
-# Numerically estimate the Jacobian matrix of the plasmid-free equilibrium of
-# the models, then calculate (or approximate?) the eigenvalues of this matrix.
-CalcEigenvalues <- function(MyData) {
-  parms <- MyData
-  EqFull <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  EigVal <- eigen(x = jacobian.full(y = EqFull, func = ModelPairsNutr, parms = parms),
-                    symmetric = FALSE, only.values = TRUE)$values
-  ComplexEigVal <- is.complex(EigVal) 
-  EigVal <- Re(EigVal) # selecting real part of the eigenvalues
-  DomEigVal <- max(EigVal) # selecting maximum real part of the eigenvalues
-  SignDomEigVal <- sign(DomEigVal)
-  SignEigValEqual <- identical(rep(SignDomEigVal, length(EigVal)), sign(Re(EigVal)))
-  
-  EqFullBulk <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0)
-  EigValBulk <- eigen(x = jacobian.full(y = EqFullBulk, func = ModelBulkNutr, parms = parms),
-                        symmetric = FALSE, only.values = TRUE)$values
-  ComplexEigValBulk <- is.complex(EigValBulk) 
-  EigValBulk <- Re(EigValBulk) # selecting real part of the eigenvalues
-  DomEigValBulk <- max(EigValBulk) # selecting maximum real part of the eigenvalues
-  SignDomEigValBulk <- sign(DomEigValBulk)
-  SignEigValEqualBulk <- identical(rep(sign(DomEigValBulk), length(EigValBulk)),
-                                   sign(Re(EigValBulk)))
-  InfoEigVal <- c(EigVal, DomEigVal, SignDomEigVal, SignEigValEqual,
-                  EigValBulk, DomEigValBulk, SignDomEigValBulk, SignEigValEqualBulk)
-  return(InfoEigVal)
-}
 
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
 colnames(MyInfoEigVal) <- c(paste0("EigVal", 1:8), "DomEigVal", "SignDomEigVal", "SignEigValEqual",
@@ -596,7 +596,7 @@ colnames(MyInfoEigVal) <- c(paste0("EigVal", 1:8), "DomEigVal", "SignDomEigVal",
 MyData <- cbind(MyData, MyInfoEigVal)
 print("Eigenvalues estimated:")
 print(Sys.time())
-})
+
 DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputusingapply", ".csv"),
           quote = FALSE, row.names = FALSE)
@@ -605,6 +605,38 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputusingapply", ".csv"),
 # eigenvalues are identical to those of earlier versions of the script containing
 # the nested for-loops. It is only slightly faster (134.39/0.34/143.33 seconds
 # for 29952 iterations compared to 148.19/0.10/149.67 with the nested-loops)
+
+
+CreatePlot(fillvar = "SignDomEigVal")
+CreatePlot(fillvar = "SignDomEigValBulk")
+CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk")
+
+limitseigenvalues <- log10(range(DomEigVals[DomEigVals > 0]))
+limitseigenvalues <- c(floor(limitseigenvalues[1]), ceiling(limitseigenvalues[2]))
+
+CreatePlot(fillvar = "log10(DomEigVal)", limits = limitseigenvalues)
+CreatePlot(fillvar = "log10(DomEigValBulk)", limits = limitseigenvalues)
+
+summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
+summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
+
+summary(MyData$DomEigVal)
+summary(MyData$DomEigValBulk)
+DomEigVals <- c(MyData$DomEigVal, MyData$DomEigValBulk)
+summary(DomEigVals)
+
+
+
+limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
+                     ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
+
+CreatePlot(fillvar = "log10(gdbulk)", gradienttype = 3)
+CreatePlot(fillvar = "log10(gtbulk)", gradienttype = 3)
+
+
+
+
+
 
 if(SignDomEigVal == -1) {
   # No invasion possible in the pair-formation model
@@ -772,96 +804,22 @@ MyData <- as.data.frame(MyData)
 write.csv(MyData, file = paste0(DateTimeStamp, "outputdeSolveChangedContact", ".csv"),
           quote = FALSE, row.names = FALSE)
 
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigVal)) + 
-  ggtitle("Sign dominant eigenvalue of the pair-formation model") +
-  geom_raster() + 
-  scale_fill_gradient2(midpoint = 0) +
-  facet_grid(cd + log10gd ~ ct + log10gt, labeller = label_both) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputSignDomEigValPair.png"))
 
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigValBulk)) + 
-  ggtitle("Sign dominant eigenvalue of the bulk-conjugation model") +
-  geom_raster() + 
-  scale_fill_gradient2(midpoint = 0) +
-  facet_grid(cd + log10gd ~ ct + log10gt, labeller = label_both) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputSignDomEigValBulk.png"))
 
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignDomEigVal / SignDomEigValBulk)) + 
-  ggtitle("Differences in sign of the dominant eigenvalue") +
-  geom_raster() + 
-  scale_fill_gradient2(midpoint = 0) +
-  facet_grid(cd + log10gd ~ ct + log10gt, labeller = label_both) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputSignDomEigVals.png"))
 
-summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
-summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
+X <- limitseigenvalues[1]
+ndigits <- 2
+round(X - (10^-ndigits)/2, ndigits)
 
-summary(MyData$DomEigVal)
-summary(MyData$DomEigValBulk)
-DomEigVals <- c(MyData$DomEigVal, MyData$DomEigValBulk)
-summary(DomEigVals)
-
-limitseigenvalues <- log10(range(DomEigVals[DomEigVals > 0]))
-limitseigenvalues <- c(floor(limitseigenvalues[1]), ceiling(limitseigenvalues[2]))
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(DomEigVal))) + 
-  ggtitle("Dominant eigenvalues of the pair-formation model") +
-  geom_raster() + 
-  scale_fill_gradientn(colours = MyColorBrew, limits = limitseigenvalues) +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputDomEigVal", ".png"))
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(DomEigValBulk))) + 
-  ggtitle("Dominant eigenvalues of the bulk-conjugation model") +
-  geom_raster() + 
-  scale_fill_gradientn(colours = MyColorBrew, limits = limitseigenvalues) +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputDomEigValBulk", ".png"))
-
-limitsbulkrates <- c(floor(min(log10(c(MyData$gtbulk, MyData$gdbulk)))),
-                     ceiling(max(log10(c(MyData$gtbulk, MyData$gdbulk)))))
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(gdbulk))) + 
-  ggtitle("Bulk-conjugation rate from the donor") +
-  geom_raster() + 
-  scale_fill_gradientn(colours = MyColorBrew, limits = limitsbulkrates) +
-  facet_grid(cd + log10gd ~ ct + log10gt, labeller = label_both) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputLog10gdbulk.png"))
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(gtbulk))) + 
-  ggtitle("Bulk-conjugation rate from the transconjugant") +
-  geom_raster() + 
-  scale_fill_gradientn(colours = MyColorBrew, limits = limitsbulkrates) +
-  facet_grid(cd + log10gd ~ ct + log10gt, labeller = label_both) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)",
-       caption = DateTimeStamp)
-ggsave(paste0(DateTimeStamp, "outputLog10gtbulk.png"))
+roundflex <- function(X, ndigits = 3, dir = "up") {
+  if(dir == "down") {
+    X <- round(X - (10^-ndigits)/2, ndigits)
+  }
+  if(dir == "up") {
+    X <- round(X + (10^-ndigits)/2, ndigits)
+  }
+  return(X)
+}
 
 ## Some controls
 any(MyData$time == MyData$tmax) # simulation not complete
