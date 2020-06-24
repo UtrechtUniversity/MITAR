@@ -1,82 +1,10 @@
 #### Pair-formation model of conjugation ####
 
-#### Version history ####
-# Before 9 January 2020 the equation for dR contained - kp*R*R instead of - 2*kp*R*R
-# On 10 february 2020 I changed the equation of the nutrients to include washout of nutrients
-# Later I changed kp, kn, gd, and gt to log10kp, log10kn, log10gd, and log10gt
-# In version 9 (13 March 2020) I removed the biomass equations from the models. This has the
-# advantage that the integration will be slightly faster since one equation less has to be
-# integrated. More importantly, removing the biomass equation is needed to enable
-# stability-analysis based on the eigenvalues of the jacobimatrix in the plasmid-free equilibrium
-# On 13 March I also removed the plotting commands from the script and changed the structure of
-# the output dataframe, to prevent repetition of the biomass and DInit = plasmid-bearing bacteria at the initial state.
-# For some versions there is a script available using rootSolve to run fast to equilibrium,
-# e.g. PairFormationSimulation2rootSolve8, but no plot over time can be made and it does not always work,
-# and the output structure is different from deSolve, leading to different selection styles for storing data
-# in the dataframe.
-# In version 13 I corrected the calculation of the eigenvalues to use the plasmid-free equilibrium EqFull, not
-# the plasmid-free equilibrium with DInit donors added to it (state). I also changed the calculation of the
-# biomass at the initial state in the dataframe to a cleaner implementation.
-# Version 13 is a copy of version 12, where I copied the script part by part to get the correct outlining
-# of all the brackets, and I changed some comments and the order of some parts to get a clearer and cleaner
-# script.
-# In version 13 (?) added dots in the graphs to indicate the points where equilibrium was not reached.
-# Besides, I splitted cSet and gSet in separate sets for D and T, and added DInit as a set and adjusted the
-# for-loops accordingly.
-# In version 14 I added automated labelling of the facets, and changed the manual labelling of the x- and
-# y-axis to automated labelling.
-# Versions 15 - 17 exist in a version with complete pair-formation, and a version ('ChangedContact') where
-# Zhong's model is followed regarding pair-formation, such that only Mdr and Mrt pairs are formed, and Mdt
-# and Mtt pairs arise from conjugation
-# In version 18 I changed the linestyles and linecolors to highlight the plasmid-free population in the same
-# way as in the earlier versions of the 'complete' model.
-# In version 19 I extended the root-function and added an eventfunction to set populations of bacteria that are
-# smaller than a threshold to 0. I also added handling of ratios that are invalid when checking for coexistence.
-# In version 21 I changed the order of equations to have nutrients as the first equation so nutrients 
-# can be disregarded in the rootfunction by using state[-1] without having to call length(state) or
-# length(state) + 1. Similarly I changed the order of the roots in the rootfunction, to have terminalroot = 1
-# instead of length(state) + 1. I also changed the rootfunction by selecting for only the bacterial populations
-# to trigger a root. After these changes I also changed mylty, mycol, and initial states to match the changed order.
-# NOTE: this implementation of events was WRONG, because the nutrients were excluded from selection so the
-# wrong states were put to 0. This issue was solved in later versions of version 21.
-# In version 23 the calculation of the bulk-rates according to Zhong has been added,
-# and gdbulk and gtbulk have been added to the parameters stored in the matrix.
-# The root- and eventfunctions are now also incorporated into the bulk-conjugation model.
-# The the bulk-conjugation model is ran using Zhong's bulk-conjugation rates, and
-# the output is stored in the matrix as well. I have added the column ComplexEigVal
-# to the matrix, which indicates if complex eigenvalues were present, and now only
-# the real parts of the eigenvalues are stored. Previously all values in the matrix
-# would have a complex +0i part added if a value with a complex part was stored,
-# and the imaginary parts hamper other functions.
-# In version 24 I changed to writing csv-files instead of xlsx files, changed the
-# script such that, even if invasion with the pair-formation model is not possible,
-# gdbulk and gtbulk are calculated, and stability-analysis of the plasmid-free
-# equilibrium in the bulk-model (which I added) is performed.
-# I also lowered extinctionthreshold to prevent the density of newly formed
-# populations from being below the extinctionthreshold.
-# In version 25 I changed NI from 1 to 10 (which has previously been used),
-# to decrease simulation time. The plots were also updated, various new plots
-# were added, and other colorscales were used.
-# In version 26 I removed the loop for e, Mytmax, Mytstep, and smallchange.
-# The values for kp and kn were changed to have integer values for log10(kp)
-# and log10(kn) (they were seq(from = -10.5, to = -8.5, by = 0.5), but the graphs
-# erroneously present it like they were -10, -9, ...) 
-# The loops for kp and kn were moved to only change after the plasimd-free
-# equilibrium has been calculated.  
-
-
 #### To do ####
 # Add reference section for references to help-files, powerpoints, publications etc.
-# Try to write plotting function with vars to be plotted on x- and y-axis and in facets,
-# difference between models or ratio between models as options.
 
-# Add totalT bulk, totalR bulk etc at equilibrium to dataframe
 # Run bulk-model for short time (same as short pair-model) and compare them
 # to see if the bulk-conjugation parameter holds (automated analysis somehow)
-
-# Remove more out of loop?
-# The runs which reach tmax were finished very quickly when I ran them
-# out of the loop (manually setting the variables to the right numbers).
 
 # QUESTION: have the resources to be considered for stability analysis?
 # Imran does exclude them from stability analysis?
@@ -581,7 +509,7 @@ DInitSet <- c(1000)
 DInitSet <- c(500, 1E3)
 bRSet <- c(0.8, 1.7)
 NISet <- c(10, 100)
-eValue <- 1e-6
+NutrConv <- 1e-6
 wSet <- c(0.04, 0.06)
 log10kpSet <- seq(from = -11, to = -5, by = 0.5)
 log10knSet <- seq(from = -1, to = 3, by = 0.5)
@@ -589,6 +517,32 @@ cdSet <- c(0.05)
 ctSet <- c(0.05)
 log10gdSet <- c(1, 1.176)
 log10gtSet <- c(1, 1.176)
+
+### Testing: this set worked (24 june 2020)
+DInitSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- c(10)
+NutrConv <- 1e-6
+wSet <- c(0.04)
+log10kpSet <- seq(from = -10, to = -6, by = 0.5)
+log10knSet <- seq(from = -1, to = 3, by = 0.5)
+cdSet <- c(0.01, 0.05)
+ctSet <- c(0.01, 0.05)
+log10gdSet <- c(1, 1.176)
+log10gtSet <- c(1, 1.176) 
+
+### Testing: try smaller steps for kp and kn (24 june 2020)
+DInitSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- c(10)
+NutrConv <- 1e-6
+wSet <- c(0.04)
+log10kpSet <- seq(from = -10, to = -6, by = 0.25)
+log10knSet <- seq(from = -1, to = 3, by = 0.25)
+cdSet <- c(0.01, 0.05)
+ctSet <- c(0.01, 0.05)
+log10gdSet <- c(1, 1.176)
+log10gtSet <- c(1, 1.176) 
 
 # Testset
 # with old nested loops script 148.19/0.10/149.67 seconds if runsimulation==0)
@@ -854,17 +808,17 @@ CreatePlot(fillvar = "(TotalPlasmid/TotalBio) / (TotalPlasmidBulk/TotalBioBulk)"
 # Fraction donors
 CreatePlot(fillvar = "TotalD/TotalBio", gradient2 = 0, limits = NULL)
 CreatePlot(fillvar = "DBulk/TotalBioBulk", gradient2 = 0, limits = NULL)
-
-CreatePlot(fillvar = "(DBulk/TotalBioBulk) / (TotalD/TotalBio)", gradient2 = 0, limits = NULL)
+CreatePlot(fillvar = "(DBulk/TotalBioBulk) / (TotalD/TotalBio)", gradient2 = 0)
 
 # Fraction recipients
-CreatePlot(fillvar = "(RBulk/TotalBioBulk) / (TotalR/TotalBio)", gradient2 = 0, limits = NULL)
-CreatePlot(fillvar = "(RBulk/TotalBioBulk) / (TotalR/TotalBio)", gradient2 = 0, limits = NULL)
+CreatePlot(fillvar = "TotalR/TotalBio", gradient2 = 0, limits = NULL)
+CreatePlot(fillvar = "RBulk/TotalBioBulk", gradient2 = 0, limits = NULL)
+CreatePlot(fillvar = "(RBulk/TotalBioBulk) / (TotalR/TotalBio)", gradient2 = 0)
 
 # Fraction transconjugants
-CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)", gradient2 = 0, limits = NULL)
-CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)", gradient2 = 0, limits = NULL)
-
+CreatePlot(fillvar = "TotalTrans/TotalBio", gradient2 = 0, limits = NULL)
+CreatePlot(fillvar = "TransBulk/TotalBioBulk", gradient2 = 0, limits = NULL)
+CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)", gradient2 = 0)
 
 ###### To create plots over time #####
 # NOTE: CURRENTLY BROKEN (because no state is specified).
@@ -1085,3 +1039,67 @@ ggplot(data = NULL, aes(x = log10kp, y = log10kn)) +
 
 # element_text(angle = 45, hjust = 1, vjust = 1, size = 14)
 # theme(legend.position = "bottom", legend.text = element_text(angle = 45, hjust = 1, vjust = 1))
+
+#### Version history ####
+# Before 9 January 2020 the equation for dR contained - kp*R*R instead of - 2*kp*R*R
+# On 10 february 2020 I changed the equation of the nutrients to include washout of nutrients
+# Later I changed kp, kn, gd, and gt to log10kp, log10kn, log10gd, and log10gt
+# In version 9 (13 March 2020) I removed the biomass equations from the models. This has the
+# advantage that the integration will be slightly faster since one equation less has to be
+# integrated. More importantly, removing the biomass equation is needed to enable
+# stability-analysis based on the eigenvalues of the jacobimatrix in the plasmid-free equilibrium
+# On 13 March I also removed the plotting commands from the script and changed the structure of
+# the output dataframe, to prevent repetition of the biomass and DInit = plasmid-bearing bacteria at the initial state.
+# For some versions there is a script available using rootSolve to run fast to equilibrium,
+# e.g. PairFormationSimulation2rootSolve8, but no plot over time can be made and it does not always work,
+# and the output structure is different from deSolve, leading to different selection styles for storing data
+# in the dataframe.
+# In version 13 I corrected the calculation of the eigenvalues to use the plasmid-free equilibrium EqFull, not
+# the plasmid-free equilibrium with DInit donors added to it (state). I also changed the calculation of the
+# biomass at the initial state in the dataframe to a cleaner implementation.
+# Version 13 is a copy of version 12, where I copied the script part by part to get the correct outlining
+# of all the brackets, and I changed some comments and the order of some parts to get a clearer and cleaner
+# script.
+# In version 13 (?) added dots in the graphs to indicate the points where equilibrium was not reached.
+# Besides, I splitted cSet and gSet in separate sets for D and T, and added DInit as a set and adjusted the
+# for-loops accordingly.
+# In version 14 I added automated labelling of the facets, and changed the manual labelling of the x- and
+# y-axis to automated labelling.
+# Versions 15 - 17 exist in a version with complete pair-formation, and a version ('ChangedContact') where
+# Zhong's model is followed regarding pair-formation, such that only Mdr and Mrt pairs are formed, and Mdt
+# and Mtt pairs arise from conjugation
+# In version 18 I changed the linestyles and linecolors to highlight the plasmid-free population in the same
+# way as in the earlier versions of the 'complete' model.
+# In version 19 I extended the root-function and added an eventfunction to set populations of bacteria that are
+# smaller than a threshold to 0. I also added handling of ratios that are invalid when checking for coexistence.
+# In version 21 I changed the order of equations to have nutrients as the first equation so nutrients 
+# can be disregarded in the rootfunction by using state[-1] without having to call length(state) or
+# length(state) + 1. Similarly I changed the order of the roots in the rootfunction, to have terminalroot = 1
+# instead of length(state) + 1. I also changed the rootfunction by selecting for only the bacterial populations
+# to trigger a root. After these changes I also changed mylty, mycol, and initial states to match the changed order.
+# NOTE: this implementation of events was WRONG, because the nutrients were excluded from selection so the
+# wrong states were put to 0. This issue was solved in later versions of version 21.
+# In version 23 the calculation of the bulk-rates according to Zhong has been added,
+# and gdbulk and gtbulk have been added to the parameters stored in the matrix.
+# The root- and eventfunctions are now also incorporated into the bulk-conjugation model.
+# The the bulk-conjugation model is ran using Zhong's bulk-conjugation rates, and
+# the output is stored in the matrix as well. I have added the column ComplexEigVal
+# to the matrix, which indicates if complex eigenvalues were present, and now only
+# the real parts of the eigenvalues are stored. Previously all values in the matrix
+# would have a complex +0i part added if a value with a complex part was stored,
+# and the imaginary parts hamper other functions.
+# In version 24 I changed to writing csv-files instead of xlsx files, changed the
+# script such that, even if invasion with the pair-formation model is not possible,
+# gdbulk and gtbulk are calculated, and stability-analysis of the plasmid-free
+# equilibrium in the bulk-model (which I added) is performed.
+# I also lowered extinctionthreshold to prevent the density of newly formed
+# populations from being below the extinctionthreshold.
+# In version 25 I changed NI from 1 to 10 (which has previously been used),
+# to decrease simulation time. The plots were also updated, various new plots
+# were added, and other colorscales were used.
+# In version 26 I removed the loop for e, Mytmax, Mytstep, and smallchange.
+# The values for kp and kn were changed to have integer values for log10(kp)
+# and log10(kn) (they were seq(from = -10.5, to = -8.5, by = 0.5), but the graphs
+# erroneously present it like they were -10, -9, ...) 
+# The loops for kp and kn were moved to only change after the plasimd-free
+# equilibrium has been calculated.  
