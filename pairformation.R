@@ -9,19 +9,19 @@
 # integrated. More importantly, removing the biomass equation is needed to enable
 # stability-analysis based on the eigenvalues of the jacobimatrix in the plasmid-free equilibrium
 # On 13 March I also removed the plotting commands from the script and changed the structure of
-# the output dataframe, to prevent repetition of the biomass and Dinit = plasmid-bearing bacteria at the initial state.
+# the output dataframe, to prevent repetition of the biomass and DInit = plasmid-bearing bacteria at the initial state.
 # For some versions there is a script available using rootSolve to run fast to equilibrium,
 # e.g. PairFormationSimulation2rootSolve8, but no plot over time can be made and it does not always work,
 # and the output structure is different from deSolve, leading to different selection styles for storing data
 # in the dataframe.
 # In version 13 I corrected the calculation of the eigenvalues to use the plasmid-free equilibrium EqFull, not
-# the plasmid-free equilibrium with Dinit donors added to it (state). I also changed the calculation of the
+# the plasmid-free equilibrium with DInit donors added to it (state). I also changed the calculation of the
 # biomass at the initial state in the dataframe to a cleaner implementation.
 # Version 13 is a copy of version 12, where I copied the script part by part to get the correct outlining
 # of all the brackets, and I changed some comments and the order of some parts to get a clearer and cleaner
 # script.
 # In version 13 (?) added dots in the graphs to indicate the points where equilibrium was not reached.
-# Besides, I splitted cSet and gSet in separate sets for D and T, and added Dinit as a set and adjusted the
+# Besides, I splitted cSet and gSet in separate sets for D and T, and added DInit as a set and adjusted the
 # for-loops accordingly.
 # In version 14 I added automated labelling of the facets, and changed the manual labelling of the x- and
 # y-axis to automated labelling.
@@ -150,7 +150,7 @@ ModelRecipNutr <- function(t, state, parms) {
 # log10gtSet <- c(1.176)
 
 # Single run, invasion not possible
-DinitSet <- c(1E3)
+DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
@@ -164,7 +164,7 @@ NutrConv <- c(1E-6)
 
 
 # Single run, invasion possible
-DinitSet <- c(1E3)
+DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
@@ -177,7 +177,7 @@ log10gtSet <- c(1.176)
 NutrConv <- c(1E-6)
 
 # Vary kp
-DinitSet <- c(1E3)
+DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
@@ -190,7 +190,7 @@ log10gtSet <- c(1.176)
 NutrConv <- c(1E-6)
 
 # # Vary kp and kn
-# DinitSet <- c(1E3)
+# DInitSet <- c(1E3)
 # bRSet <- c(1.7)
 # NISet <- c(10)
 # wSet <- c(0.04)
@@ -203,7 +203,7 @@ NutrConv <- c(1E-6)
 # NutrConv <- c(1E-6)
 
 # # Vary kp, kn, cd, and ct
-# DinitSet <- c(1E3)
+# DInitSet <- c(1E3)
 # bRSet <- c(1.7)
 # NISet <- c(10)
 # wSet <- c(0.04)
@@ -216,7 +216,7 @@ NutrConv <- c(1E-6)
 # NutrConv <- c(1E-6)
 
 # # Vary kp, kn, gd, gt, cd, and ct
-DinitSet <- c(1E3)
+DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
@@ -229,7 +229,7 @@ log10gtSet <- c(1, 1.176)
 NutrConv <- c(1E-6)
 
 # # Extensive dataset
-# DinitSet <- c(1E3)
+# DInitSet <- c(1E3)
 # bRSet <- c(0.4, 1.7)
 # NISet <- c(0.1, 1, 10)
 # wSet <- c(0.04)
@@ -242,7 +242,7 @@ NutrConv <- c(1E-6)
 # NutrConv <- c(1E-6)
 
 
-DinitSet <- c(1E3)
+DInitSet <- c(1E3)
 log10kpSet <- seq(from = -11, to = -5, by = 1)
 log10knSet <- seq(from = -1, to = 3, by = 1)
 cdSet <- c(0.01, 0.05)
@@ -251,13 +251,13 @@ log10gdSet <- c(1, 1.176)
 log10gtSet <- c(1, 1.176)
 
 #### Create matrix to store data ####
-Mydf <- expand.grid(Dinit = DinitSet, bR = bRSet, NI = NISet, w = wSet, log10kpSet = log10kpSet,
+Mydf <- expand.grid(DInit = DInitSet, bR = bRSet, NI = NISet, w = wSet, log10kpSet = log10kpSet,
                     log10knSet = log10knSet, cdSet = cdSet, ctSet = ctSet,
                     log10gdSet = log10gdSet, log10gtSet = log10gtSet, KEEP.OUT.ATTRS = FALSE)
 
 
 TotalIterations <- length(bRSet)*length(NISet)*length(log10kpSet)*
-  length(log10knSet)*length(wSet)*length(DinitSet)*length(cdSet)*length(ctSet)*
+  length(log10knSet)*length(wSet)*length(DInitSet)*length(cdSet)*length(ctSet)*
   length(log10gdSet)*length(log10gtSet)
 print(TotalIterations)
 CurrentIteration <- 0
@@ -309,6 +309,7 @@ extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the ex
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
 smallchange <- c(1E-5)
 Mytmax <- c(1E5)
+tmaxsteady <- 1e8
 Mytstep <- c(10)
 
 ###### Functions
@@ -368,11 +369,11 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
 # approximations of gdbulk and gtbulk from the output at t = 3 hours,
 # following Zhong's approach for the calculations.
 EstConjBulk <- function(MyData) {
-  state <- c(D = MyData[["Dinit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+  state <- c(D = MyData[["DInit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
   parms <- MyData
   DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
                                    func = ModelEstConjBulkDonor, parms = parms), 1)
-  state <- c(R = MyData[["REq"]], Trans = MyData[["Dinit"]], Mrt = 0, Mtt = 0)
+  state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
   DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = state,
                                    func = ModelEstConjBulkTrans, parms = parms), 1)  
   return(cbind(DataEstConjBulkDonor, DataEstConjBulkTrans))
@@ -401,6 +402,7 @@ calceqplasmidfree <- function(MyData) {
 
 # Numerically estimate the Jacobian matrix of the plasmid-free equilibrium of
 # the models, then calculate (or approximate?) the eigenvalues of this matrix.
+# ToDO: also return ComplexEigVal and ComplexEigValBulk
 CalcEigenvalues <- function(MyData) {
   parms <- MyData
   EqFull <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
@@ -429,7 +431,7 @@ CalcEigenvalues <- function(MyData) {
 ## Plotfunction
 # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
 # ToDo: warn if lenght of variables that are not passed on to the plotfunction
-# are > 1. E.g., if Dinitset <- c(100, 1000) there will be 2 values for each kp*kn*cd*ct combination
+# are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each kp*kn*cd*ct combination
 # I don't know how these are handled when plotting
 CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, data = MyData, xvar = "log10(kp)", yvar = "log10(kn)", save = FALSE) {
   if(exists("DateTimeStamp") == FALSE) {
@@ -456,12 +458,13 @@ CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, data = MyData, xva
 }
 
 # The initial state is the plasmid-free equilibrium (R*, Nutr*) with the
-# addition of Dinit donor bacteria per mL
+# addition of DInit donor bacteria per mL. Note that stol is based on the average
+# of absolute rates of change, not the sum
 SimulationPairs <- function(InputSimulationPairs) {
   parms <- InputSimulationPairs
-  state <- c(Nutr = parms[["NutrEq"]], D = parms[["Dinit"]],
+  state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
              R = parms[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  out <- runsteady(y = state, time = c(0, 1e8), func = ModelPairsNutr, parms = parms, stol = 1.25e-6)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr, parms = parms, stol = 1.25e-6)
   EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
   return(EqAfterInvDonor)
 }
@@ -469,9 +472,9 @@ SimulationPairs <- function(InputSimulationPairs) {
 # Run the bulk-conjugation model
 SimulationBulk <- function(InputSimulationBulk) {
   parms <- InputSimulationBulk
-  state <- c(Nutr = parms[["NutrEq"]], D = parms[["Dinit"]],
+  state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
              R = parms[["REq"]], Trans = 0)
-  out <- runsteady(y = state, time = c(0, 1e8), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
   EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
   return(EqAfterInvDonor)
 }
@@ -536,7 +539,7 @@ summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 }
 
 # Comparing with deSolve run of 12 june
-DinitSet <- c(1000)
+DInitSet <- c(1000)
 bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
@@ -559,7 +562,7 @@ cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 log10gdSet <- c(1.176)
 log10gtSet <- c(1.176)
-DinitSet <- c(1000)
+DInitSet <- c(1000)
 
 # Very small set
 bRSet <- c(1.7)
@@ -572,10 +575,10 @@ cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 log10gdSet <- c(1.176)
 log10gtSet <- c(1.176)
-DinitSet <- c(1000)
+DInitSet <- c(1000)
 
 ## Large dataset for tests
-DinitSet <- c(500, 1E3)
+DInitSet <- c(500, 1E3)
 bRSet <- c(0.8, 1.7)
 NISet <- c(10, 100)
 eValue <- 1e-6
@@ -590,7 +593,7 @@ log10gtSet <- c(1, 1.176)
 # Testset
 # with old nested loops script 148.19/0.10/149.67 seconds if runsimulation==0)
 # with this apply-based script:  134.39/0.34/143.33 seconds, only slightly faster
-# DinitSet <- c(500, 1E3)
+# DInitSet <- c(500, 1E3)
 # bRSet <- c(0.8, 1.7)
 # NISet <- c(10, 100)
 # eValue <- 1e-6
@@ -625,13 +628,13 @@ MyData <- cbind(MyData, dfeqplasmidfree)
 
 # Note on indexing of tibbles: use MyData[[1, "REq"]] to return a vector (MyData[1, "REq"] returns a LIST)
 # See is.vector(state) and is.numeric(state)
-# Using MyData$Dinit[i] in a loop does work with tibbles as well
+# Using MyData$DInit[i] in a loop does work with tibbles as well
 
 # Add combinations with the parameters needed to approximate gdbulk and gtbulk to MyData
 # MyData <- expand_grid(MyData, log10kp = log10kpSet, log10kn = log10knSet,
-#                        log10gd = log10gdSet, log10gt = log10gtSet, Dinit = DinitSet)
+#                        log10gd = log10gdSet, log10gt = log10gtSet, DInit = DInitSet)
 MyData <- expand_grid(MyData, kp = 10^log10kpSet, kn = 10^log10knSet,
-                      gd = 10^log10gdSet, gt = 10^log10gtSet, Dinit = DinitSet)
+                      gd = 10^log10gdSet, gt = 10^log10gtSet, DInit = DInitSet)
 MyData
 dim(MyData)
 
@@ -685,7 +688,8 @@ limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
 CreatePlot(fillvar = "log10(gdbulk)", gradient2 = 0, limits = limitsbulkrates)
 CreatePlot(fillvar = "log10(gtbulk)", gradient2 = 0, limits = limitsbulkrates)
 
-CreatePlot(fillvar = "log10(REq)", gradient2 = 0)
+CreatePlot(fillvar = "NutrEq", gradient2 = 0)
+CreatePlot(fillvar = "REq", gradient2 = 0)
 
 CreatePlot(fillvar = "SignDomEigVal")
 CreatePlot(fillvar = "SignDomEigValBulk")
@@ -758,7 +762,21 @@ print(Sys.time())
 
 BackupMyData2 <- MyData
 
-colnames(MyData) <- c(colnames(MyData)[-c(43:47)], paste0(colnames(MyData[43:47]), "Bulk"))
+colnames(MyData) <- c(colnames(MyData)[-c((ncol(MyData)-4):ncol(MyData))],
+                      paste0(colnames(MyData[c((ncol(MyData)-4):ncol(MyData))]), "Bulk"))
+
+# If runsimulation != 1 only the parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
+MyData <- cbind(MyData, TotalD = NA, TotalR = NA, TotalTrans = NA, TotalPlasmid = NA, TotalBio = NA,
+                TotalPlasmidBulk = NA, TotalBioBulk = NA)
+MyData[, "TotalD"] <- MyData[, "D"] + MyData[, "Mdr"] + MyData[, "Mdt"]
+MyData[, "TotalR"] <- MyData[, "R"] + MyData[, "Mdr"] + MyData[, "Mrt"]
+MyData[, "TotalTrans"] <- MyData[, "Trans"] + MyData[, "Mdt"] + MyData[, "Mrt"] + 2*MyData[, "Mtt"]
+MyData[, "TotalPlasmid"] <- MyData[, "TotalD"] + MyData[, "TotalTrans"]
+MyData[, "TotalBio"] <- MyData[, "D"] + MyData[, "R"] + MyData[, "Trans"] + 2*MyData[, "Mdr"] +
+  2*MyData[, "Mdt"] + 2*MyData[, "Mrt"] + 2*MyData[, "Mtt"]
+MyData[, "TotalPlasmidBulk"] <- MyData[, "DBulk"] + MyData[, "TransBulk"]
+MyData[, "TotalBioBulk"] <- MyData[, "DBulk"] + MyData[, "RBulk"] + MyData[, "TransBulk"]
+
 
 write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulations.csv"),
           quote = FALSE, row.names = FALSE)
@@ -785,6 +803,68 @@ summaryplot(MyData$NutrBulk)
 summaryplot(MyData$DBulk)
 summaryplot(MyData$RBulk)
 summaryplot(MyData$TransBulk)
+summaryplot(MyData$TotalD)
+summaryplot(MyData$TotalR)
+summaryplot(MyData$TotalTrans)
+summaryplot(MyData$TotalPlasmid) # Plots on linear scale despite varying over many orders of magnitude ?
+summaryplot(MyData$TotalPlasmidBulk)
+
+### Some controls
+# Equilibrium at t=0 despite unstable plasmid-free equilibrium
+if(any(MyData$time == 0 & MyData$SignDomEigVal == 1)) {
+  A <- length(which(MyData$time == 0 & MyData$SignDomEigVal == 1))
+  warning(paste("Equilibrium at t=0 despite unstable plasmid-free equilibrium in", A, "cases!"))
+}
+
+if(any(MyData$timeBulk == 0 & MyData$SignDomEigVal == 1)) {
+  A <- length(which(MyData$timeBulk == 0 & MyData$SignDomEigVal == 1))
+  warning(paste("Equilibrium at t=0 despite unstable plasmid-free equilibrium in", A, "cases!"))
+}
+
+# Unstable equilibrium, but invasion not possible
+# ToDo: make better comparison (will not be exact)
+any(MyData$TotalR == MyData$TotalBio & MyData$SignDomEigVal == 1)
+any(MyData$RBulk == MyData$TotalBioBulk & MyData$SignDomEigValBulk == 1)
+
+# If this differs, comparisons between the 2 models should use fractions, not cell counts
+summary(MyData$TotalBio / MyData$TotalBioBulk)
+range(MyData$TotalBio / MyData$TotalBioBulk)
+
+# If the biomass is the same accross simulations, one could use the number of cells instead of fractions of total biomass
+summary(MyData$TotalBio)
+max(MyData$TotalBio) / min(MyData$TotalBio) 
+summary(MyData$TotalBioBulk)
+max(MyData$TotalBioBulk) / min(MyData$TotalBioBulk)
+
+# Which proportion of cells is plasmid-bearing, if it is not 0
+min((MyData$TotalPlasmid / MyData$TotalBio)[which(MyData$TotalPlasmid / MyData$TotalBio != 0)])
+max((MyData$TotalPlasmid / MyData$TotalBio)[which(MyData$TotalPlasmid / MyData$TotalBio != 0)])
+
+min((MyData$TotalPlasmidBulk / MyData$TotalBioBulk)[which(MyData$TotalPlasmidBulk / MyData$TotalBioBulk != 0)])
+max((MyData$TotalPlasmidBulk / MyData$TotalBioBulk)[which(MyData$TotalPlasmidBulk / MyData$TotalBioBulk != 0)])
+
+# Compare biomass accross the two models
+CreatePlot(fillvar = "TotalBio / TotalBioBulk", gradient2 = 1)
+
+# Fraction plasmid-bearing cells
+CreatePlot(fillvar = "TotalPlasmid/TotalBio", gradient2 = 0)
+CreatePlot(fillvar = "TotalPlasmidBulk/TotalBioBulk", gradient2 = 0)
+CreatePlot(fillvar = "(TotalPlasmid/TotalBio) / (TotalPlasmidBulk/TotalBioBulk)", gradient2 = 0)
+
+# Fraction donors
+CreatePlot(fillvar = "TotalD/TotalBio", gradient2 = 0, limits = NULL)
+CreatePlot(fillvar = "DBulk/TotalBioBulk", gradient2 = 0, limits = NULL)
+
+CreatePlot(fillvar = "(DBulk/TotalBioBulk) / (TotalD/TotalBio)", gradient2 = 0, limits = NULL)
+
+# Fraction recipients
+CreatePlot(fillvar = "(RBulk/TotalBioBulk) / (TotalR/TotalBio)", gradient2 = 0, limits = NULL)
+CreatePlot(fillvar = "(RBulk/TotalBioBulk) / (TotalR/TotalBio)", gradient2 = 0, limits = NULL)
+
+# Fraction transconjugants
+CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)", gradient2 = 0, limits = NULL)
+CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)", gradient2 = 0, limits = NULL)
+
 
 ###### To create plots over time #####
 # NOTE: CURRENTLY BROKEN (because no state is specified).
@@ -912,39 +992,6 @@ MyData[CurrentIteration, c(29:51)] <- unname(c(
 
 
 BackupMyData <- MyData
-colnames(MyData) <- c(
-  names(parmsBulk), paste0(names(Eq), "RecipEq"), names(EqAfterInvDonor),
-  paste0(names(EqAfterInvDonorBulk), "Bulk"), paste0("EigVal", 1:length(EigValEq)),
-  "DomEigVal", "SignDomEigVal", "SignEigValEqual", "ComplexEigVal",
-  paste0("EigValBulk", 1:length(EigValEqBulk)),
-  "DomEigValBulk", "SignDomEigValBulk", "SignEigValEqualBulk", "ComplexEigValBulk",
-  "smallchange", "tmax", "tstep", "PlasmidsInit", "BioInit", "DonorsEq", "PlasmidsEq", "BioEq", "Invasion",
-  "DonorsEqBulk", "PlasmidsEqBulk", "BioEqBulk", "InvasionBulk")
-if(runsimulation == 1) {
-  MyData[, "PlasmidsInit"] <- rep(Dinit, TotalIterations)
-  MyData[, "BioInit"] <- MyData[, "RRecipEq"] + MyData[, "PlasmidsInit"]
-  MyData[, "DonorsEq"] <- MyData[, "D"] + MyData[, "Mdr"] + MyData[, "Mdt"]
-  MyData[, "PlasmidsEq"] <- MyData[, "D"] + MyData[, "Trans"] + MyData[, "Mdr"] +
-    2*MyData[, "Mdt"] + MyData[, "Mrt"] + 2*MyData[, "Mtt"]
-  MyData[, "BioEq"] <- MyData[, "D"] + MyData[, "R"] + MyData[, "Trans"] + 2*MyData[, "Mdr"] +
-    2*MyData[, "Mdt"] + 2*MyData[, "Mrt"] + 2*MyData[, "Mtt"]
-  MyData[which(MyData[, "PlasmidsEq"] / MyData[, "BioEq"] > 
-                 MyData[, "PlasmidsInit"] / MyData[, "BioInit"]), "Invasion"] <- 1
-  MyData[which(MyData[, "PlasmidsEq"] / MyData[, "BioEq"] <= 
-                 MyData[, "PlasmidsInit"] / MyData[, "BioInit"]), "Invasion"] <- 0
-  MyData[, "DonorsEqBulk"] <- MyData[, "DBulk"]
-  MyData[, "PlasmidsEqBulk"] <- MyData[, "DBulk"] + MyData[, "TransBulk"]
-  MyData[, "BioEqBulk"] <- MyData[, "DBulk"] + MyData[, "RBulk"] + MyData[, "TransBulk"]
-  MyData[which(MyData[, "PlasmidsEqBulk"] / MyData[, "BioEqBulk"] > 
-                 MyData[, "PlasmidsInit"] / MyData[, "BioInit"]), "InvasionBulk"] <- 1
-  MyData[which(MyData[, "PlasmidsEqBulk"] / MyData[, "BioEqBulk"] <= 
-                 MyData[, "PlasmidsInit"] / MyData[, "BioInit"]), "InvasionBulk"] <- 0
-} else {
-  # Only the parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
-  MyData[, "BioInit"] <- MyData[, "RRecipEq"]
-  MyData <- MyData[, c(1:14, 29:48, 53)]
-}
-
 MyData <- as.data.frame(MyData)
 write.csv(MyData, file = paste0(DateTimeStamp, "outputdeSolveChangedContact", ".csv"),
           quote = FALSE, row.names = FALSE)
@@ -965,235 +1012,6 @@ roundflex <- function(X, ndigits = 3, dir = "up") {
   }
   return(X)
 }
-
-## Some controls
-any(MyData$time == MyData$tmax) # simulation not complete
-length(which(MyData$time == MyData$tmax))
-any(MyData$timeBulk == MyData$tmax)
-length(which(MyData$timeBulk == MyData$tmax))
-
-any(MyData$R == MyData$BioEq & MyData$SignDomEigVal == 1) # Unstable equilibrium, but invasion not possible
-any(MyData$RBulk == MyData$BioEqBulk & MyData$SignDomEigValBulk == 1)
-# If the biomass is the same accross simulations, one could use the number of cells instead of fractions of total biomass
-summary(MyData$BioEq)
-max(MyData$BioEq) / min(MyData$BioEq) 
-summary(MyData$BioEqBulk)
-max(MyData$BioEqBulk) / min(MyData$BioEqBulk)
-summary(MyData$BioEq / MyData$BioEqBulk) # If this differs, comparisons between the 2 models should use fraction, not cell counts
-range(MyData$BioEq / MyData$BioEqBulk)
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = BioEq / BioEqBulk)) + 
-  ggtitle("Difference in biomass") +
-  geom_tile(colour = "white") + 
-  scale_fill_gradient2(na.value = "purple") +
-  geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-  geom_point(data = MyData[MyData$timeBulk==MyData$tmax, ], aes(colour = "black")) +
-  scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom")
-
-# A <- ggplot(data = MyData, aes(x = log10kp, y = log10(PlasmidsEq))) +
-#   ggtitle("Invasion of donor in (R*, Nutr*)") +
-#   scale_x_continuous() +
-#   scale_y_continuous() +
-#   facet_grid(smallchange ~ log10kn, labeller = label_both) +
-#   theme(legend.position="bottom") +
-#   geom_point(data = MyData, shape = 16, size = 2, aes(color = as.factor(tmax)))
-# print(A)
-# ggsave(paste0(DateTimeStamp, "outputplotA", ".png"))
-
-###
-## Idee: in plaats van runnen met cd = c(0.01, 0.025, 0.05) en ct = c(0.01, 0.025, 0.05)
-## en vervolgens met plotten cd ~ ct gebruiken voor facetten, kan ook runnen met
-## cd = 0.025, ct = c(0.01, 0.025, 0.05) (dus kleiner dan, gelijk aan, groter dan)
-## en zelfdde voor gd en gt, dus gd = 15, gt = 10, 15, 20.
-
-### Plots controleren: facet_grid verschilt
-# Note that geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) 
-# only takes pair-formation model into account !
-
-### NOTE: ! HARDCODED limits c(-0.3, 0) !
-if(length(log10gdSet)*length(log10gdSet) > 1) {
-  ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(PlasmidsEq/BioEq))) + 
-    ggtitle("Fraction plasmid-bearing bacteria, pair-formation model") +
-    geom_tile(colour = "white") + 
-    scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50") +
-    geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-    scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-    facet_grid(rows = vars(cd, log10gd), cols = vars(ct, log10gt), labeller = label_both) +
-    theme(legend.position = "bottom")
-  ggsave(paste0(DateTimeStamp, "outputheatmapFractionLog.png"))
-} else {
-  ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(PlasmidsEq/BioEq))) + 
-    ggtitle("Fraction plasmid-bearing bacteria, pair-formation model") +
-    geom_tile(colour = "white") + 
-    scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50", limits = c(-0.3, 0)) +
-    theme(legend.text = element_text(angle = 45, hjust = 1, vjust = 1, size = 10)) +
-    # geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-    # scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-    facet_grid(cd ~ ct, labeller = label_both) +
-    theme(legend.position = "bottom") +
-    labs(x = "log10(Attachment rate)",
-         y = "log10(Detachment rate)")
-  ggsave(paste0(DateTimeStamp, "outputheatmapFractionLog.png"))
-}
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = PlasmidsEq/BioEq)) + 
-  ggtitle("Fraction plasmid-bearing bacteria, pair-formation model") +
-  geom_tile(colour = "white") + 
-  scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50") +
-  theme(legend.text = element_text(angle = 45, hjust = 1, vjust = 1, size = 10)) +
-  # geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-  # scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom") +
-  labs(x = "log10(Attachment rate)",
-       y = "log10(Detachment rate)")
-ggsave(paste0(DateTimeStamp, "outputheatmapFraction.png"))
-
-### NOTE: ! HARDCODED limits c(-0.3, 0) !
-if(length(log10gdSet)*length(log10gdSet) > 1) {
-  ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(PlasmidsEqBulk/BioEqBulk))) + 
-    ggtitle("Fraction plasmid-bearing bacteria, bulk-conjugation model") +
-    geom_tile(colour = "white") +
-    scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50") +
-    geom_point(data = MyData[MyData$timeBulk==MyData$tmax, ], aes(colour = "black")) +
-    scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-    facet_grid(rows = vars(cd, log10gd), cols = vars(ct, log10gt), labeller = label_both) +
-    theme(legend.position = "bottom")
-  ggsave(paste0(DateTimeStamp, "outputheatmapFractionBulk.png"))
-} else {
-  ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(PlasmidsEqBulk/BioEqBulk))) + 
-    ggtitle("Fraction plasmid-bearing bacteria, bulk-conjugation model") +
-    geom_tile(colour = "white") + 
-    scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50", limits = c(-0.3, 0)) +
-    theme(legend.text = element_text(angle = 45, hjust = 1, vjust = 1, size = 10)) +
-    # geom_point(data = MyData[MyData$timeBulk==MyData$tmax, ], aes(colour = "black")) +
-    # scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-    facet_grid(cd ~ ct, labeller = label_both) +
-    theme(legend.position = "bottom") +
-    labs(x = "log10(Attachment rate)",
-         y = "log10(Detachment rate)")
-  ggsave(paste0(DateTimeStamp, "outputheatmapFractionBulk.png"))
-}
-
-min((MyData$PlasmidsEq / MyData$BioEq)[which(MyData$PlasmidsEq / MyData$BioEq != 0)])
-max((MyData$PlasmidsEq / MyData$BioEq)[which(MyData$PlasmidsEq / MyData$BioEq != 0)])
-
-min((MyData$PlasmidsEqBulk / MyData$BioEqBulk)[which(MyData$PlasmidsEqBulk / MyData$BioEqBulk != 0)])
-max((MyData$PlasmidsEqBulk / MyData$BioEqBulk)[which(MyData$PlasmidsEqBulk / MyData$BioEqBulk != 0)])
-
-sort(unique(((MyData$PlasmidsEq / MyData$BioEq) / (MyData$PlasmidsEqBulk / MyData$BioEqBulk))))
-
-# If the next plot gives problems because of log10(0), could also use log10(... - ...)
-# or log10(... + 1)
-
-if(length(log10gdSet)*length(log10gdSet) > 1) {
-  ggplot(data = MyData, aes(x = log10kp, y = log10kn,
-                            fill = log10((PlasmidsEqBulk/BioEqBulk) / (PlasmidsEq/BioEq)))) + 
-    ggtitle("Ratio of the fraction plasmid-bearing bacteria, between the two models") +
-    geom_tile(colour = "white") + 
-    scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50") +
-    geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-    geom_point(data = MyData[MyData$timeBulk==MyData$tmax, ], aes(colour = "black")) +
-    scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-    facet_grid(rows = vars(cd, log10gd), cols = vars(ct, log10gt), labeller = label_both) +
-    theme(legend.position = "bottom")
-  ggsave(paste0(DateTimeStamp, "outputheatmapFractionPairBulk", ".png"))
-} else {
-  ggplot(data = MyData, aes(x = log10kp, y = log10kn,
-                            fill = log10((PlasmidsEqBulk/BioEqBulk) / (PlasmidsEq/BioEq)))) +
-    ggtitle("Ratio of the fraction plasmid-bearing bacteria, between the two models") +
-    geom_tile(colour = "white") + 
-    scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50") +
-    geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-    geom_point(data = MyData[MyData$timeBulk==MyData$tmax, ], aes(colour = "black")) +
-    scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-    facet_grid(cd ~ ct, labeller = label_both) +
-    theme(legend.position = "bottom")
-  ggsave(paste0(DateTimeStamp, "outputheatmapFractionPairBulk", ".png"))
-}
-
-if(length(log10gdSet)*length(log10gdSet) > 1) {
-  ggplot(data = MyData, aes(x = log10kp, y = log10kn,
-                            fill = log10(PlasmidsEqBulk / PlasmidsEq))) + 
-    ggtitle("Ratio of the number of plasmid-bearing bacteria between the two models") +
-    geom_tile(colour = "white") + 
-    scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50") +
-    geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-    geom_point(data = MyData[MyData$timeBulk==MyData$tmax, ], aes(colour = "black")) +
-    scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-    facet_grid(rows = vars(cd, log10gd), cols = vars(ct, log10gt), labeller = label_both) +
-    theme(legend.position = "bottom")
-  ggsave(paste0(DateTimeStamp, "outputheatmapFractionPairBulk", ".png"))
-} else {
-  ggplot(data = MyData, aes(x = log10kp, y = log10kn,
-                            fill = log10(PlasmidsEqBulk / PlasmidsEq))) +
-    ggtitle("Ratio of the number of plasmid-bearing bacteria between the two models") +
-    geom_tile(colour = "white") + 
-    scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50") +
-    geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-    geom_point(data = MyData[MyData$timeBulk==MyData$tmax, ], aes(colour = "black")) +
-    scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-    facet_grid(cd ~ ct, labeller = label_both) +
-    theme(legend.position = "bottom")
-  ggsave(paste0(DateTimeStamp, "outputheatmapFractionPairBulk", ".png"))
-}
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn,
-                          fill = DonorsEq/BioEq)) +
-  ggtitle("Fraction donors at equilibrium, pairmodel") +
-  geom_tile(colour = "white") +
-  scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50") +
-  theme(legend.text = element_text(angle = 45, hjust = 1, vjust = 1, size = 10)) +
-  geom_point(data = MyData[MyData$timeBulk==MyData$tmax, ], aes(colour = "black")) +
-  scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom")
-ggsave(paste0(DateTimeStamp, "outputheatmapFractionDonorsPair", ".png"))
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn,
-                          fill = (DonorsEqBulk/BioEqBulk) / (DonorsEq/BioEq))) +
-  ggtitle("Ratio of the fraction donors between the two models") +
-  geom_tile(colour = "white") +
-  scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50") +
-  theme(legend.text = element_text(angle = 45, hjust = 1, vjust = 1, size = 10)) +
-  geom_point(data = MyData[MyData$timeBulk==MyData$tmax, ], aes(colour = "black")) +
-  scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom")
-ggsave(paste0(DateTimeStamp, "outputheatmapFractionDonorsPairBulk", ".png"))
-
-ggplot(data = MyData, aes(x = log10kp, y = log10kn,
-                          fill = (RBulk/BioEqBulk) / (D/BioEq))) +
-  ggtitle("Ratio of the fraction donors between the two models") +
-  geom_tile(colour = "white") +
-  scale_fill_gradientn(colours = MyColorBrew, na.value = "gray50") +
-  theme(legend.text = element_text(angle = 45, hjust = 1, vjust = 1, size = 10)) +
-  geom_point(data = MyData[MyData$timeBulk==MyData$tmax, ], aes(colour = "black")) +
-  scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom")
-ggsave(paste0(DateTimeStamp, "outputheatmapFractionDonorsPairBulk", ".png"))
-
-
-# Can I set scale limits to compare between plots?
-
-CleanData <- MyData[MyData$time < MyData$tmax, ]
-CleanData <- CleanData[CleanData$timeBulk < CleanData$tmax, ]
-MyDataBackup <- MyData
-MyData <- CleanData
-
-E <- ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = SignEigValEqual)) + 
-  ggtitle("pair-formation model") +
-  geom_tile(colour = "white") + 
-  scale_fill_gradient(low = "red", high = "green") +
-  geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-  scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-  facet_grid(cd ~ ct, labeller = label_both) +
-  theme(legend.position = "bottom")
-print(E)
-ggsave(paste0(DateTimeStamp, "outputEqualEigenvalues", ".png"), plot = E)
 
 ## An alternative way to highlight where equilibrium was not reached, but I could
 # not figure out how to include info on the rectangles in the legend, and the
