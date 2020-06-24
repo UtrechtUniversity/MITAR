@@ -455,6 +455,99 @@ CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, data = MyData, xva
   }
 }
 
+# The initial state is the plasmid-free equilibrium (R*, Nutr*) with the
+# addition of Dinit donor bacteria per mL
+SimulationPairs <- function(InputSimulationPairs) {
+  parms <- InputSimulationPairs
+  state <- c(Nutr = parms[["NutrEq"]], D = parms[["Dinit"]],
+             R = parms[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+  out <- runsteady(y = state, time = c(0, 1e8), func = ModelPairsNutr, parms = parms, stol = 1.25e-6)
+  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
+  return(EqAfterInvDonor)
+}
+
+# Run the bulk-conjugation model
+SimulationBulk <- function(InputSimulationBulk) {
+  parms <- InputSimulationBulk
+  state <- c(Nutr = parms[["NutrEq"]], D = parms[["Dinit"]],
+             R = parms[["REq"]], Trans = 0)
+  out <- runsteady(y = state, time = c(0, 1e8), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
+  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
+  return(EqAfterInvDonor)
+}
+
+summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
+  print(summary(plotvar))
+  print(range(plotvar))
+  plotdf <- data.frame(val = plotvar, sign = sign(plotvar), absval = abs(plotvar), plotcol = "black")
+  if(sortvalues == TRUE) {
+    plotdf <- plotdf[order(plotdf$sign, plotdf$absval), ]
+  }
+  valueszero <- which(plotdf[, "val"] == 0)
+  nvalueszero <- length(valueszero)
+  
+  if(nvalueszero > 0) {
+    plotdf[valueszero, "plotcol"] <- "blue"
+    
+    if(nvalueszero == length(plotvar)) {
+      print("All values are 0!", quote = FALSE)
+      minval <- 1
+      maxval <- 1
+    } else {
+      minabsval <- min(plotdf[-valueszero, "absval"])
+      maxabsval <- max(plotdf[-valueszero, "absval"])
+      print(paste("After removing the", nvalueszero, "values equal to zero:"), quote = FALSE)
+      print(summary(plotdf[-valueszero, "val"]))
+    }
+  } else {
+    minabsval <- min(plotdf[, "absval"])
+    maxabsval <- max(plotdf[, "absval"])
+  }
+  
+  valuesnegative <- which(plotdf[, "val"] < 0)
+  nvaluesnegative <- length(valuesnegative)
+  if(nvaluesnegative > 0) {
+    plotdf[valuesnegative, "plotcol"] <- "red"
+    print(paste("Summary of the", nvaluesnegative, "smaller than zero:"), quote = FALSE)
+    print(summary(plotdf[valuesnegative, "val"]))
+    print(paste("Range of the", nvaluesnegative, "smaller than zero:"), quote = FALSE)
+    print(range(plotdf[valuesnegative, "val"]))
+  }
+  
+  ordersdiff <- log10(maxabsval / minabsval)
+  
+  if(ordersdiff < 2) {
+    plot(plotdf[, "val"], ylim = ylim, pch = 19, col = plotdf[, "plotcol"])
+  } else {
+    print(paste("Using logscale because values differ over", round(ordersdiff), "orders of magnitude"), quote = FALSE)
+    if(nvalueszero > 0) {
+      print(paste("Not showing", nvalueszero, "values that are equal to 0"), quote = FALSE)
+      plot(plotdf[-valueszero, "absval"], ylim = ylim, log = "y", pch = 19, col = plotdf[-valueszero, "plotcol"])
+    } else {
+      plot(plotdf[, "absval"], ylim = ylim, log = "y", pch = 19, col = plotdf[, "plotcol"])
+    }
+    if(nvaluesnegative > 0) {
+      print(paste("Taking the absolute value of the", nvaluesnegative, "values smaller than 0"), quote = FALSE)
+    }
+  }
+  grid()
+  abline(h = 1)
+  abline(h = 0.001)
+}
+
+# Comparing with deSolve run of 12 june
+DinitSet <- c(1000)
+bRSet <- c(1.7)
+NISet <- c(10)
+wSet <- c(0.04)
+log10gdSet <- c(1.176)
+log10gtSet <- c(1.176)
+cdSet <- c(0.01)
+ctSet <- c(0.01, 0.025, 0.05)
+NutrConv <- c(1E-6)
+log10kpSet <- seq(-11, -5, 0.5)
+log10knSet <- seq(-1, 3, 0.5)
+
 ## Small parameterset for tests
 bRSet <- c(1.7)
 NISet <- c(10, 100)
@@ -482,17 +575,17 @@ log10gtSet <- c(1.176)
 DinitSet <- c(1000)
 
 ## Large dataset for tests
-# DinitSet <- c(500, 1E3)
-# bRSet <- c(0.8, 1.7)
-# NISet <- c(10, 100)
-# eValue <- 1e-6
-# wSet <- c(0.04, 0.06)
-# log10kpSet <- seq(from = -11, to = -5, by = 0.5)
-# log10knSet <- seq(from = -1, to = 3, by = 0.5)
-# cdSet <- c(0.05)
-# ctSet <- c(0.05)
-# log10gdSet <- c(1, 1.176)
-# log10gtSet <- c(1, 1.176)
+DinitSet <- c(500, 1E3)
+bRSet <- c(0.8, 1.7)
+NISet <- c(10, 100)
+eValue <- 1e-6
+wSet <- c(0.04, 0.06)
+log10kpSet <- seq(from = -11, to = -5, by = 0.5)
+log10knSet <- seq(from = -1, to = 3, by = 0.5)
+cdSet <- c(0.05)
+ctSet <- c(0.05)
+log10gdSet <- c(1, 1.176)
+log10gtSet <- c(1, 1.176)
 
 # Testset
 # with old nested loops script 148.19/0.10/149.67 seconds if runsimulation==0)
@@ -511,7 +604,6 @@ DinitSet <- c(1000)
 # runsimulation <- 0
 # plotoutput <- 0
 
-
 print(Sys.time())
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
@@ -522,8 +614,9 @@ if(any(MyData <= 0)) warning("All parameters should have positive values.")
 dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = calceqplasmidfree)
 dfeqplasmidfree <- t(dfeqplasmidfree)     # ToDo: change the function to get the transpose as output
 dfeqplasmidfree
-print("Plasmid-free eq calculated:")
+print("Plasmid-free equilibrium calculated:")
 print(Sys.time())
+
 # Check if plasmid-free equilibrium is positive, warn if not.
 if(any(dfeqplasmidfree[, "REq"] <= 0)) warning("The number of recipients at equilibrium is not positive!
 Increase the nutrient concentration in the inflowing liquid by changing NI?")
@@ -562,7 +655,7 @@ gtbulk <- MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBul
 gtbulk <- unname(gtbulk)
 MyData <- cbind(MyData, gtbulk = gtbulk)
 
-print("bulk-conjugation rates estimated:")
+print("Bulk-conjugation rates estimated:")
 print(Sys.time())
 
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
@@ -575,7 +668,7 @@ print("Eigenvalues estimated:")
 print(Sys.time())
 
 DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
-write.csv(MyData, file = paste0(DateTimeStamp, "outputusingapply", ".csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulations.csv"),
           quote = FALSE, row.names = FALSE)
 
 # The data before adding invasion of plasmid is still the same after this info is added
@@ -616,19 +709,12 @@ summary(MyData$DomEigVal - MyData$DomEigValBulk)
 summary(MyData$DomEigVal / MyData$DomEigValBulk)
 summary(DomEigVals)
 
-##################
-# Now run pair-formation model for those cases where the dominant eigenvalue is negative
+print("Finished plotting:")
+print(Sys.time())
 
-# The initial state is the plasmid-free equilibrium (R*, Nutr*) with the
-# addition of Dinit donor bacteria per mL
-SimulationPairs <- function(InputSimulationPairs) {
-  parms <- InputSimulationPairs
-  state <- c(Nutr = parms[["NutrEq"]], D = parms[["Dinit"]],
-             R = parms[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  out <- runsteady(y = state, time = c(0, 1e8), func = ModelPairsNutr, parms = parms, stol = 1.25e-6)
-  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
-  return(EqAfterInvDonor)
-}
+##################
+BackupMyData <- MyData
+# Now run pair-formation model for those cases where the dominant eigenvalue is negative
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
@@ -648,15 +734,8 @@ MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
                 cbind(MyData[-IndexSimulation, ], NoSimulationNeeded)
                 )
 
-# Now run the bulk-conjugation model for those cases where the dominant eigenvalue is negative
-SimulationBulk <- function(InputSimulationBulk) {
-  parms <- InputSimulationBulk
-  state <- c(Nutr = parms[["NutrEq"]], D = parms[["Dinit"]],
-             R = parms[["REq"]], Trans = 0)
-  out <- runsteady(y = state, time = c(0, 1e8), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
-  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
-  return(EqAfterInvDonor)
-}
+print("Pair-formation model completed running:")
+print(Sys.time())
 
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
 InputSimulationBulk <- MyData[IndexSimulationBulk, c(1:15)]
@@ -674,55 +753,26 @@ MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
                 cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk)
 )
 
+print("Bulk-conjugation model completed running:")
+print(Sys.time())
+
+BackupMyData2 <- MyData
+
 colnames(MyData) <- c(colnames(MyData)[-c(43:47)], paste0(colnames(MyData[43:47]), "Bulk"))
 
-write.csv(MyData, file = paste0(DateTimeStamp, "outputusingapply2", ".csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulations.csv"),
           quote = FALSE, row.names = FALSE)
 
 # ToDo: create function to filter on small negative and small positive state
 # values and set them to 0
-
-summary(MyData$Nutr)
-plot(sort(MyData$Nutr), ylim = c(0, 1.1*max(MyData$Nutr)))
-grid()
-plot(sort(MyData$Nutr), ylim = c(0.01, 0.05), log = "y")
-grid()
-
-summary(MyData$Nutr)
-plot(sort(MyData$Nutr), ylim = c(0, 1.1*max(MyData$Nutr)))
-plot(sort(MyData$Nutr), ylim = c(0.01, 0.05), log = "y")
-grid()
-
-summaryplot <- function(plotvar) {
-  print(summary(plotvar))
-  print(paste0(length(which(plotvar == 0)), " values are equal to 0"), quote = FALSE)
-  print(paste0(length(which(plotvar < 0)), " values are smaller than 0"), quote = FALSE)
-  plotdf <- data.frame(val = plotvar, sign = sign(plotvar), absval = abs(plotvar),
-                  plotcol = ifelse(sign(plotvar) == 1, "black", "red"))
-  plotdf <- plotdf[order(plotdf["val"], plotdf["sign"]), ]
-  # print(plotdf)
-  minabsval <- min(plotdf[, "absval"])
-  maxabsval <- max(plotdf[, "absval"])
-  ordersdiffabs <- -log10(maxabsval / minabsval)
-  
-  if(ordersdiffabs > 2) {
-    print(paste0("Values differ over ", round(ordersdiffabs), " orders of magnitude, so logscale used and absolute values plotted"))
-    plot(plotdf[, "absval"], log = "y", pch = 19, col = plotdf[, "plotcol"])
-  } else {
-    plot(plotdf[, "val"], pch = 19, col = plotdf[, "plotcol"])
-  }
-  grid()
-  return(NULL)
-}
-summaryplot(Test)
-
-# col = as.factor(plotdf[, "sign"])
 
 names(MyData)
 summaryplot(MyData$NutrEq)
 summaryplot(MyData$REq)
 summaryplot(MyData$gdbulk)
 summaryplot(MyData$gtbulk)
+summaryplot(MyData$DomEigVal)
+summaryplot(MyData$DomEigValBulk)
 summaryplot(MyData$Nutr)
 summaryplot(MyData$D)
 summaryplot(MyData$R)
