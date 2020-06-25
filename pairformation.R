@@ -296,6 +296,7 @@ CalcEigenvalues <- function(MyData) {
 # ToDo: warn if lenght of variables that are not passed on to the plotfunction
 # are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each kp*kn*cd*ct combination
 # I don't know how these are handled when plotting
+# ToDo: cannot save plots if fillvar contains a /
 CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, data = MyData, xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
@@ -316,7 +317,10 @@ CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, data = MyData, xva
   }
   print(p)
   if(save == TRUE) {
-    ggsave(paste0(DateTimeStamp, "output", fillvar, ".png"))
+    fillvarname <- gsub("/", ".", fillvar)
+    fillvarname <- gsub(" ", "", fillvarname)
+    ggsave(paste0(DateTimeStamp, "output", fillvarname, ".png"))
+    # ggsave(paste0(DateTimeStamp, "output", fillvar, ".png")) # error if name contains / (because that indicates a path)
   }
 }
 
