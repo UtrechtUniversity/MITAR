@@ -23,11 +23,11 @@
 # bacterial populations. Journal of Theoretical Biology 294:144-152.
 
 # To read data from csv-file
-# FileName <- "2020_mei_28_10_outputdeSolveChangedContact_Samengevoegd.csv"
-# MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
-#                   dec = ".", stringsAsFactors = FALSE
-# )
-# MyData <- as.data.frame(MyData)
+FileName <- "2020_juni_24_13_34_04outputsimulations.csv"
+MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
+                  dec = ".", stringsAsFactors = FALSE
+)
+MyData <- as.data.frame(MyData)
 
 
 
@@ -90,7 +90,6 @@ log10gdSet <- c(1.176)
 log10gtSet <- c(1.176)
 NutrConv <- c(1E-6)
 
-
 # Single run, invasion possible
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
@@ -104,85 +103,29 @@ log10gdSet <- c(1.176)
 log10gtSet <- c(1.176)
 NutrConv <- c(1E-6)
 
-# Vary kp
-DInitSet <- c(1E3)
+# Vary kp and kn
 bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
-log10kpSet <- seq(from = -11, to = -5, by = 0.5)
-log10knSet <- c(0.3)
-cdSet <- c(0.05)
-ctSet <- c(0.05)
-log10gdSet <- c(1.176)
-log10gtSet <- c(1.176)
-NutrConv <- c(1E-6)
-
-# # Vary kp and kn
-# DInitSet <- c(1E3)
-# bRSet <- c(1.7)
-# NISet <- c(10)
-# wSet <- c(0.04)
-# log10kpSet <- seq(from = -11, to = -5, by = 0.5)
-# log10knSet <- seq(from = -1, to = 3, by = 0.5)
-# cdSet <- c(0.05)
-# ctSet <- c(0.05)
-# log10gdSet <- c(1.176)
-# log10gtSet <- c(1.176)
-# NutrConv <- c(1E-6)
-
-# # Vary kp, kn, cd, and ct
-# DInitSet <- c(1E3)
-# bRSet <- c(1.7)
-# NISet <- c(10)
-# wSet <- c(0.04)
-# log10kpSet <- seq(from = -11, to = -5, by = 1)
-# log10knSet <- seq(from = -1, to = 3, by = 1)
-# cdSet <- c(0.01)
-# ctSet <- c(0.01, 0.05)
-# log10gdSet <- c(1.176)
-# log10gtSet <- c(1.176)
-# NutrConv <- c(1E-6)
-
-# # Vary kp, kn, gd, gt, cd, and ct
-DInitSet <- c(1E3)
-bRSet <- c(1.7)
-NISet <- c(10)
-wSet <- c(0.04)
-log10kpSet <- seq(from = -11, to = -5, by = 0.1)
-log10knSet <- seq(from = -1, to = 3, by = 0.1)
+log10kpSet <- seq(from = -11, to = -5, by = 0.25)
+log10knSet <- seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.01, 0.025, 0.05)
 ctSet <- c(0.01, 0.025, 0.05)
 log10gdSet <- c(1, 1.176)
 log10gtSet <- c(1, 1.176)
 NutrConv <- c(1E-6)
-
-# # Extensive dataset
-# DInitSet <- c(1E3)
-# bRSet <- c(0.4, 1.7)
-# NISet <- c(0.1, 1, 10)
-# wSet <- c(0.04)
-# log10kpSet <- seq(from = -11, to = -8, by = 0.5)
-# log10knSet <- seq(from = -1, to = 3, by = 0.5)
-# cdSet <- c(0.01, 0.025, 0.05)
-# ctSet <- c(0.01, 0.025, 0.05)
-# log10gdSet <- c(1, 1.176)
-# log10gtSet <- c(1, 1.176)
-# NutrConv <- c(1E-6)
-
-
 DInitSet <- c(1E3)
-log10kpSet <- seq(from = -11, to = -5, by = 1)
-log10knSet <- seq(from = -1, to = 3, by = 1)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
-log10gdSet <- c(1, 1.176)
-log10gtSet <- c(1, 1.176)
+
+# For extensive dataset
+DInitSet <- c(100, 1E3)
+bRSet <- c(0.4, 1.7)
+NISet <- c(1, 10)
+wSet <- c(0.04)
 
 #### Create matrix to store data ####
 Mydf <- expand.grid(DInit = DInitSet, bR = bRSet, NI = NISet, w = wSet, log10kpSet = log10kpSet,
                     log10knSet = log10knSet, cdSet = cdSet, ctSet = ctSet,
                     log10gdSet = log10gdSet, log10gtSet = log10gtSet, KEEP.OUT.ATTRS = FALSE)
-
 
 TotalIterations <- length(bRSet)*length(NISet)*length(log10kpSet)*
   length(log10knSet)*length(wSet)*length(DInitSet)*length(cdSet)*length(ctSet)*
@@ -543,6 +486,14 @@ cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 log10gdSet <- c(1, 1.176)
 log10gtSet <- c(1, 1.176) 
+
+### Using steps of 0.1 for kp and kn did not work
+# Error: DLSODE- at T (=R1) and step size H (=R2), the corrector convergence failed repeatedly
+# or with ABS(H)=HMIN. IN above message, R = 1.499002e+05, 2.091563e-09
+# DLSODE- ISTATE illegal, in above message I=-5
+# LSODE- run aborted, apparent infinite loop
+# 
+# Retry using jactype = "sparse", could also try using stode(s?) and/or supply jacobian
 
 # Testset
 # with old nested loops script 148.19/0.10/149.67 seconds if runsimulation==0)
