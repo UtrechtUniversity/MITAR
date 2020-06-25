@@ -22,15 +22,6 @@
 # estimation of plasmid transfer rates for surface-associated and well-mixed
 # bacterial populations. Journal of Theoretical Biology 294:144-152.
 
-# To read data from csv-file
-FileName <- "2020_juni_24_13_34_04outputsimulations.csv"
-MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
-                  dec = ".", stringsAsFactors = FALSE
-)
-MyData <- as.data.frame(MyData)
-
-
-
 #### Model functions ####
 # Model a population of plasmid-free recipients with nutrients. I do not use
 # this model in the script, because instead I use the analytical solution for
@@ -68,26 +59,26 @@ ModelRecipNutr <- function(t, state, parms) {
 # time = 816943.9, Nutr = 0.02427729 D = 0, R = 3829218, Trans = 6142815, Mdr = Mdt = 0, Mrt = 324.6586, Mtt = 1520.435
 # bRSet <- c(1.7)
 # NISet <- c(10)
-# log10kpSet <- c(-9.6)
-# log10knSet <- c(0.5)
+# kpSet <- 10^-9.6
+# knSet <- 10^0.5
 # eSet <- c(1E-6)
 # wSet <- c(0.04)
 # cdSet <- c(0.05)
 # ctSet <- c(0.05)
-# log10gdSet <- c(1.176)
-# log10gtSet <- c(1.176)
+# gdSet <- 10^1.176
+# gtSet <- 10^1.176
 
 # Single run, invasion not possible
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
-log10kpSet <- c(-10)
-log10knSet <-  c(0.3)
+kpSet <- 10^-10
+knSet <-  10^0.3
 cdSet <- c(0.05)
 ctSet <- c(0.05)
-log10gdSet <- c(1.176)
-log10gtSet <- c(1.176)
+gdSet <- 10^1.176
+gtSet <- 10^1.176
 NutrConv <- c(1E-6)
 
 # Single run, invasion possible
@@ -95,24 +86,24 @@ DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
-log10kpSet <- c(-6)
+kpSet <- 10^c(-6)
 log10knSet <-  c(0.3)
 cdSet <- c(0.05)
 ctSet <- c(0.05)
-log10gdSet <- c(1.176)
-log10gtSet <- c(1.176)
+gdSet <- 10^1.176
+gtSet <- 10^1.176
 NutrConv <- c(1E-6)
 
 # Vary kp and kn
 bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
-log10kpSet <- seq(from = -11, to = -5, by = 0.25)
-log10knSet <- seq(from = -1, to = 3, by = 0.25)
+kpSet <- 10^seq(from = -11, to = -5, by = 0.25)
+knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.01, 0.025, 0.05)
 ctSet <- c(0.01, 0.025, 0.05)
-log10gdSet <- c(1, 1.176)
-log10gtSet <- c(1, 1.176)
+gdSet <- 10^c(1, 1.176)
+gtSet <- 10^c(1, 1.176)
 NutrConv <- c(1E-6)
 DInitSet <- c(1E3)
 
@@ -123,13 +114,13 @@ NISet <- c(1, 10)
 wSet <- c(0.04)
 
 #### Create matrix to store data ####
-Mydf <- expand.grid(DInit = DInitSet, bR = bRSet, NI = NISet, w = wSet, log10kpSet = log10kpSet,
-                    log10knSet = log10knSet, cdSet = cdSet, ctSet = ctSet,
-                    log10gdSet = log10gdSet, log10gtSet = log10gtSet, KEEP.OUT.ATTRS = FALSE)
+Mydf <- expand.grid(DInit = DInitSet, bR = bRSet, NI = NISet, w = wSet, kpSet = kpSet,
+                    knSet = knSet, cdSet = cdSet, ctSet = ctSet,
+                    gdSet = gdSet, gtSet = gtSet, KEEP.OUT.ATTRS = FALSE)
 
-TotalIterations <- length(bRSet)*length(NISet)*length(log10kpSet)*
+TotalIterations <- length(bRSet)*length(NISet)*length(kpSet)*
   length(log10knSet)*length(wSet)*length(DInitSet)*length(cdSet)*length(ctSet)*
-  length(log10gdSet)*length(log10gtSet)
+  length(gdSet)*length(gtSet)
 print(TotalIterations)
 CurrentIteration <- 0
 MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
@@ -182,6 +173,7 @@ smallchange <- c(1E-5)
 Mytmax <- c(1E5)
 tmaxsteady <- 1e8
 Mytstep <- c(10)
+saveplots <- 1
 
 ###### Functions
 
@@ -304,7 +296,7 @@ CalcEigenvalues <- function(MyData) {
 # ToDo: warn if lenght of variables that are not passed on to the plotfunction
 # are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each kp*kn*cd*ct combination
 # I don't know how these are handled when plotting
-CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, data = MyData, xvar = "log10(kp)", yvar = "log10(kn)", save = FALSE) {
+CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, data = MyData, xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
     DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
@@ -409,30 +401,39 @@ summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
   abline(h = 0.001)
 }
 
+# To read data from csv-file
+# FileName <- "2020_juni_24_13_34_04outputsimulations.csv"
+# FileName <- "2020_juni_25_09_47_20outputnosimulations.csv"
+# MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
+#                    dec = ".", stringsAsFactors = FALSE
+# )
+# MyData <- as.data.frame(MyData)
+# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 23)
+
 # Comparing with deSolve run of 12 june
 DInitSet <- c(1000)
 bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
-log10gdSet <- c(1.176)
-log10gtSet <- c(1.176)
+gdSet <- 10^1.176
+gtSet <- 10^1.176
 cdSet <- c(0.01)
 ctSet <- c(0.01, 0.025, 0.05)
 NutrConv <- c(1E-6)
-log10kpSet <- seq(-11, -5, 0.5)
-log10knSet <- seq(-1, 3, 0.5)
+kpSet <- 10^seq(-11, -5, 0.5)
+knSet <- 10^seq(-1, 3, 0.5)
 
 ## Small parameterset for tests
 bRSet <- c(1.7)
 NISet <- c(10, 100)
 wSet <- c(0.04)
 NutrConv <- c(1E-6)
-log10kpSet <- seq(-10, -6, 0.5)
-log10knSet <- seq(-1, 3, 0.5)
+kpSet <- 10^seq(-10, -6, 0.5)
+knSet <- 10^seq(-1, 3, 0.5)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
-log10gdSet <- c(1.176)
-log10gtSet <- c(1.176)
+gdSet <- 15
+gtSet <- 15
 DInitSet <- c(1000)
 
 # Very small set
@@ -440,12 +441,12 @@ bRSet <- c(1.7)
 NISet <- c(10)
 wSet <- c(0.04)
 NutrConv <- c(1E-6)
-log10kpSet <- seq(-10, -6, 1)
-log10knSet <- seq(-1, 3, 1)
+kpSet <- 10^seq(-10, -6, 1)
+knSet <- 10^seq(-1, 3, 1)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
-log10gdSet <- c(1.176)
-log10gtSet <- c(1.176)
+gdSet <- 15
+gtSet <- 15
 DInitSet <- c(1000)
 
 ## Large dataset for tests
@@ -454,12 +455,12 @@ bRSet <- c(0.8, 1.7)
 NISet <- c(10, 100)
 NutrConv <- 1e-6
 wSet <- c(0.04, 0.06)
-log10kpSet <- seq(from = -11, to = -5, by = 0.5)
-log10knSet <- seq(from = -1, to = 3, by = 0.5)
+kpSet <- 10^seq(from = -11, to = -5, by = 0.5)
+knSet <- 10^seq(from = -1, to = 3, by = 0.5)
 cdSet <- c(0.05)
 ctSet <- c(0.05)
-log10gdSet <- c(1, 1.176)
-log10gtSet <- c(1, 1.176)
+gdSet <- c(10, 15)
+gtSet <- c(10, 15)
 
 ### Testing: this set worked (24 june 2020)
 DInitSet <- c(1E3)
@@ -467,25 +468,26 @@ bRSet <- c(1.7)
 NISet <- c(10)
 NutrConv <- 1e-6
 wSet <- c(0.04)
-log10kpSet <- seq(from = -10, to = -6, by = 0.5)
-log10knSet <- seq(from = -1, to = 3, by = 0.5)
+kpSet <- 10^seq(from = -10, to = -6, by = 0.5)
+knSet <- 10^seq(from = -1, to = 3, by = 0.5)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
-log10gdSet <- c(1, 1.176)
-log10gtSet <- c(1, 1.176) 
+gdSet <- c(10, 15)
+gtSet <- c(10, 15) 
 
-### Testing: try smaller steps for kp and kn (24 june 2020)
+### Try smaller steps for kp and kn (24 june 2020)
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
 NutrConv <- 1e-6
 wSet <- c(0.04)
-log10kpSet <- seq(from = -10, to = -6, by = 0.25)
-log10knSet <- seq(from = -1, to = 3, by = 0.25)
+kpSet <- 10^seq(from = -10, to = -6, by = 0.2)
+knSet <- 10^seq(from = -1, to = 3, by = 0.2)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
-log10gdSet <- c(1, 1.176)
-log10gtSet <- c(1, 1.176) 
+gdSet <- c(10, 15)
+gtSet <- c(10, 15) 
+
 
 ### Using steps of 0.1 for kp and kn did not work
 # Error: DLSODE- at T (=R1) and step size H (=R2), the corrector convergence failed repeatedly
@@ -503,12 +505,12 @@ log10gtSet <- c(1, 1.176)
 # NISet <- c(10, 100)
 # eValue <- 1e-6
 # wSet <- c(0.04, 0.06)
-# log10kpSet <- seq(from = -11, to = -5, by = 0.5)
-# log10knSet <- seq(from = -1, to = 3, by = 0.5)
+# kpSet <- 10^seq(from = -11, to = -5, by = 0.5)
+# knSet <- 10^seq(from = -1, to = 3, by = 0.5)
 # cdSet <- c(0.01, 0.05)
 # ctSet <- c(0.01, 0.05)
-# log10gdSet <- c(1, 1.176)
-# log10gtSet <- c(1, 1.176)
+# gdSet <- 10^c(1, 1.176)
+# gtSet <- 10^c(1, 1.176)
 # runsimulation <- 0
 # plotoutput <- 0
 
@@ -536,10 +538,8 @@ MyData <- cbind(MyData, dfeqplasmidfree)
 # Using MyData$DInit[i] in a loop does work with tibbles as well
 
 # Add combinations with the parameters needed to approximate gdbulk and gtbulk to MyData
-# MyData <- expand_grid(MyData, log10kp = log10kpSet, log10kn = log10knSet,
-#                        log10gd = log10gdSet, log10gt = log10gtSet, DInit = DInitSet)
-MyData <- expand_grid(MyData, kp = 10^log10kpSet, kn = 10^log10knSet,
-                      gd = 10^log10gdSet, gt = 10^log10gtSet, DInit = DInitSet)
+MyData <- expand_grid(MyData, kp = kpSet, kn = knSet,
+                      gd = gdSet, gt = gtSet, DInit = DInitSet)
 MyData
 dim(MyData)
 
@@ -579,15 +579,9 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulations.csv"),
           quote = FALSE, row.names = FALSE)
 
-# The data before adding invasion of plasmid is still the same after this info is added
-
-# This works and the found plasmid-free equilibria, bulk-conjugation rates, and
-# eigenvalues are identical to those of earlier versions of the script containing
-# the nested for-loops. It is only slightly faster (134.39/0.34/143.33 seconds
-# for 29952 iterations compared to 148.19/0.10/149.67 with the nested-loops)
-
 # Create limits to have the same limits and colorscale for the two plots
 # ToDo: see ggplot2::expand_limits to achieve this ?
+# See also CodingExamples
 limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
                      ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
 CreatePlot(fillvar = "log10(gdbulk)", gradient2 = 0, limits = limitsbulkrates)
@@ -596,9 +590,15 @@ CreatePlot(fillvar = "log10(gtbulk)", gradient2 = 0, limits = limitsbulkrates)
 CreatePlot(fillvar = "NutrEq", gradient2 = 0)
 CreatePlot(fillvar = "REq", gradient2 = 0)
 
-CreatePlot(fillvar = "SignDomEigVal")
+CreatePlot(fillvar = "DomEigVal", save = FALSE)
+CreatePlot(fillvar = "SignDomEigVal", save = FALSE)
 CreatePlot(fillvar = "SignDomEigValBulk")
 CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk")
+
+# MyDatacd001 <- MyData[which(MyData[,"cd"]==0.01),]
+# MyDatacd005 <- MyData[which(MyData[,"cd"]==0.95),]
+# summary(MyDatacd001 - MyDatacd005)
+# summary(abs((MyDatacd001 / MyDatacd005)-1))
 
 summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
 summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
@@ -683,7 +683,7 @@ MyData[, "TotalPlasmidBulk"] <- MyData[, "DBulk"] + MyData[, "TransBulk"]
 MyData[, "TotalBioBulk"] <- MyData[, "DBulk"] + MyData[, "RBulk"] + MyData[, "TransBulk"]
 
 
-write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulations.csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationspairs.csv"),
           quote = FALSE, row.names = FALSE)
 
 # ToDo: create function to filter on small negative and small positive state
@@ -924,15 +924,15 @@ roundflex <- function(X, ndigits = 3, dir = "up") {
 # is more error-prone. On the frames to indicate specific tiles, see
 # https://stackoverflow.com/questions/13258454/marking-specific-tiles-in-geom-tile-geom-raster
 
-frames = MyData[MyData$time==MyData$tmax, c("log10kp", "log10kn", "cd")]
-ggplot(data = MyData, aes(x = log10kp, y = log10kn, fill = log10(PlasmidsEq))) + 
+frames = MyData[MyData$time==MyData$tmax, c("kp", "log10kn", "cd")]
+ggplot(data = MyData, aes(x = kp, y = log10kn, fill = log10(PlasmidsEq))) + 
   geom_rect(colour = "white") + 
   scale_fill_gradient(low = "red", high = "green") +
   geom_rect(data=frames, size=1, fill=NA, colour="black",
-            aes(xmin=log10kp - 0.05, xmax=log10kp + 0.05, ymin=log10kn - 0.05, ymax=log10kn + 0.05)) +
+            aes(xmin=kp - 0.05, xmax=kp + 0.05, ymin=log10kn - 0.05, ymax=log10kn + 0.05)) +
   # scale_colour_manual(name = "Ooh look", values = c("black"), labels = "Something cool") +
   facet_grid(cd ~ .) +
-  labs(x = "log10kp",
+  labs(x = "kp",
        y = "log10kn",
        title = "pair-formation model", 
        subtitle = "facet by cd ~ .") +
@@ -976,13 +976,13 @@ dim(Pop4)
 
 ## Pop 1 is covered as N/A, but not present in legend
 # Pop 2 is covered by geom_point, but should be removed from color
-ggplot(data = NULL, aes(x = log10kp, y = log10kn)) + 
+ggplot(data = NULL, aes(x = kp, y = log10kn)) + 
   geom_tile(data = MyData, colour = "white") + 
   scale_fill_gradient(low = "red", high = "green") +
   geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
   scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
   facet_grid(cd ~ .) +
-  labs(x = "log10kp",
+  labs(x = "kp",
        y = "log10kn",
        title = "pair-formation model", 
        subtitle = "facet by cd ~ .") +
