@@ -296,12 +296,12 @@ CalcEigenvalues <- function(MyData) {
 # ToDo: warn if lenght of variables that are not passed on to the plotfunction
 # are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each kp*kn*cd*ct combination
 # I don't know how these are handled when plotting
-CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, data = MyData, xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
+CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
     DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
   }
-  p <- ggplot(data = MyData, aes_string(x = xvar, y = yvar, fill = fillvar)) + 
+  p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar)) + 
     geom_raster() +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
@@ -319,7 +319,6 @@ CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, data = MyData, xva
     fillvarname <- gsub("/", ".", fillvar)
     fillvarname <- gsub(" ", "", fillvarname)
     ggsave(paste0(DateTimeStamp, "output", fillvarname, ".png"))
-    # ggsave(paste0(DateTimeStamp, "output", fillvar, ".png")) # error if name contains / (because that indicates a path)
   }
 }
 
@@ -588,14 +587,16 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
 # See also CodingExamples
 limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
                      ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
-CreatePlot(fillvar = "log10(gdbulk)", gradient2 = 0, limits = limitsbulkrates)
+
+PlotData <- MyData[which(MyData[, "cd"]==0.01 & MyData[, "ct"]==0.01 ), ]
+CreatePlot(data = PlotData, fillvar = "log10(gdbulk)", gradient2 = 0, limits = limitsbulkrates, save = FALSE)
 CreatePlot(fillvar = "log10(gtbulk)", gradient2 = 0, limits = limitsbulkrates)
+
 
 CreatePlot(fillvar = "NutrEq", gradient2 = 0)
 CreatePlot(fillvar = "REq", gradient2 = 0)
 
-CreatePlot(fillvar = "DomEigVal", save = FALSE)
-CreatePlot(fillvar = "SignDomEigVal", save = FALSE)
+CreatePlot(fillvar = "SignDomEigVal")
 CreatePlot(fillvar = "SignDomEigValBulk")
 CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk")
 
