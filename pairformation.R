@@ -159,12 +159,12 @@ library(RColorBrewer) # For better color schemes
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
 # mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
 mycol <- c("black", brewer.pal(7, "Set1"))
-MyColorBrew <- brewer.pal(11, "Spectral") # see display.brewer.all()
+MyColorBrew <- rev(brewer.pal(11, "Spectral")) # see display.brewer.all()
 # MyColorBrew2 <- brewer.pal(9, "YlOrRd")
 timesParmsEst <- seq(from = 0, to = 3, by = 0.1)
 myylim <- c(1E-4, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
-runsimulation <- 0 # if runsimulation == 0, no simulation is run, and only the
+runsimulation <- 1 # if runsimulation == 0, no simulation is run, and only the
 # parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
 plotoutput <- 0
 extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
@@ -296,7 +296,6 @@ CalcEigenvalues <- function(MyData) {
 # ToDo: warn if lenght of variables that are not passed on to the plotfunction
 # are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each kp*kn*cd*ct combination
 # I don't know how these are handled when plotting
-# ToDo: cannot save plots if fillvar contains a /
 CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, data = MyData, xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
@@ -406,8 +405,8 @@ summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 }
 
 # To read data from csv-file
-# FileName <- "2020_juni_24_13_34_04outputsimulations.csv"
-# FileName <- "2020_juni_25_09_47_20outputnosimulations.csv"
+# FileName <- "2020_juni_24_13_34_04outputsimulationpairs.csv"
+# FileName <- "2020_juni_25_09_47_20outputnooutputsimulation.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
 #                    dec = ".", stringsAsFactors = FALSE
 # )
@@ -466,20 +465,21 @@ ctSet <- c(0.05)
 gdSet <- c(10, 15)
 gtSet <- c(10, 15)
 
-### Testing: this set worked (24 june 2020)
+### This set worked (26 june 2020) (takes 8 minutes to run)
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
 NutrConv <- 1e-6
 wSet <- c(0.04)
-kpSet <- 10^seq(from = -10, to = -6, by = 0.5)
-knSet <- 10^seq(from = -1, to = 3, by = 0.5)
+kpSet <- 10^seq(from = -10, to = -6, by = 0.25)
+knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 gdSet <- c(10, 15)
 gtSet <- c(10, 15) 
 
-### Try smaller steps for kp and kn (24 june 2020)
+### Try smaller steps for kp and kn (24 june 2020):
+# works for pair-formation model, not for bulk-conjugation model
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
@@ -580,7 +580,7 @@ print("Eigenvalues estimated:")
 print(Sys.time())
 
 DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
-write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulations.csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
 # Create limits to have the same limits and colorscale for the two plots
@@ -650,6 +650,9 @@ MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
 print("Pair-formation model completed running:")
 print(Sys.time())
 
+write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpairs.csv"),
+          quote = FALSE, row.names = FALSE)
+
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
 InputSimulationBulk <- MyData[IndexSimulationBulk, c(1:15)]
 
@@ -674,6 +677,10 @@ BackupMyData2 <- MyData
 colnames(MyData) <- c(colnames(MyData)[-c((ncol(MyData)-4):ncol(MyData))],
                       paste0(colnames(MyData[c((ncol(MyData)-4):ncol(MyData))]), "Bulk"))
 
+write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpairsandbulk.csv"),
+          quote = FALSE, row.names = FALSE)
+
+
 # If runsimulation != 1 only the parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
 MyData <- cbind(MyData, TotalD = NA, TotalR = NA, TotalTrans = NA, TotalPlasmid = NA, TotalBio = NA,
                 TotalPlasmidBulk = NA, TotalBioBulk = NA)
@@ -687,7 +694,7 @@ MyData[, "TotalPlasmidBulk"] <- MyData[, "DBulk"] + MyData[, "TransBulk"]
 MyData[, "TotalBioBulk"] <- MyData[, "DBulk"] + MyData[, "RBulk"] + MyData[, "TransBulk"]
 
 
-write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationspairs.csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationcomplete.csv"),
           quote = FALSE, row.names = FALSE)
 
 # ToDo: create function to filter on small negative and small positive state
@@ -751,6 +758,12 @@ max((MyData$TotalPlasmid / MyData$TotalBio)[which(MyData$TotalPlasmid / MyData$T
 
 min((MyData$TotalPlasmidBulk / MyData$TotalBioBulk)[which(MyData$TotalPlasmidBulk / MyData$TotalBioBulk != 0)])
 max((MyData$TotalPlasmidBulk / MyData$TotalBioBulk)[which(MyData$TotalPlasmidBulk / MyData$TotalBioBulk != 0)])
+
+A <- MyData[which(MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] > 1e-3 & MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] < 0.999), ]
+dim(A)
+
+RunAgain <- A[, c(1:15)]
+
 
 # Compare biomass accross the two models
 CreatePlot(fillvar = "TotalBio / TotalBioBulk", gradient2 = 1)
