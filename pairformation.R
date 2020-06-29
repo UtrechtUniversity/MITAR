@@ -296,7 +296,8 @@ CalcEigenvalues <- function(MyData) {
 # ToDo: warn if lenght of variables that are not passed on to the plotfunction
 # are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each kp*kn*cd*ct combination
 # I don't know how these are handled when plotting
-CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
+CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, dataplot = MyData,
+                       xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
     DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
@@ -309,7 +310,7 @@ CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, dataplot = MyData,
     labs(caption = DateTimeStamp) +
     theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
   if(gradient2 == 1) {
-    p <- p + scale_fill_gradient2(midpoint = 0)
+    p <- p + scale_fill_gradient2(midpoint = midpoint)
   } else {
     p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
     #p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
@@ -318,9 +319,52 @@ CreatePlot <- function(fillvar, gradient2 = 1, limits = NULL, dataplot = MyData,
   if(save == TRUE) {
     fillvarname <- gsub("/", ".", fillvar)
     fillvarname <- gsub(" ", "", fillvarname)
-    ggsave(paste0(DateTimeStamp, "output", fillvarname, ".png"))
+    filename <- paste0(DateTimeStamp, "output", fillvarname, ".png")
+    if(file.exists(filename)) {
+      warning("File already exists, not saved again!")
+    } else {
+      ggsave(filename)
+    }
   }
 }
+
+# Note: hardcoded legend
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
+                    name = "Stability",
+                    labels = c("stable", "unstable"))
+ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
+
+# Note: hardcoded legend
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal - SignDomEigValBulk))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("0" = "darkblue"),
+                    name = "Difference in sign eigenvalues")
+ggsave(paste0(DateTimeStamp, "Difference in sign eigenvalues.png"))
+
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal - SignDomEigValBulk))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("0" = "darkblue"),
+                    name = "Difference in sign eigenvalues")
+ggsave(paste0(DateTimeStamp, "Difference in sign eigenvalues.png"))
+
+
 
 # The initial state is the plasmid-free equilibrium (R*, Nutr*) with the
 # addition of DInit donor bacteria per mL. Note that stol is based on the average
@@ -404,13 +448,13 @@ summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 }
 
 # To read data from csv-file
-# FileName <- "2020_juni_24_13_34_04outputsimulationpairs.csv"
+# FileName <- "2020_juni_26_09_07_33outputsimulationcomplete.csv"
 # FileName <- "2020_juni_25_09_47_20outputnooutputsimulation.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
 #                    dec = ".", stringsAsFactors = FALSE
 # )
 # MyData <- as.data.frame(MyData)
-# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 23)
+# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 28)
 
 # Comparing with deSolve run of 12 june
 DInitSet <- c(1000)
@@ -589,16 +633,19 @@ limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
                      ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
 
 PlotData <- MyData[which(MyData[, "cd"]==0.01 & MyData[, "ct"]==0.01 ), ]
-CreatePlot(data = PlotData, fillvar = "log10(gdbulk)", gradient2 = 0, limits = limitsbulkrates, save = FALSE)
-CreatePlot(fillvar = "log10(gtbulk)", gradient2 = 0, limits = limitsbulkrates)
+CreatePlot(data = PlotData, fillvar = "log10(gdbulk)", limits = limitsbulkrates, save = FALSE)
+CreatePlot(fillvar = "log10(gtbulk)", limits = limitsbulkrates)
 
+CreatePlot(fillvar = "log10(gtbulk)", limits = limitsbulkrates)
+CreatePlot(data = PlotData, fillvar = "pmax(gdbulk, gtbulk)/pmin(gdbulk, gtbulk)")
+CreatePlot(data = PlotData, fillvar = "gdbulk/gtbulk", gradient2 = 1, midpoint = 1)
 
-CreatePlot(fillvar = "NutrEq", gradient2 = 0)
-CreatePlot(fillvar = "REq", gradient2 = 0)
+CreatePlot(fillvar = "NutrEq")
+CreatePlot(fillvar = "REq")
 
-CreatePlot(fillvar = "SignDomEigVal")
-CreatePlot(fillvar = "SignDomEigValBulk")
-CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk")
+CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1)
+CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1)
+CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk", gradient2 = 1)
 
 # MyDatacd001 <- MyData[which(MyData[,"cd"]==0.01),]
 # MyDatacd005 <- MyData[which(MyData[,"cd"]==0.95),]
@@ -614,8 +661,15 @@ DomEigVals <- c(MyData$DomEigVal, MyData$DomEigValBulk)
 limitseigenvalues <- log10(range(DomEigVals[DomEigVals > 0]))
 limitseigenvalues <- c(floor(limitseigenvalues[1]), ceiling(limitseigenvalues[2]))
 
-CreatePlot(fillvar = "log10(DomEigVal)", gradient2 = 0, limits = limitseigenvalues)
-CreatePlot(fillvar = "log10(DomEigValBulk)", gradient2 = 0, limits = limitseigenvalues)
+CreatePlot(fillvar = "log10(DomEigVal)", limits = limitseigenvalues)
+CreatePlot(fillvar = "log10(DomEigValBulk)", limits = limitseigenvalues)
+CreatePlot(fillvar = "DomEigVal/DomEigValBulk")
+CreatePlot(fillvar = "DomEigVal-DomEigValBulk")
+
+
+a <- rep(c(1e-6, 1, 1e6), 3)
+b <- c(2e-6, 2, 2e6, 2e-6, 2, 2e6)
+
 
 summary(MyData$DomEigVal)
 summary(MyData$DomEigValBulk)
@@ -770,24 +824,24 @@ RunAgain <- A[, c(1:15)]
 CreatePlot(fillvar = "TotalBio / TotalBioBulk", gradient2 = 1)
 
 # Fraction plasmid-bearing cells
-CreatePlot(fillvar = "TotalPlasmid/TotalBio", gradient2 = 0)
-CreatePlot(fillvar = "TotalPlasmidBulk/TotalBioBulk", gradient2 = 0)
-CreatePlot(fillvar = "(TotalPlasmid/TotalBio) / (TotalPlasmidBulk/TotalBioBulk)", gradient2 = 0)
+CreatePlot(fillvar = "TotalPlasmid/TotalBio")
+CreatePlot(fillvar = "TotalPlasmidBulk/TotalBioBulk")
+CreatePlot(fillvar = "(TotalPlasmid/TotalBio) / (TotalPlasmidBulk/TotalBioBulk)")
 
 # Fraction donors
-CreatePlot(fillvar = "TotalD/TotalBio", gradient2 = 0, limits = NULL)
-CreatePlot(fillvar = "DBulk/TotalBioBulk", gradient2 = 0, limits = NULL)
-CreatePlot(fillvar = "(DBulk/TotalBioBulk) / (TotalD/TotalBio)", gradient2 = 0)
+CreatePlot(fillvar = "TotalD/TotalBio")
+CreatePlot(fillvar = "DBulk/TotalBioBulk")
+CreatePlot(fillvar = "(DBulk/TotalBioBulk) / (TotalD/TotalBio)")
 
 # Fraction recipients
-CreatePlot(fillvar = "TotalR/TotalBio", gradient2 = 0, limits = NULL)
-CreatePlot(fillvar = "RBulk/TotalBioBulk", gradient2 = 0, limits = NULL)
-CreatePlot(fillvar = "(RBulk/TotalBioBulk) / (TotalR/TotalBio)", gradient2 = 0)
+CreatePlot(fillvar = "TotalR/TotalBio")
+CreatePlot(fillvar = "RBulk/TotalBioBulk")
+CreatePlot(fillvar = "(RBulk/TotalBioBulk) / (TotalR/TotalBio)")
 
 # Fraction transconjugants
-CreatePlot(fillvar = "TotalTrans/TotalBio", gradient2 = 0, limits = NULL)
-CreatePlot(fillvar = "TransBulk/TotalBioBulk", gradient2 = 0, limits = NULL)
-CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)", gradient2 = 0)
+CreatePlot(fillvar = "TotalTrans/TotalBio")
+CreatePlot(fillvar = "TransBulk/TotalBioBulk")
+CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)")
 
 ###### To create plots over time #####
 # NOTE: CURRENTLY BROKEN (because no state is specified).
