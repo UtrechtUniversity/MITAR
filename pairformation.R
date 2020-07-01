@@ -14,7 +14,8 @@
 # Modelling: Using R as a Simulation Platform', p. 229-230)
 
 #### Introduction ####
-# The idea for such a model was taken from equation (2) of the following publication:
+# The idea for the pair-formation model was taken from equation (2) of the
+# following publication:
 # Zhong X, Krol JE, Top EM, Krone SM. 2010. Accounting for mating pair formation
 # in plasmid population dynamics. Journal of Theoretical Biology 262:711-719.
 
@@ -22,156 +23,21 @@
 # estimation of plasmid transfer rates for surface-associated and well-mixed
 # bacterial populations. Journal of Theoretical Biology 294:144-152.
 
-#### Model functions ####
-# Model a population of plasmid-free recipients with nutrients. I do not use
-# this model in the script, because instead I use the analytical solution for
-# the plasmid-free equilibrium as found with Matlab.
-ModelRecipNutr <- function(t, state, parms) {
-  with(as.list(c(state, parms)), {
-    dNutr <- (NI - Nutr)*w - e*bR*Nutr*R
-    dR <- bR*Nutr*R - w*R
-    return(list(c(dNutr, dR)))
-  })
-}
-
-# The plasmid-free equilibrium is R* = (NI - (w/bR))/e, Nutr* = w/bR, D* = Trans* = 0
-# with condition w < NI*bR (otherwise it becomes a cell-free equilibrium ?) and
-# the stability of this equilibrium is determined by the following eigenvalue
-# - ct*w - (gt*(w - NI*bR))/(bR*e), leading to gt > (bR*ct*e*w)/(NI*bR - w) as
-# invasion criterion. THIS SUGGESTS THAT DONOR CHARACTERISTICS DO NOT PLAY A ROLE
-# in determining invasion
-
-#### Explanation of parameter values ####
-# Growthrates (1/h) for recipient: bR (growth rates for donor and transconjugant
-# are not explicitly defined, but calculated as (1 - cd)*bR and (1 - ct)*bR)
-# Conjugation rates (1/h) from donor and transconjugant: gd and gt
-# Mating pair attachment rate (mL * cell^-1 * h^-1): kp (k+ in Zhong's notation)
-# Mating pair detachment rate (1/h): kn (k- in Zhong's notation)
-# Nutrient concentration in the inflowing liquid (microgram * mL^-1): NI
-# Resource conversion rate (microgram per cell division): e
-# Washout rate (1/h): w
-
-### Parameter values
-# Stable co-existence of recipients, transconjugants, and Mrt and Mtt pairs
-# time = 816943.9, Nutr = 0.02427729 D = 0, R = 3829218, Trans = 6142815, Mdr = Mdt = 0, Mrt = 324.6586, Mtt = 1520.435
-# bRSet <- c(1.7)
-# NISet <- c(10)
-# kpSet <- 10^-9.6
-# knSet <- 10^0.5
-# eSet <- c(1E-6)
-# wSet <- c(0.04)
-# cdSet <- c(0.05)
-# ctSet <- c(0.05)
-# gdSet <- 10^1.176
-# gtSet <- 10^1.176
-
-# Single run, invasion not possible
-DInitSet <- c(1E3)
-bRSet <- c(1.7)
-NISet <- c(10)
-wSet <- c(0.04)
-kpSet <- 10^-10
-knSet <-  10^0.3
-cdSet <- c(0.05)
-ctSet <- c(0.05)
-gdSet <- 10^1.176
-gtSet <- 10^1.176
-NutrConv <- c(1E-6)
-
-# Single run, invasion possible
-DInitSet <- c(1E3)
-bRSet <- c(1.7)
-NISet <- c(10)
-wSet <- c(0.04)
-kpSet <- 10^c(-6)
-log10knSet <-  c(0.3)
-cdSet <- c(0.05)
-ctSet <- c(0.05)
-gdSet <- 10^1.176
-gtSet <- 10^1.176
-NutrConv <- c(1E-6)
-
-# Vary kp and kn
-bRSet <- c(1.7)
-NISet <- c(10)
-wSet <- c(0.04)
-kpSet <- 10^seq(from = -11, to = -5, by = 0.25)
-knSet <- 10^seq(from = -1, to = 3, by = 0.25)
-cdSet <- c(0.01, 0.025, 0.05)
-ctSet <- c(0.01, 0.025, 0.05)
-gdSet <- 10^c(1, 1.176)
-gtSet <- 10^c(1, 1.176)
-NutrConv <- c(1E-6)
-DInitSet <- c(1E3)
-
-# For extensive dataset
-DInitSet <- c(100, 1E3)
-bRSet <- c(0.4, 1.7)
-NISet <- c(1, 10)
-wSet <- c(0.04)
-
-#### Create matrix to store data ####
-Mydf <- expand.grid(DInit = DInitSet, bR = bRSet, NI = NISet, w = wSet, kpSet = kpSet,
-                    knSet = knSet, cdSet = cdSet, ctSet = ctSet,
-                    gdSet = gdSet, gtSet = gtSet, KEEP.OUT.ATTRS = FALSE)
-
-TotalIterations <- length(bRSet)*length(NISet)*length(kpSet)*
-  length(log10knSet)*length(wSet)*length(DInitSet)*length(cdSet)*length(ctSet)*
-  length(gdSet)*length(gtSet)
-print(TotalIterations)
-CurrentIteration <- 0
-MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
-DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
-
-# Instead of performing everything inside the loop, one could also use the loop
-# to create paramtervalues, and then for each row in the matrix perform the
-# simulations, or use a list directly, as in the following example
-# outlist <- list()
-# plist <- cbind(r = runif(10, min = 0.1, max = 5),
-#                K = runif(10, min = 8, max = 15))
-# for (i in 1:nrow(plist))
-#   outlist[[i]] <- ode(y = c(y = 2), times, derivs, parms = plist[i,])
-# plot(out, outlist)
-
-# Times for which output of the simulation is wanted.
-# Note that I don't use timestep untill t = 100, and note furthermore that
-# the used ode-solvers are variable-step methods, so the times in times
-# are NOT the only times at which integration is performed. See
-# ?diagnostics.deSolve() and ?lsodar() for details.
-if(runsimulation == 1) {
-  times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep)) 
-}
-
-################################################################################
-
-library(deSolve) # To solve differential equations
-library(rootSolve) # To get jacobian matrix for stability-analyses
+library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
 # library(dplyr)
 library(ggplot2) # For plotting data
 library(RColorBrewer) # For better color schemes
 
 #### Plotting options ####
-mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
-# mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
-mycol <- c("black", brewer.pal(7, "Set1"))
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # see display.brewer.all()
-# MyColorBrew2 <- brewer.pal(9, "YlOrRd")
 timesParmsEst <- seq(from = 0, to = 3, by = 0.1)
-myylim <- c(1E-4, 1E7) # Defining the limits for the y-axis
-yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 runsimulation <- 1 # if runsimulation == 0, no simulation is run, and only the
 # parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
-plotoutput <- 0
-extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
-verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
-smallchange <- c(1E-5)
-Mytmax <- c(1E5)
 tmaxsteady <- 1e8
-Mytstep <- c(10)
-saveplots <- 1
+saveplots <- 0
 
-###### Functions
+#### Functions ####
 
 # ODE-model describing pair-formation and conjugation. Pairs are formed if
 # recipients meet donors or transconjugants. Pair-formation depends on attachment
@@ -250,7 +116,7 @@ ModelBulkNutr <- function(t, state, parms) {
 }
 
 # Calculate the plasmid-free equilibrium (R*, Nutr*)
-calceqplasmidfree <- function(MyData) {
+CalcEqPlasmidfree <- function(MyData) {
   with(as.list(MyData), {
     REq <- ((NI - w / bR)) / NutrConv
     NutrEq <- w / bR
@@ -405,6 +271,16 @@ summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
   abline(h = 0.001)
 }
 
+#### Parameter values ####
+# Growthrates (1/h) for recipient: bR (growth rates for donor and transconjugant
+# are not explicitly defined, but calculated as (1 - cd)*bR and (1 - ct)*bR)
+# Conjugation rates (1/h) from donor and transconjugant: gd and gt
+# Mating pair attachment rate (mL * cell^-1 * h^-1): kp (k+ in Zhong's notation)
+# Mating pair detachment rate (1/h): kn (k- in Zhong's notation)
+# Nutrient concentration in the inflowing liquid (microgram * mL^-1): NI
+# Resource conversion rate (microgram per cell division): e
+# Washout rate (1/h): w
+
 # To read data from csv-file
 # FileName <- "2020_juni_26_09_07_33outputsimulationcomplete.csv"
 # FileName <- "2020_juni_25_09_47_20outputnooutputsimulation.csv"
@@ -414,18 +290,13 @@ summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # MyData <- as.data.frame(MyData)
 # DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 28)
 
-# Comparing with deSolve run of 12 june
-DInitSet <- c(1000)
-bRSet <- c(1.7)
-NISet <- c(10)
-wSet <- c(0.04)
-gdSet <- 10^1.176
-gtSet <- 10^1.176
-cdSet <- c(0.01)
-ctSet <- c(0.01, 0.025, 0.05)
-NutrConv <- c(1E-6)
-kpSet <- 10^seq(-11, -5, 0.5)
-knSet <- 10^seq(-1, 3, 0.5)
+# Stable co-existence of recipients, transconjugants, and Mrt and Mtt pairs
+# bRSet <- 1.7; NISet <- 10; kpSet <- 10^-9.6; knSet <- 10^0.5
+# NutrConv <- 1E-6; wSet <- 0.04; cdSet <- 0.05; ctSet <- 0.05;
+# gdSet <- 10^1.176; gtSet <- 10^1.176; DInitSet <- 1000
+# Leads to time = 843129.4, Nutr = 0.02427729 D = 0, R = 3829217, Trans = 6142815,
+# Mdr = Mdt = 0, Mrt = 324.6586, Mtt = 1520.435, timeBulk = 728451.6,
+# NutrBulk = 0.02430818, DBulk = 0, RBulk = 3583808, TransBulk = 6391884.
 
 ## Small parameterset for tests
 bRSet <- c(1.7)
@@ -440,19 +311,6 @@ gdSet <- 15
 gtSet <- 15
 DInitSet <- c(1000)
 
-# Very small set
-bRSet <- c(1.7)
-NISet <- c(10)
-wSet <- c(0.04)
-NutrConv <- c(1E-6)
-kpSet <- 10^seq(-10, -6, 1)
-knSet <- 10^seq(-1, 3, 1)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
-gdSet <- 15
-gtSet <- 15
-DInitSet <- c(1000)
-
 ## Large dataset for tests
 DInitSet <- c(500, 1E3)
 bRSet <- c(0.8, 1.7)
@@ -461,8 +319,8 @@ NutrConv <- 1e-6
 wSet <- c(0.04, 0.06)
 kpSet <- 10^seq(from = -11, to = -5, by = 0.5)
 knSet <- 10^seq(from = -1, to = 3, by = 0.5)
-cdSet <- c(0.05)
-ctSet <- c(0.05)
+cdSet <- c(0.01, 0.05)
+ctSet <- c(0.01, 0.05)
 gdSet <- c(10, 15)
 gtSet <- c(10, 15)
 
@@ -493,7 +351,6 @@ ctSet <- c(0.01, 0.05)
 gdSet <- c(10, 15)
 gtSet <- c(10, 15) 
 
-
 ### Using steps of 0.1 for kp and kn did not work
 # Error: DLSODE- at T (=R1) and step size H (=R2), the corrector convergence failed repeatedly
 # or with ABS(H)=HMIN. IN above message, R = 1.499002e+05, 2.091563e-09
@@ -502,31 +359,13 @@ gtSet <- c(10, 15)
 # 
 # Retry using jactype = "sparse", could also try using stode(s?) and/or supply jacobian
 
-# Testset
-# with old nested loops script 148.19/0.10/149.67 seconds if runsimulation==0)
-# with this apply-based script:  134.39/0.34/143.33 seconds, only slightly faster
-# DInitSet <- c(500, 1E3)
-# bRSet <- c(0.8, 1.7)
-# NISet <- c(10, 100)
-# eValue <- 1e-6
-# wSet <- c(0.04, 0.06)
-# kpSet <- 10^seq(from = -11, to = -5, by = 0.5)
-# knSet <- 10^seq(from = -1, to = 3, by = 0.5)
-# cdSet <- c(0.01, 0.05)
-# ctSet <- c(0.01, 0.05)
-# gdSet <- 10^c(1, 1.176)
-# gtSet <- 10^c(1, 1.176)
-# runsimulation <- 0
-# plotoutput <- 0
-
 print(Sys.time())
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
-NutrConv <- 1e-6
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
 if(any(MyData <= 0)) warning("All parameters should have positive values.")
 
-dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = calceqplasmidfree)
+dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree)
 dfeqplasmidfree <- t(dfeqplasmidfree)     # ToDo: change the function to get the transpose as output
 dfeqplasmidfree
 print("Plasmid-free equilibrium calculated:")
@@ -677,16 +516,19 @@ InputSimulationPairs <- MyData[IndexSimulation, c(1:15)]
 OutputSimulationPairs <- apply(X = InputSimulationPairs, MARGIN = 1, FUN = SimulationPairs)
 OutputSimulationPairs <- t(OutputSimulationPairs)
 
-NoSimulationNeeded <- cbind(time = 0, Nutr = MyData[-IndexSimulation, "NutrEq"],
-                                   D = 0, R = MyData[-IndexSimulation, "REq"],
-                                   Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
-                cbind(MyData[-IndexSimulation, ], NoSimulationNeeded)
-                )
+if(length(IndexSimulation) < nrow(MyData)) {
+  NoSimulationNeeded <- cbind(time = 0, Nutr = MyData[-IndexSimulation, "NutrEq"],
+                              D = 0, R = MyData[-IndexSimulation, "REq"],
+                              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+  MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
+                  cbind(MyData[-IndexSimulation, ], NoSimulationNeeded)
+  )
+} else {
+  MyData <- cbind(MyData[IndexSimulation, ], OutputSimulationPairs)
+}
 
 print("Pair-formation model completed running:")
 print(Sys.time())
-
 write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpairs.csv"),
           quote = FALSE, row.names = FALSE)
 
@@ -699,12 +541,16 @@ InputSimulationBulk <- MyData[IndexSimulationBulk, c(1:15)]
 OutputSimulationBulk <- apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk)
 OutputSimulationBulk <- t(OutputSimulationBulk)
 
-NoSimulationNeededBulk <- cbind(time = 0, Nutr = MyData[-IndexSimulationBulk, "NutrEq"],
-                            D = 0, R = MyData[-IndexSimulationBulk, "REq"],
-                            Trans = 0)
-MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
-                cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk)
-)
+if(length(IndexSimulationBulk) < nrow(MyData)) {
+  NoSimulationNeededBulk <- cbind(time = 0, Nutr = MyData[-IndexSimulationBulk, "NutrEq"],
+                                  D = 0, R = MyData[-IndexSimulationBulk, "REq"],
+                                  Trans = 0)
+  MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
+                  cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk)
+  )
+} else {
+  MyData <- cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk)
+}
 
 print("Bulk-conjugation model completed running:")
 print(Sys.time())
@@ -825,8 +671,47 @@ CreatePlot(fillvar = "TotalTrans/TotalBio")
 CreatePlot(fillvar = "TransBulk/TotalBioBulk")
 CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)")
 
-###### To create plots over time #####
+################################################################################
+
+###### To create plots over time
 # NOTE: CURRENTLY BROKEN (because no state is specified).
+
+library(deSolve) # To solve differential equations with results over time.
+
+# Settings for simulations, plotting, and printing
+mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
+# mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
+mycol <- c("black", brewer.pal(7, "Set1"))
+myylim <- c(1E-4, 1E7) # Defining the limits for the y-axis
+yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
+plotoutput <- 0
+extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
+verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
+smallchange <- c(1E-5)
+Mytmax <- c(1E5)
+Mytstep <- c(10)
+
+#### Create matrix to store data ####
+Mydf <- expand.grid(DInit = DInitSet, bR = bRSet, NI = NISet, w = wSet, kpSet = kpSet,
+                    knSet = knSet, cdSet = cdSet, ctSet = ctSet,
+                    gdSet = gdSet, gtSet = gtSet, KEEP.OUT.ATTRS = FALSE)
+
+TotalIterations <- length(bRSet)*length(NISet)*length(kpSet)*
+  length(log10knSet)*length(wSet)*length(DInitSet)*length(cdSet)*length(ctSet)*
+  length(gdSet)*length(gtSet)
+print(TotalIterations)
+CurrentIteration <- 0
+MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
+DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
+
+# Times for which output of the simulation is wanted.
+# Note that I don't use timestep untill t = 100, and note furthermore that
+# the used ode-solvers are variable-step methods, so the times in times
+# are NOT the only times at which integration is performed. See
+# ?diagnostics.deSolve() and ?lsodar() for details.
+if(runsimulation == 1) {
+  times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep)) 
+}
 
 # Define root-function and event-function
 # If the root-argument is equal to 0, an event (as defined by the event-function)
