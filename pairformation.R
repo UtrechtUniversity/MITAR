@@ -34,9 +34,6 @@ ModelRecipNutr <- function(t, state, parms) {
   })
 }
 
-
-## NOTE: collecting growth and washout terms will speed execution up?
-
 # The plasmid-free equilibrium is R* = (NI - (w/bR))/e, Nutr* = w/bR, D* = Trans* = 0
 # with condition w < NI*bR (otherwise it becomes a cell-free equilibrium ?) and
 # the stability of this equilibrium is determined by the following eigenvalue
@@ -135,7 +132,6 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 # for (i in 1:nrow(plist))
 #   outlist[[i]] <- ode(y = c(y = 2), times, derivs, parms = plist[i,])
 # plot(out, outlist)
-
 
 # Times for which output of the simulation is wanted.
 # Note that I don't use timestep untill t = 100, and note furthermore that
@@ -327,44 +323,6 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
     }
   }
 }
-
-# Note: hardcoded legend
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
-                    name = "Stability",
-                    labels = c("stable", "unstable"))
-ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
-
-# Note: hardcoded legend
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal - SignDomEigValBulk))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("0" = "darkblue"),
-                    name = "Difference in sign eigenvalues")
-ggsave(paste0(DateTimeStamp, "Difference in sign eigenvalues.png"))
-
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal - SignDomEigValBulk))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("0" = "darkblue"),
-                    name = "Difference in sign eigenvalues")
-ggsave(paste0(DateTimeStamp, "Difference in sign eigenvalues.png"))
-
-
 
 # The initial state is the plasmid-free equilibrium (R*, Nutr*) with the
 # addition of DInit donor bacteria per mL. Note that stol is based on the average
@@ -647,6 +605,35 @@ CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1)
 CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1)
 CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk", gradient2 = 1)
 
+# Note: hardcoded legend
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
+                    name = "Stability",
+                    labels = c("stable", "unstable"))
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
+}
+
+# Note: hardcoded legend
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal - SignDomEigValBulk))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("0" = "darkblue"),
+                    name = "Difference in sign eigenvalues")
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "Difference in sign eigenvalues.png"))
+}
+
 # MyDatacd001 <- MyData[which(MyData[,"cd"]==0.01),]
 # MyDatacd005 <- MyData[which(MyData[,"cd"]==0.95),]
 # summary(MyDatacd001 - MyDatacd005)
@@ -665,11 +652,6 @@ CreatePlot(fillvar = "log10(DomEigVal)", limits = limitseigenvalues)
 CreatePlot(fillvar = "log10(DomEigValBulk)", limits = limitseigenvalues)
 CreatePlot(fillvar = "DomEigVal/DomEigValBulk")
 CreatePlot(fillvar = "DomEigVal-DomEigValBulk")
-
-
-a <- rep(c(1e-6, 1, 1e6), 3)
-b <- c(2e-6, 2, 2e6, 2e-6, 2, 2e6)
-
 
 summary(MyData$DomEigVal)
 summary(MyData$DomEigValBulk)
