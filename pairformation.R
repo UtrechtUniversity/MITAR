@@ -1,7 +1,25 @@
 #### Pair-formation model of conjugation ####
 
+
 #### To do ####
-# Add reference section for references to help-files, powerpoints, publications etc.
+
+# Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
+
+# Find method to obtain the order in which I specify the state from EstConjBulkDonor
+# or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object DataEstConjBulk
+
+# See ggplot2::expand_limits to have the same limits and colorscale for the two plots
+
+# Create function to filter on small negative and small positive state values and set them to 0
+
+#  Make better comparison to check for unstable equilibrium where invasion is not possible,
+#  currently comparison ofvalues that will not be exact
+
+# Warn if lenght of variables that are not passed on to the CreatePlot function
+# are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each
+# kp*kn*cd*ct combination. I don't know how these are handled when plotting,
+# probably the different values are plotted on top of each other so only the
+# last value is visible.
 
 # Run bulk-model for short time (same as short pair-model) and compare them
 # to see if the bulk-conjugation parameter holds (automated analysis somehow)
@@ -13,52 +31,58 @@
 # (eigenvalue?) of the donor-equation?). See 'A Practical Guide to Ecological
 # Modelling: Using R as a Simulation Platform', p. 229-230)
 
-#### Introduction ####
-# The idea for the pair-formation model was taken from equation (2) of the
-# following publication:
-# Zhong X, Krol JE, Top EM, Krone SM. 2010. Accounting for mating pair formation
-# in plasmid population dynamics. Journal of Theoretical Biology 262:711-719.
+# Other way of plotting data: instead of using cdSet = c(0.01, 0.025, 0.05) and
+# ctSet = c(0.01, 0.025, 0.05) and plotting facets cd ~ ct, one could also use
+# cdSet = 0.025 and plot facets for ct < cd, ct = cd, ct > cd. The same approach
+# can be used for gd and gt.
 
-# See also: Zhong X, Droesch J, Fox R, Top EM, Krone SM. 2012. On the meaning and
-# estimation of plasmid transfer rates for surface-associated and well-mixed
+## Remarks
+# A note on indexing of tibbles: use MyData[[1, "REq"]] to return a vector
+# (MyData[1, "REq"] returns a LIST). See is.vector(state) and is.numeric(state).
+# Using MyData$DInit[i] in a loop does work with tibbles as well.
+
+
+#### Introduction ####
+# The pair-formation model was taken from equation (2) of Zhong (2010) and
+# expanded to to include costs, washout, and nutrients. See also Zhong (2012).
+
+
+#### References ####
+
+# Zhong 2010: Zhong X, Krol JE, Top EM, Krone SM. 2010. Accounting for mating
+# pair formation in plasmid population dynamics. Journal of Theoretical Biology
+# 262:711-719.
+
+# Zhong 2012: Zhong X, Droesch J, Fox R, Top EM, Krone SM. 2012. On the meaning
+# and estimation of plasmid transfer rates for surface-associated and well-mixed
 # bacterial populations. Journal of Theoretical Biology 294:144-152.
 
-library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
-library(tidyr) # for 'expand.grid()' with dataframe as input
-# library(dplyr)
+
+#### Loading packages ####
+library(deSolve) # Solve differential equations with results over time.
 library(ggplot2) # For plotting data
 library(RColorBrewer) # For better color schemes
+library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
+library(tidyr) # for 'expand.grid()' with dataframe as input
+
 
 #### Plotting options ####
-MyColorBrew <- rev(brewer.pal(11, "Spectral")) # see display.brewer.all()
-timesParmsEst <- seq(from = 0, to = 3, by = 0.1)
-runsimulation <- 1 # if runsimulation == 0, no simulation is run, and only the
-# parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
-tmaxsteady <- 1e8
 saveplots <- 0
+tmaxsteady <- 1e8
+timesParmsEst <- seq(from = 0, to = 3, by = 0.1)
+MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
+
 
 #### Functions ####
-
-# ODE-model describing pair-formation and conjugation. Pairs are formed if
-# recipients meet donors or transconjugants. Pair-formation depends on attachment
-# rate kp. Conjugation from the donor or transconjugant occurs in the Mdr and Mrt
-# pairs with intrinsic conjugation rates gd and gt respectively. This leads to
-# formation of Mdt and Mtt pairs. The different pairs fall apart with detachment
-# rate kn. This structure of pair-formation is based on Zhong's model. I
-# included costs, washout, and nutrients as additions to Zhong's model.
-ModelPairsNutr <- function(t, state, parms) {
-  with(as.list(c(state, parms)), {
-    dNutr <- (NI - Nutr)*w - NutrConv*Nutr*((1 - cd)*bR*(D + Mdr + Mdt) + bR*(R + Mdr + Mrt) +
-                                              (1 - ct)*bR*(Trans + Mdt + Mrt + 2*Mtt))
-    dD <- (1 - cd)*bR*Nutr*(D + Mdr + Mdt) - kp*D*R + kn*(Mdr + Mdt) - w*D
-    dR <- bR*Nutr*(R + Mdr + Mrt) - kp*R*(D + Trans) + kn*(Mdr + Mrt) - w*R
-    dTrans <- (1 - ct)*bR*Nutr*(Trans + Mdt + Mrt + 2*Mtt) - kp*R*Trans + kn*(Mdt + Mrt + 2*Mtt) -
-      w*Trans
-    dMdr <- kp*D*R - kn*Mdr - gd*Mdr - w*Mdr
-    dMdt <- gd*Mdr - kn*Mdt - w*Mdt
-    dMrt <- kp*R*Trans - kn*Mrt - gt*Mrt - w*Mrt
-    dMtt <- gt*Mrt - kn*Mtt - w*Mtt
-    return(list(c(dNutr, dD, dR, dTrans, dMdr, dMdt, dMrt, dMtt)))
+# Calculate the plasmid-free equilibrium (R*, Nutr*)
+CalcEqPlasmidfree <- function(MyData) {
+  with(as.list(MyData), {
+    REq <- ((NI - w / bR)) / NutrConv
+    NutrEq <- w / bR
+    Eq <- c(NutrEq = NutrEq, REq = REq)
+    print(Eq)
+    print(class(Eq))
+    return(Eq)
   })
 }
 
@@ -90,18 +114,45 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
 }
 
 # Function to estimate bulk-conjugation rates by running simulations with the
-# adjusted pair-formation models for a short timespan and calculate
-# approximations of gdbulk and gtbulk from the output at t = 3 hours,
-# following Zhong's approach for the calculations.
+# adjusted pair-formation models for a short tail(timesParmsEst, 1) hours and
+# calculate approximations of gdbulk and gtbulk from the output, following
+# Zhong's approach for the calculations.
 EstConjBulk <- function(MyData) {
-  state <- c(D = MyData[["DInit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
-  parms <- MyData
-  DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
-                                   func = ModelEstConjBulkDonor, parms = parms), 1)
-  state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
-  DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = state,
-                                   func = ModelEstConjBulkTrans, parms = parms), 1)  
-  return(cbind(DataEstConjBulkDonor, DataEstConjBulkTrans))
+  with(as.list(MyData), {
+    state <- c(D = MyData[["DInit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    parms <- MyData
+    DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
+                                     func = ModelEstConjBulkDonor, parms = parms), 1)
+    state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
+    DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = state,
+                                     func = ModelEstConjBulkTrans, parms = parms), 1)
+    DataEstConjBulk <- cbind(DataEstConjBulkDonor, DataEstConjBulkTrans)
+    names(DataEstConjBulk) <- colnames(DataEstConjBulk)
+    return(DataEstConjBulk)
+  })
+}
+
+# ODE-model describing pair-formation and conjugation. Pair-formation between
+# plasmid-free recipients and plasmid-bearing donors or transconjugants depends
+# on attachment rate kp. Conjugation from the donor or transconjugant occurs in
+# the Mdr and Mrt pairs with intrinsic conjugation rates gd and gt respectively.
+# This leads to formation of Mdt and Mtt pairs. The pairs fall apart with
+# detachment rate kn. This structure of pair-formation is based on Zhong's model
+# (Zhong 2010). I expanded the model to include costs, washout, and nutrients.
+ModelPairsNutr <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dNutr <- (NI - Nutr)*w - NutrConv*Nutr*((1 - cd)*bR*(D + Mdr + Mdt) + bR*(R + Mdr + Mrt) +
+                                              (1 - ct)*bR*(Trans + Mdt + Mrt + 2*Mtt))
+    dD <- (1 - cd)*bR*Nutr*(D + Mdr + Mdt) - kp*D*R + kn*(Mdr + Mdt) - w*D
+    dR <- bR*Nutr*(R + Mdr + Mrt) - kp*R*(D + Trans) + kn*(Mdr + Mrt) - w*R
+    dTrans <- (1 - ct)*bR*Nutr*(Trans + Mdt + Mrt + 2*Mtt) - kp*R*Trans + kn*(Mdt + Mrt + 2*Mtt) -
+      w*Trans
+    dMdr <- kp*D*R - kn*Mdr - gd*Mdr - w*Mdr
+    dMdt <- gd*Mdr - kn*Mdt - w*Mdt
+    dMrt <- kp*R*Trans - kn*Mrt - gt*Mrt - w*Mrt
+    dMtt <- gt*Mrt - kn*Mtt - w*Mtt
+    return(list(c(dNutr, dD, dR, dTrans, dMdr, dMdt, dMrt, dMtt)))
+  })
 }
 
 # The bulk-conjugation model
@@ -115,27 +166,17 @@ ModelBulkNutr <- function(t, state, parms) {
   })
 }
 
-# Calculate the plasmid-free equilibrium (R*, Nutr*)
-CalcEqPlasmidfree <- function(MyData) {
-  with(as.list(MyData), {
-    REq <- ((NI - w / bR)) / NutrConv
-    NutrEq <- w / bR
-    Eq <- c(NutrEq = NutrEq, REq = REq)
-    return(Eq)
-  })
-}
-
 # Numerically estimate the Jacobian matrix of the plasmid-free equilibrium of
 # the models, then calculate (or approximate?) the eigenvalues of this matrix.
-# ToDO: also return ComplexEigVal and ComplexEigValBulk
+# The maximum real part of the eigenvalues is used to determine stability.
 CalcEigenvalues <- function(MyData) {
   parms <- MyData
   EqFull <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   EigVal <- eigen(x = jacobian.full(y = EqFull, func = ModelPairsNutr, parms = parms),
                   symmetric = FALSE, only.values = TRUE)$values
   ComplexEigVal <- is.complex(EigVal) 
-  EigVal <- Re(EigVal) # selecting real part of the eigenvalues
-  DomEigVal <- max(EigVal) # selecting maximum real part of the eigenvalues
+  EigVal <- Re(EigVal)
+  DomEigVal <- max(EigVal)
   SignDomEigVal <- sign(DomEigVal)
   SignEigValEqual <- identical(rep(SignDomEigVal, length(EigVal)), sign(Re(EigVal)))
   
@@ -143,8 +184,8 @@ CalcEigenvalues <- function(MyData) {
   EigValBulk <- eigen(x = jacobian.full(y = EqFullBulk, func = ModelBulkNutr, parms = parms),
                       symmetric = FALSE, only.values = TRUE)$values
   ComplexEigValBulk <- is.complex(EigValBulk) 
-  EigValBulk <- Re(EigValBulk) # selecting real part of the eigenvalues
-  DomEigValBulk <- max(EigValBulk) # selecting maximum real part of the eigenvalues
+  EigValBulk <- Re(EigValBulk)
+  DomEigValBulk <- max(EigValBulk)
   SignDomEigValBulk <- sign(DomEigValBulk)
   SignEigValEqualBulk <- identical(rep(sign(DomEigValBulk), length(EigValBulk)),
                                    sign(Re(EigValBulk)))
@@ -153,11 +194,30 @@ CalcEigenvalues <- function(MyData) {
   return(InfoEigVal)
 }
 
-## Plotfunction
+# The initial state is the plasmid-free equilibrium (R*, Nutr*) with the
+# addition of DInit donor bacteria per mL. Note that stol is based on the average
+# of absolute rates of change, not the sum.
+SimulationPairs <- function(InputSimulationPairs) {
+  parms <- InputSimulationPairs
+  state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
+             R = parms[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr, parms = parms, stol = 1.25e-6)
+  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
+  return(EqAfterInvDonor)
+}
+
+# Run the bulk-conjugation model
+SimulationBulk <- function(InputSimulationBulk) {
+  parms <- InputSimulationBulk
+  state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
+             R = parms[["REq"]], Trans = 0)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
+  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
+  return(EqAfterInvDonor)
+}
+
+# Create heatmaps, save if needed
 # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
-# ToDo: warn if lenght of variables that are not passed on to the plotfunction
-# are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each kp*kn*cd*ct combination
-# I don't know how these are handled when plotting
 CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, dataplot = MyData,
                        xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
   if(exists("DateTimeStamp") == FALSE) {
@@ -190,29 +250,9 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
   }
 }
 
-# The initial state is the plasmid-free equilibrium (R*, Nutr*) with the
-# addition of DInit donor bacteria per mL. Note that stol is based on the average
-# of absolute rates of change, not the sum
-SimulationPairs <- function(InputSimulationPairs) {
-  parms <- InputSimulationPairs
-  state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
-             R = parms[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr, parms = parms, stol = 1.25e-6)
-  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
-  return(EqAfterInvDonor)
-}
-
-# Run the bulk-conjugation model
-SimulationBulk <- function(InputSimulationBulk) {
-  parms <- InputSimulationBulk
-  state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
-             R = parms[["REq"]], Trans = 0)
-  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
-  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
-  return(EqAfterInvDonor)
-}
-
-summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
+# Summarize the output per variable, indicate the orders of magnitude difference
+# and negative values
+SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
   print(summary(plotvar))
   print(range(plotvar))
   plotdf <- data.frame(val = plotvar, sign = sign(plotvar), absval = abs(plotvar), plotcol = "black")
@@ -271,7 +311,10 @@ summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
   abline(h = 0.001)
 }
 
+
 #### Parameter values ####
+
+## Explanation of parameters
 # Growthrates (1/h) for recipient: bR (growth rates for donor and transconjugant
 # are not explicitly defined, but calculated as (1 - cd)*bR and (1 - ct)*bR)
 # Conjugation rates (1/h) from donor and transconjugant: gd and gt
@@ -281,16 +324,14 @@ summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # Resource conversion rate (microgram per cell division): e
 # Washout rate (1/h): w
 
-# To read data from csv-file
+## To read data from csv-file
 # FileName <- "2020_juni_26_09_07_33outputsimulationcomplete.csv"
-# FileName <- "2020_juni_25_09_47_20outputnooutputsimulation.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
-#                    dec = ".", stringsAsFactors = FALSE
-# )
+#                    dec = ".", stringsAsFactors = FALSE)
 # MyData <- as.data.frame(MyData)
 # DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 28)
 
-# Stable co-existence of recipients, transconjugants, and Mrt and Mtt pairs
+## Stable co-existence of recipients, transconjugants, and Mrt and Mtt pairs
 # bRSet <- 1.7; NISet <- 10; kpSet <- 10^-9.6; knSet <- 10^0.5
 # NutrConv <- 1E-6; wSet <- 0.04; cdSet <- 0.05; ctSet <- 0.05;
 # gdSet <- 10^1.176; gtSet <- 10^1.176; DInitSet <- 1000
@@ -299,17 +340,17 @@ summaryplot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # NutrBulk = 0.02430818, DBulk = 0, RBulk = 3583808, TransBulk = 6391884.
 
 ## Small parameterset for tests
+DInitSet <- c(1000)
 bRSet <- c(1.7)
 NISet <- c(10, 100)
-wSet <- c(0.04)
 NutrConv <- c(1E-6)
+wSet <- c(0.04)
 kpSet <- 10^seq(-10, -6, 0.5)
 knSet <- 10^seq(-1, 3, 0.5)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 gdSet <- 15
 gtSet <- 15
-DInitSet <- c(1000)
 
 ## Large dataset for tests
 DInitSet <- c(500, 1E3)
@@ -324,7 +365,7 @@ ctSet <- c(0.01, 0.05)
 gdSet <- c(10, 15)
 gtSet <- c(10, 15)
 
-### This set worked (26 june 2020) (takes 8 minutes to run)
+## This set worked (26 june 2020) (takes 8 minutes to run)
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
@@ -337,7 +378,7 @@ ctSet <- c(0.01, 0.05)
 gdSet <- c(10, 15)
 gtSet <- c(10, 15) 
 
-### Try smaller steps for kp and kn (24 june 2020):
+## Try smaller steps for kp and kn (24 june 2020):
 # works for pair-formation model, not for bulk-conjugation model
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
@@ -351,7 +392,7 @@ ctSet <- c(0.01, 0.05)
 gdSet <- c(10, 15)
 gtSet <- c(10, 15) 
 
-### Using steps of 0.1 for kp and kn did not work
+## Using steps of 0.1 for kp and kn did not work
 # Error: DLSODE- at T (=R1) and step size H (=R2), the corrector convergence failed repeatedly
 # or with ABS(H)=HMIN. IN above message, R = 1.499002e+05, 2.091563e-09
 # DLSODE- ISTATE illegal, in above message I=-5
@@ -359,39 +400,36 @@ gtSet <- c(10, 15)
 # 
 # Retry using jactype = "sparse", could also try using stode(s?) and/or supply jacobian
 
-print(Sys.time())
+
+#### Main script ####
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
 if(any(MyData <= 0)) warning("All parameters should have positive values.")
 
-dfeqplasmidfree <- apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree)
-dfeqplasmidfree <- t(dfeqplasmidfree)     # ToDo: change the function to get the transpose as output
+dfeqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
 dfeqplasmidfree
+MyData <- cbind(MyData, dfeqplasmidfree)
+
+if(any(dfeqplasmidfree[, "REq"] <= 0)) {
+  warning("The number of recipients at equilibrium is not positive!
+Increase the nutrient concentration in the inflowing liquid by changing NI?")
+}
+
 print("Plasmid-free equilibrium calculated:")
 print(Sys.time())
 
-# Check if plasmid-free equilibrium is positive, warn if not.
-if(any(dfeqplasmidfree[, "REq"] <= 0)) warning("The number of recipients at equilibrium is not positive!
-Increase the nutrient concentration in the inflowing liquid by changing NI?")
-
-MyData <- cbind(MyData, dfeqplasmidfree)
-
-# Note on indexing of tibbles: use MyData[[1, "REq"]] to return a vector (MyData[1, "REq"] returns a LIST)
-# See is.vector(state) and is.numeric(state)
-# Using MyData$DInit[i] in a loop does work with tibbles as well
-
-# Add combinations with the parameters needed to approximate gdbulk and gtbulk to MyData
-MyData <- expand_grid(MyData, kp = kpSet, kn = knSet,
-                      gd = gdSet, gt = gtSet, DInit = DInitSet)
-MyData
+## Add combinations with the parameters needed to approximate gdbulk and gtbulk
+MyData <- expand_grid(MyData, kp = kpSet, kn = knSet, gd = gdSet, gt = gtSet,
+                      DInit = DInitSet)
 dim(MyData)
 
-DataEstConjBulk <- apply(X = MyData, MARGIN = 1, FUN = EstConjBulk)
-DataEstConjBulk <- t(DataEstConjBulk)
+DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk))
 
-# ToDo: try to find method to obtain the order in which I specify the state from EstConjBulkDonor
-# or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object.
+## Previously names were not preserved, because return had a colnames attribute 
+## instead of a names attribute. Now I included setting names in the function,
+## which for large datasets might slow down code execution ?
+
 colnames(DataEstConjBulk) <- c("DonorTime", "DonorD", "DonorR", "DonorTrans", "DonorMdr", "DonorMdt", "DonorMrt",
                                "TransTime", "TransR", "TransTrans", "TransMrt", "TransMtt")
 
@@ -424,8 +462,6 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
 # Create limits to have the same limits and colorscale for the two plots
-# ToDo: see ggplot2::expand_limits to achieve this ?
-# See also CodingExamples
 limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
                      ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
 
@@ -482,7 +518,6 @@ summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
 summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
 
 # Create limits to have the same limits and colorscale for the two plots
-# ToDo: see ggplot2::expand_limits to achieve this ?
 DomEigVals <- c(MyData$DomEigVal, MyData$DomEigValBulk)
 limitseigenvalues <- log10(range(DomEigVals[DomEigVals > 0]))
 limitseigenvalues <- c(floor(limitseigenvalues[1]), ceiling(limitseigenvalues[2]))
@@ -510,9 +545,6 @@ BackupMyData <- MyData
 IndexSimulation <- which(MyData$SignDomEigVal != -1)
 InputSimulationPairs <- MyData[IndexSimulation, c(1:15)]
 
-# NOTE: now the returned object does contain correct columnnames ! So why did it not in earlier attempts as above?
-# ToDO: check why the returned objects above did not have correct columnnames
-# -> Probably because runsteady returns a list ?
 OutputSimulationPairs <- apply(X = InputSimulationPairs, MARGIN = 1, FUN = SimulationPairs)
 OutputSimulationPairs <- t(OutputSimulationPairs)
 
@@ -535,9 +567,6 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpairs.csv"),
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
 InputSimulationBulk <- MyData[IndexSimulationBulk, c(1:15)]
 
-# NOTE: now the returned object does contain correct columnnames ! So why did it not in earlier attempts as above?
-# ToDO: check why the returned objects above did not have correct columnnames
-# -> Probably because runsteady returns a list ?
 OutputSimulationBulk <- apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk)
 OutputSimulationBulk <- t(OutputSimulationBulk)
 
@@ -564,7 +593,6 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpairsandbulk.csv
           quote = FALSE, row.names = FALSE)
 
 
-# If runsimulation != 1 only the parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
 MyData <- cbind(MyData, TotalD = NA, TotalR = NA, TotalTrans = NA, TotalPlasmid = NA, TotalBio = NA,
                 TotalPlasmidBulk = NA, TotalBioBulk = NA)
 MyData[, "TotalD"] <- MyData[, "D"] + MyData[, "Mdr"] + MyData[, "Mdt"]
@@ -580,33 +608,30 @@ MyData[, "TotalBioBulk"] <- MyData[, "DBulk"] + MyData[, "RBulk"] + MyData[, "Tr
 write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationcomplete.csv"),
           quote = FALSE, row.names = FALSE)
 
-# ToDo: create function to filter on small negative and small positive state
-# values and set them to 0
-
 names(MyData)
-summaryplot(MyData$NutrEq)
-summaryplot(MyData$REq)
-summaryplot(MyData$gdbulk)
-summaryplot(MyData$gtbulk)
-summaryplot(MyData$DomEigVal)
-summaryplot(MyData$DomEigValBulk)
-summaryplot(MyData$Nutr)
-summaryplot(MyData$D)
-summaryplot(MyData$R)
-summaryplot(MyData$Trans)
-summaryplot(MyData$Mdr)
-summaryplot(MyData$Mdt)
-summaryplot(MyData$Mrt)
-summaryplot(MyData$Mtt)
-summaryplot(MyData$NutrBulk)
-summaryplot(MyData$DBulk)
-summaryplot(MyData$RBulk)
-summaryplot(MyData$TransBulk)
-summaryplot(MyData$TotalD)
-summaryplot(MyData$TotalR)
-summaryplot(MyData$TotalTrans)
-summaryplot(MyData$TotalPlasmid) # Plots on linear scale despite varying over many orders of magnitude ?
-summaryplot(MyData$TotalPlasmidBulk)
+SummaryPlot(MyData$NutrEq)
+SummaryPlot(MyData$REq)
+SummaryPlot(MyData$gdbulk)
+SummaryPlot(MyData$gtbulk)
+SummaryPlot(MyData$DomEigVal)
+SummaryPlot(MyData$DomEigValBulk)
+SummaryPlot(MyData$Nutr)
+SummaryPlot(MyData$D)
+SummaryPlot(MyData$R)
+SummaryPlot(MyData$Trans)
+SummaryPlot(MyData$Mdr)
+SummaryPlot(MyData$Mdt)
+SummaryPlot(MyData$Mrt)
+SummaryPlot(MyData$Mtt)
+SummaryPlot(MyData$NutrBulk)
+SummaryPlot(MyData$DBulk)
+SummaryPlot(MyData$RBulk)
+SummaryPlot(MyData$TransBulk)
+SummaryPlot(MyData$TotalD)
+SummaryPlot(MyData$TotalR)
+SummaryPlot(MyData$TotalTrans)
+SummaryPlot(MyData$TotalPlasmid) # Plots on linear scale despite varying over many orders of magnitude ?
+SummaryPlot(MyData$TotalPlasmidBulk)
 
 ### Some controls
 # Equilibrium at t=0 despite unstable plasmid-free equilibrium
@@ -621,7 +646,6 @@ if(any(MyData$timeBulk == 0 & MyData$SignDomEigVal == 1)) {
 }
 
 # Unstable equilibrium, but invasion not possible
-# ToDo: make better comparison (will not be exact)
 any(MyData$TotalR == MyData$TotalBio & MyData$SignDomEigVal == 1)
 any(MyData$RBulk == MyData$TotalBioBulk & MyData$SignDomEigValBulk == 1)
 
@@ -676,8 +700,6 @@ CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)")
 ###### To create plots over time
 # NOTE: CURRENTLY BROKEN (because no state is specified).
 
-library(deSolve) # To solve differential equations with results over time.
-
 # Settings for simulations, plotting, and printing
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
 # mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
@@ -690,6 +712,10 @@ verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and 
 smallchange <- c(1E-5)
 Mytmax <- c(1E5)
 Mytstep <- c(10)
+runsimulation <- 1 # if 0, no simulation is run, and only the
+# parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
+
+# If runsimulation != 1 only the parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
 
 #### Create matrix to store data ####
 Mydf <- expand.grid(DInit = DInitSet, bR = bRSet, NI = NISet, w = wSet, kpSet = kpSet,
