@@ -8,6 +8,10 @@
 # Find method to obtain the order in which I specify the state from EstConjBulkDonor
 # or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object DataEstConjBulk
 
+# aes_string is soft-deprecated (see ?aes_string), use tidy evaluation idioms instead,
+# see the quasiquotation section in aes() documentation.
+# See also # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
+
 # See ggplot2::expand_limits to have the same limits and colorscale for the two plots
 
 # Create function to filter on small negative and small positive state values and set them to 0
@@ -37,10 +41,14 @@
 # can be used for gd and gt.
 
 ## Remarks
-# A note on indexing of tibbles: use MyData[[1, "REq"]] to return a vector
+# Indexing of tibbles: use MyData[[1, "REq"]] to return a vector
 # (MyData[1, "REq"] returns a LIST). See is.vector(state) and is.numeric(state).
 # Using MyData$DInit[i] in a loop does work with tibbles as well.
 
+## Previously names of the object returned by apply were sometimes not preserved,
+# because return had a colnames attribute instead of a names attribute. Now I
+# included setting names in the function, did not slow down code execution for
+# 7488 rows (actually it was faster, 97 instead of 101 seconds)
 
 #### Introduction ####
 # The pair-formation model was taken from equation (2) of Zhong (2010) and
@@ -113,6 +121,7 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
   })
 }
 
+
 # Function to estimate bulk-conjugation rates by running simulations with the
 # adjusted pair-formation models for a short tail(timesParmsEst, 1) hours and
 # calculate approximations of gdbulk and gtbulk from the output, following
@@ -123,11 +132,14 @@ EstConjBulk <- function(MyData) {
     parms <- MyData
     DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
-    state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
+
+        state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
     DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = state,
                                      func = ModelEstConjBulkTrans, parms = parms), 1)
+
     DataEstConjBulk <- cbind(DataEstConjBulkDonor, DataEstConjBulkTrans)
-    names(DataEstConjBulk) <- colnames(DataEstConjBulk)
+    names(DataEstConjBulk) <- c(paste0("Donor", colnames(DataEstConjBulkDonor)),
+                                paste0("Trans", colnames(DataEstConjBulkTrans)))
     return(DataEstConjBulk)
   })
 }
@@ -217,7 +229,6 @@ SimulationBulk <- function(InputSimulationBulk) {
 }
 
 # Create heatmaps, save if needed
-# On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
 CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, dataplot = MyData,
                        xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
   if(exists("DateTimeStamp") == FALSE) {
@@ -345,8 +356,8 @@ bRSet <- c(1.7)
 NISet <- c(10, 100)
 NutrConv <- c(1E-6)
 wSet <- c(0.04)
-kpSet <- 10^seq(-10, -6, 0.5)
-knSet <- 10^seq(-1, 3, 0.5)
+kpSet <- 10^seq(-10, -6, 2)
+knSet <- 10^seq(-1, 3, 2)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 gdSet <- 15
@@ -407,11 +418,11 @@ gtSet <- c(10, 15)
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
 if(any(MyData <= 0)) warning("All parameters should have positive values.")
 
-dfeqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
-dfeqplasmidfree
-MyData <- cbind(MyData, dfeqplasmidfree)
+Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
+Eqplasmidfree
+MyData <- cbind(MyData, Eqplasmidfree)
 
-if(any(dfeqplasmidfree[, "REq"] <= 0)) {
+if(any(Eqplasmidfree[, "REq"] <= 0)) {
   warning("The number of recipients at equilibrium is not positive!
 Increase the nutrient concentration in the inflowing liquid by changing NI?")
 }
@@ -422,16 +433,7 @@ print(Sys.time())
 ## Add combinations with the parameters needed to approximate gdbulk and gtbulk
 MyData <- expand_grid(MyData, kp = kpSet, kn = knSet, gd = gdSet, gt = gtSet,
                       DInit = DInitSet)
-dim(MyData)
-
-DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk))
-
-## Previously names were not preserved, because return had a colnames attribute 
-## instead of a names attribute. Now I included setting names in the function,
-## which for large datasets might slow down code execution ?
-
-colnames(DataEstConjBulk) <- c("DonorTime", "DonorD", "DonorR", "DonorTrans", "DonorMdr", "DonorMdt", "DonorMrt",
-                               "TransTime", "TransR", "TransTrans", "TransMrt", "TransMtt")
+DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk)) # 97.47    0.00   97.51 
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
 TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
