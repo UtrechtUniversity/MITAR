@@ -19,6 +19,14 @@
 #  Make better comparison to check for unstable equilibrium where invasion is not possible,
 #  currently comparison ofvalues that will not be exact
 
+# Change facetting in CreatePlot() to only use facets for variables that are
+# not unique. Then moving CreatePlot(fillvar = "NutrEq") and
+# CreatePlot(fillvar = "log10(gtbulk)", limits = limitsbulkrates) to directly
+# after they have been created will prevent plotting them multiple times because
+# of different values of cd, ct, gd, gt which do not influence log10(gtbulk).
+# Currently that is not possible because CreatePlot() needs cd, ct, gd, gt for
+# facetting.
+
 # Warn if lenght of variables that are not passed on to the CreatePlot function
 # are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each
 # kp*kn*cd*ct combination. I don't know how these are handled when plotting,
@@ -466,24 +474,29 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
-# Create limits to have the same limits and colorscale for the two plots
-limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
-                     ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
 
-PlotData <- MyData[which(MyData[, "cd"]==0.01 & MyData[, "ct"]==0.01 ), ]
-CreatePlot(data = PlotData, fillvar = "log10(gdbulk)", limits = limitsbulkrates, save = FALSE)
-CreatePlot(fillvar = "log10(gtbulk)", limits = limitsbulkrates)
-
-CreatePlot(fillvar = "log10(gtbulk)", limits = limitsbulkrates)
-CreatePlot(data = PlotData, fillvar = "pmax(gdbulk, gtbulk)/pmin(gdbulk, gtbulk)")
-CreatePlot(data = PlotData, fillvar = "gdbulk/gtbulk", gradient2 = 1, midpoint = 1)
+#### Plotting output ####
 
 CreatePlot(fillvar = "NutrEq")
 CreatePlot(fillvar = "REq")
 
+# Create limits to have the same limits and colorscale for the two plots
+limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
+                     ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
+
+CreatePlot(fillvar = "log10(gdbulk)", limits = limitsbulkrates)
+CreatePlot(fillvar = "log10(gtbulk)", limits = limitsbulkrates)
+
+PlotData <- MyData[which(MyData[, "cd"]==0.01 & MyData[, "ct"]==0.01 ), ]
+CreatePlot(data = PlotData, fillvar = "pmax(gdbulk, gtbulk)/pmin(gdbulk, gtbulk)")
+CreatePlot(data = PlotData, fillvar = "gdbulk/gtbulk")
+
 CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1)
 CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1)
 CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk", gradient2 = 1)
+
+summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
+summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
 
 # Note: hardcoded legend
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
@@ -514,14 +527,6 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "Difference in sign eigenvalues.png"))
 }
 
-# MyDatacd001 <- MyData[which(MyData[,"cd"]==0.01),]
-# MyDatacd005 <- MyData[which(MyData[,"cd"]==0.95),]
-# summary(MyDatacd001 - MyDatacd005)
-# summary(abs((MyDatacd001 / MyDatacd005)-1))
-
-summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
-summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
-
 # Create limits to have the same limits and colorscale for the two plots
 DomEigVals <- c(MyData$DomEigVal, MyData$DomEigValBulk)
 limitseigenvalues <- log10(range(DomEigVals[DomEigVals > 0]))
@@ -548,18 +553,16 @@ BackupMyData <- MyData
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
 IndexSimulation <- which(MyData$SignDomEigVal != -1)
-InputSimulationPairs <- MyData[IndexSimulation, c(1:15)]
-
-OutputSimulationPairs <- apply(X = InputSimulationPairs, MARGIN = 1, FUN = SimulationPairs)
-OutputSimulationPairs <- t(OutputSimulationPairs)
+ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
+InputSimulationPairs <- MyData[IndexSimulation, ColumnsToSelect]
+OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1, FUN = SimulationPairs))
 
 if(length(IndexSimulation) < nrow(MyData)) {
   NoSimulationNeeded <- cbind(time = 0, Nutr = MyData[-IndexSimulation, "NutrEq"],
                               D = 0, R = MyData[-IndexSimulation, "REq"],
                               Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
-                  cbind(MyData[-IndexSimulation, ], NoSimulationNeeded)
-  )
+                  cbind(MyData[-IndexSimulation, ], NoSimulationNeeded))
 } else {
   MyData <- cbind(MyData[IndexSimulation, ], OutputSimulationPairs)
 }
@@ -570,18 +573,16 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpairs.csv"),
           quote = FALSE, row.names = FALSE)
 
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
-InputSimulationBulk <- MyData[IndexSimulationBulk, c(1:15)]
-
-OutputSimulationBulk <- apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk)
-OutputSimulationBulk <- t(OutputSimulationBulk)
+InputSimulationBulk <- MyData[IndexSimulationBulk, ColumnsToSelect]
+OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk))
+colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
 
 if(length(IndexSimulationBulk) < nrow(MyData)) {
-  NoSimulationNeededBulk <- cbind(time = 0, Nutr = MyData[-IndexSimulationBulk, "NutrEq"],
-                                  D = 0, R = MyData[-IndexSimulationBulk, "REq"],
-                                  Trans = 0)
+  NoSimulationNeededBulk <- cbind(timeBulk = 0, NutrBulk = MyData[-IndexSimulationBulk, "NutrEq"],
+                                  DBulk = 0, RBulk = MyData[-IndexSimulationBulk, "REq"],
+                                  TransBulk = 0)
   MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
-                  cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk)
-  )
+                  cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk))
 } else {
   MyData <- cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk)
 }
@@ -590,9 +591,6 @@ print("Bulk-conjugation model completed running:")
 print(Sys.time())
 
 BackupMyData2 <- MyData
-
-colnames(MyData) <- c(colnames(MyData)[-c((ncol(MyData)-4):ncol(MyData))],
-                      paste0(colnames(MyData[c((ncol(MyData)-4):ncol(MyData))]), "Bulk"))
 
 write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpairsandbulk.csv"),
           quote = FALSE, row.names = FALSE)
