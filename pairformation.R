@@ -595,7 +595,6 @@ BackupMyData2 <- MyData
 write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpairsandbulk.csv"),
           quote = FALSE, row.names = FALSE)
 
-
 MyData <- cbind(MyData, TotalD = NA, TotalR = NA, TotalTrans = NA, TotalPlasmid = NA, TotalBio = NA,
                 TotalPlasmidBulk = NA, TotalBioBulk = NA)
 MyData[, "TotalD"] <- MyData[, "D"] + MyData[, "Mdr"] + MyData[, "Mdt"]
@@ -649,8 +648,15 @@ if(any(MyData$timeBulk == 0 & MyData$SignDomEigVal == 1)) {
 }
 
 # Unstable equilibrium, but invasion not possible
-any(MyData$TotalR == MyData$TotalBio & MyData$SignDomEigVal == 1)
-any(MyData$RBulk == MyData$TotalBioBulk & MyData$SignDomEigValBulk == 1)
+if(any(MyData$TotalR == MyData$TotalBio & MyData$SignDomEigVal == 1)) {
+  A <- length(which(MyData$TotalR == MyData$TotalBio & MyData$SignDomEigVal == 1))
+  warning(paste("Unstable equilibrium but invasion not possible with pair-model in", A, "cases!"))
+}
+
+if(any(MyData$RBulk == MyData$TotalBioBulk & MyData$SignDomEigValBulk == 1)) {
+  A <- length(which(MyData$RBulk == MyData$TotalBioBulk & MyData$SignDomEigValBulk == 1))
+  warning(paste("Unstable equilibrium but invasion not possible with bulk-model in", A, "cases!"))
+}
 
 # If this differs, comparisons between the 2 models should use fractions, not cell counts
 summary(MyData$TotalBio / MyData$TotalBioBulk)
