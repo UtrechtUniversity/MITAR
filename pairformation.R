@@ -66,6 +66,7 @@
 # bacterial populations. Journal of Theoretical Biology 294:144-152.
 
 
+
 #### Loading packages ####
 library(deSolve) # Solve differential equations with results over time.
 library(ggplot2) # For plotting data
@@ -120,7 +121,6 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
     return(list(c(dR, dTrans, dMrt, dMtt)))
   })
 }
-
 
 # Function to estimate bulk-conjugation rates by running simulations with the
 # adjusted pair-formation models for a short tail(timesParmsEst, 1) hours and
@@ -188,6 +188,7 @@ CalcEigenvalues <- function(MyData) {
                   symmetric = FALSE, only.values = TRUE)$values
   ComplexEigVal <- is.complex(EigVal) 
   EigVal <- Re(EigVal)
+  names(EigVal) <- paste0("Eigval", 1:length(EigVal))
   DomEigVal <- max(EigVal)
   SignDomEigVal <- sign(DomEigVal)
   SignEigValEqual <- identical(rep(SignDomEigVal, length(EigVal)), sign(Re(EigVal)))
@@ -197,12 +198,16 @@ CalcEigenvalues <- function(MyData) {
                       symmetric = FALSE, only.values = TRUE)$values
   ComplexEigValBulk <- is.complex(EigValBulk) 
   EigValBulk <- Re(EigValBulk)
+  names(EigValBulk) <- paste0("EigvalBulk", 1:length(EigValBulk))
   DomEigValBulk <- max(EigValBulk)
   SignDomEigValBulk <- sign(DomEigValBulk)
   SignEigValEqualBulk <- identical(rep(sign(DomEigValBulk), length(EigValBulk)),
                                    sign(Re(EigValBulk)))
-  InfoEigVal <- c(EigVal, DomEigVal, SignDomEigVal, SignEigValEqual,
-                  EigValBulk, DomEigValBulk, SignDomEigValBulk, SignEigValEqualBulk)
+  InfoEigVal <- c(EigVal, DomEigVal = DomEigVal, SignDomEigVal = SignDomEigVal,
+                  SignEigValEqual = SignEigValEqual,
+                  EigValBulk, DomEigValBulk = DomEigValBulk,
+                  SignDomEigValBulk = SignDomEigValBulk,
+                  SignEigValEqualBulk = SignEigValEqualBulk)
   return(InfoEigVal)
 }
 
@@ -453,8 +458,6 @@ print(Sys.time())
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
 
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
-colnames(MyInfoEigVal) <- c(paste0("EigVal", 1:8), "DomEigVal", "SignDomEigVal", "SignEigValEqual",
-                            paste0("EigValBulk", 1:4), "DomEigValBulk", "SignDomEigValBulk", "SignEigValEqualBulk")
 MyData <- cbind(MyData, MyInfoEigVal)
 print("Eigenvalues estimated:")
 print(Sys.time())
