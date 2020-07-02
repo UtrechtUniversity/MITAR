@@ -89,7 +89,6 @@ tmaxsteady <- 1e8
 timesParmsEst <- seq(from = 0, to = 3, by = 0.1)
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 
-
 #### Functions ####
 # Calculate the plasmid-free equilibrium (R*, Nutr*)
 CalcEqPlasmidfree <- function(MyData) {
@@ -97,8 +96,6 @@ CalcEqPlasmidfree <- function(MyData) {
     REq <- ((NI - w / bR)) / NutrConv
     NutrEq <- w / bR
     Eq <- c(NutrEq = NutrEq, REq = REq)
-    print(Eq)
-    print(class(Eq))
     return(Eq)
   })
 }
@@ -380,10 +377,10 @@ gtSet <- 15
 DInitSet <- c(500, 1E3)
 bRSet <- c(0.8, 1.7)
 NISet <- c(10, 100)
-NutrConv <- 1e-6
+NutrConv <- c(1e-6, 1e-7)
 wSet <- c(0.04, 0.06)
-kpSet <- 10^seq(from = -11, to = -5, by = 0.5)
-knSet <- 10^seq(from = -1, to = 3, by = 0.5)
+kpSet <- 10^seq(from = -11, to = -5, by = 2)
+knSet <- 10^seq(from = -1, to = 3, by = 2)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 gdSet <- c(10, 15)
@@ -427,12 +424,19 @@ gtSet <- c(10, 15)
 
 #### Main script ####
 
+TotalIterations <- length(DInitSet)*length(bRSet)*length(NISet)*length(NutrConv)*
+  length(wSet)*length(kpSet)*length(knSet)*length(cdSet)*length(ctSet)*
+  length(gdSet)*length(gtSet)
+TotalIterations
+
+ControlParms <- c(DInitSet, bRSet, NISet, NutrConv, wSet, kpSet, knSet, cdSet, ctSet)
+if(any(ControlParms <= 0)) warning("All parameters should have positive values.")
+if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
+
 ## Calculate plasmid-free equilibrium for all parameter combinations
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
-if(any(MyData <= 0)) warning("All parameters should have positive values.")
 
 Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
-Eqplasmidfree
 MyData <- cbind(MyData, Eqplasmidfree)
 
 if(any(Eqplasmidfree[, "REq"] <= 0)) {
@@ -473,7 +477,6 @@ print(Sys.time())
 DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
-
 
 #### Plotting output ####
 
@@ -546,16 +549,13 @@ summary(DomEigVals)
 print("Finished plotting:")
 print(Sys.time())
 
-##################
-BackupMyData <- MyData
-# Now run pair-formation model for those cases where the dominant eigenvalue is negative
-
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
 IndexSimulation <- which(MyData$SignDomEigVal != -1)
 ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
 InputSimulationPairs <- MyData[IndexSimulation, ColumnsToSelect]
-OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1, FUN = SimulationPairs))
+OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1,
+                                 FUN = SimulationPairs))
 
 if(length(IndexSimulation) < nrow(MyData)) {
   NoSimulationNeeded <- cbind(time = 0, Nutr = MyData[-IndexSimulation, "NutrEq"],
@@ -590,11 +590,6 @@ if(length(IndexSimulationBulk) < nrow(MyData)) {
 print("Bulk-conjugation model completed running:")
 print(Sys.time())
 
-BackupMyData2 <- MyData
-
-write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpairsandbulk.csv"),
-          quote = FALSE, row.names = FALSE)
-
 MyData <- cbind(MyData, TotalD = NA, TotalR = NA, TotalTrans = NA, TotalPlasmid = NA, TotalBio = NA,
                 TotalPlasmidBulk = NA, TotalBioBulk = NA)
 MyData[, "TotalD"] <- MyData[, "D"] + MyData[, "Mdr"] + MyData[, "Mdt"]
@@ -606,11 +601,10 @@ MyData[, "TotalBio"] <- MyData[, "D"] + MyData[, "R"] + MyData[, "Trans"] + 2*My
 MyData[, "TotalPlasmidBulk"] <- MyData[, "DBulk"] + MyData[, "TransBulk"]
 MyData[, "TotalBioBulk"] <- MyData[, "DBulk"] + MyData[, "RBulk"] + MyData[, "TransBulk"]
 
-
-write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationcomplete.csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
-names(MyData)
+#### Plotting summaries of the variables and of some parameters ####
 SummaryPlot(MyData$NutrEq)
 SummaryPlot(MyData$REq)
 SummaryPlot(MyData$gdbulk)
@@ -675,11 +669,9 @@ max((MyData$TotalPlasmid / MyData$TotalBio)[which(MyData$TotalPlasmid / MyData$T
 min((MyData$TotalPlasmidBulk / MyData$TotalBioBulk)[which(MyData$TotalPlasmidBulk / MyData$TotalBioBulk != 0)])
 max((MyData$TotalPlasmidBulk / MyData$TotalBioBulk)[which(MyData$TotalPlasmidBulk / MyData$TotalBioBulk != 0)])
 
-A <- MyData[which(MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] > 1e-3 & MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] < 0.999), ]
+A <- MyData[which(MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] > 1e-3 &
+                    MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] < 0.999), ]
 dim(A)
-
-RunAgain <- A[, c(1:15)]
-
 
 # Compare biomass accross the two models
 CreatePlot(fillvar = "TotalBio / TotalBioBulk", gradient2 = 1)
@@ -721,10 +713,6 @@ verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and 
 smallchange <- c(1E-5)
 Mytmax <- c(1E5)
 Mytstep <- c(10)
-runsimulation <- 1 # if 0, no simulation is run, and only the
-# parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
-
-# If runsimulation != 1 only the parametervalues, plasmid-free equilibrium, and the eigenvalues are stored
 
 #### Create matrix to store data ####
 Mydf <- expand.grid(DInit = DInitSet, bR = bRSet, NI = NISet, w = wSet, kpSet = kpSet,
@@ -744,9 +732,7 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 # the used ode-solvers are variable-step methods, so the times in times
 # are NOT the only times at which integration is performed. See
 # ?diagnostics.deSolve() and ?lsodar() for details.
-if(runsimulation == 1) {
-  times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep)) 
-}
+times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 
 # Define root-function and event-function
 # If the root-argument is equal to 0, an event (as defined by the event-function)
@@ -820,49 +806,42 @@ if(plotoutput == 1) {
   }
 } # End of preparing and plotting
 
+# Run bulk-model
+out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr,
+                parms = parmsBulk, rootfun = rootfunBulk,
+                events = list(func = eventfunBulk, root = TRUE,
+                              terminalroot = 1))
+if(verbose == TRUE) {
+  print(diagnostics(out2bulk))
+  print(attributes(out2bulk))
+}
+EqAfterInvDonorBulk <- tail(out2bulk, 1)[, ]
 
-if(runsimulation == 1) {
-  # Run bulk-model
-  out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr,
-                  parms = parmsBulk, rootfun = rootfunBulk,
-                  events = list(func = eventfunBulk, root = TRUE,
-                                terminalroot = 1))
+if(plotoutput == 1) {
+  subtitlebulk <- paste0("bR=", bRValue, " NI=", NIValue,
+                         " log10kp=", log10kpValue, " log10kn=", log10knValue,
+                         " e=", NutrConv, " w=", wValue,
+                         " cd=", cdValue, " ct=", ctValue,
+                         " log10gd=", log10gdValue, " log10gt=", log10gtValue,
+                         " gdbulk=", signif(gdbulk, digits = 4),
+                         " gtbulk=", signif(gtbulk, digits = 4))
+  matplot.deSolve(out2bulk, main = "Bulk-conjugation model", sub = subtitlebulk, ylim = myylim,
+                  log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
+                  legend = list(x = "bottomright"))
   if(verbose == TRUE) {
-    print(diagnostics(out2bulk))
-    print(attributes(out2bulk))
+    abline(h = extinctionthreshold)
+    abline(v =  attributes(out2bulk)$troot)
   }
-  EqAfterInvDonorBulk <- tail(out2bulk, 1)[, ]
-  
-  if(plotoutput == 1) {
-    subtitlebulk <- paste0("bR=", bRValue, " NI=", NIValue,
-                           " log10kp=", log10kpValue, " log10kn=", log10knValue,
-                           " e=", NutrConv, " w=", wValue,
-                           " cd=", cdValue, " ct=", ctValue,
-                           " log10gd=", log10gdValue, " log10gt=", log10gtValue,
-                           " gdbulk=", signif(gdbulk, digits = 4),
-                           " gtbulk=", signif(gtbulk, digits = 4))
-    matplot.deSolve(out2bulk, main = "Bulk-conjugation model", sub = subtitlebulk, ylim = myylim,
-                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                    legend = list(x = "bottomright"))
-    if(verbose == TRUE) {
-      abline(h = extinctionthreshold)
-      abline(v =  attributes(out2bulk)$troot)
-    }
-    grid()
-  }
+  grid()
 }
 
 # png(filename = paste0(DateTimeStamp, "longrun", CurrentIteration + 1, ".png"))
 # dev.off()
 
-
 MyData[CurrentIteration, c(1:14)] <- unname(c(parmsBulk, Eq))
-if(runsimulation == 1) {
-  MyData[CurrentIteration, c(15:28)] <- unname(c(
+MyData[CurrentIteration, c(15:28)] <- unname(c(
     EqAfterInvDonor, EqAfterInvDonorBulk))                      
-} else {
-  MyData[CurrentIteration, c(15:28)] <- rep(NA, 14)
-}
+
 MyData[CurrentIteration, c(29:51)] <- unname(c(
   EigValEq, DomEigVal, SignDomEigVal, SignEigValEqual,
   ComplexEigVal, EigValEqBulk, DomEigValBulk,
@@ -874,8 +853,6 @@ BackupMyData <- MyData
 MyData <- as.data.frame(MyData)
 write.csv(MyData, file = paste0(DateTimeStamp, "outputdeSolveChangedContact", ".csv"),
           quote = FALSE, row.names = FALSE)
-
-
 
 
 X <- limitseigenvalues[1]
