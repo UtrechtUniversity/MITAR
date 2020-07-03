@@ -74,7 +74,6 @@
 # bacterial populations. Journal of Theoretical Biology 294:144-152.
 
 
-
 #### Loading packages ####
 library(deSolve) # Solve differential equations with results over time.
 library(ggplot2) # For plotting data
@@ -569,8 +568,6 @@ if(length(IndexSimulation) < nrow(MyData)) {
 
 print("Pair-formation model completed running:")
 print(Sys.time())
-write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpairs.csv"),
-          quote = FALSE, row.names = FALSE)
 
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
 InputSimulationBulk <- MyData[IndexSimulationBulk, ColumnsToSelect]
@@ -705,30 +702,24 @@ CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)")
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
 # mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
 mycol <- c("black", brewer.pal(7, "Set1"))
-myylim <- c(1E-4, 1E7) # Defining the limits for the y-axis
+myylim <- c(1E-14, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
-plotoutput <- 0
+plotoutput <- 1
 extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
 smallchange <- c(1E-5)
-Mytmax <- c(1E5)
+Mytmax <- c(1E3)
 Mytstep <- c(10)
 
 #### Create matrix to store data ####
-Mydf <- expand.grid(DInit = DInitSet, bR = bRSet, NI = NISet, w = wSet, kpSet = kpSet,
-                    knSet = knSet, cdSet = cdSet, ctSet = ctSet,
-                    gdSet = gdSet, gtSet = gtSet, KEEP.OUT.ATTRS = FALSE)
-
-TotalIterations <- length(bRSet)*length(NISet)*length(kpSet)*
-  length(log10knSet)*length(wSet)*length(DInitSet)*length(cdSet)*length(ctSet)*
-  length(gdSet)*length(gtSet)
+TheseRows <- c(1, nrow(MyData))
+Mydf <- MyData[TheseRows, ]
+TotalIterations <- length(TheseRows)
 print(TotalIterations)
 CurrentIteration <- 0
-MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
-DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 
 # Times for which output of the simulation is wanted.
-# Note that I don't use timestep untill t = 100, and note furthermore that
+# Note that timesteps of 1 are used untill t = 100, and note furthermore that
 # the used ode-solvers are variable-step methods, so the times in times
 # are NOT the only times at which integration is performed. See
 # ?diagnostics.deSolve() and ?lsodar() for details.
@@ -741,7 +732,7 @@ times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 # The first root becomes 0 if the sum of absolute rates of change is equal to the
 # threshold smallchange, i.e., when equilibrium is nearly reached. This root is
 # set as the terminal root, in order to terminate the integration if this occurs.
-# The other roots are used to determine if any of the state variables is equal
+# The other roots are used to determine if any of the state variables are equal
 # to the extinction threshold. If this occurs, the event function is called,
 # which sets the states that are equal to threshold to zero, and the integration
 # continues.
@@ -774,60 +765,79 @@ eventfunBulk <- function(t, stateBulk, parmsBulk) {
 }
 
 
-out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parmspair,
-            rootfun = rootfun, events = list(func = eventfun, root = TRUE,
-                                             terminalroot = 1))
-if(verbose == TRUE) {
-  print(diagnostics(out2))
-  print(attributes(out2))
+RunOverTime <- function(Mydf = Mydf) {
+  state <- c(Nutr = Mydf[["NutrEq"]], D = Mydf[["DInit"]], R = Mydf[["REq"]],
+             Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+  parmspair <- Mydf[ColumnsToSelect]
+  out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parmspair,
+              rootfun = rootfun, events = list(func = eventfun, root = TRUE,
+                                               terminalroot = 1))
+  EqAfterInvasion <- tail(out2, 1)
+  if(verbose == TRUE) {
+    print(diagnostics(out2))
+    print(attributes(out2))
+  }
+  PlotOverTime(data = out2, type = "pair")
+  
+  stateBulk <- c(Nutr = Mydf[["NutrEq"]], D = Mydf[["DInit"]], R = Mydf[["REq"]], Trans = 0)
+  parmsBulk <- Mydf[ColumnsToSelect]
+  out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parmsBulk,
+                  rootfun = rootfunBulk, events = list(func = eventfunBulk, root = TRUE,
+                                                       terminalroot = 1))
+  EqAfterInvasionBulk <- tail(out2bulk, 1)
+  if(verbose == TRUE) {
+    print(diagnostics(out2bulk))
+    print(attributes(out2bulk))
+  }
+  PlotOverTime(data = out2bulk, type = "bulk")
+
+  EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
+  names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
+                                   paste0(colnames(EqAfterInvasionBulk), "Bulk"))
+  return(EqAfterInvasionTotal)
 }
-EqAfterInvDonor <- tail(out2, 1)[, ]
+
+EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
+
+PlotOverTime <- function(data = out2, type = c("pair", "bulk")) {
+  maintitle <- ifelse(type == "pair", "Pair-formation model", "Bulk-conjugation model")
+  subtitle <- paste0("bR=", Mydf[["bR"]], " NI=", Mydf[["NI"]],
+                         " log10kp=", log10(Mydf[["kp"]]), " log10kn=", log10(Mydf[["kn"]]),
+                         " NutrConv=", Mydf[["NutrConv"]], " w=", Mydf[["w"]],
+                         " cd=", Mydf[["cd"]], " ct=", Mydf[["ct"]])
+  if(type == "pair") {
+    subtitle <- paste0(subtitle, " gd=", Mydf[["gd"]], " gt=", Mydf[["gt"]]) 
+  } else {
+    subtitle <- paste0(subtitle, " gdbulk=",  signif(Mydf[["gdbulk"]], digits = 4),
+                       " gtbulk=", signif(Mydf[["gtbulk"]], digits = 4))
+  }
+}
 
 if(plotoutput == 1) {
-  maintitle <- c("Pair-formation model")
-  subtitlepair <- paste0("bR=", bRValue, " NI=", NIValue,
-                         " log10kp=", log10kpValue, " log10kn=", log10knValue,
-                         " e=", NutrConv, " w=", wValue,
-                         " cd=", cdValue, " ct=", ctValue,
-                         " log10gd=", log10gdValue, " log10gt=", log10gtValue)
   if(verbose == TRUE) {
-    matplot.deSolve(out2, main = maintitle, sub = subtitlepair,
-                    ylim = myylim, xlim = c(0, tail(attributes(out2)$troot, 2)[1]),
-                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
+    matplot.deSolve(out2bulk,
+                    xlim = NULL,
+                    main = maintitle, sub = subtitle,
+                    ylim = myylim,
+                    log = if(yaxislog == 1) {"y"}, col = mycol,
+                    lty = mylty, lwd = 2, legend = list(x = "bottomright"))
+    matplot.deSolve(out2,
+                    xlim = c(0, tail(attributes(out2)$troot, 2)[1]),
                     legend = list(x = "topright"))
     abline(h = extinctionthreshold)
-    abline(v =  attributes(out2)$troot)
-    grid()
+    abline(v = attributes(out2)$troot)
   } else {
     matplot.deSolve(out2, main = maintitle, sub = subtitlepair, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
                     legend = list(x = "bottomright"))
-    grid()                                      
   }
-} # End of preparing and plotting
+  grid()
+} # End of plotting
 
 # Run bulk-model
-out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr,
-                parms = parmsBulk, rootfun = rootfunBulk,
-                events = list(func = eventfunBulk, root = TRUE,
-                              terminalroot = 1))
-if(verbose == TRUE) {
-  print(diagnostics(out2bulk))
-  print(attributes(out2bulk))
-}
-EqAfterInvDonorBulk <- tail(out2bulk, 1)[, ]
 
 if(plotoutput == 1) {
-  subtitlebulk <- paste0("bR=", bRValue, " NI=", NIValue,
-                         " log10kp=", log10kpValue, " log10kn=", log10knValue,
-                         " e=", NutrConv, " w=", wValue,
-                         " cd=", cdValue, " ct=", ctValue,
-                         " log10gd=", log10gdValue, " log10gt=", log10gtValue,
-                         " gdbulk=", signif(gdbulk, digits = 4),
-                         " gtbulk=", signif(gtbulk, digits = 4))
-  matplot.deSolve(out2bulk, main = "Bulk-conjugation model", sub = subtitlebulk, ylim = myylim,
-                  log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                  legend = list(x = "bottomright"))
+
   if(verbose == TRUE) {
     abline(h = extinctionthreshold)
     abline(v =  attributes(out2bulk)$troot)
@@ -837,6 +847,9 @@ if(plotoutput == 1) {
 
 # png(filename = paste0(DateTimeStamp, "longrun", CurrentIteration + 1, ".png"))
 # dev.off()
+
+# MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
+
 
 MyData[CurrentIteration, c(1:14)] <- unname(c(parmsBulk, Eq))
 MyData[CurrentIteration, c(15:28)] <- unname(c(
