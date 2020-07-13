@@ -5,10 +5,15 @@
 
 # Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
 
+# For PlotOverTime, I want the plot to be always shown, and saved only if save = TRUE.
+# Change to using ggplot instead of matplot.deSolve to enable saving an object through ggsave(...)
+
 # Find method to obtain the order in which I specify the state from EstConjBulkDonor
 # or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object DataEstConjBulk
 
-# aes_string is soft-deprecated (see ?aes_string), use tidy evaluation idioms instead,
+# SummaryPlot() does not use the names of the arguments for creating titles
+
+# aes_string is soft-deprecated (see help(aes_string)), use tidy evaluation idioms instead,
 # see the quasiquotation section in aes() documentation.
 # See also # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
 
@@ -16,8 +21,12 @@
 
 # Create function to filter on small negative and small positive state values and set them to 0
 
-#  Make better comparison to check for unstable equilibrium where invasion is not possible,
-#  currently comparison ofvalues that will not be exact
+# In functions use more informative name arguments instead of e.g. mydf = mydf.
+
+# Make better comparison to check for unstable equilibrium where invasion is not possible,
+# currently comparison ofvalues that will not be exact
+
+# Use dplyr to rename columns?
 
 # Change facetting in CreatePlot() to only use facets for variables that are
 # not unique. Then moving CreatePlot(fillvar = "NutrEq") and
@@ -47,6 +56,17 @@
 # ctSet = c(0.01, 0.025, 0.05) and plotting facets cd ~ ct, one could also use
 # cdSet = 0.025 and plot facets for ct < cd, ct = cd, ct > cd. The same approach
 # can be used for gd and gt.
+
+# Rethink the comments: comment whyou do something, not what you did (if you
+# have to comment what you did, rewrite your code to make it clearer from the
+# code itself).
+
+# Check for use of tabs and double spaces and switch to using double spaces ?
+
+# Look for 'hardcoded', 'hard-coded' and rethink them.
+
+## NUTRIENTS are also in the root- and event-functions, see comment at their
+# function definitions
 
 ## Remarks
 # Indexing of tibbles: use MyData[[1, "REq"]] to return a vector
@@ -83,9 +103,9 @@ library(tidyr) # for 'expand.grid()' with dataframe as input
 
 
 #### Plotting options ####
-saveplots <- 0
+saveplots <- 1
 tmaxsteady <- 1e8
-timesParmsEst <- seq(from = 0, to = 3, by = 0.1)
+timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 
 #### Functions ####
@@ -127,18 +147,18 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
 }
 
 # Function to estimate bulk-conjugation rates by running simulations with the
-# adjusted pair-formation models for a short tail(timesParmsEst, 1) hours and
-# calculate approximations of gdbulk and gtbulk from the output, following
-# Zhong's approach for the calculations.
+# adjusted pair-formation models for a short time (i.e., tail(timesEstConj, 1)
+# hours) and calculate approximations of gdbulk and gtbulk from the output,
+# following Zhong's approach for the calculations.
 EstConjBulk <- function(MyData) {
   with(as.list(MyData), {
     state <- c(D = MyData[["DInit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     parms <- MyData
-    DataEstConjBulkDonor <- tail(ode(t = timesParmsEst, y = state,
+    DataEstConjBulkDonor <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
 
-        state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
-    DataEstConjBulkTrans <- tail(ode(t = timesParmsEst, y = state,
+    state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
+    DataEstConjBulkTrans <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkTrans, parms = parms), 1)
 
     DataEstConjBulk <- cbind(DataEstConjBulkDonor, DataEstConjBulkTrans)
@@ -395,8 +415,8 @@ kpSet <- 10^seq(from = -10, to = -6, by = 0.25)
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
-gdSet <- c(10, 15)
-gtSet <- c(10, 15) 
+gdSet <- c(1, 15)
+gtSet <- c(1, 15) 
 
 ## Try smaller steps for kp and kn (24 june 2020):
 # works for pair-formation model, not for bulk-conjugation model
@@ -428,8 +448,8 @@ TotalIterations <- length(DInitSet)*length(bRSet)*length(NISet)*length(NutrConv)
   length(gdSet)*length(gtSet)
 TotalIterations
 
-ControlParms <- c(DInitSet, bRSet, NISet, NutrConv, wSet, kpSet, knSet, cdSet, ctSet)
-if(any(ControlParms <= 0)) warning("All parameters should have positive values.")
+CheckParms <- c(DInitSet, bRSet, NISet, NutrConv, wSet, kpSet, knSet, cdSet, ctSet)
+if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
 if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
@@ -489,6 +509,7 @@ limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
 CreatePlot(fillvar = "log10(gdbulk)", limits = limitsbulkrates)
 CreatePlot(fillvar = "log10(gtbulk)", limits = limitsbulkrates)
 
+# NOTE: hardcoded selection
 PlotData <- MyData[which(MyData[, "cd"]==0.01 & MyData[, "ct"]==0.01 ), ]
 CreatePlot(data = PlotData, fillvar = "pmax(gdbulk, gtbulk)/pmin(gdbulk, gtbulk)")
 CreatePlot(data = PlotData, fillvar = "gdbulk/gtbulk")
@@ -509,7 +530,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   labs(caption = DateTimeStamp) +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
   scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
-                    name = "Stability",
+                    name = "Plasmid-free equilibrium",
                     labels = c("stable", "unstable"))
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
@@ -551,6 +572,7 @@ print(Sys.time())
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
 IndexSimulation <- which(MyData$SignDomEigVal != -1)
+print(paste(length(IndexSimulation), "simulations to run for the pair-formation model"))
 ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
 InputSimulationPairs <- MyData[IndexSimulation, ColumnsToSelect]
 OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1,
@@ -570,6 +592,7 @@ print("Pair-formation model completed running:")
 print(Sys.time())
 
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
+print(paste(length(IndexSimulation), "simulations to run for the bulk model"))
 InputSimulationBulk <- MyData[IndexSimulationBulk, ColumnsToSelect]
 OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk))
 colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
@@ -694,9 +717,9 @@ CreatePlot(fillvar = "TransBulk/TotalBioBulk")
 CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)")
 
 ################################################################################
+BackupMyData <- MyData
 
 ###### To create plots over time
-# NOTE: CURRENTLY BROKEN (because no state is specified).
 
 # Settings for simulations, plotting, and printing
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
@@ -708,7 +731,7 @@ plotoutput <- 1
 extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
 smallchange <- c(1E-5)
-Mytmax <- c(1E3)
+Mytmax <- c(1E4)
 Mytstep <- c(10)
 
 #### Create matrix to store data ####
@@ -722,13 +745,13 @@ CurrentIteration <- 0
 # Note that timesteps of 1 are used untill t = 100, and note furthermore that
 # the used ode-solvers are variable-step methods, so the times in times
 # are NOT the only times at which integration is performed. See
-# ?diagnostics.deSolve() and ?lsodar() for details.
+# help(diagnostics.deSolve()) and help(lsodar()) for details.
 times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 
 # Define root-function and event-function
 # If the root-argument is equal to 0, an event (as defined by the event-function)
-# is triggered. See ?events and ?lsodar (both in the deSolve package) for
-# background information and examples. 
+# is triggered. See help(events) and help(lsodar) (both in the deSolve package)
+# for background information and examples. 
 # The first root becomes 0 if the sum of absolute rates of change is equal to the
 # threshold smallchange, i.e., when equilibrium is nearly reached. This root is
 # set as the terminal root, in order to terminate the integration if this occurs.
@@ -746,15 +769,15 @@ times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 # Note that it is still possible to have bacterial densities lower than the
 # threshold, if these populations are created from other populations at each
 # timestep.
-rootfun <- function(t, state, parmspair) {
-  c(sum(abs(unlist(ModelPairsNutr(t, state, parmspair)))) - smallchange, state - extinctionthreshold)
+rootfun <- function(t, state, parms) {
+  c(sum(abs(unlist(ModelPairsNutr(t, state, parms)))) - smallchange, state - extinctionthreshold)
 }
 
 rootfunBulk <- function(t, stateBulk, parmsBulk) {
   c(sum(abs(unlist(ModelBulkNutr(t, stateBulk, parmsBulk)))) - smallchange, stateBulk - extinctionthreshold)
 }
 
-eventfun <- function(t, state, parmspair) {
+eventfun <- function(t, state, parms) {
   state[state < extinctionthreshold] <- 0
   return(state)
 }
@@ -764,12 +787,11 @@ eventfunBulk <- function(t, stateBulk, parmsBulk) {
   return(stateBulk)
 }
 
-
-RunOverTime <- function(Mydf = Mydf) {
-  state <- c(Nutr = Mydf[["NutrEq"]], D = Mydf[["DInit"]], R = Mydf[["REq"]],
+RunOverTime <- function(data = Mydf, ...) {
+  state <- c(Nutr = data[["NutrEq"]], D = data[["DInit"]], R = data[["REq"]],
              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  parmspair <- Mydf[ColumnsToSelect]
-  out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parmspair,
+  parms <- data[ColumnsToSelect]
+  out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms,
               rootfun = rootfun, events = list(func = eventfun, root = TRUE,
                                                terminalroot = 1))
   EqAfterInvasion <- tail(out2, 1)
@@ -777,10 +799,10 @@ RunOverTime <- function(Mydf = Mydf) {
     print(diagnostics(out2))
     print(attributes(out2))
   }
-  PlotOverTime(data = out2, type = "pair")
+  PlotOverTime(data = out2, type = "Pair", saveplot = saveplots)
   
-  stateBulk <- c(Nutr = Mydf[["NutrEq"]], D = Mydf[["DInit"]], R = Mydf[["REq"]], Trans = 0)
-  parmsBulk <- Mydf[ColumnsToSelect]
+  stateBulk <- c(Nutr = data[["NutrEq"]], D = data[["DInit"]], R = data[["REq"]], Trans = 0)
+  parmsBulk <- data[ColumnsToSelect]
   out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parmsBulk,
                   rootfun = rootfunBulk, events = list(func = eventfunBulk, root = TRUE,
                                                        terminalroot = 1))
@@ -789,7 +811,7 @@ RunOverTime <- function(Mydf = Mydf) {
     print(diagnostics(out2bulk))
     print(attributes(out2bulk))
   }
-  PlotOverTime(data = out2bulk, type = "bulk")
+  PlotOverTime(data = out2bulk, type = "Bulk", saveplot = saveplots)
 
   EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
   names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
@@ -797,53 +819,51 @@ RunOverTime <- function(Mydf = Mydf) {
   return(EqAfterInvasionTotal)
 }
 
-EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
-
-PlotOverTime <- function(data = out2, type = c("pair", "bulk")) {
-  maintitle <- ifelse(type == "pair", "Pair-formation model", "Bulk-conjugation model")
+PlotOverTime <- function(data = out2, type = "Pair", saveplot = saveplots) {
+  maintitle <- paste(type, "model")
   subtitle <- paste0("bR=", Mydf[["bR"]], " NI=", Mydf[["NI"]],
-                         " log10kp=", log10(Mydf[["kp"]]), " log10kn=", log10(Mydf[["kn"]]),
-                         " NutrConv=", Mydf[["NutrConv"]], " w=", Mydf[["w"]],
-                         " cd=", Mydf[["cd"]], " ct=", Mydf[["ct"]])
-  if(type == "pair") {
+                     " log10kp=", log10(Mydf[["kp"]]), " log10kn=", log10(Mydf[["kn"]]),
+                     " NutrConv=", Mydf[["NutrConv"]], " w=", Mydf[["w"]],
+                     " cd=", Mydf[["cd"]], " ct=", Mydf[["ct"]])
+  if(type == "Pair") {
     subtitle <- paste0(subtitle, " gd=", Mydf[["gd"]], " gt=", Mydf[["gt"]]) 
   } else {
     subtitle <- paste0(subtitle, " gdbulk=",  signif(Mydf[["gdbulk"]], digits = 4),
                        " gtbulk=", signif(Mydf[["gtbulk"]], digits = 4))
   }
-}
-
-if(plotoutput == 1) {
   if(verbose == TRUE) {
-    matplot.deSolve(out2bulk,
-                    xlim = NULL,
-                    main = maintitle, sub = subtitle,
-                    ylim = myylim,
-                    log = if(yaxislog == 1) {"y"}, col = mycol,
-                    lty = mylty, lwd = 2, legend = list(x = "bottomright"))
-    matplot.deSolve(out2,
-                    xlim = c(0, tail(attributes(out2)$troot, 2)[1]),
+    matplot.deSolve(data, main = paste(maintitle, "verbose"), sub = subtitle, ylim = myylim,
+                    xlim = c(0, tail(attributes(data)$troot, 2)[1]),
+                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
                     legend = list(x = "topright"))
+    grid()
     abline(h = extinctionthreshold)
-    abline(v = attributes(out2)$troot)
-  } else {
-    matplot.deSolve(out2, main = maintitle, sub = subtitlepair, ylim = myylim,
+    abline(v = attributes(data)$troot)
+  }
+  if(saveplot == TRUE) {
+    filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
+    if(file.exists(filename)) {
+      warning("File already exists, not saved again!")
+    } else {
+      png(filename = filename)
+    }
+    matplot.deSolve(data, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
                     legend = list(x = "bottomright"))
+    grid()
+    if(saveplot == TRUE & file.exists(filename) == FALSE) {
+      dev.off()
+    }
+  } else {
+    matplot.deSolve(data, main = maintitle, sub = subtitle, ylim = myylim,
+                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
+                    legend = list(x = "bottomright"))
+    grid()
   }
-  grid()
-} # End of plotting
-
-# Run bulk-model
-
-if(plotoutput == 1) {
-
-  if(verbose == TRUE) {
-    abline(h = extinctionthreshold)
-    abline(v =  attributes(out2bulk)$troot)
-  }
-  grid()
 }
+
+EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
+
 
 # png(filename = paste0(DateTimeStamp, "longrun", CurrentIteration + 1, ".png"))
 # dev.off()
@@ -853,7 +873,7 @@ if(plotoutput == 1) {
 
 MyData[CurrentIteration, c(1:14)] <- unname(c(parmsBulk, Eq))
 MyData[CurrentIteration, c(15:28)] <- unname(c(
-    EqAfterInvDonor, EqAfterInvDonorBulk))                      
+  EqAfterInvDonor, EqAfterInvDonorBulk))                      
 
 MyData[CurrentIteration, c(29:51)] <- unname(c(
   EigValEq, DomEigVal, SignDomEigVal, SignEigValEqual,
