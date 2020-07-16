@@ -109,7 +109,9 @@ timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 
 #### Functions ####
-# Calculate the plasmid-free equilibrium (R*, Nutr*)
+# Calculate the plasmid-free equilibrium (R*, Nutr*) using the solution to
+# dR/dt = R*(Nutr*bR - w) == 0, dNutr/dt = (NI - Nutr)*w - NutrConv*Nutr*bR*R ==
+# 0 with R > 0 and Nutr > 0
 CalcEqPlasmidfree <- function(MyData) {
   with(as.list(MyData), {
     REq <- ((NI - w / bR)) / NutrConv
@@ -382,7 +384,7 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 ## Small parameterset for tests
 DInitSet <- c(1000)
 bRSet <- c(1.7)
-NISet <- c(10, 100)
+NISet <- c(10)
 NutrConv <- c(1E-6)
 wSet <- c(0.04)
 kpSet <- 10^seq(-10, -6, 2)
@@ -393,17 +395,17 @@ gdSet <- 15
 gtSet <- 15
 
 ## Large dataset for tests
-DInitSet <- c(500, 1E3)
-bRSet <- c(0.8, 1.7)
-NISet <- c(10, 100)
+DInitSet <- c(10, 1E3)
+bRSet <- c(0.2, 2)
+NISet <- c(1, 10, 100)
 NutrConv <- c(1e-6, 1e-7)
 wSet <- c(0.04, 0.06)
 kpSet <- 10^seq(from = -11, to = -5, by = 2)
 knSet <- 10^seq(from = -1, to = 3, by = 2)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
-gdSet <- c(10, 15)
-gtSet <- c(10, 15)
+gdSet <- c(1, 20)
+gtSet <- c(1, 20)
 
 ## This set worked (26 june 2020) (takes 8 minutes to run)
 DInitSet <- c(1E3)
@@ -415,8 +417,8 @@ kpSet <- 10^seq(from = -10, to = -6, by = 0.25)
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
-gdSet <- c(1, 15)
-gtSet <- c(1, 15) 
+gdSet <- c(10, 15)
+gtSet <- c(10, 15) 
 
 ## Try smaller steps for kp and kn (24 june 2020):
 # works for pair-formation model, not for bulk-conjugation model
@@ -534,6 +536,20 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
                     labels = c("stable", "unstable"))
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
+}
+
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigValBulk))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
+                    name = "Plasmid-free equilibrium (bulk)",
+                    labels = c("stable", "unstable"))
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk).png"))
 }
 
 # Note: hardcoded legend
@@ -865,9 +881,7 @@ PlotOverTime <- function(data = out2, type = "Pair", saveplot = saveplots) {
 EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
 
 
-# png(filename = paste0(DateTimeStamp, "longrun", CurrentIteration + 1, ".png"))
-# dev.off()
-
+#### The code below is not used ####
 # MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
 
 
