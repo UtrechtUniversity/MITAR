@@ -33,6 +33,8 @@ MigrWallLumSet <- c(0.01, 0.05, 0.1)
 ScaleAreaPerVolSet <- c(0.5, 0.8, 1.5)
 kpSet <- 10^seq(from = -10, to = -6, by = 0.5)
 knSet <- 10^seq(from = -1, to = 3, by = 0.5)
+kpWallSet <- 10^seq(from = -10, to = -6, by = 2)
+knWallSet <- 10^seq(from = -1, to = 3, by = 2)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
@@ -44,15 +46,19 @@ bRSet <- c(1.7)
 NISet <- c(10)
 NutrConv <- c(1e-6)
 wSet <- c(0.04)
-MigrLumWallSet <- c(0.05, 0.1)
-MigrWallLumSet <- c(0.05, 0.1)
-ScaleAreaPerVolSet <- c(0.8, 1.5)
+MigrLumWallSet <- c(0.1)
+MigrWallLumSet <- c(0.05)
+ScaleAreaPerVolSet <- c(0.8)
 kpSet <- 10^seq(from = -10, to = -6, by = 2)
 knSet <- 10^seq(from = -1, to = 3, by = 2)
+# kpSet <- 10^-8
+# knSet <- 10
 kpWallSet <- 10^seq(from = -10, to = -6, by = 2)
 knWallSet <- 10^seq(from = -1, to = 3, by = 2)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
+#kpWallSet <- 10^-8
+#knWallSet <- 10
+cdSet <- c(0.05)
+ctSet <- c(0.05)
 gdSet <- c(15)
 gtSet <- c(15)
 
@@ -125,24 +131,24 @@ dim(MyData)
 Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree1))
 Eqplasmidfree2 <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree2))
 
-if(any(Eqplasmidfree[, "RLumEq"] <= 0 | Eqplasmidfree[, "RWallEq"] <= 0)) {
-  IndexNegativeEq <- which(Eqplasmidfree[, "RLumEq"] <= 0 | Eqplasmidfree[, "RWallEq"] <= 0)
+if(any(Eqplasmidfree <= 0)) {
+  RowsNegativeEq <- unique(which(Eqplasmidfree <= 0, arr.ind = TRUE)[, 1])
   ColnamesNegativeEq <- colnames(Eqplasmidfree)[unique(which(Eqplasmidfree <= 0, arr.ind = TRUE)[, 2])]
   warning("Equilibrium contains negative values in columns '", paste(ColnamesNegativeEq, collapse = "' and '"),
           "'.\nThe data will be included in the calculations anyway!
-  This concerns the following rows of the dataframe: ", paste(IndexNegativeEq, collapse = ", "))
+  This concerns the following rows of the dataframe: ", paste(RowsNegativeEq, collapse = ", "))
 }
 
 if(any(Eqplasmidfree2[, "RLumEq2"] > 0 & Eqplasmidfree2[, "RWallEq2"] > 0)) {
-  IndexPositiveEq2 <- which(Eqplasmidfree2[, "RLumEq2"] > 0 & Eqplasmidfree2[, "RWallEq2"] > 0)
+  RowsPositiveEq2 <- which(Eqplasmidfree2[, "RLumEq2"] > 0 & Eqplasmidfree2[, "RWallEq2"] > 0)
   ColnamesPositiveEq2 <- colnames(Eqplasmidfree2)[unique(which(Eqplasmidfree2 > 0, arr.ind = TRUE)[, 2])]
   warning("Equilibrium 2 contains positive values in columns '", paste(ColnamesPositiveEq2, collapse = "' and '"),
           "'.\nOnly equilibrium 1 will be used for calculations!
-          This concerns the following rows of the dataframe: ", paste(ColnamesPositiveEq2, collapse = ", "))
+          This concerns the following rows of the dataframe: ", paste(RowsPositiveEq2, collapse = ", "))
 }
 
-head(Eqplasmidfree)
 head(MyData)
+head(Eqplasmidfree)
 MyData <- cbind(MyData, Eqplasmidfree)
 head(MyData)
 
@@ -150,9 +156,12 @@ print("Plasmid-free equilibrium calculated:")
 print(Sys.time())
 
 ## Add combinations with the parameters needed to approximate gdbulk and gtbulk
-MyData <- expand_grid(MyData, kp = kpSet, kn = knSet, gd = gdSet, gt = gtSet,
-                      DInit = DInitSet)
 dim(MyData)
+head(MyData)
+MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInit = DInitSet, kp = kpSet, kn = knSet)
+
+dim(MyData)
+head(MyData)
 
 # ODE-model used to approximate the bulk-conjugation rate of the donor.
 # Nutrients, growth, washout, conjugation from transconjugants, and Mtt-pairs
@@ -208,33 +217,35 @@ DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk, RName = "R
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
 TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
-gdbulk <- MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
-gdbulk <- unname(gdbulk)
-MyData <- cbind(MyData, gdbulkLum = gdbulk)
+gdbulkLum <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
 
 TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
 TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
-gtbulk <- MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans)
-gtbulk <- unname(gtbulk)
-MyData <- cbind(MyData, gtbulk = gtbulk)
+gtbulkLum <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
 
 dim(MyData)
+head(MyData)
+MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
+
+dim(MyData)
+head(MyData)
 MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
-dim(MyData)
 
-DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk, RName = "RWallEq"))
+MyDataWall <- cbind(MyData[, 1:(ncol(MyData) - 6)], kp = kpWallSet, kn = knWallSet)
+dim(MyDataWall)
+head(MyDataWall)
+
+DataEstConjBulk <- t(apply(X = MyDataWall, MARGIN = 1, FUN = EstConjBulk, RName = "RWallEq"))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
 TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
-gdbulk <- MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor)
-gdbulk <- unname(gdbulk)
-MyData <- cbind(MyData, gdbulkWall = gdbulk)
+gdbulkWall <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
 
 TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
 TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
-gtbulk <- MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans)
-gtbulk <- unname(gtbulk)
-MyData <- cbind(MyData, gtbulkWall = gtbulk)
+gtbulkWall <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
+
+MyData <- cbind(MyData, gdbulkWall = gdbulkWall, gtbulkWall = gtbulkWall)
 
 print("Bulk-conjugation rates estimated:")
 print(Sys.time())
