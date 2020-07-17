@@ -10,8 +10,19 @@
 # two-compartment model.
 
 ### To do ###
+# Also see the 'To do' section in the pair-formation script for the one-compartment model
+
 # If I can prove that EqPlasmidfree1 is always non-positive I can remove the
 # calculations and checks for it, and stick to using EqPlasmidfree2
+
+#### References ####
+
+# Zhong 2010: Zhong X, Krol JE, Top EM, Krone SM. 2010. Accounting for mating
+# pair formation in plasmid population dynamics. Journal of Theoretical Biology
+# 262:711-719.
+
+# Imran 2005: Imran M, Jones D, Smith H. 2005. Biofilms and the plasmid
+# maintenance question. Mathematical biosciences 193:183-204.
 
 #### Main script ####
 
@@ -252,18 +263,68 @@ print(Sys.time())
 
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
 
+# To Do: collect terms in equations to make them better readable (and calculations more efficient?)
+
+# ODE-model describing pair-formation and conjugation for the two-compartment
+# model, including migration between the compartments. Pair-formation between
+# plasmid-free recipients and plasmid-bearing donors or transconjugants depends
+# on attachment rates kp and kpWall. Conjugation from the donor or transconjugant occurs in
+# the Mdr and Mrt pairs with intrinsic conjugation rates gd and gt respectively.
+# This leads to formation of Mdt and Mtt pairs. The pairs fall apart with
+# detachment rates kn and knWall. The structure of pair-formation is based on Zhong's model
+# (Zhong 2010). I expanded the model to include costs, washout, and nutrients.
+# The structure of the two compartments and migration is based on Imran (2005).
+ModelPairsNutr <- function(t, state, parms) {
+  with(as.list(c(state, parms)), {
+    dNutr <- (NI - Nutr)*w -
+      NutrConv*Nutr*(
+        (1 - cd)*bR*(DLum + MdrLum + MdtLum + ScaleAreaPerVol*(DWall + MdrWall + MdtWall)) +
+          bR*(RLum + MdrLum + MrtLum + ScaleAreaPerVol*(RWall + MdrWall + MrtWall)) +
+          (1 - ct)*bR*(TransLum + MdtLum + MrtLum + 2*MttLum +
+                         ScaleAreaPerVol*(TransWall + MdtWall + MrtWall + 2*MttWall)))
+    
+    dDLum <- (1 - cd)*bR*Nutr*(DLum + MdrLum + MdtLum) - kp*DLum*RLum +
+      kn*(MdrLum + MdtLum) - (w + MigrLumWall)*DLum + MigrWallLum*DWall*ScaleAreaPerVol
+    dRLum <- bR*Nutr*(RLum + MdrLum + MrtLum) - kp*RLum*(DLum + TransLum) +
+      kn*(MdrLum + MrtLum) - (w + MigrLumWall)*RLum + MigrWallLum*RWall*ScaleAreaPerVol
+    dTransLum <- (1 - ct)*bR*Nutr*(TransLum + MdtLum + MrtLum + 2*MttLum) -
+      kp*RLum*TransLum + kn*(MdtLum + MrtLum + 2*MttLum) -
+      (w + MigrLumWall)*TransLum + MigrWallLum*TransWall*ScaleAreaPerVol
+    dMdrLum <- kp*DLum*RLum - kn*MdrLum - gd*MdrLum - (w + MigrLumWall)*MdrLum +
+      MigrWallLum*MdrWall*ScaleAreaPerVol
+    dMdtLum <- gd*MdrLum - kn*MdtLum - (w + MigrLumWall)*MdtLum +
+      MigrWallLum*MdtWall*ScaleAreaPerVol
+    dMrtLum <- kp*RLum*TransLum - kn*MrtLum - gt*MrtLum -
+      (w + MigrLumWall)*MrtLum + MigrWallLum*MrtWall*ScaleAreaPerVol
+    dMttLum <- gt*MrtLum - kn*MttLum -
+      (w + MigrLumWall)*MttLum + MigrWallLum*MttWall*ScaleAreaPerVol
+    
+    dDWall <- (1 - cd)*bR*Nutr*(DWall + MdrWall + MdtWall) - kp*DWall*RWall +
+      kn*(MdrWall + MdtWall) + (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*DWall
+    dRWall <- bR*Nutr*(RWall + MdrWall + MrtWall) - kp*RWall*(DWall + TransWall) +
+      kn*(MdrWall + MrtWall) + (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*RWall
+    dTransWall <- (1 - ct)*bR*Nutr*(TransWall + MdtWall + MrtWall + 2*MttWall) -
+      kp*RWall*TransWall + kn*(MdtWall + MrtWall + 2*MttWall) +
+      (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*TransWall
+    dMdrWall <- kp*DWall*RWall - kn*MdrWall - gd*MdrWall +
+      (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*MdrWall
+    dMdtWall <- gd*MdrWall - kn*MdtWall + (MigrLumWall/ScaleAreaPerVol - 
+                                             MigrWallLum)*MdtWall
+    dMrtWall <- kp*RWall*TransWall - kn*MrtWall - gt*MrtWall + 
+      (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*MrtWall
+    dMttWall <- gt*MrtWall - kn*MttWall + 
+      (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*MttWall
+    
+    return(list(c(dNutr, dDLum, dRLum, dTransLum, dMdrLum, dMdtLum, dMrtLum, dMttLum,
+                  dDWall, dRWall, dTransWall, dMdrWall, dMdtWall, dMrtWall, dMttWall)))
+  })
+}
 
 ############################################################################################### 
 ##### Script for the one-compartment model, not yet adjusted to two-compartment situation #####
 ############################################################################################### 
 
-# ODE-model describing pair-formation and conjugation. Pair-formation between
-# plasmid-free recipients and plasmid-bearing donors or transconjugants depends
-# on attachment rate kp. Conjugation from the donor or transconjugant occurs in
-# the Mdr and Mrt pairs with intrinsic conjugation rates gd and gt respectively.
-# This leads to formation of Mdt and Mtt pairs. The pairs fall apart with
-# detachment rate kn. This structure of pair-formation is based on Zhong's model
-# (Zhong 2010). I expanded the model to include costs, washout, and nutrients.
+# old one-compartment model
 ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutr <- (NI - Nutr)*w - NutrConv*Nutr*((1 - cd)*bR*(D + Mdr + Mdt) + bR*(R + Mdr + Mrt) +
