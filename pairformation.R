@@ -63,6 +63,10 @@
 
 # Check for use of tabs and double spaces and switch to using double spaces ?
 
+# I should add check if steady-state has been reached with runsteady(...), for
+# example by including steady = attr(out, "steady") in the output and checking
+# if(any(X$steady == FALSE )) warning("Steady-state has not always been reached")
+
 # Look for 'hardcoded', 'hard-coded' and rethink them.
 
 ## NUTRIENTS are also in the root- and event-functions, see comment at their
