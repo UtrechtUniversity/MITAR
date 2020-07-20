@@ -56,9 +56,9 @@ DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
 NutrConv <- c(1e-6)
-wSet <- c(0.04)
-MigrLumWallSet <- c(0.1)
-MigrWallLumSet <- c(0.05)
+wSet <- c(0.041)
+MigrLumWallSet <- c(0.049)
+MigrWallLumSet <- c(0.11)
 ScaleAreaPerVolSet <- c(0.8)
 kpSet <- 10^seq(from = -10, to = -6, by = 2)
 knSet <- 10^seq(from = -1, to = 3, by = 2)
@@ -300,25 +300,51 @@ ModelPairsNutr <- function(t, state, parms) {
       (w + MigrLumWall)*MttLum + MigrWallLum*MttWall*ScaleAreaPerVol
     
     dDWall <- (1 - cd)*bR*Nutr*(DWall + MdrWall + MdtWall) - kp*DWall*RWall +
-      kn*(MdrWall + MdtWall) + (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*DWall
+      kn*(MdrWall + MdtWall) + MigrLumWall*DLum/ScaleAreaPerVol - MigrWallLum*DWall
     dRWall <- bR*Nutr*(RWall + MdrWall + MrtWall) - kp*RWall*(DWall + TransWall) +
-      kn*(MdrWall + MrtWall) + (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*RWall
+      kn*(MdrWall + MrtWall) + MigrLumWall*RLum/ScaleAreaPerVol - MigrWallLum*RWall
     dTransWall <- (1 - ct)*bR*Nutr*(TransWall + MdtWall + MrtWall + 2*MttWall) -
       kp*RWall*TransWall + kn*(MdtWall + MrtWall + 2*MttWall) +
-      (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*TransWall
+      MigrLumWall*TransLum/ScaleAreaPerVol - MigrWallLum*TransWall
     dMdrWall <- kp*DWall*RWall - kn*MdrWall - gd*MdrWall +
-      (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*MdrWall
-    dMdtWall <- gd*MdrWall - kn*MdtWall + (MigrLumWall/ScaleAreaPerVol - 
-                                             MigrWallLum)*MdtWall
+      MigrLumWall*MdrLum/ScaleAreaPerVol - MigrWallLum*MdrWall
+    dMdtWall <- gd*MdrWall - kn*MdtWall + MigrLumWall*MdtLum/ScaleAreaPerVol - 
+                                             MigrWallLum*MdtWall
     dMrtWall <- kp*RWall*TransWall - kn*MrtWall - gt*MrtWall + 
-      (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*MrtWall
+      MigrLumWall*MrtLum/ScaleAreaPerVol - MigrWallLum*MrtWall
     dMttWall <- gt*MrtWall - kn*MttWall + 
-      (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*MttWall
+      MigrLumWall*MttLum/ScaleAreaPerVol - MigrWallLum*MttWall
     
     return(list(c(dNutr, dDLum, dRLum, dTransLum, dMdrLum, dMdtLum, dMrtLum, dMttLum,
                   dDWall, dRWall, dTransWall, dMdrWall, dMdtWall, dMrtWall, dMttWall)))
   })
 }
+
+mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1))
+# mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
+
+mycol <- c("black", brewer.pal(7, "Set1"))
+
+MyData <- MyData[1, ]
+EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = 0, RLum = MyData[["RLumEq"]],
+            TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
+            DWall = 0, RWall = MyData[["RWallEq"]],
+            TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0)
+out <- ode(t = seq(0, 250, 0.05), y = EqFull, func = ModelPairsNutr, parms = MyData) # should stay at equilibrium, but doesn't
+matplot.deSolve(out, log = "y", ylim = c(1e-15, 1e15), lwd = c(rep(2, 8), rep(1, 8)), lty = mylty, col = mycol)
+grid()
+tail(out, 1)
+
+out <- runsteady(y = EqFull, time = c(0, 1E7), func = ModelPairsNutr, parms = MyData, stol = 1.25e-6)
+
+# RWall* > 0 for the plasmid-free system only exists if MigrWallLum > MigrLumWall/ScaleAreaPerVol
+# bR*Nutr*RWall + (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*RWall == 0
+# RWall* = 0 or
+# bR*Nutr + MigrLumWall/ScaleAreaPerVol - MigrWallLum == 0
+# bR*Nutr + MigrLumWall/ScaleAreaPerVol == MigrWallLum
+
+
+# 1.7*Nutr + 0.11/1 == 0.049
 
 ############################################################################################### 
 ##### Script for the one-compartment model, not yet adjusted to two-compartment situation #####
