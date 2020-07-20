@@ -319,32 +319,20 @@ ModelPairsNutr <- function(t, state, parms) {
                   dDWall, dRWall, dTransWall, dMdrWall, dMdtWall, dMrtWall, dMttWall)))
   })
 }
+# mycol <- c("black", brewer.pal(7, "Set1"))
+BackupMyData <- MyData
 
-mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1))
-# mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
+CalcEq <- function(MyData) {
+  EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = MyData[["Dinit"]], RLum = MyData[["RLumEq"]],
+              TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
+              DWall = 0, RWall = MyData[["RWallEq"]],
+              TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0)
+  out <- runsteady(y = EqFull, time = c(0, 1E7), func = ModelPairsNutr, parms = MyData, stol = 0.625e-6)
+  Eq <- c(out$y, steady = attr(out, "steady"), timeEq = attr(out, "time"))
+  return(Eq)
+}
+Eq <- t(apply(MyData, MARGIN = 1, FUN = CalcEq))  
 
-mycol <- c("black", brewer.pal(7, "Set1"))
-
-MyData <- MyData[1, ]
-EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = 0, RLum = MyData[["RLumEq"]],
-            TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
-            DWall = 0, RWall = MyData[["RWallEq"]],
-            TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0)
-out <- ode(t = seq(0, 250, 0.05), y = EqFull, func = ModelPairsNutr, parms = MyData) # should stay at equilibrium, but doesn't
-matplot.deSolve(out, log = "y", ylim = c(1e-15, 1e15), lwd = c(rep(2, 8), rep(1, 8)), lty = mylty, col = mycol)
-grid()
-tail(out, 1)
-
-out <- runsteady(y = EqFull, time = c(0, 1E7), func = ModelPairsNutr, parms = MyData, stol = 1.25e-6)
-
-# RWall* > 0 for the plasmid-free system only exists if MigrWallLum > MigrLumWall/ScaleAreaPerVol
-# bR*Nutr*RWall + (MigrLumWall/ScaleAreaPerVol - MigrWallLum)*RWall == 0
-# RWall* = 0 or
-# bR*Nutr + MigrLumWall/ScaleAreaPerVol - MigrWallLum == 0
-# bR*Nutr + MigrLumWall/ScaleAreaPerVol == MigrWallLum
-
-
-# 1.7*Nutr + 0.11/1 == 0.049
 
 ############################################################################################### 
 ##### Script for the one-compartment model, not yet adjusted to two-compartment situation #####
@@ -793,6 +781,26 @@ EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
 
 # MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
 
+mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1))
+mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
+
+RunOverTimeNew <- function(MyData) {
+  EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = 1000, RLum = MyData[["RLumEq"]],
+              TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
+              DWall = 0, RWall = MyData[["RWallEq"]],
+              TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0)
+  print("state:")
+  print(c(Nutr = MyData[["NutrEq"]], DLum = 1000, RLum = MyData[["RLumEq"]], RWall = MyData[["RWallEq"]]))
+  out <- ode(t = seq(0, 5000, 1), y = EqFull, func = ModelPairsNutr, parms = MyData) # should stay at equilibrium, but doesn't
+  # out <- ode(t = seq(0, 250, 0.05), y = EqFull, func = ModelPairsNutr, parms = MyData) # should stay at equilibrium, but doesn't
+  print(tail(out, 1))
+  matplot.deSolve(out, log = "y", ylim = c(1e-15, 1e15), lwd = c(rep(2, 8), rep(1, 8)), lty = mylty, col = mycol)
+  grid()
+  print(tail(out, 1))
+  return(tail(out, 1))
+}
+
+MyInfo <- t(apply(MyData, MARGIN = 1, FUN = RunOverTimeNew))  
 
 MyData[CurrentIteration, c(1:14)] <- unname(c(parmsBulk, Eq))
 MyData[CurrentIteration, c(15:28)] <- unname(c(
