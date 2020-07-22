@@ -97,7 +97,7 @@ gdSet <- c(15)
 gtSet <- c(15)
 
 
-CheckParms <- c(DInitLumSet, DInitWalSet, bRSet, NISet, NutrConv, MigrLumWallSet, MigrWallLumSet,
+CheckParms <- c(DInitLumSet, DInitWallSet, bRSet, NISet, NutrConv, MigrLumWallSet, MigrWallLumSet,
                 ScaleAreaPerVolSet, wSet, kpSet, knSet, kpWallSet, knWallSet,
                 cdSet, ctSet)
 if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
@@ -193,7 +193,7 @@ print(Sys.time())
 ## Add combinations with the parameters needed to approximate gdbulk and gtbulk
 dim(MyData)
 head(MyData)
-MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInitLum = DInitLumSet, kp = kpSet, kn = knSet)
+MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInitLum = DInitLumSet, DInitWall = DInitWallSet, kp = kpSet, kn = knSet)
 
 dim(MyData)
 head(MyData)
@@ -229,14 +229,14 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
 # adjusted pair-formation models for a short time (i.e., tail(timesEstConj, 1)
 # hours) and calculate approximations of gdbulk and gtbulk from the output,
 # following Zhong's approach for the calculations.
-EstConjBulk <- function(MyData, RName) {
+EstConjBulkLum <- function(MyData) {
   with(as.list(MyData), {
-    state <- c(D = MyData[["DInitLum"]], R = MyData[[RName]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    state <- c(D = MyData[["DInitLum"]], R = MyData[["RLumEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     parms <- MyData
     DataEstConjBulkDonor <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
     
-    state <- c(R = MyData[[RName]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
+    state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
     DataEstConjBulkTrans <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkTrans, parms = parms), 1)
     
@@ -248,7 +248,7 @@ EstConjBulk <- function(MyData, RName) {
 }
 
 timesEstConj <- seq(from = 0, to = 3, by = 0.1)
-DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk, RName = "RLumEq"))
+DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulkLum))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
 TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
@@ -266,11 +266,32 @@ dim(MyData)
 head(MyData)
 MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
 
+dim(MyData)
+head(MyData)
+
+EstConjBulkWall <- function(MyData) {
+  with(as.list(MyData), {
+    state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    parms <- MyData
+    DataEstConjBulkDonor <- tail(ode(t = timesEstConj, y = state,
+                                     func = ModelEstConjBulkDonor, parms = parms), 1)
+    
+    state <- c(R = MyData[["RWallEq"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
+    DataEstConjBulkTrans <- tail(ode(t = timesEstConj, y = state,
+                                     func = ModelEstConjBulkTrans, parms = parms), 1)
+    
+    DataEstConjBulk <- cbind(DataEstConjBulkDonor, DataEstConjBulkTrans)
+    names(DataEstConjBulk) <- c(paste0("Donor", colnames(DataEstConjBulkDonor)),
+                                paste0("Trans", colnames(DataEstConjBulkTrans)))
+    return(DataEstConjBulk)
+  })
+}
+
 MyDataWall <- cbind(MyData[, 1:(ncol(MyData) - 6)], kp = kpWallSet, kn = knWallSet)
 dim(MyDataWall)
 head(MyDataWall)
 
-DataEstConjBulk <- t(apply(X = MyDataWall, MARGIN = 1, FUN = EstConjBulk, RName = "RWallEq"))
+DataEstConjBulk <- t(apply(X = MyDataWall, MARGIN = 1, FUN = EstConjBulkWall))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
 TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
