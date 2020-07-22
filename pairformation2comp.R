@@ -79,12 +79,12 @@ gtSet <- c(15)
 # Testing influence of different REq on approximations of bulk conjugationrates
 # Without migration from lumen to wall or vice versa
 DInitLumSet <- c(1E3)
-DInitWallSet <- c(1E3)
+DInitWallSet <- c(0)
 bRSet <- c(1.7)
 NISet <- c(1, 10, 100)
 NutrConv <- c(1e-6)
 wSet <- c(0.04)
-MigrLumWallSet <- c(0.1)
+MigrLumWallSet <- c(0.05)
 MigrWallLumSet <- c(0.1)
 ScaleAreaPerVolSet <- c(1)
 kpSet <- 10^-8
@@ -231,12 +231,25 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
 # following Zhong's approach for the calculations.
 EstConjBulkLum <- function(MyData) {
   with(as.list(MyData), {
-    state <- c(D = MyData[["DInitLum"]], R = MyData[["RLumEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    if(MyData[["DInitLum"]] == 0) {
+      warning("DInitLum == 0, using DInitWall for approximation of bulkrates in the lumen instead!")
+      state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    } else {
+      state <- c(D = MyData[["DInitLum"]], R = MyData[["RLumEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    }
+    
     parms <- MyData
     DataEstConjBulkDonor <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
     
     state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
+    
+    if(MyData[["DInitLum"]] == 0) {
+      state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
+    } else {
+      state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
+    }
+    
     DataEstConjBulkTrans <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkTrans, parms = parms), 1)
     
@@ -271,12 +284,25 @@ head(MyData)
 
 EstConjBulkWall <- function(MyData) {
   with(as.list(MyData), {
-    state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    if(MyData[["DInitWall"]] == 0) {
+      warning("DInitWall == 0, using DInitLum for approximation of bulkrates in the wall instead!")
+      state <- c(D = MyData[["DInitLum"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    } else {
+      state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    }
+    
     parms <- MyData
     DataEstConjBulkDonor <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
     
     state <- c(R = MyData[["RWallEq"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
+    
+    if(MyData[["DInitWall"]] == 0) {
+      state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
+    } else {
+      state <- c(R = MyData[["RWallEq"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
+    }
+    
     DataEstConjBulkTrans <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkTrans, parms = parms), 1)
     
