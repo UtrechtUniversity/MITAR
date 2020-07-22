@@ -343,20 +343,20 @@ ModelPairsNutr <- function(t, state, parms) {
     dMttLum <- gt*MrtLum - kn*MttLum -
       (w + MigrLumWall)*MttLum + MigrWallLum*MttWall*ScaleAreaPerVol
     
-    dDWall <- (1 - cd)*bR*Nutr*(DWall + MdrWall + MdtWall) - kp*DWall*RWall +
-      kn*(MdrWall + MdtWall) + MigrLumWall*DLum/ScaleAreaPerVol - MigrWallLum*DWall
-    dRWall <- bR*Nutr*(RWall + MdrWall + MrtWall) - kp*RWall*(DWall + TransWall) +
-      kn*(MdrWall + MrtWall) + MigrLumWall*RLum/ScaleAreaPerVol - MigrWallLum*RWall
+    dDWall <- (1 - cd)*bR*Nutr*(DWall + MdrWall + MdtWall) - kpWall*DWall*RWall +
+      knWall*(MdrWall + MdtWall) + MigrLumWall*DLum/ScaleAreaPerVol - MigrWallLum*DWall
+    dRWall <- bR*Nutr*(RWall + MdrWall + MrtWall) - kpWall*RWall*(DWall + TransWall) +
+      knWall*(MdrWall + MrtWall) + MigrLumWall*RLum/ScaleAreaPerVol - MigrWallLum*RWall
     dTransWall <- (1 - ct)*bR*Nutr*(TransWall + MdtWall + MrtWall + 2*MttWall) -
-      kp*RWall*TransWall + kn*(MdtWall + MrtWall + 2*MttWall) +
+      kpWall*RWall*TransWall + knWall*(MdtWall + MrtWall + 2*MttWall) +
       MigrLumWall*TransLum/ScaleAreaPerVol - MigrWallLum*TransWall
-    dMdrWall <- kp*DWall*RWall - kn*MdrWall - gd*MdrWall +
+    dMdrWall <- kpWall*DWall*RWall - knWall*MdrWall - gd*MdrWall +
       MigrLumWall*MdrLum/ScaleAreaPerVol - MigrWallLum*MdrWall
-    dMdtWall <- gd*MdrWall - kn*MdtWall + MigrLumWall*MdtLum/ScaleAreaPerVol - 
-                                             MigrWallLum*MdtWall
-    dMrtWall <- kp*RWall*TransWall - kn*MrtWall - gt*MrtWall + 
+    dMdtWall <- gd*MdrWall - knWall*MdtWall + MigrLumWall*MdtLum/ScaleAreaPerVol - 
+      MigrWallLum*MdtWall
+    dMrtWall <- kpWall*RWall*TransWall - knWall*MrtWall - gt*MrtWall + 
       MigrLumWall*MrtLum/ScaleAreaPerVol - MigrWallLum*MrtWall
-    dMttWall <- gt*MrtWall - kn*MttWall + 
+    dMttWall <- gt*MrtWall - knWall*MttWall + 
       MigrLumWall*MttLum/ScaleAreaPerVol - MigrWallLum*MttWall
     
     return(list(c(dNutr, dDLum, dRLum, dTransLum, dMdrLum, dMdtLum, dMrtLum, dMttLum,
