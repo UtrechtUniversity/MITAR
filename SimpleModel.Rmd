@@ -75,8 +75,8 @@ singleboundary.plot <- ggplot2::ggplot(data = plot.data.dpsiX[plot.data.dpsiX$N=
   geom_ribbon(aes(ymin = trivial,ymax = fixation, x = dpsi), fill = "black", color = "black", alpha = .7)+
   ylim(ynull,ymax)+
   xlim(xmin,xmax)+
-  xlab(c(expression(paste(Delta, psi))))+
-  ylab(expression(log10(gamma)))+
+  xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
+  ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+
   theme(panel.grid = element_line(colour = "DarkGray"),
         panel.background = element_rect(fill = NA), 
         axis.text = element_text(colour = NA))+
@@ -182,11 +182,11 @@ medium.colours <- setNames(c(rep("darkblue",2), rep("orange",6)), unique(plot.da
 medium.shapes <- setNames(c(15:19,8,3,12), unique(plot.data$Medium))
 
 boundary.plots + 
-  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = Medium,colour = Medium), data = plot.data, size =1.75, alpha =.75)+
+  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = Medium,colour = Medium), data = plot.data[plot.data$Plasmid=="T",], size =1.75, alpha =.75)+
   scale_colour_manual(values = medium.colours, name = "Growth medium")+
   scale_shape_manual(values = medium.shapes, name = "Growth medium")+
-  xlab(c(expression(paste(Delta, psi))))+
-  ylab(expression(log10(gamma)))+facet_grid(Plasmid~10^N)
+   xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
+  ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+facet_grid(.~10^N)
 
   
 ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium",format(Sys.Date(),"%Y%m%d"),".tiff"))
