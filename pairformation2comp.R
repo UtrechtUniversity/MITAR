@@ -96,7 +96,6 @@ ctSet <- c(0.05)
 gdSet <- c(15)
 gtSet <- c(15)
 
-
 CheckParms <- c(DInitLumSet, DInitWallSet, bRSet, NISet, NutrConv, MigrLumWallSet, MigrWallLumSet,
                 ScaleAreaPerVolSet, wSet, kpSet, knSet, kpWallSet, knWallSet,
                 cdSet, ctSet)
@@ -500,9 +499,9 @@ RunOverTimeNew <- function(MyData) {
   print("state:")
   print(c(Nutr = MyData[["NutrEq"]], MyData[["DInitLum"]], RLum = MyData[["RLumEq"]], RWall = MyData[["RWallEq"]]))
   
-  EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = 1000, RLum = MyData[["RLumEq"]],
+  EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = MyData[["DInitLum"]], RLum = MyData[["RLumEq"]],
               TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
-              DWall = 0, RWall = MyData[["RWallEq"]],
+              DWall = MyData[["DInitWall"]], RWall = MyData[["RWallEq"]],
               TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0)
   out <- ode(t = seq(from = 0, to = Mytmax, by = Mytstep), y = EqFull, func = ModelPairsNutr, parms = MyData)
   subtitle <- paste0("kp=", MyData[["kp"]], ", ", MyData[["kpWall"]],
