@@ -15,6 +15,22 @@
 # If I can prove that EqPlasmidfree1 is always non-positive I can remove the
 # calculations and checks for it, and stick to using EqPlasmidfree2
 
+# The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
+# ect. for approximating bulk-rates can be moved inside the EstConjBulk function ?
+
+# In calculation of bulkrates use knLum, knWall instead of kn and knWall, then
+# use kn = knLum as function argument for lumen and kn = knWall as function argument for wall.
+# This will prevent creating 'DataWall' as separate dataframe
+
+# ! Should ScaleAreaPerVolume be the inverse (i.e. exchange multiplication and
+# division by ScaleAreaPerVolume). This factor includes two aspects: (1) what is
+# the ratio of volume and surface occupied by the bacteria (i.e., how much
+# square cm of surface do the the bacteria contained in Y cubic cm occupy, see
+# Imran (2005) for some discussion of this) and (2) what is the ratio of the
+# volume and surface of the system that is modelled (i.e., if the gut is assumed
+# to be an open tube with square, the surface in square cm equals 4 times the
+# volume in cubic cm).
+
 #### References ####
 
 # Zhong 2010: Zhong X, Krol JE, Top EM, Krone SM. 2010. Accounting for mating
@@ -32,6 +48,8 @@ library(ggplot2) # For plotting data
 library(RColorBrewer) # For better color schemes
 library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
+
+timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 
 # Large set for testing
 DInitLumSet <- c(1E3)
@@ -259,7 +277,6 @@ EstConjBulkLum <- function(MyData) {
   })
 }
 
-timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulkLum))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
@@ -461,6 +478,7 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
 # mycol <- c("black", brewer.pal(7, "Set1"))
 BackupMyData <- MyData
 
+## USE FUNCTION FROM THE ONE-COMPARTMENT MODEL INSTEAD ?
 
 CalcEq <- function(MyData) {
   EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = MyData[["DInitLum"]], RLum = MyData[["RLumEq"]],
