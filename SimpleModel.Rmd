@@ -4,7 +4,8 @@ author: "Egil Fischer"
 date: "19-3-2020"
 output:
   html_document:
-    df_print: paged
+    pdf_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
