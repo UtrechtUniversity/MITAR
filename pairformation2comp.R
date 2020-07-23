@@ -250,7 +250,7 @@ EstConjBulkLum <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitLum"]] == 0) {
       warning("DInitLum == 0, using DInitWall for approximation of bulkrates in the lumen instead!")
-      state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+      state <- c(D = MyData[["DInitWall"]], R = MyData[["RLumEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     } else {
       state <- c(D = MyData[["DInitLum"]], R = MyData[["RLumEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     }
@@ -258,8 +258,6 @@ EstConjBulkLum <- function(MyData) {
     parms <- MyData
     DataEstConjBulkDonor <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
-    
-    state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
     
     if(MyData[["DInitLum"]] == 0) {
       state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
@@ -310,11 +308,9 @@ EstConjBulkWall <- function(MyData) {
     parms <- MyData
     DataEstConjBulkDonor <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
-    
-    state <- c(R = MyData[["RWallEq"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
-    
+
     if(MyData[["DInitWall"]] == 0) {
-      state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
+      state <- c(R = MyData[["RWallEq"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
     } else {
       state <- c(R = MyData[["RWallEq"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
     }
@@ -515,7 +511,7 @@ Mytstep <- c(0.1)
 
 RunOverTimeNew <- function(MyData) {
   print("state:")
-  print(c(Nutr = MyData[["NutrEq"]], MyData[["DInitLum"]], RLum = MyData[["RLumEq"]], RWall = MyData[["RWallEq"]]))
+  print(c(Nutr = MyData[["NutrEq"]], DLum = MyData[["DInitLum"]], RLum = MyData[["RLumEq"]], RWall = MyData[["RWallEq"]]))
   
   EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = MyData[["DInitLum"]], RLum = MyData[["RLumEq"]],
               TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
