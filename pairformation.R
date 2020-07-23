@@ -8,6 +8,9 @@
 # For PlotOverTime, I want the plot to be always shown, and saved only if save = TRUE.
 # Change to using ggplot instead of matplot.deSolve to enable saving an object through ggsave(...)
 
+# The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
+# ect. for approximating bulk-rates can be moved inside the EstConjBulk function.
+
 # Find method to obtain the order in which I specify the state from EstConjBulkDonor
 # or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object DataEstConjBulk
 
@@ -105,9 +108,8 @@ library(RColorBrewer) # For better color schemes
 library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
 
-
 #### Plotting options ####
-saveplots <- 1
+saveplots <- 0
 tmaxsteady <- 1e8
 timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
@@ -403,7 +405,7 @@ DInitSet <- c(10, 1E3)
 bRSet <- c(0.2, 2)
 NISet <- c(1, 10, 100)
 NutrConv <- c(1e-6, 1e-7)
-wSet <- c(0.04, 0.06)
+wSet <- c(0.04)
 kpSet <- 10^seq(from = -11, to = -5, by = 2)
 knSet <- 10^seq(from = -1, to = 3, by = 2)
 cdSet <- c(0.01, 0.05)
@@ -462,20 +464,20 @@ if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
 
 Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
-MyData <- cbind(MyData, Eqplasmidfree)
 
 if(any(Eqplasmidfree[, "REq"] <= 0)) {
   warning("The number of recipients at equilibrium is not positive!
 Increase the nutrient concentration in the inflowing liquid by changing NI?")
 }
+MyData <- cbind(MyData, Eqplasmidfree)
 
 print("Plasmid-free equilibrium calculated:")
 print(Sys.time())
 
 ## Add combinations with the parameters needed to approximate gdbulk and gtbulk
-MyData <- expand_grid(MyData, kp = kpSet, kn = knSet, gd = gdSet, gt = gtSet,
-                      DInit = DInitSet)
-DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk)) # 97.47    0.00   97.51 
+MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInit = DInitSet,
+                      kp = kpSet, kn = knSet)
+DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
 TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
@@ -748,8 +750,8 @@ plotoutput <- 1
 extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
 smallchange <- c(1E-5)
-Mytmax <- c(1E4)
-Mytstep <- c(10)
+Mytmax <- c(1E3)
+Mytstep <- c(1)
 
 #### Create matrix to store data ####
 TheseRows <- c(1, nrow(MyData))
@@ -879,16 +881,24 @@ PlotOverTime <- function(data = out2, type = "Pair", saveplot = saveplots) {
   }
 }
 
-EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
-
 
 #### The code below is not used ####
 # MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
 
+Mydf <- MyData[1, ]
+EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
+EqAfterInvasionTotal <- cbind(EqAfterInvasionTotal,
+                              TotalTrans = EqAfterInvasionTotal[, "Trans"] +
+                              EqAfterInvasionTotal[, "Mdt"] +
+                              EqAfterInvasionTotal[, "Mrt"] +
+                              2*EqAfterInvasionTotal[, "Mtt"])
+
+EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
+
 
 MyData[CurrentIteration, c(1:14)] <- unname(c(parmsBulk, Eq))
 MyData[CurrentIteration, c(15:28)] <- unname(c(
-  EqAfterInvDonor, EqAfterInvDonorBulk))                      
+  EqAfterInvDonor, EqAfterInvDonorBulk))
 
 MyData[CurrentIteration, c(29:51)] <- unname(c(
   EigValEq, DomEigVal, SignDomEigVal, SignEigValEqual,
