@@ -54,7 +54,10 @@ library(RColorBrewer) # For better color schemes
 library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
 
+saveplots <- 0
+tmaxsteady <- 1e8
 timesEstConj <- seq(from = 0, to = 3, by = 0.1)
+MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 
 # Large set for testing
 DInitLumSet <- c(1E3)
@@ -372,7 +375,8 @@ head(MyData)
 
 # Replace columns kn and kn with the values in the columns kpWall and knWall in new dataframe
 # to be used to estimate bulk conjugation rates at the wall
-MyDataWall <- cbind(MyData[, 1:(ncol(MyData) - 6)], kp = unname(MyData[, "kpWall"]), kn = unname(MyData[, "knWall"]))
+MyDataWall <- cbind(MyData[, 1:(which(names(MyData)=="kp") - 1)],
+                    kp = unname(MyData[, "kpWall"]), kn = unname(MyData[, "knWall"]))
 dim(MyDataWall)
 head(MyDataWall)
 
@@ -471,10 +475,6 @@ ModelBulkNutr <- function(t, state, parms) {
   })
 }
 
-## VANAF HIER VERDER CONTROLEREN
-
-
-
 # Numerically estimate the Jacobian matrix of the plasmid-free equilibrium of
 # the models, then calculate (or approximate?) the eigenvalues of this matrix.
 # The maximum real part of the eigenvalues is used to determine stability.
@@ -525,32 +525,87 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
 # mycol <- c("black", brewer.pal(7, "Set1"))
 BackupMyData <- MyData
 
-## USE FUNCTION FROM THE ONE-COMPARTMENT MODEL INSTEAD ?
-
-CalcEq <- function(MyData) {
-  EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = MyData[["DInitLum"]], RLum = MyData[["RLumEq"]],
-              TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
-              DWall = MyData[["DInitWall"]], RWall = MyData[["RWallEq"]],
-              TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0)
-  out <- runsteady(y = EqFull, time = c(0, 1E7), func = ModelPairsNutr, parms = MyData, stol = 1e-8)
-  Eq <- c(out$y, steady = attr(out, "steady"), timeEq = attr(out, "time"))
-  return(Eq)
+SimulationPairs <- function(InputSimulationPairs) {
+  parms <- InputSimulationPairs
+  state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]],
+             RLum = parms[["RLumEq"]], TransLum = 0, MdrLum = 0, MdtLum = 0,
+             MrtLum = 0, MttLum = 0, DWall = parms[["DInitWall"]],
+             RWall = parms[["RWallEq"]], TransWall = 0, MdrWall = 0, MdtWall = 0,
+             MrtWall = 0, MttWall = 0)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr,
+                   parms = parms, stol = 1.25e-6)
+  EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
+  return(EqAfterInvDonor)
 }
-Eq <- t(apply(MyData, MARGIN = 1, FUN = CalcEq))  
 
-MyData <- cbind(MyData, Eq)
+IndexSimulation <- which(MyData$SignDomEigVal != -1)
+print(paste(length(IndexSimulation), "simulations to run for the pair-formation model"))
+ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
+InputSimulationPairs <- MyData[IndexSimulation, ColumnsToSelect]
+OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1,
+                                 FUN = SimulationPairs))
 
-CalcEqBulk <- function(MyData) {
-  EqFullBulk <- c(Nutr = MyData[["NutrEq"]], DLum = MyData[["DInitLum"]], RLum = MyData[["RLumEq"]], TransLum = 0, 
-                  DWall = 0, RWall = MyData[["RWallEq"]], TransWall = 0)
-  outBulk <- runsteady(y = EqFullBulk, time = c(0, 1E7), func = ModelBulkNutr, parms = MyData, stol = 2.14e-8)
-  EqBulk <- c(outBulk$y, steady = attr(outBulk, "steady"), timeEq = attr(outBulk, "time"))
-  return(EqBulk)
+if(length(IndexSimulation) < nrow(MyData)) {
+  NoSimulationNeeded <- cbind(time = 0, steady = 1, Nutr = MyData[-IndexSimulation, "NutrEq"],
+                              DLum = 0, RLum = MyData[-IndexSimulation, "RLumEq"],
+                              TransLum = 0,  MdrLum = 0, MdtLum = 0, MrtLum = 0,
+                              MttLum = 0, DWall = 0,
+                              RWall = MyData[-IndexSimulation, "RWallEq"],
+                              TransWall = 0, MdrWall = 0, MdtWall = 0,
+                              MrtWall = 0, MttWall = 0)
+  MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
+                  cbind(MyData[-IndexSimulation, ], NoSimulationNeeded))
+} else {
+  MyData <- cbind(MyData[IndexSimulation, ], OutputSimulationPairs)
 }
-EqBulk <- t(apply(MyData, MARGIN = 1, FUN = CalcEqBulk))  
-MyData <- cbind(MyData, EqBulk)
+if(any(MyData$steady == 0)) warning("Steady-state has not always been reached")
+
+print("Pair-formation model completed running:")
+print(Sys.time())
+
+
+## VANAF HIER VERDER CONTROLEREN
+
+# The initial state is the plasmid-free equilibrium (RLum*, RWall*, Nutr*) with the
+# addition of DInit donor bacteria per mL. Note that stol is based on the average
+# of absolute rates of change, not the sum.
+SimulationBulk <- function(InputSimulationBulk) {
+  parms <- InputSimulationBulk
+  state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumEq"]], TransLum = 0, 
+             DWall = 0, RWall = parms[["RWallEq"]], TransWall = 0)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
+  EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
+  return(EqAfterInvDonor)
+}
+
+IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
+print(paste(length(IndexSimulation), "simulations to run for the bulk model"))
+InputSimulationBulk <- MyData[IndexSimulationBulk, ColumnsToSelect]
+OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk))
+colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
+
+if(length(IndexSimulationBulk) < nrow(MyData)) {
+  NoSimulationNeededBulk <- cbind(timeBulk = 0, steadyBulk = 1,
+                                  NutrBulk = MyData[-IndexSimulation, "NutrEq"],
+                                  DLumBulk = 0,
+                                  RLumBulk = MyData[-IndexSimulation, "RLumEq"],
+                                  TransLumBulk = 0, DWallBulk = 0,
+                                  RWallBulk = MyData[-IndexSimulation, "RWallEq"],
+                                  TransWallBulk = 0)
+  MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
+                  cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk))
+} else {
+  MyData <- cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk)
+}
+if(any(MyData$steadyBulk == 0)) warning("Steady-state has not always been reached")
+
+print("Bulk-conjugation model completed running:")
+print(Sys.time())
+
 write.csv(MyData, file = paste0(DateTimeStamp, "outputpairsandbulk.csv"),
           quote = FALSE, row.names = FALSE)
+
+## VANAF HIER VERDER CONTROLEREN
 
 myylim <- c(1E-6, 1E7)
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1))
