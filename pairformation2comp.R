@@ -15,6 +15,9 @@
 # If I can prove that EqPlasmidfree1 is always non-positive I can remove the
 # calculations and checks for it, and stick to using EqPlasmidfree2
 
+# Also use ModelEstConjBulkDonor to approximate bulk conjugation rates from the transconjugant
+# (note: than Mdr should again be added in calculation of TotalREstConjBulkTrans)
+
 # The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
 # ect. for approximating bulk-rates can be moved inside the EstConjBulk function ?
 
@@ -22,14 +25,16 @@
 # use kn = knLum as function argument for lumen and kn = knWall as function argument for wall.
 # This will prevent creating 'DataWall' as separate dataframe
 
+## !! !! POSSIBLE ERROR !! !!
 # ! Should ScaleAreaPerVolume be the inverse (i.e. exchange multiplication and
 # division by ScaleAreaPerVolume). This factor includes two aspects: (1) what is
 # the ratio of volume and surface occupied by the bacteria (i.e., how much
 # square cm of surface do the the bacteria contained in Y cubic cm occupy, see
 # Imran (2005) for some discussion of this) and (2) what is the ratio of the
 # volume and surface of the system that is modelled (i.e., if the gut is assumed
-# to be an open tube with square, the surface in square cm equals 4 times the
-# volume in cubic cm).
+# to be an open square tube, the surface in square cm equals 4 times the
+# volume in cubic cm). When modelling a round tube, the volume / surface = r / 2,
+# irrespective of chosen length.
 
 #### References ####
 
@@ -109,6 +114,46 @@ kpSet <- 10^-8
 knSet <- 1
 kpWallSet <- 10^-8
 knWallSet <- 1
+cdSet <- c(0.05)
+ctSet <- c(0.05)
+gdSet <- c(15)
+gtSet <- c(15)
+
+## Testset for code testing
+DInitLumSet <- c(1E3)
+DInitWallSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- c(1, 10, 100)
+NutrConv <- c(1e-6)
+wSet <- c(0.04)
+MigrLumWallSet <- c(0.05)
+MigrWallLumSet <- c(0.1)
+ScaleAreaPerVolSet <- c(1)
+kpSet <- 10^-8
+knSet <- 1
+kpWallSet <- c(10^-8, 10^-6)
+knWallSet <- c(1, 10)
+cdSet <- c(0.05)
+ctSet <- c(0.05)
+gdSet <- c(15)
+gtSet <- c(15)
+
+
+### Why do DLum and DWall behave differently from each other in the first ~200h hours
+### in the pair-formation model (the drop in densities is not seen in bulk model)
+DInitLumSet <- c(1E3)
+DInitWallSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- c(10)
+NutrConv <- c(1e-6)
+wSet <- c(0.04)
+MigrLumWallSet <- c(0.05)
+MigrWallLumSet <- c(0.05)
+ScaleAreaPerVolSet <- c(1.2)
+kpSet <- 10^-10
+knSet <- c(0.1, 10)
+kpWallSet <- c(10^-8, 10^-6)
+knWallSet <- 0.1
 cdSet <- c(0.05)
 ctSet <- c(0.05)
 gdSet <- c(15)
@@ -199,15 +244,13 @@ if(any(Eqplasmidfree2[, "RLumEq2"] > 0 & Eqplasmidfree2[, "RWallEq2"] > 0)) {
           This concerns the following rows of the dataframe: ", paste(RowsPositiveEq2, collapse = ", "))
 }
 
-head(MyData)
-head(Eqplasmidfree)
 MyData <- cbind(MyData, Eqplasmidfree)
 head(MyData)
 
 print("Plasmid-free equilibrium calculated:")
 print(Sys.time())
 
-## Add combinations with the parameters needed to approximate gdbulk and gtbulk
+## Add combinations with the parameters needed to approximate gdbulk and gtbulk in the lumen
 dim(MyData)
 head(MyData)
 MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInitLum = DInitLumSet, DInitWall = DInitWallSet, kp = kpSet, kn = knSet)
@@ -289,17 +332,10 @@ dim(MyData)
 head(MyData)
 MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
 
-dim(MyData)
-head(MyData)
-MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
-
-dim(MyData)
-head(MyData)
-
 EstConjBulkWall <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitWall"]] == 0) {
-      warning("DInitWall == 0, using DInitLum for approximation of bulkrates in the wall instead!")
+      warning("DInitWall == 0, using DInitLum for approximation of bulkrates at the wall instead!")
       state <- c(D = MyData[["DInitLum"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     } else {
       state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
@@ -325,7 +361,18 @@ EstConjBulkWall <- function(MyData) {
   })
 }
 
-MyDataWall <- cbind(MyData[, 1:(ncol(MyData) - 6)], kp = kpWallSet, kn = knWallSet)
+as.data.frame(MyData)
+dim(MyData)
+head(MyData)
+MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
+
+as.data.frame(MyData)
+dim(MyData)
+head(MyData)
+
+# Replace columns kn and kn with the values in the columns kpWall and knWall in new dataframe
+# to be used to estimate bulk conjugation rates at the wall
+MyDataWall <- cbind(MyData[, 1:(ncol(MyData) - 6)], kp = unname(MyData[, "kpWall"]), kn = unname(MyData[, "knWall"]))
 dim(MyDataWall)
 head(MyDataWall)
 
@@ -423,6 +470,10 @@ ModelBulkNutr <- function(t, state, parms) {
     return(list(c(dNutr, dDLum, dRLum, dTransLum, dDWall, dRWall, dTransWall)))
   })
 }
+
+## VANAF HIER VERDER CONTROLEREN
+
+
 
 # Numerically estimate the Jacobian matrix of the plasmid-free equilibrium of
 # the models, then calculate (or approximate?) the eigenvalues of this matrix.
