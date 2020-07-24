@@ -66,10 +66,6 @@
 
 # Check for use of tabs and double spaces and switch to using double spaces ?
 
-# I should add check if steady-state has been reached with runsteady(...), for
-# example by including steady = attr(out, "steady") in the output and checking
-# if(any(X$steady == FALSE )) warning("Steady-state has not always been reached")
-
 # Look for 'hardcoded', 'hard-coded' and rethink them.
 
 ## NUTRIENTS are also in the root- and event-functions, see comment at their
@@ -251,7 +247,7 @@ SimulationPairs <- function(InputSimulationPairs) {
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
              R = parms[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr, parms = parms, stol = 1.25e-6)
-  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
+  EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
   return(EqAfterInvDonor)
 }
 
@@ -261,7 +257,7 @@ SimulationBulk <- function(InputSimulationBulk) {
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
              R = parms[["REq"]], Trans = 0)
   out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
-  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
+  EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
   return(EqAfterInvDonor)
 }
 
@@ -598,7 +594,8 @@ OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1,
                                  FUN = SimulationPairs))
 
 if(length(IndexSimulation) < nrow(MyData)) {
-  NoSimulationNeeded <- cbind(time = 0, Nutr = MyData[-IndexSimulation, "NutrEq"],
+  NoSimulationNeeded <- cbind(time = 0, steady = 1,
+                              Nutr = MyData[-IndexSimulation, "NutrEq"],
                               D = 0, R = MyData[-IndexSimulation, "REq"],
                               Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
@@ -606,6 +603,7 @@ if(length(IndexSimulation) < nrow(MyData)) {
 } else {
   MyData <- cbind(MyData[IndexSimulation, ], OutputSimulationPairs)
 }
+if(any(MyData$steady == 0)) warning("Steady-state has not always been reached")
 
 print("Pair-formation model completed running:")
 print(Sys.time())
@@ -617,7 +615,7 @@ OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = Simul
 colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
 
 if(length(IndexSimulationBulk) < nrow(MyData)) {
-  NoSimulationNeededBulk <- cbind(timeBulk = 0, NutrBulk = MyData[-IndexSimulationBulk, "NutrEq"],
+  NoSimulationNeededBulk <- cbind(timeBulk = 0, steady = 1, NutrBulk = MyData[-IndexSimulationBulk, "NutrEq"],
                                   DBulk = 0, RBulk = MyData[-IndexSimulationBulk, "REq"],
                                   TransBulk = 0)
   MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
@@ -625,6 +623,7 @@ if(length(IndexSimulationBulk) < nrow(MyData)) {
 } else {
   MyData <- cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk)
 }
+if(any(MyData$steadyBulk == 0)) warning("Steady-state has not always been reached")
 
 print("Bulk-conjugation model completed running:")
 print(Sys.time())
