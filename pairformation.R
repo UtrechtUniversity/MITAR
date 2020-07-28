@@ -761,17 +761,17 @@ Mytstep <- c(1)
 
 #### Create matrix to store data ####
 TheseRows <- c(1, nrow(MyData))
-Mydf <- MyData[TheseRows, ]
+TheseRows <- 1:nrow(MyData)
+Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
 print(TotalIterations)
 CurrentIteration <- 0
 
 # Times for which output of the simulation is wanted.
-# Note that timesteps of 1 are used untill t = 100, and note furthermore that
-# the used ode-solvers are variable-step methods, so the times in times
+# Note that the used ode-solvers are variable-step methods, so the times in times
 # are NOT the only times at which integration is performed. See
 # help(diagnostics.deSolve()) and help(lsodar()) for details.
-times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
+times <- seq(from = 0, to = Mytmax, by = Mytstep)
 
 # Define root-function and event-function
 # If the root-argument is equal to 0, an event (as defined by the event-function)
@@ -812,58 +812,46 @@ eventfunBulk <- function(t, stateBulk, parmsBulk) {
   return(stateBulk)
 }
 
-RunOverTime <- function(data = Mydf, ...) {
-  state <- c(Nutr = data[["NutrEq"]], D = data[["DInit"]], R = data[["REq"]],
+RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
+  state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]],
              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  parms <- data[ColumnsToSelect]
   out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms,
-              rootfun = rootfun, events = list(func = eventfun, root = TRUE,
-                                               terminalroot = 1))
+           rootfun = rootfun, events = list(func = eventfun, root = TRUE,
+                                            terminalroot = 1), verbose = verbose)
   EqAfterInvasion <- tail(out2, 1)
   if(verbose == TRUE) {
     print(diagnostics(out2))
     print(attributes(out2))
   }
-  PlotOverTime(data = out2, type = "Pair", saveplot = saveplots)
-  
-  stateBulk <- c(Nutr = data[["NutrEq"]], D = data[["DInit"]], R = data[["REq"]], Trans = 0)
-  parmsBulk <- data[ColumnsToSelect]
-  out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parmsBulk,
-                  rootfun = rootfunBulk, events = list(func = eventfunBulk, root = TRUE,
-                                                       terminalroot = 1))
+  PlotOverTime(plotdata = out2, parms = parms, type = "Pair", verbose = verbose, saveplot = saveplots)
+  stateBulk <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]], Trans = 0)
+  out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parms,
+                rootfun = rootfunBulk, events = list(func = eventfunBulk, root = TRUE,
+                                                     terminalroot = 1), verbose = verbose)
   EqAfterInvasionBulk <- tail(out2bulk, 1)
   if(verbose == TRUE) {
     print(diagnostics(out2bulk))
     print(attributes(out2bulk))
   }
-  PlotOverTime(data = out2bulk, type = "Bulk", saveplot = saveplots)
-
+  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", saveplot = saveplots)
+  
   EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
   names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
                                    paste0(colnames(EqAfterInvasionBulk), "Bulk"))
   return(EqAfterInvasionTotal)
 }
 
-PlotOverTime <- function(data = out2, type = "Pair", saveplot = saveplots) {
+PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose = FALSE, saveplot = saveplots, ...) {
   maintitle <- paste(type, "model")
-  subtitle <- paste0("bR=", Mydf[["bR"]], " NI=", Mydf[["NI"]],
-                     " log10kp=", log10(Mydf[["kp"]]), " log10kn=", log10(Mydf[["kn"]]),
-                     " NutrConv=", Mydf[["NutrConv"]], " w=", Mydf[["w"]],
-                     " cd=", Mydf[["cd"]], " ct=", Mydf[["ct"]])
+  subtitle <- paste0("bR=", parms[["bR"]], " NI=", parms[["NI"]],
+                     " log10kp=", log10(parms[["kp"]]), " log10kn=", log10(parms[["kn"]]),
+                     " NutrConv=", parms[["NutrConv"]], " w=", parms[["w"]],
+                     " cd=", parms[["cd"]], " ct=", parms[["ct"]])
   if(type == "Pair") {
-    subtitle <- paste0(subtitle, " gd=", Mydf[["gd"]], " gt=", Mydf[["gt"]]) 
+    subtitle <- paste0(subtitle, " gd=", parms[["gd"]], " gt=", parms[["gt"]]) 
   } else {
-    subtitle <- paste0(subtitle, " gdbulk=",  signif(Mydf[["gdbulk"]], digits = 4),
-                       " gtbulk=", signif(Mydf[["gtbulk"]], digits = 4))
-  }
-  if(verbose == TRUE) {
-    matplot.deSolve(data, main = paste(maintitle, "verbose"), sub = subtitle, ylim = myylim,
-                    xlim = c(0, tail(attributes(data)$troot, 2)[1]),
-                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                    legend = list(x = "topright"))
-    grid()
-    abline(h = extinctionthreshold)
-    abline(v = attributes(data)$troot)
+    subtitle <- paste0(subtitle, " gdbulk=",  signif(parms[["gdbulk"]], digits = 4),
+                       " gtbulk=", signif(parms[["gtbulk"]], digits = 4))
   }
   if(saveplot == TRUE) {
     filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
@@ -872,30 +860,39 @@ PlotOverTime <- function(data = out2, type = "Pair", saveplot = saveplots) {
     } else {
       png(filename = filename)
     }
-    matplot.deSolve(data, main = maintitle, sub = subtitle, ylim = myylim,
+    matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                    legend = list(x = "bottomright"))
+                    legend = list(x = "topright"))
     grid()
+    if(verbose == TRUE) {
+      abline(h = extinctionthreshold)
+      abline(v = attributes(plotdata)$troot)
+    }
     if(saveplot == TRUE & file.exists(filename) == FALSE) {
       dev.off()
     }
   } else {
-    matplot.deSolve(data, main = maintitle, sub = subtitle, ylim = myylim,
+    matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
                     legend = list(x = "bottomright"))
     grid()
+    if(verbose == TRUE) {
+      abline(h = extinctionthreshold)
+      abline(v = attributes(plotdata)$troot)
+    }
   }
 }
 
-Mydf <- MyData[1, ]
-EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
+EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, verbose = FALSE))
 
-write.csv(EqAfterInvasionTotal, file = paste0(DateTimeStamp, "outputrunovertimetwocomp.csv"),
+Data <- cbind(Mydf, EqAfterInvasionTotal)
+
+
+write.csv(EqAfterInvasionTotal, file = paste0(DateTimeStamp, "outputrunovertimeonecomp.csv"),
           quote = FALSE, row.names = FALSE)
 
 #### The code below is not used ####
 # MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
-
 
 EqAfterInvasionTotal <- cbind(EqAfterInvasionTotal,
                               TotalTrans = EqAfterInvasionTotal[, "Trans"] +
