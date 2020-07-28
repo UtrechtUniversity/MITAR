@@ -14,6 +14,12 @@
 # Find method to obtain the order in which I specify the state from EstConjBulkDonor
 # or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object DataEstConjBulk
 
+# Prevent overlapping values for the colorbar (could use angle with hjust, vjust)
+
+## Voor plots over time waar ik het pair-formation en het bulk-model met elkaar Vergelijk
+# is plotten van TotalD, TotalR, TotalTrans van het pair-model en DBulk, RBulk, TransBulk van het bulk-model
+# een betere vergelijking
+
 # SummaryPlot() does not use the names of the arguments for creating titles
 
 # aes_string is soft-deprecated (see help(aes_string)), use tidy evaluation idioms instead,
@@ -246,7 +252,8 @@ SimulationPairs <- function(InputSimulationPairs) {
   parms <- InputSimulationPairs
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
              R = parms[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr, parms = parms, stol = 1.25e-6)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr,
+                   parms = parms, stol = 1.25e-6)
   EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
   return(EqAfterInvDonor)
 }
@@ -279,7 +286,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
     p <- p + scale_fill_gradient2(midpoint = midpoint)
   } else {
     p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
-    #p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
+    # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
   }
   print(p)
   if(save == TRUE) {
@@ -298,6 +305,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
 # and negative values
 SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
   print(summary(plotvar))
+  print("Range:", quote = FALSE)
   print(range(plotvar))
   plotdf <- data.frame(val = plotvar, sign = sign(plotvar), absval = abs(plotvar), plotcol = "black")
   if(sortvalues == TRUE) {
@@ -347,7 +355,7 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
       plot(plotdf[, "absval"], ylim = ylim, log = "y", pch = 19, col = plotdf[, "plotcol"])
     }
     if(nvaluesnegative > 0) {
-      print(paste("Taking the absolute value of the", nvaluesnegative, "values smaller than 0"), quote = FALSE)
+      print(paste("Taking the absolute value of the", nvaluesnegative, "values smaller than zero"), quote = FALSE)
     }
   }
   grid()
@@ -447,14 +455,14 @@ gtSet <- c(10, 15)
 
 #### Main script ####
 
+CheckParms <- c(DInitSet, bRSet, NISet, NutrConv, wSet, kpSet, knSet, cdSet, ctSet)
+if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
+if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
+
 TotalIterations <- length(DInitSet)*length(bRSet)*length(NISet)*length(NutrConv)*
   length(wSet)*length(kpSet)*length(knSet)*length(cdSet)*length(ctSet)*
   length(gdSet)*length(gtSet)
 TotalIterations
-
-CheckParms <- c(DInitSet, bRSet, NISet, NutrConv, wSet, kpSet, knSet, cdSet, ctSet)
-if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
-if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
@@ -601,7 +609,7 @@ if(length(IndexSimulation) < nrow(MyData)) {
   MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
                   cbind(MyData[-IndexSimulation, ], NoSimulationNeeded))
 } else {
-  MyData <- cbind(MyData[IndexSimulation, ], OutputSimulationPairs)
+  MyData <- cbind(MyData, OutputSimulationPairs)
 }
 if(any(MyData$steady == 0)) warning("Steady-state has not always been reached")
 
@@ -615,13 +623,13 @@ OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = Simul
 colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
 
 if(length(IndexSimulationBulk) < nrow(MyData)) {
-  NoSimulationNeededBulk <- cbind(timeBulk = 0, steady = 1, NutrBulk = MyData[-IndexSimulationBulk, "NutrEq"],
+  NoSimulationNeededBulk <- cbind(timeBulk = 0, steadyBulk = 1, NutrBulk = MyData[-IndexSimulationBulk, "NutrEq"],
                                   DBulk = 0, RBulk = MyData[-IndexSimulationBulk, "REq"],
                                   TransBulk = 0)
   MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
                   cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk))
 } else {
-  MyData <- cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk)
+  MyData <- cbind(MyData, OutputSimulationBulk)
 }
 if(any(MyData$steadyBulk == 0)) warning("Steady-state has not always been reached")
 
@@ -634,10 +642,9 @@ MyData[, "TotalD"] <- MyData[, "D"] + MyData[, "Mdr"] + MyData[, "Mdt"]
 MyData[, "TotalR"] <- MyData[, "R"] + MyData[, "Mdr"] + MyData[, "Mrt"]
 MyData[, "TotalTrans"] <- MyData[, "Trans"] + MyData[, "Mdt"] + MyData[, "Mrt"] + 2*MyData[, "Mtt"]
 MyData[, "TotalPlasmid"] <- MyData[, "TotalD"] + MyData[, "TotalTrans"]
-MyData[, "TotalBio"] <- MyData[, "D"] + MyData[, "R"] + MyData[, "Trans"] + 2*MyData[, "Mdr"] +
-  2*MyData[, "Mdt"] + 2*MyData[, "Mrt"] + 2*MyData[, "Mtt"]
+MyData[, "TotalBio"] <- MyData[, "TotalR"] + MyData[, "TotalPlasmid"]
 MyData[, "TotalPlasmidBulk"] <- MyData[, "DBulk"] + MyData[, "TransBulk"]
-MyData[, "TotalBioBulk"] <- MyData[, "DBulk"] + MyData[, "RBulk"] + MyData[, "TransBulk"]
+MyData[, "TotalBioBulk"] <- MyData[, "RBulk"] + MyData[, "TotalPlasmidBulk"]
 
 write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulation.csv"),
           quote = FALSE, row.names = FALSE)
@@ -741,7 +748,7 @@ BackupMyData <- MyData
 
 # Settings for simulations, plotting, and printing
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
-# mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
+# mycol <- c("black", "purple", "green1", "red", "yellow", "hotpink", "blue", "cyan")
 mycol <- c("black", brewer.pal(7, "Set1"))
 myylim <- c(1E-14, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
@@ -880,12 +887,16 @@ PlotOverTime <- function(data = out2, type = "Pair", saveplot = saveplots) {
   }
 }
 
+Mydf <- MyData[1, ]
+EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
+
+write.csv(EqAfterInvasionTotal, file = paste0(DateTimeStamp, "outputrunovertimetwocomp.csv"),
+          quote = FALSE, row.names = FALSE)
 
 #### The code below is not used ####
 # MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
 
-Mydf <- MyData[1, ]
-EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
+
 EqAfterInvasionTotal <- cbind(EqAfterInvasionTotal,
                               TotalTrans = EqAfterInvasionTotal[, "Trans"] +
                               EqAfterInvasionTotal[, "Mdt"] +
