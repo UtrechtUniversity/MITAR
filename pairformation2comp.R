@@ -3,6 +3,9 @@
 #### To do ####
 # Also see the 'To do' section in the pair-formation script for the one-compartment model
 
+# Add CreatePlot() and SummaryPlot() function (see script for one-compartment
+# model)
+
 # Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
 # results as the single-compartment model.
 
@@ -60,7 +63,6 @@ MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 
 #### Functions ####
 
-## Calculate plasmid-free equilibria for all parameter combinations
 # Calculate the cell-containing plasmid-free equilibria (RLum*, RWall*, Nutr*),
 # using the solution to 
 # dRLum/dt = RLum*(Nutr*bR - w) - MigrLumWall*RLum + MigrWallLum*RWall*X == 0
@@ -69,9 +71,8 @@ MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 # with RLum, RWall, Nutr > 0. The cell-free equilibrium is not considered but
 # would be (RLum* = RWall* = 0, Nutr* = NI).
 # I have used two functions for the solutions to make it easier to have Eq1 and
-# Eq2 separate for further checks. Eq1 in calculations thus far always was
-# non-positive (sometimes it was 0) and Eq2 usually (but not always) was 
-# non-negative.
+# Eq2 separate for further checks. Eq1 in calculations thus far usually (but not
+# always) was non-negative and Eq2 always was non-positive (sometimes it was 0).
 CalcEqPlasmidfree1 <- function(MyData) {
   with(as.list(MyData), {
     NutrEq <- (MigrLumWall + MigrWallLum + w -
@@ -137,7 +138,7 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
   })
 }
 
-# Function to estimate bulk-conjugation rates by running simulations with the
+# Functions to estimate bulk-conjugation rates by running simulations with the
 # adjusted pair-formation models for a short time (i.e., tail(timesEstConj, 1)
 # hours) and calculate approximations of gdbulk and gtbulk from the output,
 # following Zhong's approach for the calculations.
@@ -202,12 +203,15 @@ EstConjBulkWall <- function(MyData) {
 # ODE-model describing pair-formation and conjugation for the two-compartment
 # model, including migration between the compartments. Pair-formation between
 # plasmid-free recipients and plasmid-bearing donors or transconjugants depends
-# on attachment rates kp and kpWall. Conjugation from the donor or transconjugant occurs in
-# the Mdr and Mrt pairs with intrinsic conjugation rates gd and gt respectively.
-# This leads to formation of Mdt and Mtt pairs. The pairs fall apart with
-# detachment rates kn and knWall. The structure of pair-formation is based on Zhong's model
-# (Zhong 2010). I expanded the model to include costs, washout, and nutrients.
-# The structure of the two compartments and migration is based on Imran (2005).
+# on attachment rates kp in the lumen and kpWall at the wall. Conjugation from
+# donors or transconjugants occurs in the Mdr and Mrt pairs with intrinsic
+# conjugation rates gd and gt respectively. This leads to formation of Mdt and
+# Mtt pairs. The pairs fall apart with detachment rates kn in the lumen and
+# knWall at the wall. The structure of pair-formation is based on Zhong's model
+# (Zhong 2010). I expanded the model to include costs in growth for
+# plasmid-bearing bacteria, washout from the lumen, and nutrients.
+# The structure of the two compartments and migration between them is based on
+# Imran (2005).
 ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutr <- (NI - Nutr)*w -
@@ -265,13 +269,18 @@ ModelBulkNutr <- function(t, state, parms) {
           (1 - ct)*bR*(TransLum + ScaleAreaPerVol*TransWall) 
       )
     
-    dDLum <- (1 - cd)*bR*Nutr*DLum - (w + MigrLumWall)*DLum + MigrWallLum*DWall*ScaleAreaPerVol
-    dRLum <- bR*Nutr*RLum - gdbulkLum*DLum*RLum - gtbulkLum*TransLum*RLum - (w + MigrLumWall)*RLum + MigrWallLum*RWall*ScaleAreaPerVol
-    dTransLum <- (1 - ct)*bR*Nutr*TransLum + gdbulkLum*DLum*RLum + gtbulkLum*TransLum*RLum - (w + MigrLumWall)*TransLum + MigrWallLum*TransWall*ScaleAreaPerVol
+    dDLum <- (1 - cd)*bR*Nutr*DLum - (w + MigrLumWall)*DLum +
+      MigrWallLum*DWall*ScaleAreaPerVol
+    dRLum <- bR*Nutr*RLum - gdbulkLum*DLum*RLum - gtbulkLum*TransLum*RLum - 
+      (w + MigrLumWall)*RLum + MigrWallLum*RWall*ScaleAreaPerVol
+    dTransLum <- (1 - ct)*bR*Nutr*TransLum + gdbulkLum*DLum*RLum + 
+      gtbulkLum*TransLum*RLum - (w + MigrLumWall)*TransLum + MigrWallLum*TransWall*ScaleAreaPerVol
     
     dDWall <- (1 - cd)*bR*Nutr*DWall - MigrWallLum*DWall + MigrLumWall*DLum/ScaleAreaPerVol
-    dRWall <- bR*Nutr*RWall - gdbulkWall*DWall*RWall - gtbulkWall*TransWall*RWall - MigrWallLum*RWall + MigrLumWall*RLum/ScaleAreaPerVol
-    dTransWall <- (1 - ct)*bR*Nutr*TransWall + gdbulkWall*DWall*RWall + gtbulkWall*TransWall*RWall - MigrWallLum*TransWall + MigrLumWall*TransLum/ScaleAreaPerVol
+    dRWall <- bR*Nutr*RWall - gdbulkWall*DWall*RWall - gtbulkWall*TransWall*RWall -
+      MigrWallLum*RWall + MigrLumWall*RLum/ScaleAreaPerVol
+    dTransWall <- (1 - ct)*bR*Nutr*TransWall + gdbulkWall*DWall*RWall +
+      gtbulkWall*TransWall*RWall - MigrWallLum*TransWall + MigrLumWall*TransLum/ScaleAreaPerVol
     
     return(list(c(dNutr, dDLum, dRLum, dTransLum, dDWall, dRWall, dTransWall)))
   })
@@ -314,6 +323,11 @@ CalcEigenvalues <- function(MyData) {
   return(InfoEigVal)
 }
 
+# Simulations using the pair-formation and the bulk model. The plasmid-free
+# equilibrium (Nutr*, RLum*, RWall*) with the addition of DInitLum and DInitWall
+# donor bacteria per mL to the lumen and wall compartment, respectively is used
+# as state. Note that stol is based on the average of absolute rates of change,
+# not the sum.
 SimulationPairs <- function(InputSimulationPairs) {
   parms <- InputSimulationPairs
   state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]],
@@ -327,9 +341,6 @@ SimulationPairs <- function(InputSimulationPairs) {
   return(EqAfterInvDonor)
 }
 
-# The initial state is the plasmid-free equilibrium (RLum*, RWall*, Nutr*) with the
-# addition of DInit donor bacteria per mL. Note that stol is based on the average
-# of absolute rates of change, not the sum.
 SimulationBulk <- function(InputSimulationBulk) {
   parms <- InputSimulationBulk
   state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumEq"]], TransLum = 0, 
@@ -400,7 +411,8 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
     mylwd <- c(rep(2, 4), rep(1, 3))
     if(type == "Total") {
       maintitle <- "Pair model, totals"
-      SelectedColumns <- c("Nutr", "TotalDLum", "TotalRLum", "TotalTransLum", "TotalDWall", "TotalRWall", "TotalTransWall")
+      SelectedColumns <- c("Nutr", "TotalDLum", "TotalRLum", "TotalTransLum",
+                           "TotalDWall", "TotalRWall", "TotalTransWall")
     } else {
       maintitle <- "Bulk model"
       SelectedColumns <- NULL
