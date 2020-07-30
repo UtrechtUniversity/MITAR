@@ -1,13 +1,4 @@
 #### Two-compartment pair-formation model of conjugation ####
-# Copy-pasted the script of the one-compartment pairformation model.
-
-# The upper part of the script should be able to run independently and applies to
-# two-compartment pair-formation model of conjugation, as far as the change from
-# the one-compartment to the two-compartment is implemented.
-
-# The lower part of the script (after a line of #####) is the part of the
-# script for the one-compartment model that is not yet changed to the
-# two-compartment model.
 
 ### To do ###
 # Also see the 'To do' section in the pair-formation script for the one-compartment model
@@ -38,6 +29,11 @@
 # to be an open square tube, the surface in square cm equals 4 times the
 # volume in cubic cm). When modelling a round tube, the volume / surface = r / 2,
 # irrespective of chosen length.
+
+# Saving plots in PlotOverTime() (called from RunOverTime()) fails after the
+# first plot because names are the same. Add 'Iteration' as column to data
+# and append the value from that column to the name? That would als make it
+# easier to see which plot is which iteration (so also print it in graph subtitles).
 
 #### References ####
 
@@ -622,3 +618,123 @@ MyData[, "TotalBioWallBulk"] <- MyData[, "RWallBulk"] + MyData[, "TotalPlasmidWa
 
 write.csv(MyData, file = paste0(DateTimeStamp, "outputtwocompartment.csv"),
           quote = FALSE, row.names = FALSE)
+
+##### To create plots over time #####
+myltypairs <- c(lty = c(3, rep(c(1, 2, 1, 1, 1, 1, 1), 2)))
+myltyother <- c(lty = c(3, rep(c(1, 2, 1), 2)))
+mycolpairs <- c("black", rep(c("purple", "green1", "red", "yellow", "hotpink", "blue", "cyan"), 2))
+mycolother <- c("black", rep(c("purple", "green1", "red"), 2))
+myylim <- c(1E-6, 1E7)
+yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
+verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed
+Mytmax <- c(500)
+Mytstep <- c(0.1)
+TheseRows <- 1:nrow(MyData) # Rows to use for simulations over time
+
+Mydf <- MyData[TheseRows, ColumnsToSelect]
+TotalIterations <- length(TheseRows)
+print(TotalIterations)
+
+# Times for which output of the simulation is wanted. Note that the used
+# ode-solvers are variable-step methods, so the times in times are NOT the only
+# times at which integration is performed. See help(diagnostics.deSolve()) and
+# help(lsodar()) for details.
+times <- seq(from = 0, to = Mytmax, by = Mytstep)
+
+RunOverTime <- function(parms = Mydf, verbose = FALSE, type = "Pair", ...) {
+  state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumEq"]],
+             TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
+             DWall = parms[["DInitWall"]], RWall = parms[["RWallEq"]],
+             TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0)
+  out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms, verbose = verbose)
+  out2 <- cbind(out2, TotalDLum = NA, TotalRLum = NA, TotalTransLum = NA,
+                TotalDWall = NA, TotalRWall = NA, TotalTransWall = NA)
+  out2[, "TotalDLum"] <- out2[, "DLum"] + out2[, "MdrLum"] + out2[, "MdtLum"]
+  out2[, "TotalRLum"] <- out2[, "RLum"] + out2[, "MdrLum"] + out2[, "MrtLum"]
+  out2[, "TotalTransLum"] <- out2[, "TransLum"] + out2[, "MdtLum"] + out2[, "MrtLum"] + 2*out2[, "MttLum"]
+  out2[, "TotalDWall"] <- out2[, "DWall"] + out2[, "MdrWall"] + out2[, "MdtWall"]
+  out2[, "TotalRWall"] <- out2[, "RWall"] + out2[, "MdrWall"] + out2[, "MrtWall"]
+  out2[, "TotalTransWall"] <- out2[, "TransWall"] + out2[, "MdtWall"] + out2[, "MrtWall"] + 2*out2[, "MttWall"]
+  
+  EqAfterInvasion <- tail(out2, 1)
+  if(verbose == TRUE) {
+    print(diagnostics(out2))
+    print(attributes(out2))
+  }
+  PlotOverTime(plotdata = out2, parms = parms, type = type, verbose = verbose, saveplot = saveplots)
+  stateBulk <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumEq"]], TransLum = 0,
+                 DWall = parms[["DInitWall"]], RWall = parms[["RWallEq"]], TransWall = 0)
+  out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parms, verbose = verbose)
+  EqAfterInvasionBulk <- tail(out2bulk, 1)
+  if(verbose == TRUE) {
+    print(diagnostics(out2bulk))
+    print(attributes(out2bulk))
+  }
+  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", saveplot = saveplots)
+  EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
+  names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
+                                   paste0(colnames(EqAfterInvasionBulk), "Bulk"))
+  return(EqAfterInvasionTotal)
+}
+
+PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot = saveplots, ...) {
+  subtitle <- paste0("kp=", parms[["kp"]], ", ", parms[["kpWall"]],
+                     " kn=", parms[["kn"]], ", ", parms[["knWall"]],
+                     " gd=", parms[["gd"]], " gt=", parms[["gt"]],
+                     " gdbulk=", signif(parms[["gdbulkLum"]], 3),
+                     ", ", signif(parms[["gdbulkWall"]], 3), 
+                     " gtbulk=", signif(parms[["gtbulkLum"]], 3),
+                     ", ", signif(parms[["gtbulkWall"]], 3),
+                     " cd=", parms[["cd"]], " ct=", parms[["ct"]],
+                     " bR=", parms[["bR"]], " NI=", parms[["NI"]],
+                     " NutrConv=", parms[["NutrConv"]], " w=", parms[["w"]]
+  )
+  if(type == "Pair") {
+    maintitle <- "Pair model"
+    mycol <- mycolpairs
+    mylty <- myltypairs
+    mylwd <- c(rep(2, 8), rep(1, 7))
+    SelectedColumns <- c("Nutr", "DLum", "RLum", "TransLum", "MdrLum", "MdtLum", "MrtLum", "MttLum",
+                         "DWall", "RWall", "TransWall", "MdrWall", "MdtWall", "MrtWall", "MttWall")
+  } else {
+    mycol <- mycolother
+    mylty <- myltyother
+    mylwd <- c(rep(2, 4), rep(1, 3))
+    if(type == "Total") {
+      maintitle <- "Pair model, totals"
+      SelectedColumns <- c("Nutr", "TotalDLum", "TotalRLum", "TotalTransLum", "TotalDWall", "TotalRWall", "TotalTransWall")
+    } else {
+      maintitle <- "Bulk model"
+      SelectedColumns <- NULL
+    }
+  }
+  if(saveplot == TRUE) {
+    filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
+    if(file.exists(filename)) {
+      warning("File already exists, not saved again!")
+    } else {
+      png(filename = filename)
+    }
+    matplot.deSolve(plotdata, which = SelectedColumns, main = maintitle,
+                    sub = subtitle, ylim = myylim, log = if(yaxislog == 1) {"y"},
+                    col = mycol, lty = mylty, lwd = mylwd,
+                    legend = list(x = "bottomright"))
+    grid()
+    if(file.exists(filename) == FALSE) {
+      dev.off()
+    }
+  } else {
+    matplot.deSolve(plotdata, which = SelectedColumns, main = maintitle,
+                    sub = subtitle, ylim = myylim, log = if(yaxislog == 1) {"y"},
+                    col = mycol, lty = mylty, lwd = mylwd,
+                    legend = list(x = "bottomright"))
+    grid()
+  }
+}
+
+# To see the dynamics of the different populations
+EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Pair"))
+
+# To compare total numbers of donors, recipients, and transconjugants in the
+# output of the pair-formation model with the bulk-formation model
+EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Total"))
