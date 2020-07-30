@@ -391,7 +391,7 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 
 ## Stable co-existence of recipients, transconjugants, and Mrt and Mtt pairs
 # bRSet <- 1.7; NISet <- 10; kpSet <- 10^-9.6; knSet <- 10^0.5
-# NutrConv <- 1E-6; wSet <- 0.04; cdSet <- 0.05; ctSet <- 0.05;
+# NutrConvSet <- 1E-6; wSet <- 0.04; cdSet <- 0.05; ctSet <- 0.05;
 # gdSet <- 10^1.176; gtSet <- 10^1.176; DInitSet <- 1000
 # Leads to time = 843129.4, Nutr = 0.02427729 D = 0, R = 3829217, Trans = 6142815,
 # Mdr = Mdt = 0, Mrt = 324.6586, Mtt = 1520.435, timeBulk = 728451.6,
@@ -401,7 +401,7 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 DInitSet <- c(1000)
 bRSet <- c(1.7)
 NISet <- c(10)
-NutrConv <- c(1E-6)
+NutrConvSet <- c(1E-6)
 wSet <- c(0.04)
 kpSet <- 10^seq(-10, -6, 2)
 knSet <- 10^seq(-1, 3, 2)
@@ -414,7 +414,7 @@ gtSet <- 15
 DInitSet <- c(10, 1E3)
 bRSet <- c(0.2, 2)
 NISet <- c(1, 10, 100)
-NutrConv <- c(1e-6, 1e-7)
+NutrConvSet <- c(1e-6, 1e-7)
 wSet <- c(0.04)
 kpSet <- 10^seq(from = -11, to = -5, by = 2)
 knSet <- 10^seq(from = -1, to = 3, by = 2)
@@ -427,7 +427,7 @@ gtSet <- c(1, 20)
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
-NutrConv <- 1e-6
+NutrConvSet <- 1e-6
 wSet <- c(0.04)
 kpSet <- 10^seq(from = -10, to = -6, by = 0.25)
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
@@ -441,7 +441,7 @@ gtSet <- c(10, 15)
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
-NutrConv <- 1e-6
+NutrConvSet <- 1e-6
 wSet <- c(0.04)
 kpSet <- 10^seq(from = -10, to = -6, by = 0.2)
 knSet <- 10^seq(from = -1, to = 3, by = 0.2)
@@ -461,17 +461,17 @@ gtSet <- c(10, 15)
 
 #### Main script ####
 
-CheckParms <- c(DInitSet, bRSet, NISet, NutrConv, wSet, kpSet, knSet, cdSet, ctSet)
+CheckParms <- c(DInitSet, bRSet, NISet, NutrConvSet, wSet, kpSet, knSet, cdSet, ctSet)
 if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
 if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
 
-TotalIterations <- length(DInitSet)*length(bRSet)*length(NISet)*length(NutrConv)*
+TotalIterations <- length(DInitSet)*length(bRSet)*length(NISet)*length(NutrConvSet)*
   length(wSet)*length(kpSet)*length(knSet)*length(cdSet)*length(ctSet)*
   length(gdSet)*length(gtSet)
 TotalIterations
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
-MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
+MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConvSet, w = wSet)
 
 Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
 
