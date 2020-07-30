@@ -452,7 +452,7 @@ DInitLumSet <- c(1E3)
 DInitWallSet <- c(1E3)
 bRSet <- c(0.2, 0.8, 1.7)
 NISet <- c(0.1, 1, 10)
-NutrConv <- c(1e-8, 1e-6, 1e-4, 1e-2)
+NutrConvSet <- c(1e-8, 1e-6, 1e-4, 1e-2)
 wSet <- c(0.01, 0.04, 0.10)
 MigrLumWallSet <- c(0.01, 0.05, 0.1)
 MigrWallLumSet <- c(0.01, 0.05, 0.1)
@@ -471,7 +471,7 @@ DInitLumSet <- c(1E3)
 DInitWallSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
-NutrConv <- c(1e-6)
+NutrConvSet <- c(1e-6)
 wSet <- c(0.04)
 MigrLumWallSet <- c(0.05)
 MigrWallLumSet <- c(0.1)
@@ -496,7 +496,7 @@ DInitLumSet <- c(1E3)
 DInitWallSet <- c(0)
 bRSet <- c(1.7)
 NISet <- c(1, 10, 100)
-NutrConv <- c(1e-6)
+NutrConvSet <- c(1e-6)
 wSet <- c(0.04)
 MigrLumWallSet <- c(0.05)
 MigrWallLumSet <- c(0.1)
@@ -515,7 +515,7 @@ DInitLumSet <- c(1E3)
 DInitWallSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(1, 10, 100)
-NutrConv <- c(1e-6)
+NutrConvSet <- c(1e-6)
 wSet <- c(0.04)
 MigrLumWallSet <- c(0.05)
 MigrWallLumSet <- c(0.1)
@@ -536,7 +536,7 @@ DInitLumSet <- c(1E3)
 DInitWallSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
-NutrConv <- c(1e-6)
+NutrConvSet <- c(1e-6)
 wSet <- c(0.04)
 MigrLumWallSet <- c(0.05)
 MigrWallLumSet <- c(0.05)
@@ -551,21 +551,22 @@ gdSet <- c(15)
 gtSet <- c(15)
 
 #### Main script ####
-
-CheckParms <- c(DInitLumSet, DInitWallSet, bRSet, NISet, NutrConv, MigrLumWallSet, MigrWallLumSet,
-                ScaleAreaPerVolSet, wSet, kpSet, knSet, kpWallSet, knWallSet,
-                cdSet, ctSet)
-if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
+CheckParms <- c(DInitLumSet = DInitLumSet, DInitWallSet = DInitWallSet, bRSet = bRSet,
+                NISet = NISet, NutrConvSet = NutrConvSet, MigrLumWallSet = MigrLumWallSet,
+                MigrWallLumSet = MigrWallLumSet, ScaleAreaPerVolSet = ScaleAreaPerVolSet,
+                wSet = wSet, kpSet = kpSet, knSet = knSet, kpWallSet = kpWallSet,
+                knWallSet = knWallSet, cdSet = cdSet, ctSet = ctSet)
+if(any(CheckParms <= 0)) warning(cat("Parameter(s)", names(which(CheckParms <= 0)), "contain(s) non-positive values."))
 if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
 
-TotalIterations <- length(DInitLumSet)*length(DInitWallSet)*length(bRSet)*length(NISet)*length(NutrConv)*
+TotalIterations <- length(DInitLumSet)*length(DInitWallSet)*length(bRSet)*length(NISet)*length(NutrConvSet)*
   length(wSet)*length(MigrLumWallSet)*length(MigrWallLumSet)*length(ScaleAreaPerVolSet)*
   length(kpSet)*length(knSet)*length(kpWallSet)*length(knWallSet)*length(cdSet)*
   length(ctSet)*length(gdSet)*length(gtSet)
 TotalIterations
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
-MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet,
+MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConvSet, w = wSet,
                       MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
                       ScaleAreaPerVol = ScaleAreaPerVolSet)
 dim(MyData)
@@ -589,19 +590,11 @@ if(any(Eqplasmidfree2[, "RLumEq2"] > 0 & Eqplasmidfree2[, "RWallEq2"] > 0)) {
 }
 
 MyData <- cbind(MyData, Eqplasmidfree)
-head(MyData)
-
 print("Plasmid-free equilibrium calculated:")
 print(Sys.time())
 
 ## Approximate gdbulk and gtbulk in the lumen
-dim(MyData)
-head(MyData)
 MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInitLum = DInitLumSet, DInitWall = DInitWallSet, kp = kpSet, kn = knSet)
-
-dim(MyData)
-head(MyData)
-
 DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulkLum))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
@@ -611,30 +604,15 @@ gdbulkLum <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstC
 TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
 TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
 gtbulkLum <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
-
-dim(MyData)
-head(MyData)
 MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
 
-
 ## Approximate gdbulk and gtbulk at the wall
-
-as.data.frame(MyData)
-dim(MyData)
-head(MyData)
 MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
-
-as.data.frame(MyData)
-dim(MyData)
-head(MyData)
 
 # Replace columns kn and kn with the values in the columns kpWall and knWall in new dataframe
 # to be used to estimate bulk conjugation rates at the wall
 MyDataWall <- cbind(MyData[, 1:(which(names(MyData)=="kp") - 1)],
                     kp = unname(MyData[, "kpWall"]), kn = unname(MyData[, "knWall"]))
-dim(MyDataWall)
-head(MyDataWall)
-
 DataEstConjBulk <- t(apply(X = MyDataWall, MARGIN = 1, FUN = EstConjBulkWall))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
@@ -665,8 +643,6 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulationtwocompartment
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
-
-BackupMyData <- MyData
 
 IndexSimulation <- which(MyData$SignDomEigVal != -1)
 print(paste(length(IndexSimulation), "simulations to run for the pair-formation model"))
