@@ -5,6 +5,10 @@
 
 # Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
 
+# Does using stol = 1.25E-6 for 8 equations in SimulationPairs and stol = 2.5E-6
+# for 4 equations in SimulationBulk make sense if one wants the simulations to
+# terminate at the same densities?
+
 # For PlotOverTime, I want the plot to be always shown, and saved only if save = TRUE.
 # Change to using ggplot instead of matplot.deSolve to enable saving an object through ggsave(...)
 
@@ -18,7 +22,7 @@
 
 ## Voor plots over time waar ik het pair-formation en het bulk-model met elkaar Vergelijk
 # is plotten van TotalD, TotalR, TotalTrans van het pair-model en DBulk, RBulk, TransBulk van het bulk-model
-# een betere vergelijking
+# een betere vergelijking, zie PlotOverTime uit het script voor het twee-compartimenten model.
 
 # SummaryPlot() does not use the names of the arguments for creating titles
 
@@ -180,11 +184,12 @@ EstConjBulk <- function(MyData) {
 
 # ODE-model describing pair-formation and conjugation. Pair-formation between
 # plasmid-free recipients and plasmid-bearing donors or transconjugants depends
-# on attachment rate kp. Conjugation from the donor or transconjugant occurs in
+# on attachment rate kp. Conjugation from donors or transconjugants occurs in
 # the Mdr and Mrt pairs with intrinsic conjugation rates gd and gt respectively.
-# This leads to formation of Mdt and Mtt pairs. The pairs fall apart with
-# detachment rate kn. This structure of pair-formation is based on Zhong's model
-# (Zhong 2010). I expanded the model to include costs, washout, and nutrients.
+# This leads to formation of Mdt and Mtt pairs. Pairs fall apart with detachment
+# rate kn. This structure of pair-formation is based on Zhong's model (Zhong
+# 2010). I expanded the model to include costs in growth for plasmid-bearing
+# bacteria, washout, and nutrients.
 ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutr <- (NI - Nutr)*w - NutrConv*Nutr*((1 - cd)*bR*(D + Mdr + Mdt) + bR*(R + Mdr + Mrt) +
@@ -217,7 +222,8 @@ ModelBulkNutr <- function(t, state, parms) {
 # The maximum real part of the eigenvalues is used to determine stability.
 CalcEigenvalues <- function(MyData) {
   parms <- MyData
-  EqFull <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+  EqFull <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0,
+              Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   EigVal <- eigen(x = jacobian.full(y = EqFull, func = ModelPairsNutr, parms = parms),
                   symmetric = FALSE, only.values = TRUE)$values
   ComplexEigVal <- is.complex(EigVal) 
@@ -245,9 +251,10 @@ CalcEigenvalues <- function(MyData) {
   return(InfoEigVal)
 }
 
-# The initial state is the plasmid-free equilibrium (R*, Nutr*) with the
-# addition of DInit donor bacteria per mL. Note that stol is based on the average
-# of absolute rates of change, not the sum.
+# Simulations using the pair-formation and the bulk model. The plasmid-free
+# equilibrium (Nutr*, R*) with the addition of DInit donor bacteria per mL is
+# used as state. Note that stol is based on the average of absolute rates of
+# change, not the sum.
 SimulationPairs <- function(InputSimulationPairs) {
   parms <- InputSimulationPairs
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
@@ -258,7 +265,6 @@ SimulationPairs <- function(InputSimulationPairs) {
   return(EqAfterInvDonor)
 }
 
-# Run the bulk-conjugation model
 SimulationBulk <- function(InputSimulationBulk) {
   parms <- InputSimulationBulk
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
@@ -495,6 +501,7 @@ MyData <- cbind(MyData, gdbulk = gdbulk, gtbulk = gtbulk)
 print("Bulk-conjugation rates estimated:")
 print(Sys.time())
 
+# calculate (or approximate?) eigenvalues
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
 
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
@@ -756,8 +763,8 @@ plotoutput <- 1
 extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
 smallchange <- c(1E-5)
-Mytmax <- c(1E3)
-Mytstep <- c(1)
+Mytmax <- c(1E4)
+Mytstep <- c(10)
 
 #### Create matrix to store data ####
 TheseRows <- c(1, nrow(MyData))
@@ -771,7 +778,7 @@ CurrentIteration <- 0
 # Note that the used ode-solvers are variable-step methods, so the times in times
 # are NOT the only times at which integration is performed. See
 # help(diagnostics.deSolve()) and help(lsodar()) for details.
-times <- seq(from = 0, to = Mytmax, by = Mytstep)
+times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 
 # Define root-function and event-function
 # If the root-argument is equal to 0, an event (as defined by the event-function)
@@ -868,7 +875,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
       abline(h = extinctionthreshold)
       abline(v = attributes(plotdata)$troot)
     }
-    if(saveplot == TRUE & file.exists(filename) == FALSE) {
+    if(file.exists(filename) == FALSE) {
       dev.off()
     }
   } else {
