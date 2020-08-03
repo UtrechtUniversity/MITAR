@@ -38,6 +38,22 @@
 # and append the value from that column to the name? That would als make it
 # easier to see which plot is which iteration (so also print it in graph subtitles).
 
+## To check if other parameters than kp, kn, gd, gt, cd, ct which are separately
+# shown in the plot have multiple values (which leads to plotting multiple values
+# on top of each other) the following can be used:
+# # Parms <- list(DInitLumSet = DInitLumSet, DInitWallSet = DInitWallSet, bRSet = bRSet,
+# NISet = NISet, NutrConvSet = NutrConvSet, MigrLumWallSet = MigrLumWallSet,
+# MigrWallLumSet = MigrWallLumSet, ScaleAreaPerVolSet = ScaleAreaPerVolSet,
+# wSet = wSet, kpSet = kpSet, knSet = knSet, kpWallSet = kpWallSet,
+# knWallSet = knWallSet, cdSet = cdSet, ctSet = ctSet)
+# ColIndexRelParms <- which(lengths(Parms) > 1)
+# NamesRelParms <- names(ColIndexRelParms)
+# expand.grid(Parms[ColIndexRelParms])
+# NamesToSkip <- c("kpSet", "knSet", "cdSet", "ctSet", "gdSet", "gtSet")
+# ColIndexRelParmsSelection <- ColIndexRelParms[-c(which(names(ColIndexRelParms) %in% NamesToSkip))]
+# NamesRelParmsSelection <- names(ColIndexRelParmsSelection)
+# ParmsSetsToSubset <- expand.grid(Parms[NamesRelParmsSelection])
+
 #### References ####
 
 # Zhong 2010: Zhong X, Krol JE, Top EM, Krone SM. 2010. Accounting for mating
@@ -476,18 +492,20 @@ wSet <- c(0.04)
 MigrLumWallSet <- c(0.05)
 MigrWallLumSet <- c(0.1)
 ScaleAreaPerVolSet <- c(0.8)
-kpSet <- 10^seq(from = -10, to = -6, by = 2)
-knSet <- 10^seq(from = -1, to = 1, by = 2)
+kpSet <- 10^seq(from = -10, to = -6, by = 1)
+knSet <- 10^seq(from = -1, to = 1, by = 1)
 # kpSet <- 10^-8
 # knSet <- 10
-# kpWallSet <- 10^seq(from = -10, to = -6, by = 2)
-# knWallSet <- 10^seq(from = -1, to = 3, by = 2)
-kpWallSet <- 10^-8
-knWallSet <- 1
+kpWallSet <- 10^seq(from = -10, to = -6, by = 2)
+knWallSet <- 10^seq(from = -1, to = 3, by = 2)
+# kpWallSet <- 10^-8
+# knWallSet <- 1
 cdSet <- c(0.05)
 ctSet <- c(0.05)
-gdSet <- c(15)
-gtSet <- c(15)
+cdSet <- c(0.01, 0.05)
+ctSet <- c(0.01, 0.05)
+gdSet <- c(1, 15)
+gtSet <- c(1, 15)
 
 
 # Testing influence of different REq on approximations of bulk conjugationrates
@@ -555,7 +573,7 @@ CheckParms <- c(DInitLumSet = DInitLumSet, DInitWallSet = DInitWallSet, bRSet = 
                 NISet = NISet, NutrConvSet = NutrConvSet, MigrLumWallSet = MigrLumWallSet,
                 MigrWallLumSet = MigrWallLumSet, ScaleAreaPerVolSet = ScaleAreaPerVolSet,
                 wSet = wSet, kpSet = kpSet, knSet = knSet, kpWallSet = kpWallSet,
-                knWallSet = knWallSet, cdSet = cdSet, ctSet = ctSet)
+                knWallSet = knWallSet, cdSet = cdSet, ctSet = ctSet, gdSet = gdSet, gtSet = gtSet)
 if(any(CheckParms <= 0)) warning(cat("Parameter(s)", names(which(CheckParms <= 0)), "contain(s) non-positive values."))
 if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
 
