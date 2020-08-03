@@ -53,7 +53,9 @@
 # are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each
 # kp*kn*cd*ct combination. I don't know how these are handled when plotting,
 # probably the different values are plotted on top of each other so only the
-# last value is visible.
+# last value is visible. See the To-do section in the script for the
+# Two-compartment model for a stub to check which parameters have multiple
+# values that are not handled as such when plotting.
 
 # Run bulk-model for short time (same as short pair-model) and compare them
 # to see if the bulk-conjugation parameter holds (automated analysis somehow)
@@ -289,7 +291,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
     labs(caption = DateTimeStamp) +
     theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
   if(gradient2 == 1) {
-    p <- p + scale_fill_gradient2(midpoint = midpoint)
+    p <- p + scale_fill_gradient2(midpoint = midpoint, limits = limits)
   } else {
     p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
     # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
@@ -383,11 +385,11 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # Washout rate (1/h): w
 
 ## To read data from csv-file
-# FileName <- "2020_juni_26_09_07_33outputsimulationcomplete.csv"
+# FileName <- "2020_augustus_03_12_54_32outputnosimulationtwocompartment.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
-#                    dec = ".", stringsAsFactors = FALSE)
+#                   dec = ".", stringsAsFactors = FALSE)
 # MyData <- as.data.frame(MyData)
-# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 28)
+# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 36)
 
 ## Stable co-existence of recipients, transconjugants, and Mrt and Mtt pairs
 # bRSet <- 1.7; NISet <- 10; kpSet <- 10^-9.6; knSet <- 10^0.5
