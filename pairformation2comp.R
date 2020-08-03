@@ -366,6 +366,51 @@ SimulationBulk <- function(InputSimulationBulk) {
   return(EqAfterInvDonor)
 }
 
+CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, dataplot = MyData,
+                       xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots, ...) {
+  CumRowIndex <- NULL
+  iteration <- 1
+  dataplottotal <- dataplot
+  for(kpWallsubset in unique(dataplottotal[, "kpWall"])) {
+    for(knWallsubset in unique(dataplottotal[, "knWall"])) {
+      subtitle <- paste0("kpWall= ", kpWallsubset, " knWall=", knWallsubset)
+      RowIndex <- dataplottotal[, "kpWall"] == kpWallsubset & dataplottotal[, "knWall"] == knWallsubset
+      dataplot <- dataplottotal[RowIndex, ]
+      if(exists("DateTimeStamp") == FALSE) {
+        warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
+        DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
+      }
+      mycaption <- paste(DateTimeStamp, subtitle)
+      
+      p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar), subtitle = subtitle) + 
+        geom_raster() +
+        scale_x_continuous(expand = c(0, 0)) +
+        scale_y_continuous(expand = c(0, 0)) +
+        facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+        labs(caption = mycaption) +
+        theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
+      if(gradient2 == 1) {
+        p <- p + scale_fill_gradient2(midpoint = midpoint, limits = limits)
+      } else {
+        p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
+        # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
+      }
+      print(p)
+      if(save == TRUE) {
+        fillvarname <- gsub("/", ".", fillvar)
+        fillvarname <- gsub(" ", "", fillvarname)
+        filename <- paste0(DateTimeStamp, "output", fillvarname, iteration, ".png")
+        if(file.exists(filename)) {
+          warning("File already exists, not saved again!")
+        } else {
+          ggsave(filename)
+        }
+      }
+      iteration <- iteration + 1
+    }
+  }
+}
+
 RunOverTime <- function(parms = Mydf, verbose = FALSE, type = "Pair", ...) {
   state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumEq"]],
              TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
@@ -658,6 +703,18 @@ print(Sys.time())
 DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulationtwocompartment.csv"),
           quote = FALSE, row.names = FALSE)
+
+### Some plotting ###
+# See the one-compartment script for more plots
+CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, dataplot = MyData, limits = c(-1, 1))
+CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1, dataplot = MyData, limits = c(-1, 1))
+
+limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulkLum, MyData$gtbulkLum, MyData$gdbulkWall, MyData$gtbulkWall)))),
+                     ceiling(max(log10(c(MyData$gdbulkLum, MyData$gtbulkLum, MyData$gdbulkWall, MyData$gtbulkWall)))))
+CreatePlot(fillvar = "log10(gdbulkLum)", dataplot = MyData, limits = limitsbulkrates)
+CreatePlot(fillvar = "log10(gtbulkLum)", dataplot = MyData, limits = limitsbulkrates)
+CreatePlot(fillvar = "log10(gdbulkWall)", dataplot = MyData, limits = limitsbulkrates)
+CreatePlot(fillvar = "log10(gtbulkWall)", dataplot = MyData, limits = limitsbulkrates)
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
