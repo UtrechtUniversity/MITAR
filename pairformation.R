@@ -255,8 +255,8 @@ CalcEigenvalues <- function(MyData) {
 
 # Simulations using the pair-formation and the bulk model. The plasmid-free
 # equilibrium (Nutr*, R*) with the addition of DInit donor bacteria per mL is
-# used as state. Note that stol is based on the average of absolute rates of
-# change, not the sum.
+# used as initial state. Note that stol is based on the average of absolute
+# rates of change, not the sum.
 SimulationPairs <- function(InputSimulationPairs) {
   parms <- InputSimulationPairs
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
@@ -291,7 +291,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
     labs(caption = DateTimeStamp) +
     theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
   if(gradient2 == 1) {
-    p <- p + scale_fill_gradient2(midpoint = midpoint, limits = limits)
+    p <- p + scale_fill_gradient2(low = "darkblue", high = "darkred", midpoint = midpoint, limits = limits)
   } else {
     p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
     # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
@@ -452,6 +452,20 @@ ctSet <- c(0.01, 0.05)
 gdSet <- c(10, 15)
 gtSet <- c(10, 15) 
 
+## Use for 1- and 2-compartment model
+DInitSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- c(10)
+NutrConvSet <- 1e-6
+wSet <- c(0.04)
+kpSet <- 10^seq(from = -10, to = -6, by = 0.25)
+knSet <- 10^seq(from = -1, to = 3, by = 0.25)
+cdSet <- c(0.01, 0.05)
+ctSet <- c(0.01, 0.05)
+gdSet <- c(15)
+gtSet <- c(15) 
+
+
 ## Using steps of 0.1 for kp and kn did not work
 # Error: DLSODE- at T (=R1) and step size H (=R2), the corrector convergence failed repeatedly
 # or with ABS(H)=HMIN. IN above message, R = 1.499002e+05, 2.091563e-09
@@ -532,12 +546,13 @@ PlotData <- MyData[which(MyData[, "cd"]==0.01 & MyData[, "ct"]==0.01 ), ]
 CreatePlot(data = PlotData, fillvar = "pmax(gdbulk, gtbulk)/pmin(gdbulk, gtbulk)")
 CreatePlot(data = PlotData, fillvar = "gdbulk/gtbulk")
 
-CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1)
-CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1)
-CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk", gradient2 = 1)
-
 summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
 summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
+
+# Instead of these plots, use the plots with hardcoded legends below
+# CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1)
+# CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1)
+# CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk", gradient2 = 1)
 
 # Note: hardcoded legend
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
@@ -554,6 +569,7 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
 }
 
+# Note: hardcoded legend
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigValBulk))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -579,7 +595,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   scale_fill_manual(values = c("0" = "darkblue"),
                     name = "Difference in sign eigenvalues")
 if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "Difference in sign eigenvalues.png"))
+  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvalues.png"))
 }
 
 # Create limits to have the same limits and colorscale for the two plots
