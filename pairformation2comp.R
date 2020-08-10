@@ -75,7 +75,6 @@ saveplots <- 0
 tmaxsteady <- 1e8
 timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
-# mycol <- c("black", brewer.pal(7, "Set1"))
 
 #### Functions ####
 
@@ -342,8 +341,8 @@ CalcEigenvalues <- function(MyData) {
 # Simulations using the pair-formation and the bulk model. The plasmid-free
 # equilibrium (Nutr*, RLum*, RWall*) with the addition of DInitLum and DInitWall
 # donor bacteria per mL to the lumen and wall compartment, respectively is used
-# as state. Note that stol is based on the average of absolute rates of change,
-# not the sum.
+# as initial state. Note that stol is based on the average of absolute rates of
+# change, not the sum.
 SimulationPairs <- function(InputSimulationPairs) {
   parms <- InputSimulationPairs
   state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]],
@@ -390,7 +389,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
         labs(caption = mycaption) +
         theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
       if(gradient2 == 1) {
-        p <- p + scale_fill_gradient2(midpoint = midpoint, limits = limits)
+        p <- p + scale_fill_gradient2(low = "darkblue", high = "darkred", midpoint = midpoint, limits = limits)
       } else {
         p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
         # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
@@ -507,6 +506,12 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
 # MigrLumWallSet: rate of migration from the lumen to the wall
 # MigrWallLumSet: rate of migration from the wall to the lumen
 # See script of the one-compartment model for explanation of the other parameter values
+
+# FileName <- "2020_augustus_03_12_54_32outputnosimulationtwocompartment.csv"
+# MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
+#                   dec = ".", stringsAsFactors = FALSE)
+# MyData <- as.data.frame(MyData)
+# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 36)
 
 # Large set for testing
 DInitLumSet <- c(1E3)
