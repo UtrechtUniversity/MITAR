@@ -3,6 +3,19 @@
 
 #### To do ####
 
+# Rethink the way of defining donor growth rate and costs: unless it is assumed 
+# that the donor is the same species as the recipient, it does not make sense
+# to define donor growth rates as recipient growth rate altered by costs from
+# plasmid carriage. Instead, the donor could be assumed to have a growth rate
+# unrelated to the recipient growth rate, and if the donor is adapted to the
+# plasmid it does not have plasmid costs, but the new environment could be assumed
+# to lead to costs in growth as well.
+
+# If I want to include stochastics, see Price 'An efficient moments-based inference
+# method for within-host bacterial infection dynamics' and Volkova 'Modelling dynamics
+# of plasmid-gene mediated antimicrobial resistance in enteric bacteria using stochastic
+# differential equations' for ideas
+
 # Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
 
 # Does using stol = 1.25E-6 for 8 equations in SimulationPairs and stol = 2.5E-6
@@ -118,6 +131,10 @@ library(tidyr) # for 'expand.grid()' with dataframe as input
 
 #### Plotting options ####
 saveplots <- 0
+atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
+# to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
+# in the machine, T + H = T on the next step  [1] 0 (H = step size). Solver will
+# continue anyway', which eventually leads to aborted integration.
 tmaxsteady <- 1e8
 timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
@@ -262,7 +279,7 @@ SimulationPairs <- function(InputSimulationPairs) {
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
              R = parms[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr,
-                   parms = parms, stol = 1.25e-6)
+                   parms = parms, stol = 1.25e-6, atol = atol)
   EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
   return(EqAfterInvDonor)
 }
@@ -271,7 +288,8 @@ SimulationBulk <- function(InputSimulationBulk) {
   parms <- InputSimulationBulk
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
              R = parms[["REq"]], Trans = 0)
-  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr,
+                   parms = parms, stol = 2.5e-6, atol = atol)
   EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
   return(EqAfterInvDonor)
 }
@@ -400,15 +418,15 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # NutrBulk = 0.02430818, DBulk = 0, RBulk = 3583808, TransBulk = 6391884.
 
 ## Small parameterset for tests
-DInitSet <- c(1000)
-bRSet <- c(1.7)
-NISet <- c(10)
-NutrConvSet <- c(1E-6)
-wSet <- c(0.04)
-kpSet <- 10^seq(-10, -6, 2)
-knSet <- 10^seq(-1, 3, 2)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
+DInitSet <- 1000
+bRSet <- 1.7
+NISet <- 10
+NutrConvSet <- 1E-6
+wSet <- 0.04
+kpSet <- 10^seq(-12, -7, 0.5)
+knSet <- 10^seq(-1, 3, 0.5)
+cdSet <- 0.05
+ctSet <- 0.01
 gdSet <- 15
 gtSet <- 15
 
@@ -449,8 +467,8 @@ kpSet <- 10^seq(from = -10, to = -6, by = 0.2)
 knSet <- 10^seq(from = -1, to = 3, by = 0.2)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
-gdSet <- c(10, 15)
-gtSet <- c(10, 15) 
+gdSet <- c(1, 15)
+gtSet <- c(1, 15)
 
 ## Use for 1- and 2-compartment model
 DInitSet <- c(1E3)
