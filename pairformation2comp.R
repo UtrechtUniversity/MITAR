@@ -3,6 +3,18 @@
 #### To do ####
 # Also see the 'To do' section in the pair-formation script for the one-compartment model
 
+# Rethink the way of defining donor growth rate and costs: unless it is assumed 
+# that the donor is the same species as the recipient, it does not make sense
+# to define donor growth rates as recipient growth rate altered by costs from
+# plasmid carriage. Instead, the donor could be assumed to have a growth rate
+# unrelated to the recipient growth rate, and if the donor is adapted to the
+# plasmid it does not have plasmid costs, but the new environment could be assumed
+# to lead to costs in growth as well.
+
+# See Macken 1994 'The dynamics of bacteria-plasmid systems' for analytic treatment
+# and a way to get rid of the nutrient equation (but is that feasable if I want
+# to modify nutrient levels over time?)
+
 # Add CreatePlot() and SummaryPlot() function (see script for one-compartment
 # model)
 
@@ -72,6 +84,10 @@ library(tidyr) # for 'expand.grid()' with dataframe as input
 
 #### Plotting options ####
 saveplots <- 0
+atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
+# to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
+# in the machine, T + H = T on the next step  [1] 0 (H = step size). Solver will
+# continue anyway', which eventually leads to aborted integration.
 tmaxsteady <- 1e8
 timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
@@ -88,20 +104,15 @@ MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 # I have used two functions for the solutions to make it easier to have Eq1 and
 # Eq2 separate for further checks. Eq1 in calculations thus far usually (but not
 # always) was non-negative and Eq2 always was non-positive (sometimes it was 0).
+# RNutrEq is always positive
+# RLumEq1 is positive as long as NI > (MigrWallLum * w)^(1/2) / bR
 CalcEqPlasmidfree1 <- function(MyData) {
   with(as.list(MyData), {
-    NutrEq <- (MigrLumWall + MigrWallLum + w -
-                 (MigrLumWall^2 + 2*MigrLumWall*MigrWallLum + 2*MigrLumWall*w +
-                    MigrWallLum^2 - 2*MigrWallLum*w + w^2)^(1/2))/(2*bR)
-    RLumEq <- NI/NutrConv - (MigrLumWall + MigrWallLum + w -
-                               (MigrLumWall^2 + 2*MigrLumWall*MigrWallLum +
-                                  2*MigrLumWall*w + MigrWallLum^2 -
-                                  2*MigrWallLum*w + w^2)^(1/2))/(2*NutrConv*bR)
-    RWallEq <- (MigrLumWall*NI*bR -
-                  MigrWallLum*w + NI*bR*w)/(MigrWallLum*NutrConv*ScaleAreaPerVol*bR) +
-      ((MigrWallLum - NI*bR)*(MigrLumWall + MigrWallLum + w -
-                                (MigrLumWall^2 + 2*MigrLumWall*MigrWallLum + 2*MigrLumWall*w +
-                                   MigrWallLum^2 - 2*MigrWallLum*w + w^2)^(1/2)))/(2*MigrWallLum*NutrConv*ScaleAreaPerVol*bR)
+    A <- MigrLumWall^2 + 2*MigrLumWall*MigrWallLum + 2*MigrLumWall*w + MigrWallLum^2 - 2*MigrWallLum*w + w^2
+    NutrEq <- (MigrLumWall + MigrWallLum + w - A^(1/2))/(2*bR)
+    RLumEq <- NI/NutrConv - (MigrLumWall + MigrWallLum + w - A^(1/2))/(2*NutrConv*bR)
+    RWallEq <- (MigrLumWall*NI*bR - MigrWallLum*w + NI*bR*w)/(MigrWallLum*NutrConv*ScaleAreaPerVol*bR) + 
+      ((MigrWallLum - NI*bR)*(MigrLumWall + MigrWallLum + w - A^(1/2)))/(2*MigrWallLum*NutrConv*ScaleAreaPerVol*bR)
     Eq <- c(NutrEq = NutrEq, RLumEq = RLumEq, RWallEq = RWallEq)
     return(Eq)
   })
@@ -351,19 +362,21 @@ SimulationPairs <- function(InputSimulationPairs) {
              RWall = parms[["RWallEq"]], TransWall = 0, MdrWall = 0, MdtWall = 0,
              MrtWall = 0, MttWall = 0)
   out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr,
-                   parms = parms, stol = 1.25e-6)
+                   parms = parms, stol = 1.25e-6, atol = atol)
   EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
   return(EqAfterInvDonor)
 }
 
-SimulationBulk <- function(InputSimulationBulk) {
+SimulationBulk <- function(InputSimulationBulk, ...) {
   parms <- InputSimulationBulk
   state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumEq"]], TransLum = 0, 
              DWall = parms[["DInitWall"]], RWall = parms[["RWallEq"]], TransWall = 0)
-  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr,
+                   parms = parms, stol = 2.5e-6, atol = atol)
   EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
   return(EqAfterInvDonor)
 }
+
 
 CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, dataplot = MyData,
                        xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots, ...) {
@@ -532,6 +545,25 @@ ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
 gtSet <- c(1, 15)
 
+### Set testing if MigrLumWall >> MigrWallLum leads to easier invasion of plasmid
+DInitLumSet <- c(1E3)
+DInitWallSet <- c(0)
+bRSet <- 1.7
+NISet <- 10
+NutrConvSet <- 1e-6
+wSet <- 0.04
+MigrLumWallSet <- c(0.01, 0.05, 0.1, 0.3)
+MigrWallLumSet <- 0.05
+ScaleAreaPerVolSet <- 1
+kpSet <- 10^-9
+knSet <- 10^c(2)
+kpWallSet <- 10^-9
+knWallSet <- 10^c(2)
+cdSet <- c(0.01)
+ctSet <- c(0.05)
+gdSet <- c(15)
+gtSet <- c(15)
+
 # Smaller set for testing
 DInitLumSet <- c(1E3)
 DInitWallSet <- c(1E3)
@@ -597,6 +629,11 @@ ctSet <- c(0.05)
 gdSet <- c(15)
 gtSet <- c(15)
 
+# NOTE: populations vanishing and then growing back again!!
+times <- seq(0, 6E5, 100)
+system.time(outovertime <- ode(t = times, y = state, func = ModelBulkNutr, parms = InputSimulationBulk))
+matplot.deSolve(outovertime, lwd = 2, log = "y", ylim = c(1e-12, 1e8))
+grid()
 
 ### Why do DLum and DWall behave differently from each other in the first ~200h hours
 ### in the pair-formation model (the drop in densities is not seen in bulk model)
@@ -608,7 +645,7 @@ NutrConvSet <- c(1e-6)
 wSet <- c(0.04)
 MigrLumWallSet <- c(0.05)
 MigrWallLumSet <- c(0.05)
-ScaleAreaPerVolSet <- c(1.2)
+ScaleAreaPerVolSet <- c(1)
 kpSet <- 10^-10
 knSet <- c(0.1, 10)
 kpWallSet <- c(10^-8, 10^-6)
@@ -618,13 +655,34 @@ ctSet <- c(0.05)
 gdSet <- c(15)
 gtSet <- c(15)
 
+### How does ability to invade depend on kpWall vs knWall
+DInitLumSet <- 1E3
+DInitWallSet <- c(1E3)
+bRSet <- 1.7
+NISet <- 10
+NutrConvSet <- 1e-6
+wSet <- seq(0.02, 0.1, 0.02)
+MigrLumWallSet <- seq(0.05, 0.5, 0.05)
+MigrWallLumSet <- 0.1
+ScaleAreaPerVolSet <- c(1)
+kpSet <- 10^c(-11, -10, -9, -8)
+knSet <- 1
+kpWallSet <- 10^c(-11, -10, -9, -8)
+knWallSet <- 1
+cdSet <- 0.05
+ctSet <- 0.01
+gdSet <- 15
+gtSet <- 15
+
+
 #### Main script ####
 CheckParms <- c(DInitLumSet = DInitLumSet, DInitWallSet = DInitWallSet, bRSet = bRSet,
                 NISet = NISet, NutrConvSet = NutrConvSet, MigrLumWallSet = MigrLumWallSet,
                 MigrWallLumSet = MigrWallLumSet, ScaleAreaPerVolSet = ScaleAreaPerVolSet,
                 wSet = wSet, kpSet = kpSet, knSet = knSet, kpWallSet = kpWallSet,
                 knWallSet = knWallSet, cdSet = cdSet, ctSet = ctSet, gdSet = gdSet, gtSet = gtSet)
-if(any(CheckParms <= 0)) warning(cat("Parameter(s)", names(which(CheckParms <= 0)), "contain(s) non-positive values."))
+warntext <- paste("Parameter(s)", names(which(CheckParms <= 0)), "contain(s) non-positive values.")
+if(any(CheckParms <= 0)) warning(warntext)
 if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
 
 TotalIterations <- length(DInitLumSet)*length(DInitWallSet)*length(bRSet)*length(NISet)*length(NutrConvSet)*
@@ -709,6 +767,10 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulationtwocompartment.csv"),
           quote = FALSE, row.names = FALSE)
 
+
+CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, dataplot = MyData, xvar = "MigrLumWall", yvar = "w")
+
+
 ### Some plotting ###
 # See the one-compartment script for more plots
 CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, dataplot = MyData, limits = c(-1, 1))
@@ -720,6 +782,17 @@ CreatePlot(fillvar = "log10(gdbulkLum)", dataplot = MyData, limits = limitsbulkr
 CreatePlot(fillvar = "log10(gtbulkLum)", dataplot = MyData, limits = limitsbulkrates)
 CreatePlot(fillvar = "log10(gdbulkWall)", dataplot = MyData, limits = limitsbulkrates)
 CreatePlot(fillvar = "log10(gtbulkWall)", dataplot = MyData, limits = limitsbulkrates)
+
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
+                    name = "Plasmid-free equilibrium",
+                    labels = c("stable", "unstable"))
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
@@ -750,7 +823,7 @@ print("Pair-formation model completed running:")
 print(Sys.time())
 
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
-print(paste(length(IndexSimulation), "simulations to run for the bulk model"))
+print(paste(length(IndexSimulationBulk), "simulations to run for the bulk model"))
 InputSimulationBulk <- MyData[IndexSimulationBulk, ColumnsToSelect]
 OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk))
 colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
