@@ -1,19 +1,70 @@
 #### Two-compartment pair-formation model of conjugation ####
-# Copy-pasted the script of the one-compartment pairformation model.
 
-# The upper part of the script should be able to run independently and applies to
-# two-compartment pair-formation model of conjugation, as far as the change from
-# the one-compartment to the two-compartment is implemented.
-
-# The lower part of the script (after a line of #####) is the part of the
-# script for the one-compartment model that is not yet changed to the
-# two-compartment model.
-
-### To do ###
+#### To do ####
 # Also see the 'To do' section in the pair-formation script for the one-compartment model
+
+# Rethink the way of defining donor growth rate and costs: unless it is assumed 
+# that the donor is the same species as the recipient, it does not make sense
+# to define donor growth rates as recipient growth rate altered by costs from
+# plasmid carriage. Instead, the donor could be assumed to have a growth rate
+# unrelated to the recipient growth rate, and if the donor is adapted to the
+# plasmid it does not have plasmid costs, but the new environment could be assumed
+# to lead to costs in growth as well.
+
+# See Macken 1994 'The dynamics of bacteria-plasmid systems' for analytic treatment
+# and a way to get rid of the nutrient equation (but is that feasable if I want
+# to modify nutrient levels over time?)
+
+# Add CreatePlot() and SummaryPlot() function (see script for one-compartment
+# model)
+
+# Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
+# results as the single-compartment model.
 
 # If I can prove that EqPlasmidfree1 is always non-positive I can remove the
 # calculations and checks for it, and stick to using EqPlasmidfree2
+
+# Also use ModelEstConjBulkDonor to approximate bulk conjugation rates from the transconjugant
+# (note: than Mdr should again be added in calculation of TotalREstConjBulkTrans)
+
+# The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
+# ect. for approximating bulk-rates can be moved inside the EstConjBulk function ?
+
+# In calculation of bulkrates use knLum, knWall instead of kn and knWall, then
+# use kn = knLum as function argument for lumen and kn = knWall as function argument for wall.
+# This will prevent creating 'DataWall' as separate dataframe
+
+## !! !! POSSIBLE ERROR !! !!
+# ! Should ScaleAreaPerVolume be the inverse (i.e. exchange multiplication and
+# division by ScaleAreaPerVolume). This factor includes two aspects: (1) what is
+# the ratio of volume and surface occupied by the bacteria (i.e., how much
+# square cm of surface do the the bacteria contained in Y cubic cm occupy, see
+# Imran (2005) for some discussion of this) and (2) what is the ratio of the
+# volume and surface of the system that is modelled (i.e., if the gut is assumed
+# to be an open square tube, the surface in square cm equals 4 times the
+# volume in cubic cm). When modelling a round tube, the volume / surface = r / 2,
+# irrespective of chosen length.
+
+# Saving plots in PlotOverTime() (called from RunOverTime()) fails after the
+# first plot because names are the same. Add 'Iteration' as column to data
+# and append the value from that column to the name? That would als make it
+# easier to see which plot is which iteration (so also print it in graph subtitles).
+
+## To check if other parameters than kp, kn, gd, gt, cd, ct which are separately
+# shown in the plot have multiple values (which leads to plotting multiple values
+# on top of each other) the following can be used:
+# # Parms <- list(DInitLumSet = DInitLumSet, DInitWallSet = DInitWallSet, bRSet = bRSet,
+# NISet = NISet, NutrConvSet = NutrConvSet, MigrLumWallSet = MigrLumWallSet,
+# MigrWallLumSet = MigrWallLumSet, ScaleAreaPerVolSet = ScaleAreaPerVolSet,
+# wSet = wSet, kpSet = kpSet, knSet = knSet, kpWallSet = kpWallSet,
+# knWallSet = knWallSet, cdSet = cdSet, ctSet = ctSet)
+# ColIndexRelParms <- which(lengths(Parms) > 1)
+# NamesRelParms <- names(ColIndexRelParms)
+# expand.grid(Parms[ColIndexRelParms])
+# NamesToSkip <- c("kpSet", "knSet", "cdSet", "ctSet", "gdSet", "gtSet")
+# ColIndexRelParmsSelection <- ColIndexRelParms[-c(which(names(ColIndexRelParms) %in% NamesToSkip))]
+# NamesRelParmsSelection <- names(ColIndexRelParmsSelection)
+# ParmsSetsToSubset <- expand.grid(Parms[NamesRelParmsSelection])
 
 #### References ####
 
@@ -24,8 +75,6 @@
 # Imran 2005: Imran M, Jones D, Smith H. 2005. Biofilms and the plasmid
 # maintenance question. Mathematical biosciences 193:183-204.
 
-#### Main script ####
-
 #### Loading packages ####
 library(deSolve) # Solve differential equations with results over time.
 library(ggplot2) # For plotting data
@@ -33,82 +82,18 @@ library(RColorBrewer) # For better color schemes
 library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
 
-# Large set for testing
-DInitLumSet <- c(1E3)
-DInitWallSet <- c(1E3)
-bRSet <- c(0.2, 0.8, 1.7)
-NISet <- c(0.1, 1, 10)
-NutrConv <- c(1e-8, 1e-6, 1e-4, 1e-2)
-wSet <- c(0.01, 0.04, 0.10)
-MigrLumWallSet <- c(0.01, 0.05, 0.1)
-MigrWallLumSet <- c(0.01, 0.05, 0.1)
-ScaleAreaPerVolSet <- c(0.5, 0.8, 1.5)
-kpSet <- 10^seq(from = -10, to = -6, by = 0.5)
-knSet <- 10^seq(from = -1, to = 3, by = 0.5)
-kpWallSet <- 10^seq(from = -10, to = -6, by = 2)
-knWallSet <- 10^seq(from = -1, to = 3, by = 2)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
-gdSet <- c(1, 15)
-gtSet <- c(1, 15)
+#### Plotting options ####
+saveplots <- 0
+atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
+# to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
+# in the machine, T + H = T on the next step  [1] 0 (H = step size). Solver will
+# continue anyway', which eventually leads to aborted integration.
+tmaxsteady <- 1e8
+timesEstConj <- seq(from = 0, to = 3, by = 0.1)
+MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 
-# Smaller set for testing
-DInitLumSet <- c(1E3)
-DInitWallSet <- c(1E3)
-bRSet <- c(1.7)
-NISet <- c(10)
-NutrConv <- c(1e-6)
-wSet <- c(0.04)
-MigrLumWallSet <- c(0.05)
-MigrWallLumSet <- c(0.1)
-ScaleAreaPerVolSet <- c(0.8)
-kpSet <- 10^seq(from = -10, to = -6, by = 2)
-knSet <- 10^seq(from = -1, to = 1, by = 2)
-# kpSet <- 10^-8
-# knSet <- 10
-# kpWallSet <- 10^seq(from = -10, to = -6, by = 2)
-# knWallSet <- 10^seq(from = -1, to = 3, by = 2)
-kpWallSet <- 10^-8
-knWallSet <- 1
-cdSet <- c(0.05)
-ctSet <- c(0.05)
-gdSet <- c(15)
-gtSet <- c(15)
+#### Functions ####
 
-
-# Testing influence of different REq on approximations of bulk conjugationrates
-# Without migration from lumen to wall or vice versa
-DInitLumSet <- c(1E3)
-DInitWallSet <- c(0)
-bRSet <- c(1.7)
-NISet <- c(1, 10, 100)
-NutrConv <- c(1e-6)
-wSet <- c(0.04)
-MigrLumWallSet <- c(0.05)
-MigrWallLumSet <- c(0.1)
-ScaleAreaPerVolSet <- c(1)
-kpSet <- 10^-8
-knSet <- 1
-kpWallSet <- 10^-8
-knWallSet <- 1
-cdSet <- c(0.05)
-ctSet <- c(0.05)
-gdSet <- c(15)
-gtSet <- c(15)
-
-CheckParms <- c(DInitLumSet, DInitWallSet, bRSet, NISet, NutrConv, MigrLumWallSet, MigrWallLumSet,
-                ScaleAreaPerVolSet, wSet, kpSet, knSet, kpWallSet, knWallSet,
-                cdSet, ctSet)
-if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
-if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
-
-TotalIterations <- length(DInitLumSet)*length(DInitWallSet)*length(bRSet)*length(NISet)*length(NutrConv)*
-  length(wSet)*length(MigrLumWallSet)*length(MigrWallLumSet)*length(ScaleAreaPerVolSet)*
-  length(kpSet)*length(knSet)*length(kpWallSet)*length(knWallSet)*length(cdSet)*
-  length(ctSet)*length(gdSet)*length(gtSet)
-TotalIterations
-
-## Calculate plasmid-free equilibria for all parameter combinations
 # Calculate the cell-containing plasmid-free equilibria (RLum*, RWall*, Nutr*),
 # using the solution to 
 # dRLum/dt = RLum*(Nutr*bR - w) - MigrLumWall*RLum + MigrWallLum*RWall*X == 0
@@ -117,23 +102,17 @@ TotalIterations
 # with RLum, RWall, Nutr > 0. The cell-free equilibrium is not considered but
 # would be (RLum* = RWall* = 0, Nutr* = NI).
 # I have used two functions for the solutions to make it easier to have Eq1 and
-# Eq2 separate for further checks. Eq1 in calculations thus far always was
-# non-positive (sometimes it was 0) and Eq2 usually (but not always) was 
-# non-negative.
+# Eq2 separate for further checks. Eq1 in calculations thus far usually (but not
+# always) was non-negative and Eq2 always was non-positive (sometimes it was 0).
+# RNutrEq is always positive
+# RLumEq1 is positive as long as NI > (MigrWallLum * w)^(1/2) / bR
 CalcEqPlasmidfree1 <- function(MyData) {
   with(as.list(MyData), {
-    NutrEq <- (MigrLumWall + MigrWallLum + w -
-                 (MigrLumWall^2 + 2*MigrLumWall*MigrWallLum + 2*MigrLumWall*w +
-                    MigrWallLum^2 - 2*MigrWallLum*w + w^2)^(1/2))/(2*bR)
-    RLumEq <- NI/NutrConv - (MigrLumWall + MigrWallLum + w -
-                               (MigrLumWall^2 + 2*MigrLumWall*MigrWallLum +
-                                  2*MigrLumWall*w + MigrWallLum^2 -
-                                  2*MigrWallLum*w + w^2)^(1/2))/(2*NutrConv*bR)
-    RWallEq <- (MigrLumWall*NI*bR -
-                  MigrWallLum*w + NI*bR*w)/(MigrWallLum*NutrConv*ScaleAreaPerVol*bR) +
-      ((MigrWallLum - NI*bR)*(MigrLumWall + MigrWallLum + w -
-                                (MigrLumWall^2 + 2*MigrLumWall*MigrWallLum + 2*MigrLumWall*w +
-                                   MigrWallLum^2 - 2*MigrWallLum*w + w^2)^(1/2)))/(2*MigrWallLum*NutrConv*ScaleAreaPerVol*bR)
+    A <- MigrLumWall^2 + 2*MigrLumWall*MigrWallLum + 2*MigrLumWall*w + MigrWallLum^2 - 2*MigrWallLum*w + w^2
+    NutrEq <- (MigrLumWall + MigrWallLum + w - A^(1/2))/(2*bR)
+    RLumEq <- NI/NutrConv - (MigrLumWall + MigrWallLum + w - A^(1/2))/(2*NutrConv*bR)
+    RWallEq <- (MigrLumWall*NI*bR - MigrWallLum*w + NI*bR*w)/(MigrWallLum*NutrConv*ScaleAreaPerVol*bR) + 
+      ((MigrWallLum - NI*bR)*(MigrLumWall + MigrWallLum + w - A^(1/2)))/(2*MigrWallLum*NutrConv*ScaleAreaPerVol*bR)
     Eq <- c(NutrEq = NutrEq, RLumEq = RLumEq, RWallEq = RWallEq)
     return(Eq)
   })
@@ -157,45 +136,6 @@ CalcEqPlasmidfree2 <- function(MyData) {
     return(Eq2)
   })
 }
-
-MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet,
-                      MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
-                      ScaleAreaPerVol = ScaleAreaPerVolSet)
-dim(MyData)
-Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree1))
-Eqplasmidfree2 <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree2))
-
-if(any(Eqplasmidfree <= 0)) {
-  RowsNegativeEq <- unique(which(Eqplasmidfree <= 0, arr.ind = TRUE)[, 1])
-  ColnamesNegativeEq <- colnames(Eqplasmidfree)[unique(which(Eqplasmidfree <= 0, arr.ind = TRUE)[, 2])]
-  warning("Equilibrium contains non-positive values in columns '", paste(ColnamesNegativeEq, collapse = "' and '"),
-          "'.\nThe data will be included in the calculations anyway!
-  This concerns the following rows of the dataframe: ", paste(RowsNegativeEq, collapse = ", "))
-}
-
-if(any(Eqplasmidfree2[, "RLumEq2"] > 0 & Eqplasmidfree2[, "RWallEq2"] > 0)) {
-  RowsPositiveEq2 <- which(Eqplasmidfree2[, "RLumEq2"] > 0 & Eqplasmidfree2[, "RWallEq2"] > 0)
-  ColnamesPositiveEq2 <- colnames(Eqplasmidfree2)[unique(which(Eqplasmidfree2 > 0, arr.ind = TRUE)[, 2])]
-  warning("Equilibrium 2 contains positive values in columns '", paste(ColnamesPositiveEq2, collapse = "' and '"),
-          "'.\nOnly equilibrium 1 will be used for calculations!
-          This concerns the following rows of the dataframe: ", paste(RowsPositiveEq2, collapse = ", "))
-}
-
-head(MyData)
-head(Eqplasmidfree)
-MyData <- cbind(MyData, Eqplasmidfree)
-head(MyData)
-
-print("Plasmid-free equilibrium calculated:")
-print(Sys.time())
-
-## Add combinations with the parameters needed to approximate gdbulk and gtbulk
-dim(MyData)
-head(MyData)
-MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInitLum = DInitLumSet, DInitWall = DInitWallSet, kp = kpSet, kn = knSet)
-
-dim(MyData)
-head(MyData)
 
 # ODE-model used to approximate the bulk-conjugation rate of the donor.
 # Nutrients, growth, washout, conjugation from transconjugants, and Mtt-pairs
@@ -224,7 +164,7 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
   })
 }
 
-# Function to estimate bulk-conjugation rates by running simulations with the
+# Functions to estimate bulk-conjugation rates by running simulations with the
 # adjusted pair-formation models for a short time (i.e., tail(timesEstConj, 1)
 # hours) and calculate approximations of gdbulk and gtbulk from the output,
 # following Zhong's approach for the calculations.
@@ -232,7 +172,7 @@ EstConjBulkLum <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitLum"]] == 0) {
       warning("DInitLum == 0, using DInitWall for approximation of bulkrates in the lumen instead!")
-      state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+      state <- c(D = MyData[["DInitWall"]], R = MyData[["RLumEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     } else {
       state <- c(D = MyData[["DInitLum"]], R = MyData[["RLumEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     }
@@ -240,8 +180,6 @@ EstConjBulkLum <- function(MyData) {
     parms <- MyData
     DataEstConjBulkDonor <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
-    
-    state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
     
     if(MyData[["DInitLum"]] == 0) {
       state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
@@ -259,32 +197,10 @@ EstConjBulkLum <- function(MyData) {
   })
 }
 
-timesEstConj <- seq(from = 0, to = 3, by = 0.1)
-DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulkLum))
-
-TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
-TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
-gdbulkLum <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
-
-TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
-TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
-gtbulkLum <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
-
-dim(MyData)
-head(MyData)
-MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
-
-dim(MyData)
-head(MyData)
-MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
-
-dim(MyData)
-head(MyData)
-
 EstConjBulkWall <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitWall"]] == 0) {
-      warning("DInitWall == 0, using DInitLum for approximation of bulkrates in the wall instead!")
+      warning("DInitWall == 0, using DInitLum for approximation of bulkrates at the wall instead!")
       state <- c(D = MyData[["DInitLum"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     } else {
       state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallEq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
@@ -294,10 +210,8 @@ EstConjBulkWall <- function(MyData) {
     DataEstConjBulkDonor <- tail(ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
     
-    state <- c(R = MyData[["RWallEq"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
-    
     if(MyData[["DInitWall"]] == 0) {
-      state <- c(R = MyData[["RLumEq"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
+      state <- c(R = MyData[["RWallEq"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
     } else {
       state <- c(R = MyData[["RWallEq"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
     }
@@ -312,36 +226,18 @@ EstConjBulkWall <- function(MyData) {
   })
 }
 
-MyDataWall <- cbind(MyData[, 1:(ncol(MyData) - 6)], kp = kpWallSet, kn = knWallSet)
-dim(MyDataWall)
-head(MyDataWall)
-
-DataEstConjBulk <- t(apply(X = MyDataWall, MARGIN = 1, FUN = EstConjBulkWall))
-
-TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
-TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
-gdbulkWall <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
-
-TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
-TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
-gtbulkWall <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
-
-MyData <- cbind(MyData, gdbulkWall = gdbulkWall, gtbulkWall = gtbulkWall)
-
-print("Bulk-conjugation rates estimated:")
-print(Sys.time())
-
-MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
-
 # ODE-model describing pair-formation and conjugation for the two-compartment
 # model, including migration between the compartments. Pair-formation between
 # plasmid-free recipients and plasmid-bearing donors or transconjugants depends
-# on attachment rates kp and kpWall. Conjugation from the donor or transconjugant occurs in
-# the Mdr and Mrt pairs with intrinsic conjugation rates gd and gt respectively.
-# This leads to formation of Mdt and Mtt pairs. The pairs fall apart with
-# detachment rates kn and knWall. The structure of pair-formation is based on Zhong's model
-# (Zhong 2010). I expanded the model to include costs, washout, and nutrients.
-# The structure of the two compartments and migration is based on Imran (2005).
+# on attachment rates kp in the lumen and kpWall at the wall. Conjugation from
+# donors or transconjugants occurs in the Mdr and Mrt pairs with intrinsic
+# conjugation rates gd and gt respectively. This leads to formation of Mdt and
+# Mtt pairs. The pairs fall apart with detachment rates kn in the lumen and
+# knWall at the wall. The structure of pair-formation is based on Zhong's model
+# (Zhong 2010). I expanded the model to include costs in growth for
+# plasmid-bearing bacteria, washout from the lumen, and nutrients.
+# The structure of the two compartments and migration between them is based on
+# Imran (2005).
 ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutr <- (NI - Nutr)*w -
@@ -350,7 +246,7 @@ ModelPairsNutr <- function(t, state, parms) {
           bR*(RLum + MdrLum + MrtLum + ScaleAreaPerVol*(RWall + MdrWall + MrtWall)) +
           (1 - ct)*bR*(TransLum + MdtLum + MrtLum + 2*MttLum +
                          ScaleAreaPerVol*(TransWall + MdtWall + MrtWall + 2*MttWall))
-        )
+      )
     
     dDLum <- (1 - cd)*bR*Nutr*(DLum + MdrLum + MdtLum) - kp*DLum*RLum +
       kn*(MdrLum + MdtLum) - (w + MigrLumWall)*DLum + MigrWallLum*DWall*ScaleAreaPerVol
@@ -399,13 +295,18 @@ ModelBulkNutr <- function(t, state, parms) {
           (1 - ct)*bR*(TransLum + ScaleAreaPerVol*TransWall) 
       )
     
-    dDLum <- (1 - cd)*bR*Nutr*DLum - (w + MigrLumWall)*DLum + MigrWallLum*DWall*ScaleAreaPerVol
-    dRLum <- bR*Nutr*RLum - gdbulkLum*DLum*RLum - gtbulkLum*TransLum*RLum - (w + MigrLumWall)*RLum + MigrWallLum*RWall*ScaleAreaPerVol
-    dTransLum <- (1 - ct)*bR*Nutr*TransLum + gdbulkLum*DLum*RLum + gtbulkLum*TransLum*RLum - (w + MigrLumWall)*TransLum + MigrWallLum*TransWall*ScaleAreaPerVol
+    dDLum <- (1 - cd)*bR*Nutr*DLum - (w + MigrLumWall)*DLum +
+      MigrWallLum*DWall*ScaleAreaPerVol
+    dRLum <- bR*Nutr*RLum - gdbulkLum*DLum*RLum - gtbulkLum*TransLum*RLum - 
+      (w + MigrLumWall)*RLum + MigrWallLum*RWall*ScaleAreaPerVol
+    dTransLum <- (1 - ct)*bR*Nutr*TransLum + gdbulkLum*DLum*RLum + 
+      gtbulkLum*TransLum*RLum - (w + MigrLumWall)*TransLum + MigrWallLum*TransWall*ScaleAreaPerVol
     
     dDWall <- (1 - cd)*bR*Nutr*DWall - MigrWallLum*DWall + MigrLumWall*DLum/ScaleAreaPerVol
-    dRWall <- bR*Nutr*RWall - gdbulkWall*DWall*RWall - gtbulkWall*TransWall*RWall - MigrWallLum*RWall + MigrLumWall*RLum/ScaleAreaPerVol
-    dTransWall <- (1 - ct)*bR*Nutr*TransWall + gdbulkWall*DWall*RWall + gtbulkWall*TransWall*RWall - MigrWallLum*TransWall + MigrLumWall*TransLum/ScaleAreaPerVol
+    dRWall <- bR*Nutr*RWall - gdbulkWall*DWall*RWall - gtbulkWall*TransWall*RWall -
+      MigrWallLum*RWall + MigrLumWall*RLum/ScaleAreaPerVol
+    dTransWall <- (1 - ct)*bR*Nutr*TransWall + gdbulkWall*DWall*RWall +
+      gtbulkWall*TransWall*RWall - MigrWallLum*TransWall + MigrLumWall*TransLum/ScaleAreaPerVol
     
     return(list(c(dNutr, dDLum, dRLum, dTransLum, dDWall, dRWall, dTransWall)))
   })
@@ -448,6 +349,414 @@ CalcEigenvalues <- function(MyData) {
   return(InfoEigVal)
 }
 
+# Simulations using the pair-formation and the bulk model. The plasmid-free
+# equilibrium (Nutr*, RLum*, RWall*) with the addition of DInitLum and DInitWall
+# donor bacteria per mL to the lumen and wall compartment, respectively is used
+# as initial state. Note that stol is based on the average of absolute rates of
+# change, not the sum.
+SimulationPairs <- function(InputSimulationPairs) {
+  parms <- InputSimulationPairs
+  state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]],
+             RLum = parms[["RLumEq"]], TransLum = 0, MdrLum = 0, MdtLum = 0,
+             MrtLum = 0, MttLum = 0, DWall = parms[["DInitWall"]],
+             RWall = parms[["RWallEq"]], TransWall = 0, MdrWall = 0, MdtWall = 0,
+             MrtWall = 0, MttWall = 0)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr,
+                   parms = parms, stol = 1.25e-6, atol = atol)
+  EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
+  return(EqAfterInvDonor)
+}
+
+SimulationBulk <- function(InputSimulationBulk, ...) {
+  parms <- InputSimulationBulk
+  state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumEq"]], TransLum = 0, 
+             DWall = parms[["DInitWall"]], RWall = parms[["RWallEq"]], TransWall = 0)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr,
+                   parms = parms, stol = 2.5e-6, atol = atol)
+  EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
+  return(EqAfterInvDonor)
+}
+
+
+CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, dataplot = MyData,
+                       xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots, ...) {
+  CumRowIndex <- NULL
+  iteration <- 1
+  dataplottotal <- dataplot
+  for(kpWallsubset in unique(dataplottotal[, "kpWall"])) {
+    for(knWallsubset in unique(dataplottotal[, "knWall"])) {
+      subtitle <- paste0("kpWall= ", kpWallsubset, " knWall=", knWallsubset)
+      RowIndex <- dataplottotal[, "kpWall"] == kpWallsubset & dataplottotal[, "knWall"] == knWallsubset
+      dataplot <- dataplottotal[RowIndex, ]
+      if(exists("DateTimeStamp") == FALSE) {
+        warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
+        DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
+      }
+      mycaption <- paste(DateTimeStamp, subtitle)
+      
+      p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar), subtitle = subtitle) + 
+        geom_raster() +
+        scale_x_continuous(expand = c(0, 0)) +
+        scale_y_continuous(expand = c(0, 0)) +
+        facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+        labs(caption = mycaption) +
+        theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
+      if(gradient2 == 1) {
+        p <- p + scale_fill_gradient2(low = "darkblue", high = "darkred", midpoint = midpoint, limits = limits)
+      } else {
+        p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
+        # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
+      }
+      print(p)
+      if(save == TRUE) {
+        fillvarname <- gsub("/", ".", fillvar)
+        fillvarname <- gsub(" ", "", fillvarname)
+        filename <- paste0(DateTimeStamp, "output", fillvarname, iteration, ".png")
+        if(file.exists(filename)) {
+          warning("File already exists, not saved again!")
+        } else {
+          ggsave(filename)
+        }
+      }
+      iteration <- iteration + 1
+    }
+  }
+}
+
+RunOverTime <- function(parms = Mydf, verbose = FALSE, type = "Pair", ...) {
+  state <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumEq"]],
+             TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
+             DWall = parms[["DInitWall"]], RWall = parms[["RWallEq"]],
+             TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0)
+  out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms, verbose = verbose)
+  out2 <- cbind(out2, TotalDLum = NA, TotalRLum = NA, TotalTransLum = NA,
+                TotalDWall = NA, TotalRWall = NA, TotalTransWall = NA)
+  out2[, "TotalDLum"] <- out2[, "DLum"] + out2[, "MdrLum"] + out2[, "MdtLum"]
+  out2[, "TotalRLum"] <- out2[, "RLum"] + out2[, "MdrLum"] + out2[, "MrtLum"]
+  out2[, "TotalTransLum"] <- out2[, "TransLum"] + out2[, "MdtLum"] + out2[, "MrtLum"] + 2*out2[, "MttLum"]
+  out2[, "TotalDWall"] <- out2[, "DWall"] + out2[, "MdrWall"] + out2[, "MdtWall"]
+  out2[, "TotalRWall"] <- out2[, "RWall"] + out2[, "MdrWall"] + out2[, "MrtWall"]
+  out2[, "TotalTransWall"] <- out2[, "TransWall"] + out2[, "MdtWall"] + out2[, "MrtWall"] + 2*out2[, "MttWall"]
+  
+  EqAfterInvasion <- tail(out2, 1)
+  if(verbose == TRUE) {
+    print(diagnostics(out2))
+    print(attributes(out2))
+  }
+  PlotOverTime(plotdata = out2, parms = parms, type = type, verbose = verbose, saveplot = saveplots)
+  stateBulk <- c(Nutr = parms[["NutrEq"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumEq"]], TransLum = 0,
+                 DWall = parms[["DInitWall"]], RWall = parms[["RWallEq"]], TransWall = 0)
+  out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parms, verbose = verbose)
+  EqAfterInvasionBulk <- tail(out2bulk, 1)
+  if(verbose == TRUE) {
+    print(diagnostics(out2bulk))
+    print(attributes(out2bulk))
+  }
+  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", saveplot = saveplots)
+  EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
+  names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
+                                   paste0(colnames(EqAfterInvasionBulk), "Bulk"))
+  return(EqAfterInvasionTotal)
+}
+
+PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot = saveplots, ...) {
+  subtitle <- paste0("kp=", parms[["kp"]], ", ", parms[["kpWall"]],
+                     " kn=", parms[["kn"]], ", ", parms[["knWall"]],
+                     " gd=", parms[["gd"]], " gt=", parms[["gt"]],
+                     " gdbulk=", signif(parms[["gdbulkLum"]], 3),
+                     ", ", signif(parms[["gdbulkWall"]], 3), 
+                     " gtbulk=", signif(parms[["gtbulkLum"]], 3),
+                     ", ", signif(parms[["gtbulkWall"]], 3),
+                     " cd=", parms[["cd"]], " ct=", parms[["ct"]],
+                     " bR=", parms[["bR"]], " NI=", parms[["NI"]],
+                     " NutrConv=", parms[["NutrConv"]], " w=", parms[["w"]]
+  )
+  if(type == "Pair") {
+    maintitle <- "Pair model"
+    mycol <- mycolpairs
+    mylty <- myltypairs
+    mylwd <- c(rep(2, 8), rep(1, 7))
+    SelectedColumns <- c("Nutr", "DLum", "RLum", "TransLum", "MdrLum", "MdtLum", "MrtLum", "MttLum",
+                         "DWall", "RWall", "TransWall", "MdrWall", "MdtWall", "MrtWall", "MttWall")
+  } else {
+    mycol <- mycolother
+    mylty <- myltyother
+    mylwd <- c(rep(2, 4), rep(1, 3))
+    if(type == "Total") {
+      maintitle <- "Pair model, totals"
+      SelectedColumns <- c("Nutr", "TotalDLum", "TotalRLum", "TotalTransLum",
+                           "TotalDWall", "TotalRWall", "TotalTransWall")
+    } else {
+      maintitle <- "Bulk model"
+      SelectedColumns <- NULL
+    }
+  }
+  if(saveplot == TRUE) {
+    filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
+    if(file.exists(filename)) {
+      warning("File already exists, not saved again!")
+    } else {
+      png(filename = filename)
+    }
+    matplot.deSolve(plotdata, which = SelectedColumns, main = maintitle,
+                    sub = subtitle, ylim = myylim, log = if(yaxislog == 1) {"y"},
+                    col = mycol, lty = mylty, lwd = mylwd,
+                    legend = list(x = "bottomright"))
+    grid()
+    if(file.exists(filename) == FALSE) {
+      dev.off()
+    }
+  } else {
+    matplot.deSolve(plotdata, which = SelectedColumns, main = maintitle,
+                    sub = subtitle, ylim = myylim, log = if(yaxislog == 1) {"y"},
+                    col = mycol, lty = mylty, lwd = mylwd,
+                    legend = list(x = "bottomright"))
+    grid()
+  }
+}
+
+#### Parameter values ####
+# MigrLumWallSet: rate of migration from the lumen to the wall
+# MigrWallLumSet: rate of migration from the wall to the lumen
+# See script of the one-compartment model for explanation of the other parameter values
+
+# FileName <- "2020_augustus_03_12_54_32outputnosimulationtwocompartment.csv"
+# MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
+#                   dec = ".", stringsAsFactors = FALSE)
+# MyData <- as.data.frame(MyData)
+# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 36)
+
+# Large set for testing
+DInitLumSet <- c(1E3)
+DInitWallSet <- c(1E3)
+bRSet <- c(0.2, 0.8, 1.7)
+NISet <- c(0.1, 1, 10)
+NutrConvSet <- c(1e-8, 1e-6, 1e-4, 1e-2)
+wSet <- c(0.01, 0.04, 0.10)
+MigrLumWallSet <- c(0.01, 0.05, 0.1)
+MigrWallLumSet <- c(0.01, 0.05, 0.1)
+ScaleAreaPerVolSet <- c(0.5, 0.8, 1.5)
+kpSet <- 10^seq(from = -10, to = -6, by = 0.5)
+knSet <- 10^seq(from = -1, to = 3, by = 0.5)
+kpWallSet <- 10^seq(from = -10, to = -6, by = 2)
+knWallSet <- 10^seq(from = -1, to = 3, by = 2)
+cdSet <- c(0.01, 0.05)
+ctSet <- c(0.01, 0.05)
+gdSet <- c(1, 15)
+gtSet <- c(1, 15)
+
+### Set testing if MigrLumWall >> MigrWallLum leads to easier invasion of plasmid
+DInitLumSet <- c(1E3)
+DInitWallSet <- c(0)
+bRSet <- 1.7
+NISet <- 10
+NutrConvSet <- 1e-6
+wSet <- 0.04
+MigrLumWallSet <- c(0.01, 0.05, 0.1, 0.3)
+MigrWallLumSet <- 0.05
+ScaleAreaPerVolSet <- 1
+kpSet <- 10^-9
+knSet <- 10^c(2)
+kpWallSet <- 10^-9
+knWallSet <- 10^c(2)
+cdSet <- c(0.01)
+ctSet <- c(0.05)
+gdSet <- c(15)
+gtSet <- c(15)
+
+# Smaller set for testing
+DInitLumSet <- c(1E3)
+DInitWallSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- c(10)
+NutrConvSet <- c(1e-6)
+wSet <- c(0.04)
+MigrLumWallSet <- c(0.05)
+MigrWallLumSet <- c(0.1)
+ScaleAreaPerVolSet <- c(0.8)
+kpSet <- 10^seq(from = -10, to = -6, by = 1)
+knSet <- 10^seq(from = -1, to = 1, by = 1)
+# kpSet <- 10^-8
+# knSet <- 10
+kpWallSet <- 10^seq(from = -10, to = -6, by = 2)
+knWallSet <- 10^seq(from = -1, to = 3, by = 2)
+# kpWallSet <- 10^-8
+# knWallSet <- 1
+cdSet <- c(0.05)
+ctSet <- c(0.05)
+cdSet <- c(0.01, 0.05)
+ctSet <- c(0.01, 0.05)
+gdSet <- c(1, 15)
+gtSet <- c(1, 15)
+
+
+# Testing influence of different REq on approximations of bulk conjugationrates
+# Without migration from lumen to wall or vice versa
+DInitLumSet <- c(1E3)
+DInitWallSet <- c(0)
+bRSet <- c(1.7)
+NISet <- c(1, 10, 100)
+NutrConvSet <- c(1e-6)
+wSet <- c(0.04)
+MigrLumWallSet <- c(0.05)
+MigrWallLumSet <- c(0.1)
+ScaleAreaPerVolSet <- c(1)
+kpSet <- 10^-8
+knSet <- 1
+kpWallSet <- 10^-8
+knWallSet <- 1
+cdSet <- c(0.05)
+ctSet <- c(0.05)
+gdSet <- c(15)
+gtSet <- c(15)
+
+## Testset for code testing
+DInitLumSet <- c(1E3)
+DInitWallSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- c(1, 10, 100)
+NutrConvSet <- c(1e-6)
+wSet <- c(0.04)
+MigrLumWallSet <- c(0.05)
+MigrWallLumSet <- c(0.1)
+ScaleAreaPerVolSet <- c(1)
+kpSet <- 10^-8
+knSet <- 1
+kpWallSet <- c(10^-8, 10^-6)
+knWallSet <- c(1, 10)
+cdSet <- c(0.05)
+ctSet <- c(0.05)
+gdSet <- c(15)
+gtSet <- c(15)
+
+# NOTE: populations vanishing and then growing back again!!
+times <- seq(0, 6E5, 100)
+system.time(outovertime <- ode(t = times, y = state, func = ModelBulkNutr, parms = InputSimulationBulk))
+matplot.deSolve(outovertime, lwd = 2, log = "y", ylim = c(1e-12, 1e8))
+grid()
+
+### Why do DLum and DWall behave differently from each other in the first ~200h hours
+### in the pair-formation model (the drop in densities is not seen in bulk model)
+DInitLumSet <- c(1E3)
+DInitWallSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- c(10)
+NutrConvSet <- c(1e-6)
+wSet <- c(0.04)
+MigrLumWallSet <- c(0.05)
+MigrWallLumSet <- c(0.05)
+ScaleAreaPerVolSet <- c(1)
+kpSet <- 10^-10
+knSet <- c(0.1, 10)
+kpWallSet <- c(10^-8, 10^-6)
+knWallSet <- 0.1
+cdSet <- c(0.05)
+ctSet <- c(0.05)
+gdSet <- c(15)
+gtSet <- c(15)
+
+### How does ability to invade depend on kpWall vs knWall
+DInitLumSet <- 1E3
+DInitWallSet <- c(1E3)
+bRSet <- 1.7
+NISet <- 10
+NutrConvSet <- 1e-6
+wSet <- seq(0.02, 0.1, 0.02)
+MigrLumWallSet <- seq(0.05, 0.5, 0.05)
+MigrWallLumSet <- 0.1
+ScaleAreaPerVolSet <- c(1)
+kpSet <- 10^c(-11, -10, -9, -8)
+knSet <- 1
+kpWallSet <- 10^c(-11, -10, -9, -8)
+knWallSet <- 1
+cdSet <- 0.05
+ctSet <- 0.01
+gdSet <- 15
+gtSet <- 15
+
+
+#### Main script ####
+CheckParms <- c(DInitLumSet = DInitLumSet, DInitWallSet = DInitWallSet, bRSet = bRSet,
+                NISet = NISet, NutrConvSet = NutrConvSet, MigrLumWallSet = MigrLumWallSet,
+                MigrWallLumSet = MigrWallLumSet, ScaleAreaPerVolSet = ScaleAreaPerVolSet,
+                wSet = wSet, kpSet = kpSet, knSet = knSet, kpWallSet = kpWallSet,
+                knWallSet = knWallSet, cdSet = cdSet, ctSet = ctSet, gdSet = gdSet, gtSet = gtSet)
+warntext <- paste("Parameter(s)", names(which(CheckParms <= 0)), "contain(s) non-positive values.")
+if(any(CheckParms <= 0)) warning(warntext)
+if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
+
+TotalIterations <- length(DInitLumSet)*length(DInitWallSet)*length(bRSet)*length(NISet)*length(NutrConvSet)*
+  length(wSet)*length(MigrLumWallSet)*length(MigrWallLumSet)*length(ScaleAreaPerVolSet)*
+  length(kpSet)*length(knSet)*length(kpWallSet)*length(knWallSet)*length(cdSet)*
+  length(ctSet)*length(gdSet)*length(gtSet)
+TotalIterations
+
+## Calculate plasmid-free equilibrium for all parameter combinations
+MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConvSet, w = wSet,
+                      MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
+                      ScaleAreaPerVol = ScaleAreaPerVolSet)
+dim(MyData)
+Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree1))
+Eqplasmidfree2 <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree2))
+
+if(any(Eqplasmidfree <= 0)) {
+  RowsNegativeEq <- unique(which(Eqplasmidfree <= 0, arr.ind = TRUE)[, 1])
+  ColnamesNegativeEq <- colnames(Eqplasmidfree)[unique(which(Eqplasmidfree <= 0, arr.ind = TRUE)[, 2])]
+  warning("Equilibrium contains non-positive values in columns '", paste(ColnamesNegativeEq, collapse = "' and '"),
+          "'.\nThe data will be included in the calculations anyway!
+  This concerns the following rows of the dataframe: ", paste(RowsNegativeEq, collapse = ", "))
+}
+
+if(any(Eqplasmidfree2[, "RLumEq2"] > 0 & Eqplasmidfree2[, "RWallEq2"] > 0)) {
+  RowsPositiveEq2 <- which(Eqplasmidfree2[, "RLumEq2"] > 0 & Eqplasmidfree2[, "RWallEq2"] > 0)
+  ColnamesPositiveEq2 <- colnames(Eqplasmidfree2)[unique(which(Eqplasmidfree2 > 0, arr.ind = TRUE)[, 2])]
+  warning("Equilibrium 2 contains positive values in columns '", paste(ColnamesPositiveEq2, collapse = "' and '"),
+          "'.\nOnly equilibrium 1 will be used for calculations!
+          This concerns the following rows of the dataframe: ", paste(RowsPositiveEq2, collapse = ", "))
+}
+
+MyData <- cbind(MyData, Eqplasmidfree)
+print("Plasmid-free equilibrium calculated:")
+print(Sys.time())
+
+## Approximate gdbulk and gtbulk in the lumen
+MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInitLum = DInitLumSet, DInitWall = DInitWallSet, kp = kpSet, kn = knSet)
+DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulkLum))
+
+TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
+TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
+gdbulkLum <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
+
+TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
+TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
+gtbulkLum <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
+MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
+
+## Approximate gdbulk and gtbulk at the wall
+MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
+
+# Replace columns kn and kn with the values in the columns kpWall and knWall in new dataframe
+# to be used to estimate bulk conjugation rates at the wall
+MyDataWall <- cbind(MyData[, 1:(which(names(MyData)=="kp") - 1)],
+                    kp = unname(MyData[, "kpWall"]), kn = unname(MyData[, "knWall"]))
+DataEstConjBulk <- t(apply(X = MyDataWall, MARGIN = 1, FUN = EstConjBulkWall))
+
+TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
+TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
+gdbulkWall <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
+
+TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
+TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
+gtbulkWall <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
+
+MyData <- cbind(MyData, gdbulkWall = gdbulkWall, gtbulkWall = gtbulkWall)
+
+print("Bulk-conjugation rates estimated:")
+print(Sys.time())
+
+# calculate (or approximate?) eigenvalues
+MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
+
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
 MyData <- cbind(MyData, MyInfoEigVal)
 
@@ -455,127 +764,25 @@ print("Eigenvalues estimated:")
 print(Sys.time())
 
 DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
-write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulationtwocompartment.csv"),
           quote = FALSE, row.names = FALSE)
 
-# mycol <- c("black", brewer.pal(7, "Set1"))
-BackupMyData <- MyData
+
+CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, dataplot = MyData, xvar = "MigrLumWall", yvar = "w")
 
 
-CalcEq <- function(MyData) {
-  EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = MyData[["DInitLum"]], RLum = MyData[["RLumEq"]],
-              TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
-              DWall = MyData[["DInitWall"]], RWall = MyData[["RWallEq"]],
-              TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0)
-  out <- runsteady(y = EqFull, time = c(0, 1E7), func = ModelPairsNutr, parms = MyData, stol = 1e-8)
-  Eq <- c(out$y, steady = attr(out, "steady"), timeEq = attr(out, "time"))
-  return(Eq)
-}
-Eq <- t(apply(MyData, MARGIN = 1, FUN = CalcEq))  
+### Some plotting ###
+# See the one-compartment script for more plots
+CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, dataplot = MyData, limits = c(-1, 1))
+CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1, dataplot = MyData, limits = c(-1, 1))
 
-MyData <- cbind(MyData, Eq)
+limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulkLum, MyData$gtbulkLum, MyData$gdbulkWall, MyData$gtbulkWall)))),
+                     ceiling(max(log10(c(MyData$gdbulkLum, MyData$gtbulkLum, MyData$gdbulkWall, MyData$gtbulkWall)))))
+CreatePlot(fillvar = "log10(gdbulkLum)", dataplot = MyData, limits = limitsbulkrates)
+CreatePlot(fillvar = "log10(gtbulkLum)", dataplot = MyData, limits = limitsbulkrates)
+CreatePlot(fillvar = "log10(gdbulkWall)", dataplot = MyData, limits = limitsbulkrates)
+CreatePlot(fillvar = "log10(gtbulkWall)", dataplot = MyData, limits = limitsbulkrates)
 
-CalcEqBulk <- function(MyData) {
-  EqFullBulk <- c(Nutr = MyData[["NutrEq"]], DLum = MyData[["DInitLum"]], RLum = MyData[["RLumEq"]], TransLum = 0, 
-                  DWall = 0, RWall = MyData[["RWallEq"]], TransWall = 0)
-  outBulk <- runsteady(y = EqFullBulk, time = c(0, 1E7), func = ModelBulkNutr, parms = MyData, stol = 2.14e-8)
-  EqBulk <- c(outBulk$y, steady = attr(outBulk, "steady"), timeEq = attr(outBulk, "time"))
-  return(EqBulk)
-}
-EqBulk <- t(apply(MyData, MARGIN = 1, FUN = CalcEqBulk))  
-MyData <- cbind(MyData, EqBulk)
-write.csv(MyData, file = paste0(DateTimeStamp, "outputpairsandbulk.csv"),
-          quote = FALSE, row.names = FALSE)
-
-myylim <- c(1E-6, 1E7)
-mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1))
-mycolpairs <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan",
-           "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
-mycolbulk <- c("black", "purple", "hotpink", "red", "purple", "hotpink", "red")
-Mytmax <- c(1E3)
-Mytstep <- c(0.1)
-
-RunOverTimeNew <- function(MyData) {
-  print("state:")
-  print(c(Nutr = MyData[["NutrEq"]], MyData[["DInitLum"]], RLum = MyData[["RLumEq"]], RWall = MyData[["RWallEq"]]))
-  
-  EqFull <- c(Nutr = MyData[["NutrEq"]], DLum = MyData[["DInitLum"]], RLum = MyData[["RLumEq"]],
-              TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
-              DWall = MyData[["DInitWall"]], RWall = MyData[["RWallEq"]],
-              TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0)
-  out <- ode(t = seq(from = 0, to = Mytmax, by = Mytstep), y = EqFull, func = ModelPairsNutr, parms = MyData)
-  subtitle <- paste0("kp=", MyData[["kp"]], ", ", MyData[["kpWall"]],
-                     " kn=", MyData[["kn"]], ", ", MyData[["knWall"]],
-                     " gdbulk=", signif(MyData[["gdbulkLum"]], 3), ", ", signif(MyData[["gdbulkWall"]], 3), 
-                     " gtbulk=", signif(MyData[["gtbulkLum"]], 3), ", ", signif(MyData[["gtbulkWall"]], 3)
-  )
-  matplot.deSolve(out, log = "y", ylim = myylim, lwd = c(rep(2, 8), rep(1, 7)),
-                 lty = mylty, col = mycolpairs, main = "pair", sub = subtitle)
-  grid()
-  tailout <- tail(out, 1)
-  print(tailout)
-  
-  EqFullBulk <- c(Nutr = MyData[["NutrEq"]], DLum = MyData[["DInitLum"]], RLum = MyData[["RLumEq"]], TransLum = 0, 
-                  DWall = MyData[["DInitWall"]], RWall = MyData[["RWallEq"]], TransWall = 0)
-  outBulk <- ode(t = seq(from = 0, to = Mytmax, by = Mytstep), y = EqFullBulk, func = ModelBulkNutr, parms = MyData)
-  matplot.deSolve(outBulk, log = "y", ylim = myylim, lwd = c(rep(2, 4), rep(1, 3)),
-                  lty = mylty, col = mycolbulk, main = "bulk", sub = subtitle)
-  grid()
-  tailoutbulk <- tail(outBulk, 1)
-  print(tailoutbulk)  
-  outtotal <- cbind(tailout, tailoutbulk)
-  names(outtotal) <- c(colnames(out), paste0(colnames(outBulk), "bulk"))
-  return(outtotal)
-}
-
-MyDataParms <- MyData
-MyDataSim <- t(apply(MyDataParms, MARGIN = 1, FUN = RunOverTimeNew)) 
-
-for(i in 1:5) { 
-  if(MyDataSim[, "RLum"] < MyDataSim[, "RLumbulk"]) {
-    MyDataParms[, "gtbulkLum"] <- MyDataParms[1, "gtbulkLum"]*2
-    MyDataParms[, "gtbulkWall"] <- MyDataParms[1, "gtbulkWall"]*2
-    print("Increasing gtbulk")
-  } else {
-    MyDataParms[, "gtbulkLum"] <- MyDataParms[1, "gtbulkLum"]*0.2
-    MyDataParms[, "gtbulkWall"] <- MyDataParms[1, "gtbulkWall"]*0.2
-    
-    print("Decreasing gtbulk")
-  }
-  MyDataSim <- t(apply(MyDataParms, MARGIN = 1, FUN = RunOverTimeNew)) 
-}
-
-
-############################################################################################### 
-##### Script for the one-compartment model, not yet adjusted to two-compartment situation #####
-############################################################################################### 
-
-
-#### Plotting output ####
-
-CreatePlot(fillvar = "NutrEq")
-CreatePlot(fillvar = "REq")
-
-# Create limits to have the same limits and colorscale for the two plots
-limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
-                     ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
-
-CreatePlot(fillvar = "log10(gdbulk)", limits = limitsbulkrates)
-CreatePlot(fillvar = "log10(gtbulk)", limits = limitsbulkrates)
-
-# NOTE: hardcoded selection
-PlotData <- MyData[which(MyData[, "cd"]==0.01 & MyData[, "ct"]==0.01 ), ]
-CreatePlot(data = PlotData, fillvar = "pmax(gdbulk, gtbulk)/pmin(gdbulk, gtbulk)")
-CreatePlot(data = PlotData, fillvar = "gdbulk/gtbulk")
-
-CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1)
-CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1)
-CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk", gradient2 = 1)
-
-summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
-summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
-
-# Note: hardcoded legend
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -586,45 +793,10 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
                     name = "Plasmid-free equilibrium",
                     labels = c("stable", "unstable"))
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
-}
-
-# Note: hardcoded legend
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal - SignDomEigValBulk))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("0" = "darkblue"),
-                    name = "Difference in sign eigenvalues")
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "Difference in sign eigenvalues.png"))
-}
-
-# Create limits to have the same limits and colorscale for the two plots
-DomEigVals <- c(MyData$DomEigVal, MyData$DomEigValBulk)
-limitseigenvalues <- log10(range(DomEigVals[DomEigVals > 0]))
-limitseigenvalues <- c(floor(limitseigenvalues[1]), ceiling(limitseigenvalues[2]))
-
-CreatePlot(fillvar = "log10(DomEigVal)", limits = limitseigenvalues)
-CreatePlot(fillvar = "log10(DomEigValBulk)", limits = limitseigenvalues)
-CreatePlot(fillvar = "DomEigVal/DomEigValBulk")
-CreatePlot(fillvar = "DomEigVal-DomEigValBulk")
-
-summary(MyData$DomEigVal)
-summary(MyData$DomEigValBulk)
-summary(MyData$DomEigVal - MyData$DomEigValBulk)
-summary(MyData$DomEigVal / MyData$DomEigValBulk)
-summary(DomEigVals)
-
-print("Finished plotting:")
-print(Sys.time())
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
+
 IndexSimulation <- which(MyData$SignDomEigVal != -1)
 print(paste(length(IndexSimulation), "simulations to run for the pair-formation model"))
 ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
@@ -633,462 +805,93 @@ OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1,
                                  FUN = SimulationPairs))
 
 if(length(IndexSimulation) < nrow(MyData)) {
-  NoSimulationNeeded <- cbind(time = 0, Nutr = MyData[-IndexSimulation, "NutrEq"],
-                              D = 0, R = MyData[-IndexSimulation, "REq"],
-                              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+  NoSimulationNeeded <- cbind(time = 0, steady = 1, Nutr = MyData[-IndexSimulation, "NutrEq"],
+                              DLum = 0, RLum = MyData[-IndexSimulation, "RLumEq"],
+                              TransLum = 0,  MdrLum = 0, MdtLum = 0, MrtLum = 0,
+                              MttLum = 0, DWall = 0,
+                              RWall = MyData[-IndexSimulation, "RWallEq"],
+                              TransWall = 0, MdrWall = 0, MdtWall = 0,
+                              MrtWall = 0, MttWall = 0)
   MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
                   cbind(MyData[-IndexSimulation, ], NoSimulationNeeded))
 } else {
-  MyData <- cbind(MyData[IndexSimulation, ], OutputSimulationPairs)
+  MyData <- cbind(MyData, OutputSimulationPairs)
 }
+if(any(MyData$steady == 0)) warning("Steady-state has not always been reached")
 
 print("Pair-formation model completed running:")
 print(Sys.time())
 
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
-print(paste(length(IndexSimulation), "simulations to run for the bulk model"))
+print(paste(length(IndexSimulationBulk), "simulations to run for the bulk model"))
 InputSimulationBulk <- MyData[IndexSimulationBulk, ColumnsToSelect]
 OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk))
 colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
 
 if(length(IndexSimulationBulk) < nrow(MyData)) {
-  NoSimulationNeededBulk <- cbind(timeBulk = 0, NutrBulk = MyData[-IndexSimulationBulk, "NutrEq"],
-                                  DBulk = 0, RBulk = MyData[-IndexSimulationBulk, "REq"],
-                                  TransBulk = 0)
+  NoSimulationNeededBulk <- cbind(timeBulk = 0, steadyBulk = 1,
+                                  NutrBulk = MyData[-IndexSimulation, "NutrEq"],
+                                  DLumBulk = 0,
+                                  RLumBulk = MyData[-IndexSimulation, "RLumEq"],
+                                  TransLumBulk = 0, DWallBulk = 0,
+                                  RWallBulk = MyData[-IndexSimulation, "RWallEq"],
+                                  TransWallBulk = 0)
   MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
                   cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk))
 } else {
-  MyData <- cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk)
+  MyData <- cbind(MyData, OutputSimulationBulk)
 }
+if(any(MyData$steadyBulk == 0)) warning("Steady-state has not always been reached")
 
 print("Bulk-conjugation model completed running:")
 print(Sys.time())
 
-MyData <- cbind(MyData, TotalD = NA, TotalR = NA, TotalTrans = NA, TotalPlasmid = NA, TotalBio = NA,
-                TotalPlasmidBulk = NA, TotalBioBulk = NA)
-MyData[, "TotalD"] <- MyData[, "D"] + MyData[, "Mdr"] + MyData[, "Mdt"]
-MyData[, "TotalR"] <- MyData[, "R"] + MyData[, "Mdr"] + MyData[, "Mrt"]
-MyData[, "TotalTrans"] <- MyData[, "Trans"] + MyData[, "Mdt"] + MyData[, "Mrt"] + 2*MyData[, "Mtt"]
-MyData[, "TotalPlasmid"] <- MyData[, "TotalD"] + MyData[, "TotalTrans"]
-MyData[, "TotalBio"] <- MyData[, "D"] + MyData[, "R"] + MyData[, "Trans"] + 2*MyData[, "Mdr"] +
-  2*MyData[, "Mdt"] + 2*MyData[, "Mrt"] + 2*MyData[, "Mtt"]
-MyData[, "TotalPlasmidBulk"] <- MyData[, "DBulk"] + MyData[, "TransBulk"]
-MyData[, "TotalBioBulk"] <- MyData[, "DBulk"] + MyData[, "RBulk"] + MyData[, "TransBulk"]
+MyData <- cbind(MyData, TotalDLum = NA, TotalRLum = NA, TotalTransLum = NA, TotalPlasmidLum = NA, TotalBioLum = NA,
+                TotalDWall = NA, TotalRWall = NA, TotalTransWall = NA, TotalPlasmidWall = NA, TotalBioWall = NA,
+                TotalPlasmidLumBulk = NA, TotalBioLumBulk = NA, TotalPlasmidWallBulk = NA, TotalBioWallBulk = NA)
+MyData[, "TotalDLum"] <- MyData[, "DLum"] + MyData[, "MdrLum"] + MyData[, "MdtLum"]
+MyData[, "TotalRLum"] <- MyData[, "RLum"] + MyData[, "MdrLum"] + MyData[, "MrtLum"]
+MyData[, "TotalTransLum"] <- MyData[, "TransLum"] + MyData[, "MdtLum"] + MyData[, "MrtLum"] + 2*MyData[, "MttLum"]
+MyData[, "TotalPlasmidLum"] <- MyData[, "TotalDLum"] + MyData[, "TotalTransLum"]
+MyData[, "TotalBioLum"] <- MyData[, "TotalRLum"] + MyData[, "TotalPlasmidLum"]
+MyData[, "TotalDWall"] <- MyData[, "DWall"] + MyData[, "MdrWall"] + MyData[, "MdtWall"]
+MyData[, "TotalRWall"] <- MyData[, "RWall"] + MyData[, "MdrWall"] + MyData[, "MrtWall"]
+MyData[, "TotalTransWall"] <- MyData[, "TransWall"] + MyData[, "MdtWall"] + MyData[, "MrtWall"] + 2*MyData[, "MttWall"]
+MyData[, "TotalPlasmidWall"] <- MyData[, "TotalDWall"] + MyData[, "TotalTransWall"]
+MyData[, "TotalBioWall"] <- MyData[, "TotalRWall"] + MyData[, "TotalPlasmidWall"]
+MyData[, "TotalPlasmidLumBulk"] <- MyData[, "DLumBulk"] + MyData[, "TransLumBulk"]
+MyData[, "TotalBioLumBulk"] <- MyData[, "RLumBulk"] + MyData[, "TotalPlasmidLumBulk"]
+MyData[, "TotalPlasmidWallBulk"] <- MyData[, "DWallBulk"] + MyData[, "TransWallBulk"]
+MyData[, "TotalBioWallBulk"] <- MyData[, "RWallBulk"] + MyData[, "TotalPlasmidWallBulk"]
 
-write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulation.csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, "outputtwocompartment.csv"),
           quote = FALSE, row.names = FALSE)
 
-#### Plotting summaries of the variables and of some parameters ####
-SummaryPlot(MyData$NutrEq)
-SummaryPlot(MyData$REq)
-SummaryPlot(MyData$gdbulk)
-SummaryPlot(MyData$gtbulk)
-SummaryPlot(MyData$DomEigVal)
-SummaryPlot(MyData$DomEigValBulk)
-SummaryPlot(MyData$Nutr)
-SummaryPlot(MyData$D)
-SummaryPlot(MyData$R)
-SummaryPlot(MyData$Trans)
-SummaryPlot(MyData$Mdr)
-SummaryPlot(MyData$Mdt)
-SummaryPlot(MyData$Mrt)
-SummaryPlot(MyData$Mtt)
-SummaryPlot(MyData$NutrBulk)
-SummaryPlot(MyData$DBulk)
-SummaryPlot(MyData$RBulk)
-SummaryPlot(MyData$TransBulk)
-SummaryPlot(MyData$TotalD)
-SummaryPlot(MyData$TotalR)
-SummaryPlot(MyData$TotalTrans)
-SummaryPlot(MyData$TotalPlasmid) # Plots on linear scale despite varying over many orders of magnitude ?
-SummaryPlot(MyData$TotalPlasmidBulk)
-
-### Some controls
-# Equilibrium at t=0 despite unstable plasmid-free equilibrium
-if(any(MyData$time == 0 & MyData$SignDomEigVal == 1)) {
-  A <- length(which(MyData$time == 0 & MyData$SignDomEigVal == 1))
-  warning(paste("Equilibrium at t=0 despite unstable plasmid-free equilibrium in", A, "cases!"))
-}
-
-if(any(MyData$timeBulk == 0 & MyData$SignDomEigVal == 1)) {
-  A <- length(which(MyData$timeBulk == 0 & MyData$SignDomEigVal == 1))
-  warning(paste("Equilibrium at t=0 despite unstable plasmid-free equilibrium in", A, "cases!"))
-}
-
-# Unstable equilibrium, but invasion not possible
-if(any(MyData$TotalR == MyData$TotalBio & MyData$SignDomEigVal == 1)) {
-  A <- length(which(MyData$TotalR == MyData$TotalBio & MyData$SignDomEigVal == 1))
-  warning(paste("Unstable equilibrium but invasion not possible with pair-model in", A, "cases!"))
-}
-
-if(any(MyData$RBulk == MyData$TotalBioBulk & MyData$SignDomEigValBulk == 1)) {
-  A <- length(which(MyData$RBulk == MyData$TotalBioBulk & MyData$SignDomEigValBulk == 1))
-  warning(paste("Unstable equilibrium but invasion not possible with bulk-model in", A, "cases!"))
-}
-
-# If this differs, comparisons between the 2 models should use fractions, not cell counts
-summary(MyData$TotalBio / MyData$TotalBioBulk)
-range(MyData$TotalBio / MyData$TotalBioBulk)
-
-# If the biomass is the same accross simulations, one could use the number of cells instead of fractions of total biomass
-summary(MyData$TotalBio)
-max(MyData$TotalBio) / min(MyData$TotalBio) 
-summary(MyData$TotalBioBulk)
-max(MyData$TotalBioBulk) / min(MyData$TotalBioBulk)
-
-# Which proportion of cells is plasmid-bearing, if it is not 0
-min((MyData$TotalPlasmid / MyData$TotalBio)[which(MyData$TotalPlasmid / MyData$TotalBio != 0)])
-max((MyData$TotalPlasmid / MyData$TotalBio)[which(MyData$TotalPlasmid / MyData$TotalBio != 0)])
-
-min((MyData$TotalPlasmidBulk / MyData$TotalBioBulk)[which(MyData$TotalPlasmidBulk / MyData$TotalBioBulk != 0)])
-max((MyData$TotalPlasmidBulk / MyData$TotalBioBulk)[which(MyData$TotalPlasmidBulk / MyData$TotalBioBulk != 0)])
-
-A <- MyData[which(MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] > 1e-3 &
-                    MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] < 0.999), ]
-dim(A)
-
-# Compare biomass accross the two models
-CreatePlot(fillvar = "TotalBio / TotalBioBulk", gradient2 = 1)
-
-# Fraction plasmid-bearing cells
-CreatePlot(fillvar = "TotalPlasmid/TotalBio")
-CreatePlot(fillvar = "TotalPlasmidBulk/TotalBioBulk")
-CreatePlot(fillvar = "(TotalPlasmid/TotalBio) / (TotalPlasmidBulk/TotalBioBulk)")
-
-# Fraction donors
-CreatePlot(fillvar = "TotalD/TotalBio")
-CreatePlot(fillvar = "DBulk/TotalBioBulk")
-CreatePlot(fillvar = "(DBulk/TotalBioBulk) / (TotalD/TotalBio)")
-
-# Fraction recipients
-CreatePlot(fillvar = "TotalR/TotalBio")
-CreatePlot(fillvar = "RBulk/TotalBioBulk")
-CreatePlot(fillvar = "(RBulk/TotalBioBulk) / (TotalR/TotalBio)")
-
-# Fraction transconjugants
-CreatePlot(fillvar = "TotalTrans/TotalBio")
-CreatePlot(fillvar = "TransBulk/TotalBioBulk")
-CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)")
-
-################################################################################
-BackupMyData <- MyData
-
-###### To create plots over time
-
-# Settings for simulations, plotting, and printing
-mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
-# mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
-mycol <- c("black", brewer.pal(7, "Set1"))
-myylim <- c(1E-14, 1E7) # Defining the limits for the y-axis
+##### Create plots over time #####
+myltypairs <- c(lty = c(3, rep(c(1, 2, 1, 1, 1, 1, 1), 2)))
+myltyother <- c(lty = c(3, rep(c(1, 2, 1), 2)))
+mycolpairs <- c("black", rep(c("purple", "green1", "red", "yellow", "hotpink", "blue", "cyan"), 2))
+mycolother <- c("black", rep(c("purple", "green1", "red"), 2))
+myylim <- c(1E-6, 1E7)
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
-plotoutput <- 1
-extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
-verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
-smallchange <- c(1E-5)
-Mytmax <- c(1E3)
-Mytstep <- c(10)
+verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed
+Mytmax <- c(500)
+Mytstep <- c(0.1)
+TheseRows <- 1:nrow(MyData) # Rows to use for simulations over time
 
-#### Create matrix to store data ####
-TheseRows <- c(1, nrow(MyData))
-Mydf <- MyData[TheseRows, ]
+Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
 print(TotalIterations)
-CurrentIteration <- 0
 
-# Times for which output of the simulation is wanted.
-# Note that timesteps of 1 are used untill t = 100, and note furthermore that
-# the used ode-solvers are variable-step methods, so the times in times
-# are NOT the only times at which integration is performed. See
-# help(diagnostics.deSolve()) and help(lsodar()) for details.
-times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
+# Times for which output of the simulation is wanted. Note that the used
+# ode-solvers are variable-step methods, so the times in times are NOT the only
+# times at which integration is performed. See help(diagnostics.deSolve()) and
+# help(lsodar()) for details.
+times <- seq(from = 0, to = Mytmax, by = Mytstep)
 
-# Define root-function and event-function
-# If the root-argument is equal to 0, an event (as defined by the event-function)
-# is triggered. See help(events) and help(lsodar) (both in the deSolve package)
-# for background information and examples. 
-# The first root becomes 0 if the sum of absolute rates of change is equal to the
-# threshold smallchange, i.e., when equilibrium is nearly reached. This root is
-# set as the terminal root, in order to terminate the integration if this occurs.
-# The other roots are used to determine if any of the state variables are equal
-# to the extinction threshold. If this occurs, the event function is called,
-# which sets the states that are equal to threshold to zero, and the integration
-# continues.
-# NOTE that the NUTRIENTS are also in the root- and event-functions, so currently
-# they would also be set to 0 if they fall below the threshold, which is undesirable.
-# The nutrients can probably removed from the rootfunction by using state[-1] -
-# extinctionthreshold, but attempts to remove them from events failed for events
-# implemented as state2[state2[-1] < extinctionthreshold] <- 0 or state2[state2[-1]
-# < extinctionthreshold] <- 0 because the index shifts if nutrients are below the
-# threshold. Using state2[(state2[-1] < extinctionthreshold) + 1] <- 0 might work.
-# Note that it is still possible to have bacterial densities lower than the
-# threshold, if these populations are created from other populations at each
-# timestep.
-rootfun <- function(t, state, parms) {
-  c(sum(abs(unlist(ModelPairsNutr(t, state, parms)))) - smallchange, state - extinctionthreshold)
-}
+# To see the dynamics of the different populations
+EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Pair"))
 
-rootfunBulk <- function(t, stateBulk, parmsBulk) {
-  c(sum(abs(unlist(ModelBulkNutr(t, stateBulk, parmsBulk)))) - smallchange, stateBulk - extinctionthreshold)
-}
-
-eventfun <- function(t, state, parms) {
-  state[state < extinctionthreshold] <- 0
-  return(state)
-}
-
-eventfunBulk <- function(t, stateBulk, parmsBulk) {
-  stateBulk[stateBulk < extinctionthreshold] <- 0
-  return(stateBulk)
-}
-
-RunOverTime <- function(data = Mydf, ...) {
-  state <- c(Nutr = data[["NutrEq"]], D = data[["DInit"]], R = data[["REq"]],
-             Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  parms <- data[ColumnsToSelect]
-  out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms,
-              rootfun = rootfun, events = list(func = eventfun, root = TRUE,
-                                               terminalroot = 1))
-  EqAfterInvasion <- tail(out2, 1)
-  if(verbose == TRUE) {
-    print(diagnostics(out2))
-    print(attributes(out2))
-  }
-  PlotOverTime(data = out2, type = "Pair", saveplot = saveplots)
-  
-  stateBulk <- c(Nutr = data[["NutrEq"]], D = data[["DInit"]], R = data[["REq"]], Trans = 0)
-  parmsBulk <- data[ColumnsToSelect]
-  out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parmsBulk,
-                  rootfun = rootfunBulk, events = list(func = eventfunBulk, root = TRUE,
-                                                       terminalroot = 1))
-  EqAfterInvasionBulk <- tail(out2bulk, 1)
-  if(verbose == TRUE) {
-    print(diagnostics(out2bulk))
-    print(attributes(out2bulk))
-  }
-  PlotOverTime(data = out2bulk, type = "Bulk", saveplot = saveplots)
-
-  EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
-  names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
-                                   paste0(colnames(EqAfterInvasionBulk), "Bulk"))
-  return(EqAfterInvasionTotal)
-}
-
-PlotOverTime <- function(data = out2, type = "Pair", saveplot = saveplots) {
-  maintitle <- paste(type, "model")
-  subtitle <- paste0("bR=", Mydf[["bR"]], " NI=", Mydf[["NI"]],
-                     " log10kp=", log10(Mydf[["kp"]]), " log10kn=", log10(Mydf[["kn"]]),
-                     " NutrConv=", Mydf[["NutrConv"]], " w=", Mydf[["w"]],
-                     " cd=", Mydf[["cd"]], " ct=", Mydf[["ct"]])
-  if(type == "Pair") {
-    subtitle <- paste0(subtitle, " gd=", Mydf[["gd"]], " gt=", Mydf[["gt"]]) 
-  } else {
-    subtitle <- paste0(subtitle, " gdbulk=",  signif(Mydf[["gdbulk"]], digits = 4),
-                       " gtbulk=", signif(Mydf[["gtbulk"]], digits = 4))
-  }
-  if(verbose == TRUE) {
-    matplot.deSolve(data, main = paste(maintitle, "verbose"), sub = subtitle, ylim = myylim,
-                    xlim = c(0, tail(attributes(data)$troot, 2)[1]),
-                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                    legend = list(x = "topright"))
-    grid()
-    abline(h = extinctionthreshold)
-    abline(v = attributes(data)$troot)
-  }
-  if(saveplot == TRUE) {
-    filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
-    if(file.exists(filename)) {
-      warning("File already exists, not saved again!")
-    } else {
-      png(filename = filename)
-    }
-    matplot.deSolve(data, main = maintitle, sub = subtitle, ylim = myylim,
-                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                    legend = list(x = "bottomright"))
-    grid()
-    if(saveplot == TRUE & file.exists(filename) == FALSE) {
-      dev.off()
-    }
-  } else {
-    matplot.deSolve(data, main = maintitle, sub = subtitle, ylim = myylim,
-                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                    legend = list(x = "bottomright"))
-    grid()
-  }
-}
-
-EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
-
-
-# png(filename = paste0(DateTimeStamp, "longrun", CurrentIteration + 1, ".png"))
-# dev.off()
-
-# MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
-
-
-MyData[CurrentIteration, c(1:14)] <- unname(c(parmsBulk, Eq))
-MyData[CurrentIteration, c(15:28)] <- unname(c(
-  EqAfterInvDonor, EqAfterInvDonorBulk))                      
-
-MyData[CurrentIteration, c(29:51)] <- unname(c(
-  EigValEq, DomEigVal, SignDomEigVal, SignEigValEqual,
-  ComplexEigVal, EigValEqBulk, DomEigValBulk,
-  SignDomEigValBulk, SignEigValEqualBulk,
-  ComplexEigValBulk, smallchange, Mytmax, Mytstep))
-
-
-BackupMyData <- MyData
-MyData <- as.data.frame(MyData)
-write.csv(MyData, file = paste0(DateTimeStamp, "outputdeSolveChangedContact", ".csv"),
-          quote = FALSE, row.names = FALSE)
-
-
-X <- limitseigenvalues[1]
-ndigits <- 2
-round(X - (10^-ndigits)/2, ndigits)
-
-roundflex <- function(X, ndigits = 3, dir = "up") {
-  if(dir == "down") {
-    X <- round(X - (10^-ndigits)/2, ndigits)
-  }
-  if(dir == "up") {
-    X <- round(X + (10^-ndigits)/2, ndigits)
-  }
-  return(X)
-}
-
-## An alternative way to highlight where equilibrium was not reached, but I could
-# not figure out how to include info on the rectangles in the legend, and the
-# creation of the raster dataframe requires re-entering the variable names, so
-# is more error-prone. On the frames to indicate specific tiles, see
-# https://stackoverflow.com/questions/13258454/marking-specific-tiles-in-geom-tile-geom-raster
-
-frames = MyData[MyData$time==MyData$tmax, c("kp", "log10kn", "cd")]
-ggplot(data = MyData, aes(x = kp, y = log10kn, fill = log10(PlasmidsEq))) + 
-  geom_rect(colour = "white") + 
-  scale_fill_gradient(low = "red", high = "green") +
-  geom_rect(data=frames, size=1, fill=NA, colour="black",
-            aes(xmin=kp - 0.05, xmax=kp + 0.05, ymin=log10kn - 0.05, ymax=log10kn + 0.05)) +
-  # scale_colour_manual(name = "Ooh look", values = c("black"), labels = "Something cool") +
-  facet_grid(cd ~ .) +
-  labs(x = "kp",
-       y = "log10kn",
-       title = "pair-formation model", 
-       subtitle = "facet by cd ~ .") +
-  theme(legend.position = "bottom")
-
-## Andere mogelijk aanpak: subset data in 4 groepen:
-## (1) SignDomEig < 0, time == 0 (geen invasie mogelijk, egale kleur want N/A)
-## (2) SignDomEig > 0, time >= tmax, invasie mogelijk maar evenwicht niet bereikt,
-## dus niet inkleuren maar omkaderen of anderszins markeren
-## (3) SignDomEig > 0, time < tmax, PlasmidsEq < (tolerantie?) BioEq (evenwicht
-## bereikt, populatie niet volledig plasmiddragend,
-## kleurverloop op dit deel van populatie toepassen
-## (4) SignDomEig > 0, time < tmax, PlasmidsEq == (tolerantie?) BioEq (evenwicht
-## bereikt, populatie volledig plasmiddragend,
-## egaal kleuren)
-
-
-# (1) gaat vanzelf goed via default, want dan geldt PlasmidsEq = 0, dus
-# log10(PlasmidsEq) = NA
-# (2) is nu geïmplementeerd om de grid cells with a dot te markeren, MAAR DAT
-# NOG UIT kleurverloop dataset halen
-# (3) is de interessante, ALLEEN DEZE IN KLEURSCHAAL OPNEMEN
-# (4) is niet zo interessant, EGAAL KLEUREN EN UIT KLEURSCHAAL HALEN
-Pop1 <- MyData[MyData$time == 0, ]
-dim(Pop1)
-PopRemain <- MyData[MyData$time != 0, ]
-dim(PopRemain)
-
-Pop2 <- PopRemain[PopRemain$time >= PopRemain$tmax, ]
-dim(Pop2)
-PopRemain <- PopRemain[PopRemain$time < PopRemain$tmax, ]
-dim(PopRemain)
-
-Pop3 <- PopRemain[PopRemain$PlasmidsEq <= 0.999*PopRemain$BioEq, ]
-dim(Pop3)
-PopRemain <- PopRemain[PopRemain$PlasmidsEq > 0.999*PopRemain$BioEq, ]
-dim(PopRemain)
-
-Pop4 <- PopRemain
-dim(Pop4)
-
-## Pop 1 is covered as N/A, but not present in legend
-# Pop 2 is covered by geom_point, but should be removed from color
-ggplot(data = NULL, aes(x = kp, y = log10kn)) + 
-  geom_tile(data = MyData, colour = "white") + 
-  scale_fill_gradient(low = "red", high = "green") +
-  geom_point(data = MyData[MyData$time==MyData$tmax, ], aes(colour = "black")) +
-  scale_colour_manual(name = "", values = "black", labels = "Equilibrium not reached") +
-  facet_grid(cd ~ .) +
-  labs(x = "kp",
-       y = "log10kn",
-       title = "pair-formation model", 
-       subtitle = "facet by cd ~ .") +
-  theme(legend.position = "bottom")
-
-# element_text(angle = 45, hjust = 1, vjust = 1, size = 14)
-# theme(legend.position = "bottom", legend.text = element_text(angle = 45, hjust = 1, vjust = 1))
-
-#### Version history ####
-# Before 9 January 2020 the equation for dR contained - kp*R*R instead of - 2*kp*R*R
-# On 10 february 2020 I changed the equation of the nutrients to include washout of nutrients
-# Later I changed kp, kn, gd, and gt to log10kp, log10kn, log10gd, and log10gt
-# In version 9 (13 March 2020) I removed the biomass equations from the models. This has the
-# advantage that the integration will be slightly faster since one equation less has to be
-# integrated. More importantly, removing the biomass equation is needed to enable
-# stability-analysis based on the eigenvalues of the jacobimatrix in the plasmid-free equilibrium
-# On 13 March I also removed the plotting commands from the script and changed the structure of
-# the output dataframe, to prevent repetition of the biomass and DInit = plasmid-bearing bacteria at the initial state.
-# For some versions there is a script available using rootSolve to run fast to equilibrium,
-# e.g. PairFormationSimulation2rootSolve8, but no plot over time can be made and it does not always work,
-# and the output structure is different from deSolve, leading to different selection styles for storing data
-# in the dataframe.
-# In version 13 I corrected the calculation of the eigenvalues to use the plasmid-free equilibrium EqFull, not
-# the plasmid-free equilibrium with DInit donors added to it (state). I also changed the calculation of the
-# biomass at the initial state in the dataframe to a cleaner implementation.
-# Version 13 is a copy of version 12, where I copied the script part by part to get the correct outlining
-# of all the brackets, and I changed some comments and the order of some parts to get a clearer and cleaner
-# script.
-# In version 13 (?) added dots in the graphs to indicate the points where equilibrium was not reached.
-# Besides, I splitted cSet and gSet in separate sets for D and T, and added DInit as a set and adjusted the
-# for-loops accordingly.
-# In version 14 I added automated labelling of the facets, and changed the manual labelling of the x- and
-# y-axis to automated labelling.
-# Versions 15 - 17 exist in a version with complete pair-formation, and a version ('ChangedContact') where
-# Zhong's model is followed regarding pair-formation, such that only Mdr and Mrt pairs are formed, and Mdt
-# and Mtt pairs arise from conjugation
-# In version 18 I changed the linestyles and linecolors to highlight the plasmid-free population in the same
-# way as in the earlier versions of the 'complete' model.
-# In version 19 I extended the root-function and added an eventfunction to set populations of bacteria that are
-# smaller than a threshold to 0. I also added handling of ratios that are invalid when checking for coexistence.
-# In version 21 I changed the order of equations to have nutrients as the first equation so nutrients 
-# can be disregarded in the rootfunction by using state[-1] without having to call length(state) or
-# length(state) + 1. Similarly I changed the order of the roots in the rootfunction, to have terminalroot = 1
-# instead of length(state) + 1. I also changed the rootfunction by selecting for only the bacterial populations
-# to trigger a root. After these changes I also changed mylty, mycol, and initial states to match the changed order.
-# NOTE: this implementation of events was WRONG, because the nutrients were excluded from selection so the
-# wrong states were put to 0. This issue was solved in later versions of version 21.
-# In version 23 the calculation of the bulk-rates according to Zhong has been added,
-# and gdbulk and gtbulk have been added to the parameters stored in the matrix.
-# The root- and eventfunctions are now also incorporated into the bulk-conjugation model.
-# The the bulk-conjugation model is ran using Zhong's bulk-conjugation rates, and
-# the output is stored in the matrix as well. I have added the column ComplexEigVal
-# to the matrix, which indicates if complex eigenvalues were present, and now only
-# the real parts of the eigenvalues are stored. Previously all values in the matrix
-# would have a complex +0i part added if a value with a complex part was stored,
-# and the imaginary parts hamper other functions.
-# In version 24 I changed to writing csv-files instead of xlsx files, changed the
-# script such that, even if invasion with the pair-formation model is not possible,
-# gdbulk and gtbulk are calculated, and stability-analysis of the plasmid-free
-# equilibrium in the bulk-model (which I added) is performed.
-# I also lowered extinctionthreshold to prevent the density of newly formed
-# populations from being below the extinctionthreshold.
-# In version 25 I changed NI from 1 to 10 (which has previously been used),
-# to decrease simulation time. The plots were also updated, various new plots
-# were added, and other colorscales were used.
-# In version 26 I removed the loop for e, Mytmax, Mytstep, and smallchange.
-# The values for kp and kn were changed to have integer values for log10(kp)
-# and log10(kn) (they were seq(from = -10.5, to = -8.5, by = 0.5), but the graphs
-# erroneously present it like they were -10, -9, ...) 
-# The loops for kp and kn were moved to only change after the plasimd-free
-# equilibrium has been calculated.  
+# To compare total numbers of donors, recipients, and transconjugants in the
+# output of the pair-formation model with the bulk-formation model
+EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Total"))

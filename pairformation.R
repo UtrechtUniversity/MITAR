@@ -3,13 +3,39 @@
 
 #### To do ####
 
+# Rethink the way of defining donor growth rate and costs: unless it is assumed 
+# that the donor is the same species as the recipient, it does not make sense
+# to define donor growth rates as recipient growth rate altered by costs from
+# plasmid carriage. Instead, the donor could be assumed to have a growth rate
+# unrelated to the recipient growth rate, and if the donor is adapted to the
+# plasmid it does not have plasmid costs, but the new environment could be assumed
+# to lead to costs in growth as well.
+
+# If I want to include stochastics, see Price 'An efficient moments-based inference
+# method for within-host bacterial infection dynamics' and Volkova 'Modelling dynamics
+# of plasmid-gene mediated antimicrobial resistance in enteric bacteria using stochastic
+# differential equations' for ideas
+
 # Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
+
+# Does using stol = 1.25E-6 for 8 equations in SimulationPairs and stol = 2.5E-6
+# for 4 equations in SimulationBulk make sense if one wants the simulations to
+# terminate at the same densities?
 
 # For PlotOverTime, I want the plot to be always shown, and saved only if save = TRUE.
 # Change to using ggplot instead of matplot.deSolve to enable saving an object through ggsave(...)
 
+# The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
+# ect. for approximating bulk-rates can be moved inside the EstConjBulk function.
+
 # Find method to obtain the order in which I specify the state from EstConjBulkDonor
 # or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object DataEstConjBulk
+
+# Prevent overlapping values for the colorbar (could use angle with hjust, vjust)
+
+## Voor plots over time waar ik het pair-formation en het bulk-model met elkaar Vergelijk
+# is plotten van TotalD, TotalR, TotalTrans van het pair-model en DBulk, RBulk, TransBulk van het bulk-model
+# een betere vergelijking, zie PlotOverTime uit het script voor het twee-compartimenten model.
 
 # SummaryPlot() does not use the names of the arguments for creating titles
 
@@ -40,7 +66,9 @@
 # are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each
 # kp*kn*cd*ct combination. I don't know how these are handled when plotting,
 # probably the different values are plotted on top of each other so only the
-# last value is visible.
+# last value is visible. See the To-do section in the script for the
+# Two-compartment model for a stub to check which parameters have multiple
+# values that are not handled as such when plotting.
 
 # Run bulk-model for short time (same as short pair-model) and compare them
 # to see if the bulk-conjugation parameter holds (automated analysis somehow)
@@ -62,10 +90,6 @@
 # code itself).
 
 # Check for use of tabs and double spaces and switch to using double spaces ?
-
-# I should add check if steady-state has been reached with runsteady(...), for
-# example by including steady = attr(out, "steady") in the output and checking
-# if(any(X$steady == FALSE )) warning("Steady-state has not always been reached")
 
 # Look for 'hardcoded', 'hard-coded' and rethink them.
 
@@ -105,9 +129,12 @@ library(RColorBrewer) # For better color schemes
 library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
 
-
 #### Plotting options ####
-saveplots <- 1
+saveplots <- 0
+atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
+# to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
+# in the machine, T + H = T on the next step  [1] 0 (H = step size). Solver will
+# continue anyway', which eventually leads to aborted integration.
 tmaxsteady <- 1e8
 timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
@@ -176,11 +203,12 @@ EstConjBulk <- function(MyData) {
 
 # ODE-model describing pair-formation and conjugation. Pair-formation between
 # plasmid-free recipients and plasmid-bearing donors or transconjugants depends
-# on attachment rate kp. Conjugation from the donor or transconjugant occurs in
+# on attachment rate kp. Conjugation from donors or transconjugants occurs in
 # the Mdr and Mrt pairs with intrinsic conjugation rates gd and gt respectively.
-# This leads to formation of Mdt and Mtt pairs. The pairs fall apart with
-# detachment rate kn. This structure of pair-formation is based on Zhong's model
-# (Zhong 2010). I expanded the model to include costs, washout, and nutrients.
+# This leads to formation of Mdt and Mtt pairs. Pairs fall apart with detachment
+# rate kn. This structure of pair-formation is based on Zhong's model (Zhong
+# 2010). I expanded the model to include costs in growth for plasmid-bearing
+# bacteria, washout, and nutrients.
 ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutr <- (NI - Nutr)*w - NutrConv*Nutr*((1 - cd)*bR*(D + Mdr + Mdt) + bR*(R + Mdr + Mrt) +
@@ -213,7 +241,8 @@ ModelBulkNutr <- function(t, state, parms) {
 # The maximum real part of the eigenvalues is used to determine stability.
 CalcEigenvalues <- function(MyData) {
   parms <- MyData
-  EqFull <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
+  EqFull <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0,
+              Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   EigVal <- eigen(x = jacobian.full(y = EqFull, func = ModelPairsNutr, parms = parms),
                   symmetric = FALSE, only.values = TRUE)$values
   ComplexEigVal <- is.complex(EigVal) 
@@ -241,25 +270,27 @@ CalcEigenvalues <- function(MyData) {
   return(InfoEigVal)
 }
 
-# The initial state is the plasmid-free equilibrium (R*, Nutr*) with the
-# addition of DInit donor bacteria per mL. Note that stol is based on the average
-# of absolute rates of change, not the sum.
+# Simulations using the pair-formation and the bulk model. The plasmid-free
+# equilibrium (Nutr*, R*) with the addition of DInit donor bacteria per mL is
+# used as initial state. Note that stol is based on the average of absolute
+# rates of change, not the sum.
 SimulationPairs <- function(InputSimulationPairs) {
   parms <- InputSimulationPairs
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
              R = parms[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr, parms = parms, stol = 1.25e-6)
-  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr,
+                   parms = parms, stol = 1.25e-6, atol = atol)
+  EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
   return(EqAfterInvDonor)
 }
 
-# Run the bulk-conjugation model
 SimulationBulk <- function(InputSimulationBulk) {
   parms <- InputSimulationBulk
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
              R = parms[["REq"]], Trans = 0)
-  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr, parms = parms, stol = 2.5e-6)
-  EqAfterInvDonor <- c(time = attr(out, "time"), out$y)
+  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr,
+                   parms = parms, stol = 2.5e-6, atol = atol)
+  EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
   return(EqAfterInvDonor)
 }
 
@@ -278,10 +309,10 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
     labs(caption = DateTimeStamp) +
     theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
   if(gradient2 == 1) {
-    p <- p + scale_fill_gradient2(midpoint = midpoint)
+    p <- p + scale_fill_gradient2(low = "darkblue", high = "darkred", midpoint = midpoint, limits = limits)
   } else {
     p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
-    #p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
+    # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
   }
   print(p)
   if(save == TRUE) {
@@ -300,6 +331,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
 # and negative values
 SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
   print(summary(plotvar))
+  print("Range:", quote = FALSE)
   print(range(plotvar))
   plotdf <- data.frame(val = plotvar, sign = sign(plotvar), absval = abs(plotvar), plotcol = "black")
   if(sortvalues == TRUE) {
@@ -349,7 +381,7 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
       plot(plotdf[, "absval"], ylim = ylim, log = "y", pch = 19, col = plotdf[, "plotcol"])
     }
     if(nvaluesnegative > 0) {
-      print(paste("Taking the absolute value of the", nvaluesnegative, "values smaller than 0"), quote = FALSE)
+      print(paste("Taking the absolute value of the", nvaluesnegative, "values smaller than zero"), quote = FALSE)
     }
   }
   grid()
@@ -371,30 +403,30 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # Washout rate (1/h): w
 
 ## To read data from csv-file
-# FileName <- "2020_juni_26_09_07_33outputsimulationcomplete.csv"
+# FileName <- "2020_augustus_03_12_54_32outputnosimulationtwocompartment.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
-#                    dec = ".", stringsAsFactors = FALSE)
+#                   dec = ".", stringsAsFactors = FALSE)
 # MyData <- as.data.frame(MyData)
-# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 28)
+# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 36)
 
 ## Stable co-existence of recipients, transconjugants, and Mrt and Mtt pairs
 # bRSet <- 1.7; NISet <- 10; kpSet <- 10^-9.6; knSet <- 10^0.5
-# NutrConv <- 1E-6; wSet <- 0.04; cdSet <- 0.05; ctSet <- 0.05;
+# NutrConvSet <- 1E-6; wSet <- 0.04; cdSet <- 0.05; ctSet <- 0.05;
 # gdSet <- 10^1.176; gtSet <- 10^1.176; DInitSet <- 1000
 # Leads to time = 843129.4, Nutr = 0.02427729 D = 0, R = 3829217, Trans = 6142815,
 # Mdr = Mdt = 0, Mrt = 324.6586, Mtt = 1520.435, timeBulk = 728451.6,
 # NutrBulk = 0.02430818, DBulk = 0, RBulk = 3583808, TransBulk = 6391884.
 
 ## Small parameterset for tests
-DInitSet <- c(1000)
-bRSet <- c(1.7)
-NISet <- c(10)
-NutrConv <- c(1E-6)
-wSet <- c(0.04)
-kpSet <- 10^seq(-10, -6, 2)
-knSet <- 10^seq(-1, 3, 2)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
+DInitSet <- 1000
+bRSet <- 1.7
+NISet <- 10
+NutrConvSet <- 1E-6
+wSet <- 0.04
+kpSet <- 10^seq(-12, -7, 0.5)
+knSet <- 10^seq(-1, 3, 0.5)
+cdSet <- 0.05
+ctSet <- 0.01
 gdSet <- 15
 gtSet <- 15
 
@@ -402,8 +434,8 @@ gtSet <- 15
 DInitSet <- c(10, 1E3)
 bRSet <- c(0.2, 2)
 NISet <- c(1, 10, 100)
-NutrConv <- c(1e-6, 1e-7)
-wSet <- c(0.04, 0.06)
+NutrConvSet <- c(1e-6, 1e-7)
+wSet <- c(0.04)
 kpSet <- 10^seq(from = -11, to = -5, by = 2)
 knSet <- 10^seq(from = -1, to = 3, by = 2)
 cdSet <- c(0.01, 0.05)
@@ -415,7 +447,7 @@ gtSet <- c(1, 20)
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
-NutrConv <- 1e-6
+NutrConvSet <- 1e-6
 wSet <- c(0.04)
 kpSet <- 10^seq(from = -10, to = -6, by = 0.25)
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
@@ -429,14 +461,28 @@ gtSet <- c(10, 15)
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
-NutrConv <- 1e-6
+NutrConvSet <- 1e-6
 wSet <- c(0.04)
 kpSet <- 10^seq(from = -10, to = -6, by = 0.2)
 knSet <- 10^seq(from = -1, to = 3, by = 0.2)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
-gdSet <- c(10, 15)
-gtSet <- c(10, 15) 
+gdSet <- c(1, 15)
+gtSet <- c(1, 15)
+
+## Use for 1- and 2-compartment model
+DInitSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- c(10)
+NutrConvSet <- 1e-6
+wSet <- c(0.04)
+kpSet <- 10^seq(from = -10, to = -6, by = 0.25)
+knSet <- 10^seq(from = -1, to = 3, by = 0.25)
+cdSet <- c(0.01, 0.05)
+ctSet <- c(0.01, 0.05)
+gdSet <- c(15)
+gtSet <- c(15) 
+
 
 ## Using steps of 0.1 for kp and kn did not work
 # Error: DLSODE- at T (=R1) and step size H (=R2), the corrector convergence failed repeatedly
@@ -449,33 +495,33 @@ gtSet <- c(10, 15)
 
 #### Main script ####
 
-TotalIterations <- length(DInitSet)*length(bRSet)*length(NISet)*length(NutrConv)*
+CheckParms <- c(DInitSet, bRSet, NISet, NutrConvSet, wSet, kpSet, knSet, cdSet, ctSet)
+if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
+if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
+
+TotalIterations <- length(DInitSet)*length(bRSet)*length(NISet)*length(NutrConvSet)*
   length(wSet)*length(kpSet)*length(knSet)*length(cdSet)*length(ctSet)*
   length(gdSet)*length(gtSet)
 TotalIterations
 
-CheckParms <- c(DInitSet, bRSet, NISet, NutrConv, wSet, kpSet, knSet, cdSet, ctSet)
-if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
-if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
-
 ## Calculate plasmid-free equilibrium for all parameter combinations
-MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConv, w = wSet)
+MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConvSet, w = wSet)
 
 Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
-MyData <- cbind(MyData, Eqplasmidfree)
 
 if(any(Eqplasmidfree[, "REq"] <= 0)) {
   warning("The number of recipients at equilibrium is not positive!
 Increase the nutrient concentration in the inflowing liquid by changing NI?")
 }
+MyData <- cbind(MyData, Eqplasmidfree)
 
 print("Plasmid-free equilibrium calculated:")
 print(Sys.time())
 
 ## Add combinations with the parameters needed to approximate gdbulk and gtbulk
-MyData <- expand_grid(MyData, kp = kpSet, kn = knSet, gd = gdSet, gt = gtSet,
-                      DInit = DInitSet)
-DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk)) # 97.47    0.00   97.51 
+MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInit = DInitSet,
+                      kp = kpSet, kn = knSet)
+DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
 TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
@@ -489,6 +535,7 @@ MyData <- cbind(MyData, gdbulk = gdbulk, gtbulk = gtbulk)
 print("Bulk-conjugation rates estimated:")
 print(Sys.time())
 
+# calculate (or approximate?) eigenvalues
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
 
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
@@ -517,12 +564,13 @@ PlotData <- MyData[which(MyData[, "cd"]==0.01 & MyData[, "ct"]==0.01 ), ]
 CreatePlot(data = PlotData, fillvar = "pmax(gdbulk, gtbulk)/pmin(gdbulk, gtbulk)")
 CreatePlot(data = PlotData, fillvar = "gdbulk/gtbulk")
 
-CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1)
-CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1)
-CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk", gradient2 = 1)
-
 summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
 summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
+
+# Instead of these plots, use the plots with hardcoded legends below
+# CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1)
+# CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1)
+# CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk", gradient2 = 1)
 
 # Note: hardcoded legend
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
@@ -539,6 +587,7 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
 }
 
+# Note: hardcoded legend
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigValBulk))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -564,7 +613,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   scale_fill_manual(values = c("0" = "darkblue"),
                     name = "Difference in sign eigenvalues")
 if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "Difference in sign eigenvalues.png"))
+  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvalues.png"))
 }
 
 # Create limits to have the same limits and colorscale for the two plots
@@ -596,14 +645,16 @@ OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1,
                                  FUN = SimulationPairs))
 
 if(length(IndexSimulation) < nrow(MyData)) {
-  NoSimulationNeeded <- cbind(time = 0, Nutr = MyData[-IndexSimulation, "NutrEq"],
+  NoSimulationNeeded <- cbind(time = 0, steady = 1,
+                              Nutr = MyData[-IndexSimulation, "NutrEq"],
                               D = 0, R = MyData[-IndexSimulation, "REq"],
                               Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
                   cbind(MyData[-IndexSimulation, ], NoSimulationNeeded))
 } else {
-  MyData <- cbind(MyData[IndexSimulation, ], OutputSimulationPairs)
+  MyData <- cbind(MyData, OutputSimulationPairs)
 }
+if(any(MyData$steady == 0)) warning("Steady-state has not always been reached")
 
 print("Pair-formation model completed running:")
 print(Sys.time())
@@ -615,14 +666,15 @@ OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = Simul
 colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
 
 if(length(IndexSimulationBulk) < nrow(MyData)) {
-  NoSimulationNeededBulk <- cbind(timeBulk = 0, NutrBulk = MyData[-IndexSimulationBulk, "NutrEq"],
+  NoSimulationNeededBulk <- cbind(timeBulk = 0, steadyBulk = 1, NutrBulk = MyData[-IndexSimulationBulk, "NutrEq"],
                                   DBulk = 0, RBulk = MyData[-IndexSimulationBulk, "REq"],
                                   TransBulk = 0)
   MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
                   cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk))
 } else {
-  MyData <- cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk)
+  MyData <- cbind(MyData, OutputSimulationBulk)
 }
+if(any(MyData$steadyBulk == 0)) warning("Steady-state has not always been reached")
 
 print("Bulk-conjugation model completed running:")
 print(Sys.time())
@@ -633,10 +685,9 @@ MyData[, "TotalD"] <- MyData[, "D"] + MyData[, "Mdr"] + MyData[, "Mdt"]
 MyData[, "TotalR"] <- MyData[, "R"] + MyData[, "Mdr"] + MyData[, "Mrt"]
 MyData[, "TotalTrans"] <- MyData[, "Trans"] + MyData[, "Mdt"] + MyData[, "Mrt"] + 2*MyData[, "Mtt"]
 MyData[, "TotalPlasmid"] <- MyData[, "TotalD"] + MyData[, "TotalTrans"]
-MyData[, "TotalBio"] <- MyData[, "D"] + MyData[, "R"] + MyData[, "Trans"] + 2*MyData[, "Mdr"] +
-  2*MyData[, "Mdt"] + 2*MyData[, "Mrt"] + 2*MyData[, "Mtt"]
+MyData[, "TotalBio"] <- MyData[, "TotalR"] + MyData[, "TotalPlasmid"]
 MyData[, "TotalPlasmidBulk"] <- MyData[, "DBulk"] + MyData[, "TransBulk"]
-MyData[, "TotalBioBulk"] <- MyData[, "DBulk"] + MyData[, "RBulk"] + MyData[, "TransBulk"]
+MyData[, "TotalBioBulk"] <- MyData[, "RBulk"] + MyData[, "TotalPlasmidBulk"]
 
 write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulation.csv"),
           quote = FALSE, row.names = FALSE)
@@ -740,7 +791,7 @@ BackupMyData <- MyData
 
 # Settings for simulations, plotting, and printing
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
-# mycol <- c("black", "purple", "hotpink", "red", "yellow", "green1", "blue", "cyan")
+# mycol <- c("black", "purple", "green1", "red", "yellow", "hotpink", "blue", "cyan")
 mycol <- c("black", brewer.pal(7, "Set1"))
 myylim <- c(1E-14, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
@@ -753,14 +804,14 @@ Mytstep <- c(10)
 
 #### Create matrix to store data ####
 TheseRows <- c(1, nrow(MyData))
-Mydf <- MyData[TheseRows, ]
+TheseRows <- 1:nrow(MyData)
+Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
 print(TotalIterations)
 CurrentIteration <- 0
 
 # Times for which output of the simulation is wanted.
-# Note that timesteps of 1 are used untill t = 100, and note furthermore that
-# the used ode-solvers are variable-step methods, so the times in times
+# Note that the used ode-solvers are variable-step methods, so the times in times
 # are NOT the only times at which integration is performed. See
 # help(diagnostics.deSolve()) and help(lsodar()) for details.
 times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
@@ -804,58 +855,46 @@ eventfunBulk <- function(t, stateBulk, parmsBulk) {
   return(stateBulk)
 }
 
-RunOverTime <- function(data = Mydf, ...) {
-  state <- c(Nutr = data[["NutrEq"]], D = data[["DInit"]], R = data[["REq"]],
+RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
+  state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]],
              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  parms <- data[ColumnsToSelect]
   out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms,
-              rootfun = rootfun, events = list(func = eventfun, root = TRUE,
-                                               terminalroot = 1))
+           rootfun = rootfun, events = list(func = eventfun, root = TRUE,
+                                            terminalroot = 1), verbose = verbose)
   EqAfterInvasion <- tail(out2, 1)
   if(verbose == TRUE) {
     print(diagnostics(out2))
     print(attributes(out2))
   }
-  PlotOverTime(data = out2, type = "Pair", saveplot = saveplots)
-  
-  stateBulk <- c(Nutr = data[["NutrEq"]], D = data[["DInit"]], R = data[["REq"]], Trans = 0)
-  parmsBulk <- data[ColumnsToSelect]
-  out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parmsBulk,
-                  rootfun = rootfunBulk, events = list(func = eventfunBulk, root = TRUE,
-                                                       terminalroot = 1))
+  PlotOverTime(plotdata = out2, parms = parms, type = "Pair", verbose = verbose, saveplot = saveplots)
+  stateBulk <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]], Trans = 0)
+  out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parms,
+                rootfun = rootfunBulk, events = list(func = eventfunBulk, root = TRUE,
+                                                     terminalroot = 1), verbose = verbose)
   EqAfterInvasionBulk <- tail(out2bulk, 1)
   if(verbose == TRUE) {
     print(diagnostics(out2bulk))
     print(attributes(out2bulk))
   }
-  PlotOverTime(data = out2bulk, type = "Bulk", saveplot = saveplots)
-
+  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", saveplot = saveplots)
+  
   EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
   names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
                                    paste0(colnames(EqAfterInvasionBulk), "Bulk"))
   return(EqAfterInvasionTotal)
 }
 
-PlotOverTime <- function(data = out2, type = "Pair", saveplot = saveplots) {
+PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose = FALSE, saveplot = saveplots, ...) {
   maintitle <- paste(type, "model")
-  subtitle <- paste0("bR=", Mydf[["bR"]], " NI=", Mydf[["NI"]],
-                     " log10kp=", log10(Mydf[["kp"]]), " log10kn=", log10(Mydf[["kn"]]),
-                     " NutrConv=", Mydf[["NutrConv"]], " w=", Mydf[["w"]],
-                     " cd=", Mydf[["cd"]], " ct=", Mydf[["ct"]])
+  subtitle <- paste0("bR=", parms[["bR"]], " NI=", parms[["NI"]],
+                     " log10kp=", log10(parms[["kp"]]), " log10kn=", log10(parms[["kn"]]),
+                     " NutrConv=", parms[["NutrConv"]], " w=", parms[["w"]],
+                     " cd=", parms[["cd"]], " ct=", parms[["ct"]])
   if(type == "Pair") {
-    subtitle <- paste0(subtitle, " gd=", Mydf[["gd"]], " gt=", Mydf[["gt"]]) 
+    subtitle <- paste0(subtitle, " gd=", parms[["gd"]], " gt=", parms[["gt"]]) 
   } else {
-    subtitle <- paste0(subtitle, " gdbulk=",  signif(Mydf[["gdbulk"]], digits = 4),
-                       " gtbulk=", signif(Mydf[["gtbulk"]], digits = 4))
-  }
-  if(verbose == TRUE) {
-    matplot.deSolve(data, main = paste(maintitle, "verbose"), sub = subtitle, ylim = myylim,
-                    xlim = c(0, tail(attributes(data)$troot, 2)[1]),
-                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                    legend = list(x = "topright"))
-    grid()
-    abline(h = extinctionthreshold)
-    abline(v = attributes(data)$troot)
+    subtitle <- paste0(subtitle, " gdbulk=",  signif(parms[["gdbulk"]], digits = 4),
+                       " gtbulk=", signif(parms[["gtbulk"]], digits = 4))
   }
   if(saveplot == TRUE) {
     filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
@@ -864,31 +903,52 @@ PlotOverTime <- function(data = out2, type = "Pair", saveplot = saveplots) {
     } else {
       png(filename = filename)
     }
-    matplot.deSolve(data, main = maintitle, sub = subtitle, ylim = myylim,
+    matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                    legend = list(x = "bottomright"))
+                    legend = list(x = "topright"))
     grid()
-    if(saveplot == TRUE & file.exists(filename) == FALSE) {
+    if(verbose == TRUE) {
+      abline(h = extinctionthreshold)
+      abline(v = attributes(plotdata)$troot)
+    }
+    if(file.exists(filename) == FALSE) {
       dev.off()
     }
   } else {
-    matplot.deSolve(data, main = maintitle, sub = subtitle, ylim = myylim,
+    matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
                     legend = list(x = "bottomright"))
     grid()
+    if(verbose == TRUE) {
+      abline(h = extinctionthreshold)
+      abline(v = attributes(plotdata)$troot)
+    }
   }
 }
 
-EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
+EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, verbose = FALSE))
 
+Data <- cbind(Mydf, EqAfterInvasionTotal)
+
+
+write.csv(EqAfterInvasionTotal, file = paste0(DateTimeStamp, "outputrunovertimeonecomp.csv"),
+          quote = FALSE, row.names = FALSE)
 
 #### The code below is not used ####
 # MyData <- matrix(data = NA, nrow = TotalIterations, ncol = 61, byrow = TRUE) # To store output data
 
+EqAfterInvasionTotal <- cbind(EqAfterInvasionTotal,
+                              TotalTrans = EqAfterInvasionTotal[, "Trans"] +
+                              EqAfterInvasionTotal[, "Mdt"] +
+                              EqAfterInvasionTotal[, "Mrt"] +
+                              2*EqAfterInvasionTotal[, "Mtt"])
+
+EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
+
 
 MyData[CurrentIteration, c(1:14)] <- unname(c(parmsBulk, Eq))
 MyData[CurrentIteration, c(15:28)] <- unname(c(
-  EqAfterInvDonor, EqAfterInvDonorBulk))                      
+  EqAfterInvDonor, EqAfterInvDonorBulk))
 
 MyData[CurrentIteration, c(29:51)] <- unname(c(
   EigValEq, DomEigVal, SignDomEigVal, SignEigValEqual,
