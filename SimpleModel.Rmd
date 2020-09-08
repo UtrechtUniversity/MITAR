@@ -93,7 +93,7 @@ ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_comm
 
 ##Boundary plots
 ```{r}
-ynull =-13; ymax = -7; xmin = -0.25; xmax = 0.25;
+ynull =-13; ymax = -7.4; xmin = -0.25; xmax = 0.25;
 boundary.plots <- ggplot2::ggplot(data = plot.data.dpsiX)+
   geom_ribbon(aes(ymin = ynull,ymax = trivial, x = dpsi),fill = "grey", color = "black",alpha = 0.7)+
   geom_ribbon(aes(ymin = trivial,ymax = fixation, x = dpsi), fill = "black", color = "black", alpha = .7)+
@@ -230,13 +230,12 @@ growth.data[growth.data$Medium== "Sup_4", ]$LABgenus <- "Lactobacillus"
 growth.data[growth.data$Medium== "Sup_5", ]$LABgenus <- "Pediococcus"
 growth.data[growth.data$Medium== "Sup_6", ]$LABgenus <- "Pediococcus and Enterococcus"
 
-LABgenus + Replicate ~ Strain
 
 data.combinations <- reshape2::dcast(data = growth.data, formula = LABgenus + Replicate + Medium ~ Strain, fun.aggregate = mean, value.var = "Growth_rates" )
 data.combinations$dpsiDR.scaled  <- (data.combinations$D_1 -data.combinations$R)/data.combinations$R
 data.combinations$dpsiTR.scaled  <- (data.combinations$T -data.combinations$R)/data.combinations$R
-data.combinations<- data.combinations[order(data.combinations$LABgenus,data.combinations$Replicate),]
-conjugation.dataD<- conjugation.dataD[order(conjugation.dataD$Experiment,conjugation.dataD$Replicate),]
+data.combinations<- data.combinations[order(data.combinations$Medium,data.combinations$Replicate),]
+conjugation.dataD <- conjugation.dataD[order(conjugation.dataD$Experiment,conjugation.dataD$Replicate),]
 conjugation.dataT<- conjugation.dataT[order(conjugation.dataT$Experiment,conjugation.dataT$Replicate),]
 colnames(conjugation.dataD)<- paste0("D",colnames(conjugation.dataD))
 colnames(conjugation.dataT)<- paste0("T",colnames(conjugation.dataT))
@@ -253,27 +252,31 @@ new.plot.data <- NULL; for(s in c(6,8,10)) {new.plot.data <- rbind(new.plot.data
 plot.data <- new.plot.data
 
 #plot
-labgenus.colours <- setNames(c(rep("darkblue",1), rep("orange",4)), unique(plot.data$LABgenus))
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",  "#0072B2","#F0E442", "#D55E00", "#CC79A7")
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7")
+sarahPalette <- c("orange", "chartreuse4", "deepskyblue", "darkorchid1", "#D55E00")
+labgenus.colours <- setNames(sarahPalette, unique(plot.data$LABgenus))
 labgenus.shapes <- setNames(c(19,2,3,4,5), unique(plot.data$LABgenus))
 
 boundary.plots + 
   geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = LABgenus,colour = LABgenus), data = plot.data[plot.data$Plasmid=="T",], size =1.75, alpha =.75)+
-  scale_colour_manual(values = labgenus.colours, name = "LABgenus")+
-  scale_shape_manual(values = labgenus.shapes, name = "LABgenus")+
+  scale_colour_manual(values = labgenus.colours, name = "LAB genus")+
+  scale_shape_manual(values = labgenus.shapes, name = "LAB genus")+
    xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
-  ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+facet_grid(.~10^N)
+  ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+facet_grid(.~10^N)+
+theme(aspect.ratio = 1.5)
 
   
 ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_GENUS",format(Sys.Date(),"%Y%m%d"),".tiff"))
 
 
-
 boundary.plots + 
   geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = LABgenus,colour = LABgenus), data = plot.data[plot.data$Plasmid=="D",], size =1.75, alpha =.75)+
-  scale_colour_manual(values = labgenus.colours, name = "LABgenus")+
-  scale_shape_manual(values = labgenus.shapes, name = "LABgenus")+
+  scale_colour_manual(values = labgenus.colours, name = "LAB genus")+
+  scale_shape_manual(values = labgenus.shapes, name = "LAB genus")+
    xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
-  ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+facet_grid(.~10^N)
+  ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+facet_grid(.~10^N)+
+theme(aspect.ratio = 1.5)
 
   
 ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_GENUS_donor",format(Sys.Date(),"%Y%m%d"),".tiff"))
