@@ -4,7 +4,8 @@ author: "Egil Fischer"
 date: "19-3-2020"
 output:
   html_document:
-    df_print: paged
+    pdf_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -92,7 +93,7 @@ ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_comm
 
 ##Boundary plots
 ```{r}
-ynull =-13; ymax = -7; xmin = -0.25; xmax = 0.25;
+ynull =-13; ymax = -7.4; xmin = -0.25; xmax = 0.25;
 boundary.plots <- ggplot2::ggplot(data = plot.data.dpsiX)+
   geom_ribbon(aes(ymin = ynull,ymax = trivial, x = dpsi),fill = "grey", color = "black",alpha = 0.7)+
   geom_ribbon(aes(ymin = trivial,ymax = fixation, x = dpsi), fill = "black", color = "black", alpha = .7)+
@@ -148,27 +149,44 @@ boundary.plots + geom_point(aes(x = dpsi, y = loggamma, color =color),
                                                 )
 ```
 
-## Data plots
+## Data plots load data
 ```{r}
 #load estimated data
-
 input.dir <- "C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/"
-conjugation.dataD <- read.csv(paste0(input.dir, "Figure2_D_R_conjug_rates_huisman_4h.csv"))
-conjugation.dataT <- read.csv(paste0(input.dir, "Figure3_T_R_conjug_rates_huisman_4h.csv"))
-growth.data <- read.csv(paste0(input.dir, "Figure1_date_24_01_20_monoculture_new_growth_rates_D1_R_T_N1.csv"))
+conjugation.dataD <- read.csv(paste0(input.dir, "20200909_Conjug_rates_D_1_R.csv"))
+conjugation.dataT <- read.csv(paste0(input.dir, "20200909_Conjug_rates_T_R.csv"))
+growth.data <- read.csv(paste0(input.dir,"20200909_Growth_rates_D_1_R_T.csv"))
 
-data.combinations <- reshape2::dcast(growth.data,formula =Medium+ Replicate   ~ Strain, fun.aggregate = mean )
+#renaming to fit the existing script after renaming of columns
+colnames(conjugation.dataT)[colnames(conjugation.dataT) %in% c("Genera","Treatment", "Medium")] <- c("LABgenus","VL_type", "Experiment")
+colnames(conjugation.dataD)[colnames(conjugation.dataD) %in% c("Genera","Treatment", "Medium")] <- c("LABgenus","VL_type", "Experiment")
+colnames(growth.data)[colnames(growth.data) %in% c( "Genera","Treatment")] <- c("LABgenus","VL_type")
+
+#combine data 
+#reshape the growth rates
+data.combinations <- reshape2::dcast(growth.data,formula =LABgenus + Medium + Replicate   ~ Strain, fun.aggregate = mean )
+#calculate rescaled  growth rate difference
 data.combinations$dpsiDR.scaled  <- (data.combinations$D_1 -data.combinations$R)/data.combinations$R
 data.combinations$dpsiTR.scaled  <- (data.combinations$T -data.combinations$R)/data.combinations$R
+
+#order the growth rate data  and conjugation data in the same way
 data.combinations<- data.combinations[order(data.combinations$Medium,data.combinations$Replicate),]
 conjugation.dataD<- conjugation.dataD[order(conjugation.dataD$Experiment,conjugation.dataD$Replicate),]
 conjugation.dataT<- conjugation.dataT[order(conjugation.dataT$Experiment,conjugation.dataT$Replicate),]
+#add a flag to the equally named columnnames 
 colnames(conjugation.dataD)<- paste0("D",colnames(conjugation.dataD))
 colnames(conjugation.dataT)<- paste0("T",colnames(conjugation.dataT))
 data.combinations<-cbind(data.combinations, conjugation.dataD, conjugation.dataT)
 
-data.combinations$loggamma.scaled.D <- log10(data.combinations$DConjugation_huisman/data.combinations$R)
-data.combinations$loggamma.scaled.T <- log10(data.combinations$TConjugation_huisman/data.combinations$R)
+data.combinations$loggamma.scaled.D <- data.combinations$Dlog10_huisman -log10(data.combinations$R)
+data.combinations$loggamma.scaled.T <- data.combinations$Tlog10_huisman-log10(data.combinations$R)
+
+
+```
+
+## Data plot with supernatant
+
+```{r}
 
 #create plottable data
 plot.data <- reshape2::melt(data.combinations[,c("Medium","Replicate","dpsiDR.scaled","dpsiTR.scaled","loggamma.scaled.D","loggamma.scaled.T")],id.vars = c("Medium","Replicate","dpsiDR.scaled","dpsiTR.scaled"),value.name ="loggamma.scaled")
@@ -191,7 +209,54 @@ boundary.plots +
   
 ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium",format(Sys.Date(),"%Y%m%d"),".tiff"))
 ```
+
+## Data plots with genus-level
+```{r}
+
+#create plottable data
+plot.data <- reshape2::melt(data.combinations[,c("LABgenus","Medium","Replicate","dpsiDR.scaled","dpsiTR.scaled","loggamma.scaled.D","loggamma.scaled.T")],id.vars = c("LABgenus","Medium","Replicate","dpsiDR.scaled","dpsiTR.scaled"),value.name ="loggamma.scaled")
+plot.data$dpsi.scaled <- plot.data$dpsiDR.scaled*(plot.data$variable == "loggamma.scaled.D")+plot.data$dpsiTR.scaled*(plot.data$variable == "loggamma.scaled.T")
+plot.data$Plasmid <-gsub(pattern = "loggamma.scaled.", replacement ="", x =plot.data$variable)
+new.plot.data <- NULL; for(s in c(6,8,10)) {new.plot.data <- rbind(new.plot.data,cbind(plot.data,N = s))  }
+plot.data <- new.plot.data
+
+#plot
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",  "#0072B2","#F0E442", "#D55E00", "#CC79A7")
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7")
+sarahPalette <- c("orange", "darkorchid1", "chartreuse4","deepskyblue",  "#D55E00")
+
+labgenus.colours <- setNames(sarahPalette, unique(plot.data$LABgenus))
+labgenus.shapes <- setNames(c(19,8,2,6,4), unique(plot.data$LABgenus))
+replicate.shapes <- setNames(c(16,17,15), unique(plot.data$Replicate))
+  
+boundary.plots + 
+  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = as.factor(LABgenus),colour = LABgenus), data = plot.data[plot.data$Plasmid=="T",], size =1.75, alpha =.75)+
+  scale_colour_manual(values = labgenus.colours, name = "LAB genus")+
+  scale_shape_manual(values = labgenus.shapes, name = "LAB genus")+
+   xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
+  ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+facet_grid(.~10^N)+
+theme(aspect.ratio = 1.5)
+
+  
+ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_GENUS",format(Sys.Date(),"%Y%m%d"),".tiff"))
+
+boundary.plots + 
+  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = as.factor(LABgenus),colour = LABgenus), data = plot.data[plot.data$Plasmid=="D",], size =1.75, alpha =.75)+
+  scale_colour_manual(values = labgenus.colours, name = "LAB genus")+
+  scale_shape_manual(values = labgenus.shapes, name = "LAB genus")+
+   xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
+  ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+facet_grid(.~10^N)+
+theme(aspect.ratio = 1.5)
+
+
+  
+ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_GENUS_donor",format(Sys.Date(),"%Y%m%d"),".tiff"))
+
+
+```
+
 ## Data plots zoomed in
+
 ```{r}
 
 zoom.x <- c(-.15,.25)
@@ -249,43 +314,4 @@ ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_comm
 
 ```
 
-```
 
-
-
-## counts
-```{r}
-#count number of estimates in each of the regions.
-all.data.combinations$fixequi <- 10^mapply(stab.fix.logf,all.data.combinations$dpsi.scaled,all.data.combinations$N)>10^all.data.combinations$loggamma.scaled
-all.data.combinations$trivequi <- 10^mapply(stab.triv.logf,all.data.combinations$dpsi.scaled,all.data.combinations$N)<10^all.data.combinations$loggamma.scaled
-all.data.combinations$coexequi<- !all.data.combinations$trivequi & !all.data.combinations$fixequi
-all.data.combinations$defequi<- as.numeric(all.data.combinations$trivequi) - as.numeric(all.data.combinations$fixequi)
-all.data.combinations$defequi[is.na(all.data.combinations$defequi)]<- 1
-all.data.combinations$Stable<-c("trivial","coexistence","fixation")[all.data.combinations$defequi+2]
-
-boundary.plots + geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = medium, color = Stable),
-                            data = all.data.combinations) +
-  scale_shape_manual(values = c(1:8))+
-  scale_color_manual(values = c("blue","green","red"))+
-  xlab(c(expression(paste(Delta, psi))))+
-  ylab(expression(log10(gamma)))+
-  ylim(c(-15,-7))+xlim(-.25,.25)
-
-ggsave("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibriumtype.tiff")
-
-table(all.data.combinations$defequi[all.data.combinations$N ==6],all.data.combinations$medium[all.data.combinations$N ==6])
-table(all.data.combinations$defequi[all.data.combinations$N ==8],all.data.combinations$medium[all.data.combinations$N ==8])
-table(all.data.combinations$defequi[all.data.combinations$N ==10],all.data.combinations$medium[all.data.combinations$N ==10])
-
-table(all.data.combinations$dpsi.scaled[all.data.combinations$N ==6]>= 0,all.data.combinations$medium[all.data.combinations$N ==6])
-
-```
-## Critical time
-
-```{r}
-all.data.combinations
-all.data.combinations$t.crit1<- 
-all.data.combinations$t.crit2
-all.data.combinations$t.crit3 
-
-```
