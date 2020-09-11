@@ -3,6 +3,7 @@
 
 #### To do ####
 
+
 # Rethink the way of defining donor growth rate and costs: unless it is assumed 
 # that the donor is the same species as the recipient, it does not make sense
 # to define donor growth rates as recipient growth rate altered by costs from
@@ -15,6 +16,11 @@
 # method for within-host bacterial infection dynamics' and Volkova 'Modelling dynamics
 # of plasmid-gene mediated antimicrobial resistance in enteric bacteria using stochastic
 # differential equations' for ideas
+
+# Using (1 - c)*b to model costs implies that a plasmid decreases the growth rate
+# by a certain percentage. So if you model more species and their growth rates
+# are different, using the same value for c leads to different absolute decrease
+# in growth rates. 
 
 # Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
 
@@ -40,7 +46,7 @@
 # SummaryPlot() does not use the names of the arguments for creating titles
 
 # aes_string is soft-deprecated (see help(aes_string)), use tidy evaluation idioms instead,
-# see the quasiquotation section in aes() documentation.
+# see the quasiquotation section in aes() documentation and https://www.tidyverse.org/blog/2018/07/ggplot2-tidy-evaluation/
 # See also # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
 
 # See ggplot2::expand_limits to have the same limits and colorscale for the two plots
@@ -85,7 +91,7 @@
 # cdSet = 0.025 and plot facets for ct < cd, ct = cd, ct > cd. The same approach
 # can be used for gd and gt.
 
-# Rethink the comments: comment whyou do something, not what you did (if you
+# Rethink the comments: comment why you do something, not what you did (if you
 # have to comment what you did, rewrite your code to make it clearer from the
 # code itself).
 
@@ -296,7 +302,8 @@ SimulationBulk <- function(InputSimulationBulk) {
 
 # Create heatmaps, save if needed
 CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, dataplot = MyData,
-                       xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
+                       xvar = "log10(kp)", yvar = "log10(kn)",
+                       facetx = "cd + gd", facety = "ct + gt", save = saveplots) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
     DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
@@ -305,7 +312,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
     geom_raster() +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
-    facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+    facet_grid(as.formula(paste(facetx, "~", facety)), labeller = label_both) +
     labs(caption = DateTimeStamp) +
     theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
   if(gradient2 == 1) {
@@ -453,8 +460,8 @@ kpSet <- 10^seq(from = -10, to = -6, by = 0.25)
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
-gdSet <- c(10, 15)
-gtSet <- c(10, 15) 
+gdSet <- c(1, 15)
+gtSet <- c(1, 15) 
 
 ## Try smaller steps for kp and kn (24 june 2020):
 # works for pair-formation model, not for bulk-conjugation model
@@ -470,28 +477,21 @@ ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
 gtSet <- c(1, 15)
 
-## Use for 1- and 2-compartment model
+## To show NI and w influence stability of plasmid-free equilibrium
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
-NISet <- c(10)
+NISet <- 10^seq(from = -1, to = 2, by = 1)
 NutrConvSet <- 1e-6
-wSet <- c(0.04)
-kpSet <- 10^seq(from = -10, to = -6, by = 0.25)
+wSet <- c(seq(0.02, 0.08, 0.02), 0.16)
+kpSet <- 10^seq(from = -11, to = -8, by = 0.25)
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
+cdSet <- c(0.05)
+ctSet <- c(0.01)
 gdSet <- c(15)
-gtSet <- c(15) 
+gtSet <- c(15)
 
-
-## Using steps of 0.1 for kp and kn did not work
-# Error: DLSODE- at T (=R1) and step size H (=R2), the corrector convergence failed repeatedly
-# or with ABS(H)=HMIN. IN above message, R = 1.499002e+05, 2.091563e-09
-# DLSODE- ISTATE illegal, in above message I=-5
-# LSODE- run aborted, apparent infinite loop
-# 
-# Retry using jactype = "sparse", could also try using stode(s?) and/or supply jacobian
-
+## Retry using jactype = "sparse", could also try using stode(s?) and/or supply jacobian
+# if integration leads to errors ?
 
 #### Main script ####
 
@@ -508,12 +508,14 @@ TotalIterations
 MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConvSet, w = wSet)
 
 Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
+MyData <- cbind(MyData, Eqplasmidfree)
 
 if(any(Eqplasmidfree[, "REq"] <= 0)) {
-  warning("The number of recipients at equilibrium is not positive!
-Increase the nutrient concentration in the inflowing liquid by changing NI?")
+  warning("The number of recipients at equilibrium is not always positive.
+  Rows with negative densities have been discarded!
+  Increase growth rate or the nutrient concentration in the inflowing liquid, or decrease the outflow rate to prevent this!")
+  MyData <- MyData[-which(MyData[, "REq"] < 0), ]
 }
-MyData <- cbind(MyData, Eqplasmidfree)
 
 print("Plasmid-free equilibrium calculated:")
 print(Sys.time())
@@ -573,12 +575,13 @@ summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
 # CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk", gradient2 = 1)
 
 # Note: hardcoded legend
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+ggplot(data = MyData, aes(x = log10(kp), y = factor(kn), fill = factor(SignDomEigVal))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
+  scale_y_discrete() +
   facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
+  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
+       y = "detachment rate") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
   scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
                     name = "Plasmid-free equilibrium",
@@ -586,6 +589,54 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
 }
+
+# To show influence of washout rate and inflowing nutrient concentration on
+# stability, run with one value for kn and kp, and multiple values for w and NI
+# and than plot:
+# Note: hardcoded legend and axis labels
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(w ~ log10(NI), labeller = label_both) +
+  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
+       y = "log10(detachment rate)") +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
+                    name = "Plasmid-free equilibrium",
+                    labels = c("stable", "unstable"))
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
+}
+
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = log10(REq))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(w ~ log10(NI), labeller = label_both) +
+  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
+       y = "log10(detachment rate)") +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_gradientn(colours = MyColorBrew,
+                       guide_colourbar(title = "log10(Recipient density\nat equilibrium)"))
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "PlasmidFreeRecipientDensity.png"))
+}
+
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = NutrEq)) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(w ~ log10(NI), labeller = label_both) +
+  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
+       y = "log10(detachment rate)") +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_gradientn(colours = MyColorBrew,
+                       guide_colourbar(title = "Nutrient concentration\nat equilibrium"))
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "PlasmidFreeNutrientConc.png"))
+}
+
 
 # Note: hardcoded legend
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigValBulk))) + 
