@@ -46,7 +46,7 @@
 # SummaryPlot() does not use the names of the arguments for creating titles
 
 # aes_string is soft-deprecated (see help(aes_string)), use tidy evaluation idioms instead,
-# see the quasiquotation section in aes() documentation.
+# see the quasiquotation section in aes() documentation and https://www.tidyverse.org/blog/2018/07/ggplot2-tidy-evaluation/
 # See also # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
 
 # See ggplot2::expand_limits to have the same limits and colorscale for the two plots
@@ -302,7 +302,8 @@ SimulationBulk <- function(InputSimulationBulk) {
 
 # Create heatmaps, save if needed
 CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, dataplot = MyData,
-                       xvar = "log10(kp)", yvar = "log10(kn)", save = saveplots) {
+                       xvar = "log10(kp)", yvar = "log10(kn)",
+                       facetx = "cd + gd", facety = "ct + gt", save = saveplots) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
     DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
@@ -311,7 +312,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
     geom_raster() +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
-    facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+    facet_grid(as.formula(paste(facetx, "~", facety)), labeller = label_both) +
     labs(caption = DateTimeStamp) +
     theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
   if(gradient2 == 1) {
