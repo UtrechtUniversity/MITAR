@@ -633,6 +633,7 @@ summary(MyData[, "NutrLumInit"] / MyData[, "NutrWallInit"])
 limitsREq <- log10(c(min(c(MyData$RLumInit, MyData$RWallInit)), max(c(MyData$RLumInit, MyData$RWallInit))))
 limitsNutrEq <- log10(c(min(c(MyData$NutrLumInit, MyData$NutrWallInit)), max(c(MyData$NutrLumInit, MyData$NutrWallInit))))
 
+DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 CreatePlot(fillvar = "log10(RLumInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsREq)
 CreatePlot(fillvar = "log10(RWallInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsREq)
 CreatePlot(fillvar = "log10(NutrLumInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsNutrEq)
@@ -658,30 +659,32 @@ MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
 ## Approximate gdbulk and gtbulk at the wall
 MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
 
-
-#### The remainder of the script still has to be adjusted to the new model ####
-
-# Replace columns kn and kn with the values in the columns kpWall and knWall in new dataframe
-# to be used to estimate bulk conjugation rates at the wall
-MyDataWall <- cbind(MyData[, 1:(which(names(MyData)=="kp") - 1)],
-                    kp = unname(MyData[, "kpWall"]), kn = unname(MyData[, "knWall"]))
+# Replace columns kn and kn with the values in the columns kpWall and knWall in
+# new dataframe to be used to estimate bulk conjugation rates at the wall
+MyDataWall <- select(MyData, !c(kp, kn, gdbulkLum, gtbulkLum))
+MyDataWall <- rename(MyDataWall, kp = kpWall, kn = knWall)
 DataEstConjBulk <- t(apply(X = MyDataWall, MARGIN = 1, FUN = EstConjBulkWall))
+DataEstConjBulk <- as.data.frame(DataEstConjBulk)
 
-TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
-TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
-gdbulkWall <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
+DataEstConjBulk <- mutate(DataEstConjBulk,
+                                 TotalDEstConjBulkDonor = DonorD + DonorMdr + DonorMdt,
+                                 TotalREstConjBulkDonor = DonorR + DonorMdr + DonorMrt,
+                                 gdbulkWallpart = DonorMdr / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
+gdbulkWall <- unname(MyData[, "gd"] * DataEstConjBulk[, "gdbulkWallpart"])
 
-TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
-TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
-gtbulkWall <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
+DataEstConjBulk <- mutate(DataEstConjBulk,
+                          TotalTransEstConjBulkTrans = TransTrans + TransMrt + 2*TransMtt,
+                          TotalREstConjBulkTrans = TransR + TransMrt,
+                          gtbulkWallpart = TransMrt / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
+gtbulkWall <- unname(MyData[, "gt"] * DataEstConjBulk[, "gtbulkWallpart"])
 
 MyData <- cbind(MyData, gdbulkWall = gdbulkWall, gtbulkWall = gtbulkWall)
 
 print("Bulk-conjugation rates estimated:")
 print(Sys.time())
 
+#### The remainder of the script still has to be adjusted to the new model ####
 
-CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, limits = c(-1, 1), facetx = "MigrLumWall", facety = ".", save = TRUE)
 
 ## WERKT NIET ?
 CumRowIndex <- NULL
@@ -706,9 +709,10 @@ MyData <- cbind(MyData, MyInfoEigVal)
 print("Eigenvalues estimated:")
 print(Sys.time())
 
-DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulationtwocompartment.csv"),
           quote = FALSE, row.names = FALSE)
+
+CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, limits = c(-1, 1), facetx = "MigrLumWall", facety = ".", save = TRUE)
 
 CreatePlot2(fillvar = "SignDomEigVal", gradient2 = 1, xvar = "MigrLumWall", yvar = "w")
 CreatePlot2(fillvar = "SignDomEigVal", gradient2 = 1, xvar = "MigrLumWall", yvar = "MigrWallLum")
