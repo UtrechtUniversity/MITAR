@@ -258,7 +258,7 @@ ModelBulkNutr <- function(t, state, parms) {
     dNutrWall <- (NIWall - NutrWall)*wWall - NutrConv*bR*NutrWall*((1 - cd)*DWall + RWall + (1 - ct)*TransWall)
     dDWall <- ((1 - cd)*bR*NutrWall - wWall - MigrWallLum)*DWall + MigrLumWall*DLum/ScaleAreaPerVol
     dRWall <- (bR*NutrWall - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleAreaPerVol -
-      (gdbulkWall*DWall - gtbulkWall*TransWall)*RWall
+      (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
     dTransWall <- ((1 - ct)*bR*NutrWall - wWall - MigrWallLum)*TransWall + MigrLumWall*TransLum/ScaleAreaPerVol +
       (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
     return(list(c(dNutrLum, dDLum, dRLum, dTransLum, dNutrWall, dDWall, dRWall, dTransWall)))
