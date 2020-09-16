@@ -21,8 +21,7 @@
 # and a way to get rid of the nutrient equation (but is that feasible if I want
 # to modify nutrient levels over time?)
 
-# Add CreatePlot() and SummaryPlot() function (see script for one-compartment
-# model)
+# Add SummaryPlot() function (see script for one-compartment model)
 
 # Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
 # results as the single-compartment model.
@@ -123,10 +122,10 @@ cdSet <- 0.05
 ctSet <- 0.01
 kpSet <- 10^-8
 kpWallSet <- 10^-8
-# kpWallSet <- 10^seq(from = -10, to = -6, by = 1)
+# kpWallSet <- 10^seq(from = -10, to = -6, by = 2)
 knSet <- 1
 knWallSet <- 1
-# knWallSet <- 10^seq(from = -1, to = 3, by = 1)
+# knWallSet <- 10^seq(from = -1, to = 3, by = 2)
 gdSet <- 15
 gtSet <- 15
 
@@ -359,10 +358,11 @@ CalcEigenvalues <- function(MyData) {
 # change, not the sum.
 SimulationPairs <- function(InputSimulationPairs) {
   parms <- InputSimulationPairs
-  state <- c(Nutr = parms[["NutrInit"]], DLum = parms[["DInitLum"]],
+  state <- c(NutrLum = parms[["NutrLumInit"]], DLum = parms[["DInitLum"]],
              RLum = parms[["RLumInit"]], TransLum = 0, MdrLum = 0, MdtLum = 0,
-             MrtLum = 0, MttLum = 0, DWall = parms[["DInitWall"]],
-             RWall = parms[["RWallInit"]], TransWall = 0, MdrWall = 0, MdtWall = 0,
+             MrtLum = 0, MttLum = 0, NutrWall = parms[["NutrWallInit"]],
+             DWall = parms[["DInitWall"]], RWall = parms[["RWallInit"]],
+             TransWall = 0, MdrWall = 0, MdtWall = 0,
              MrtWall = 0, MttWall = 0)
   out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr,
                    parms = parms, stol = 1.25e-6, atol = atol)
@@ -372,7 +372,8 @@ SimulationPairs <- function(InputSimulationPairs) {
 
 SimulationBulk <- function(InputSimulationBulk, state) {
   parms <- InputSimulationBulk
-  state <- c(Nutr = parms[["NutrInit"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumInit"]], TransLum = 0, 
+  state <- c(NutrLum = parms[["NutrLumInit"]], DLum = parms[["DInitLum"]],
+             RLum = parms[["RLumInit"]], TransLum = 0, NutrWall = parms[["NutrWallInit"]], 
              DWall = parms[["DInitWall"]], RWall = parms[["RWallInit"]], TransWall = 0)
   out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr,
                    parms = parms, stol = 2.5e-6, atol = atol)
@@ -576,7 +577,7 @@ TotalIterations
 
 ## Determine plasmid-free equilibrium for all parameter combinations
 MyData <- expand_grid(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet, wWall = wWallSet,
-                      NutrConv = NutrConvSet, bR = bRSet, 
+                      NutrConv = NutrConvSet, bR = bRSet,
                       MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
                       ScaleAreaPerVol = ScaleAreaPerVolSet)
 dim(MyData)
@@ -617,18 +618,6 @@ print(Sys.time())
 ### Checking if the biomass in the two compartments are comparable 
 summary(MyData[, "RLumInit"] / MyData[, "RWallInit"])
 summary(MyData[, "NutrLumInit"] / MyData[, "NutrWallInit"])
-
-limitsREq <- log10(c(min(c(MyData$RLumInit, MyData$RWallInit)), max(c(MyData$RLumInit, MyData$RWallInit))))
-limitsNutrEq <- log10(c(min(c(MyData$NutrLumInit, MyData$NutrWallInit)), max(c(MyData$NutrLumInit, MyData$NutrWallInit))))
-
-DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
-CreatePlot(fillvar = "log10(RLumInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsREq)
-CreatePlot(fillvar = "log10(RWallInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsREq)
-CreatePlot(fillvar = "log10(NutrLumInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsNutrEq)
-CreatePlot(fillvar = "log10(NutrWallInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsNutrEq)
-
-CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
-CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
 
 ## Approximate gdbulk and gtbulk in the lumen
 MyData <- expand_grid(MyData, DInitLum = DInitLumSet, DInitWall = DInitWallSet,
@@ -671,9 +660,8 @@ MyData <- cbind(MyData, gdbulkWall = gdbulkWall, gtbulkWall = gtbulkWall)
 print("Bulk-conjugation rates estimated:")
 print(Sys.time())
 
-# calculate (or approximate?) eigenvalues
+# Approximate eigenvalues for pair-formation and bulk model
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
-
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
 MyData <- cbind(MyData, MyInfoEigVal)
 
@@ -682,69 +670,6 @@ print(Sys.time())
 
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
-
-#### The remainder of the script still has to be adjusted to the new model ####
-
-CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, limits = c(-1, 1), facetx = "MigrLumWall", facety = "MigrWallLum")
-CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, limits = c(-1, 1), facetx = "NILum", facety = "NIWall")
-
-
-CreatePlot2(fillvar = "SignDomEigVal", gradient2 = 1, xvar = "MigrLumWall", yvar = "w")
-CreatePlot2(fillvar = "SignDomEigVal", gradient2 = 1, xvar = "MigrLumWall", yvar = "MigrWallLum")
-
-limitsREq <- log10(c(min(c(MyData$RLumInit, MyData$RWallInit)), max(c(MyData$RLumInit, MyData$RWallInit))))
-
-CreatePlot2(fillvar = "log10(RLumInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", limits = limitsREq, save = TRUE)
-CreatePlot2(fillvar = "log10(RLumInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", limits = limitsREq, save = TRUE)
-CreatePlot2(fillvar = "NutrInit", xvar = "MigrLumWall", yvar = "MigrWallLum", save = TRUE)
-
-### Some plotting ###
-# See the one-compartment script for more plots
-CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, limits = c(-1, 1))
-CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1, limits = c(-1, 1))
-
-DomEigVals <- c(MyData$DomEigVal, MyData$DomEigValBulk)
-limitseigenvalues <- log10(range(DomEigVals[DomEigVals > 0]))
-limitseigenvalues <- c(floor(limitseigenvalues[1]), ceiling(limitseigenvalues[2]))
-
-CreatePlot(fillvar = "log10(DomEigVal)", limits = limitseigenvalues)
-CreatePlot(fillvar = "log10(DomEigValBulk)", limits = limitseigenvalues)
-CreatePlot(fillvar = "DomEigVal/DomEigValBulk")
-CreatePlot(fillvar = "DomEigVal-DomEigValBulk")
-
-limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulkLum, MyData$gtbulkLum, MyData$gdbulkWall, MyData$gtbulkWall)))),
-                     ceiling(max(log10(c(MyData$gdbulkLum, MyData$gtbulkLum, MyData$gdbulkWall, MyData$gtbulkWall)))))
-CreatePlot(fillvar = "log10(gdbulkLum)", limits = limitsbulkrates)
-CreatePlot(fillvar = "log10(gtbulkLum)", limits = limitsbulkrates)
-CreatePlot(fillvar = "log10(gdbulkWall)", limits = limitsbulkrates)
-CreatePlot(fillvar = "log10(gtbulkWall)", limits = limitsbulkrates)
-
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
-                    name = "Plasmid-free equilibrium",
-                    labels = c("stable", "unstable"))
-
-
-## WERKT NIET ?
-CumRowIndex <- NULL
-iteration <- 1
-dataplottotal <- MyData
-for(MigrLumWallSubset in unique(dataplottotal[, "MigrLumWall"])) {
-  subtitle <- paste0("MigrLumWall= ", MigrLumWallSubset)
-  RowIndex <- dataplottotal[, "MigrLumWall"] == MigrLumWallSubset
-  dataplot <- dataplottotal[RowIndex, ]
-  CreatePlot2(fillvar = "SignDomEigVal", gradient2 = 1, limits = c(-1, 1), facetx = "kpWall", facety = "knWall",
-              save = TRUE)
-  iteration <- iteration + 1
-}
-
-
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
@@ -798,6 +723,8 @@ if(any(MyData$steadyBulk == 0)) warning("Steady-state has not always been reache
 print("Bulk-conjugation model completed running:")
 print(Sys.time())
 
+#### The remainder of the script still has to be adjusted to the new model ####
+
 MyData <- cbind(MyData, TotalDLum = NA, TotalRLum = NA, TotalTransLum = NA, TotalPlasmidLum = NA, TotalBioLum = NA,
                 TotalDWall = NA, TotalRWall = NA, TotalTransWall = NA, TotalPlasmidWall = NA, TotalBioWall = NA,
                 TotalPlasmidLumBulk = NA, TotalBioLumBulk = NA, TotalPlasmidWallBulk = NA, TotalBioWallBulk = NA)
@@ -818,6 +745,103 @@ MyData[, "TotalBioWallBulk"] <- MyData[, "RWallBulk"] + MyData[, "TotalPlasmidWa
 
 write.csv(MyData, file = paste0(DateTimeStamp, "outputtwocompartment.csv"),
           quote = FALSE, row.names = FALSE)
+
+limitsREq <- log10(c(min(c(MyData$RLumInit, MyData$RWallInit)), max(c(MyData$RLumInit, MyData$RWallInit))))
+limitsNutrEq <- log10(c(min(c(MyData$NutrLumInit, MyData$NutrWallInit)), max(c(MyData$NutrLumInit, MyData$NutrWallInit))))
+
+DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
+CreatePlot(fillvar = "log10(RLumInit)", limits = limitsREq, facetx = "NILum", facety = "NIWall")
+CreatePlot2(fillvar = "log10(RLumInit)", gradient2 = 1, limits = c(-1, 1), facetx = "NILum", facety = "NIWall")
+
+SetsWithMoreThanOneValue <- c("NILum", "NIWall", "wLum", "wWall", "NutrConv",
+                              "bR", "MigrLumWall", "MigrWallLum", "ScaleAreaPerVol")[c(length(NILumSet),
+                                                                                       length(NIWallSet), length(wLumSet), length(wWallSet), length(NutrConvSet),
+                                                                                       length(bRSet), length(MigrLumWallSet), length(MigrWallLumSet),
+                                                                                       length(ScaleAreaPerVolSet)) > 1]
+
+if(length(SetsWithMoreThanOneValue) < 5) {
+  CreatePlot(fillvar = "RLumInit/RWallInit",
+             xvar = SetsWithMoreThanOneValue[1],
+             yvar = SetsWithMoreThanOneValue[2],
+             facetx = ifelse(!is.na(SetsWithMoreThanOneValue[3]), SetsWithMoreThanOneValue[3], "."),
+             facety = ifelse(!is.na(SetsWithMoreThanOneValue[4]), SetsWithMoreThanOneValue[4], "."))
+}
+
+if(length(SetsWithMoreThanOneValue) == 2) {
+  CreatePlot(fillvar = "log10(RLumInit)", limits = limitsREq,
+             xvar = SetsWithMoreThanOneValue[1],
+             yvar = SetsWithMoreThanOneValue[2],
+             facetx = SetsWithMoreThanOneValue[1], facety = SetsWithMoreThanOneValue[2])
+}
+
+
+
+if(length(SetsWithMoreThanOneValue) == 4) {
+  CreatePlot(fillvar = "log10(RLumInit)", limits = limitsREq,
+             xvar = "SetsWithMoreThanOneValue[1]",
+             yvar = "SetsWithMoreThanOneValue[2]",
+             facetx = "SetsWithMoreThanOneValue[3]", facety = "SetsWithMoreThanOneValue[4]")
+}
+
+CreatePlot2(fillvar = "log10(RLumInit)", limits = limitsREq, facetx = "SetsWithMoreThanOneValue", facety = "NIWall")
+
+# CreatePlot(fillvar = "log10(RLumInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsREq)
+# CreatePlot(fillvar = "log10(RWallInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsREq)
+# CreatePlot(fillvar = "log10(NutrLumInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsNutrEq)
+# CreatePlot(fillvar = "log10(NutrWallInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = limitsNutrEq)
+# 
+# CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
+# CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall", yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
+
+
+
+CreatePlot2(fillvar = "SignDomEigVal", gradient2 = 1, limits = c(-1, 1), facetx = "NILum", facety = "NIWall")
+
+CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, limits = c(-1, 1), facetx = "MigrLumWall", facety = "MigrWallLum")
+CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, limits = c(-1, 1), facetx = "NILum", facety = "NIWall")
+
+
+CreatePlot2(fillvar = "SignDomEigVal", gradient2 = 1, xvar = "MigrLumWall", yvar = "w")
+CreatePlot2(fillvar = "SignDomEigVal", gradient2 = 1, xvar = "MigrLumWall", yvar = "MigrWallLum")
+
+limitsREq <- log10(c(min(c(MyData$RLumInit, MyData$RWallInit)), max(c(MyData$RLumInit, MyData$RWallInit))))
+
+CreatePlot2(fillvar = "log10(RLumInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", limits = limitsREq, save = TRUE)
+CreatePlot2(fillvar = "log10(RLumInit)", xvar = "MigrLumWall", yvar = "MigrWallLum", limits = limitsREq, save = TRUE)
+CreatePlot2(fillvar = "NutrInit", xvar = "MigrLumWall", yvar = "MigrWallLum", save = TRUE)
+
+### Some plotting ###
+# See the one-compartment script for more plots
+CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1, limits = c(-1, 1))
+CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1, limits = c(-1, 1))
+
+DomEigVals <- c(MyData$DomEigVal, MyData$DomEigValBulk)
+limitseigenvalues <- log10(range(DomEigVals[DomEigVals > 0]))
+limitseigenvalues <- c(floor(limitseigenvalues[1]), ceiling(limitseigenvalues[2]))
+
+CreatePlot(fillvar = "log10(DomEigVal)", limits = limitseigenvalues)
+CreatePlot(fillvar = "log10(DomEigValBulk)", limits = limitseigenvalues)
+CreatePlot(fillvar = "DomEigVal/DomEigValBulk")
+CreatePlot(fillvar = "DomEigVal-DomEigValBulk")
+
+limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulkLum, MyData$gtbulkLum, MyData$gdbulkWall, MyData$gtbulkWall)))),
+                     ceiling(max(log10(c(MyData$gdbulkLum, MyData$gtbulkLum, MyData$gdbulkWall, MyData$gtbulkWall)))))
+CreatePlot(fillvar = "log10(gdbulkLum)", limits = limitsbulkrates)
+CreatePlot(fillvar = "log10(gtbulkLum)", limits = limitsbulkrates)
+CreatePlot(fillvar = "log10(gdbulkWall)", limits = limitsbulkrates)
+CreatePlot(fillvar = "log10(gtbulkWall)", limits = limitsbulkrates)
+
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
+                    name = "Plasmid-free equilibrium",
+                    labels = c("stable", "unstable"))
+
 
 CreatePlot(fillvar = "TotalRLum/TotalBioLum")
 CreatePlot(fillvar = "TotalRWall/TotalBioWall")
