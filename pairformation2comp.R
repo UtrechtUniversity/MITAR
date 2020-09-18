@@ -386,7 +386,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0,
                        facetx = "cd + gd", facety = "ct + gt", save = saveplots, ...) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
-    DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
+    DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
   }
   mycaption <- paste(DateTimeStamp)
   
@@ -429,7 +429,7 @@ CreatePlot2 <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0,
       dataplot <- dataplottotal[RowIndex, ]
       if(exists("DateTimeStamp") == FALSE) {
         warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
-        DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
+        DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
       }
       mycaption <- paste(DateTimeStamp, subtitle)
       
@@ -614,6 +614,7 @@ if(any(Eqplasmidfree <= 0)) {
 MyData <- cbind(MyData, Eqplasmidfree)
 print("Plasmid-free equilibrium determined:")
 print(Sys.time())
+DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 
 ### Checking if the biomass in the two compartments are comparable 
 summary(MyData[, "RLumInit"] / MyData[, "RWallInit"])
@@ -749,7 +750,6 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputtwocompartment.csv"),
 limitsREq <- log10(c(min(c(MyData$RLumInit, MyData$RWallInit)), max(c(MyData$RLumInit, MyData$RWallInit))))
 limitsNutrEq <- log10(c(min(c(MyData$NutrLumInit, MyData$NutrWallInit)), max(c(MyData$NutrLumInit, MyData$NutrWallInit))))
 
-DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
 CreatePlot(fillvar = "log10(RLumInit)", limits = limitsREq, facetx = "NILum", facety = "NIWall")
 CreatePlot2(fillvar = "log10(RLumInit)", gradient2 = 1, limits = c(-1, 1), facetx = "NILum", facety = "NIWall")
 
