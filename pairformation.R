@@ -234,9 +234,9 @@ ModelPairsNutr <- function(t, state, parms) {
 # The bulk-conjugation model
 ModelBulkNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutr <- (NI - Nutr)*w - NutrConv*Nutr*((1 - cd)*bR*D + bR*R + (1 - ct)*bR*Trans)
-    dD <- (1 - cd)*bR*Nutr*D - w*D
-    dR <- bR*Nutr*R - gdbulk*D*R - gtbulk*Trans*R - w*R
+    dNutr <- (NI - Nutr)*w - NutrConv*bR*Nutr*((1 - cd)*D + R + (1 - ct)*Trans)
+    dD <- ((1 - cd)*bR*Nutr - w)*D
+    dR <- (bR*Nutr - gdbulk*D - gtbulk*Trans - w)*R
     dTrans <- (1 - ct)*bR*Nutr*Trans + gdbulk*D*R + gtbulk*Trans*R - w*Trans
     return(list(c(dNutr, dD, dR, dTrans)))
   })
