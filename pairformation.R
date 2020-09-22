@@ -151,7 +151,7 @@ MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 # 0 with R > 0 and Nutr > 0
 CalcEqPlasmidfree <- function(MyData) {
   with(as.list(MyData), {
-    REq <- ((NI - w / bR)) / NutrConv
+    REq <- (NI - (w / bR)) / NutrConv
     NutrEq <- w / bR
     Eq <- c(NutrEq = NutrEq, REq = REq)
     return(Eq)
@@ -306,7 +306,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
                        facetx = "cd + gd", facety = "ct + gt", save = saveplots) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
-    DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
+    DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
   }
   p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar)) + 
     geom_raster() +
@@ -482,8 +482,8 @@ DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- 10^seq(from = -1, to = 2, by = 1)
 NutrConvSet <- 1e-6
-wSet <- c(seq(0.02, 0.08, 0.02), 0.16)
-kpSet <- 10^seq(from = -11, to = -8, by = 0.25)
+wSet <- seq(0.02, 0.10, 0.02)
+kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.05)
 ctSet <- c(0.01)
@@ -545,11 +545,30 @@ MyData <- cbind(MyData, MyInfoEigVal)
 print("Eigenvalues estimated:")
 print(Sys.time())
 
-DateTimeStamp <- format(Sys.time(), format = "%Y_%B_%d_%H_%M_%S")
+DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
 #### Plotting output ####
+
+# To show influence of washout rate and inflowing nutrient concentration on
+# stability, run with multiple values for kn, kp, w and NI
+# and than plot:
+# Note: hardcoded legend and axis labels
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(w ~ NI, labeller = label_both) +
+  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
+       y = "log10(detachment rate)") +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
+                    name = "Plasmid-free equilibrium",
+                    labels = c("stable", "unstable"))
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
+}
 
 CreatePlot(fillvar = "NutrEq")
 CreatePlot(fillvar = "REq")
@@ -590,24 +609,6 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
 }
 
-# To show influence of washout rate and inflowing nutrient concentration on
-# stability, run with one value for kn and kp, and multiple values for w and NI
-# and than plot:
-# Note: hardcoded legend and axis labels
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(w ~ log10(NI), labeller = label_both) +
-  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
-       y = "log10(detachment rate)") +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
-                    name = "Plasmid-free equilibrium",
-                    labels = c("stable", "unstable"))
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
-}
 
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = log10(REq))) + 
   geom_raster() +
