@@ -134,6 +134,7 @@ library(ggplot2) # For plotting data
 library(RColorBrewer) # For better color schemes
 library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
+library(dplyr) # for mutate() to create new variables in dataframe/tibble
 
 #### Plotting options ####
 saveplots <- 0
@@ -437,8 +438,8 @@ ctSet <- c(0.01)
 gdSet <- c(15)
 gtSet <- c(15)
 
-## To show costs and conjugation rate of transconjugant, but not of donor,
-## influence stability of the plasmid-free equilibrium.
+## To show influence of costs, conjugation, attachment, and detachment rates on
+## the stability of the plasmid-free equilibrium and on bulk-conjugation rates.
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
@@ -450,35 +451,6 @@ cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
 gtSet <- c(1, 15) 
-
-## To show influence of conjugation rates, attachment, and detachment rates on
-## the bulk-conjugation rate of the donor.
-DInitSet <- c(1E3)
-bRSet <- c(1.7)
-NISet <- c(10)
-NutrConvSet <- 1e-6
-wSet <- c(0.04)
-kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
-knSet <- 10^seq(from = -1, to = 3, by = 0.25)
-cdSet <- c(0.05)
-ctSet <- c(0.01)
-gdSet <- c(1, 15)
-gtSet <- c(15)
-
-## To show influence of conjugation rates, attachment, and detachment rates on
-## the bulk-conjugation rate of the transconjugant.
-DInitSet <- c(1E3)
-bRSet <- c(1.7)
-NISet <- c(10)
-NutrConvSet <- 1e-6
-wSet <- c(0.04)
-kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
-knSet <- 10^seq(from = -1, to = 3, by = 0.25)
-cdSet <- c(0.05)
-ctSet <- c(0.01)
-gdSet <- c(15)
-gtSet <- c(1, 15)
-
 
 ## Small parameterset for tests
 DInitSet <- 1000
@@ -585,7 +557,7 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
 # stability of the plasmid-free equilibrium, run with multiple values for kn,
 # kp, w and NI and than plot:
 # Note: hardcoded legend and axis labels
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -597,14 +569,14 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
                     name = "Plasmid-free equilibrium",
                     labels = c("stable", "unstable"))
 if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
+  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValNIw).png"))
 }
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium, run with multiple values for kn, kp, cd, ct, gd, gt
 # and than plot:
 # Note: hardcoded legend
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -620,7 +592,7 @@ if(saveplots == 1 ) {
 }
 
 # Stability of the equilibrium for the bulk-conjugation model
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigValBulk))) + 
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigValBulk))) +
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -635,35 +607,20 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk).png"))
 }
 
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal - SignDomEigValBulk))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
-       y = "log10(detachment rate)") +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
-                    name = "Plasmid-free equilibrium (bulk-model)",
-                    labels = c("stable", "unstable"))
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
-}
+CreatePlot(fillvar = "SignDomEigVal - SignDomEigValBulk", gradient2 = TRUE,
+           limits = c(-2, 2))
 
-CreatePlot(fillvar = "SignDomEigVal - SignDomEigValBulk", gradient2 = TRUE, limits = c(-2, 2), save = FALSE)
-
-## To show influence of conjugation rates, attachment, and detachment rates on
-## the bulk-conjugation rates.
+## The influence of conjugation, attachment, and detachment rates on the 
+## bulk-conjugation rates. Data is filtered to show only one value for costs,
+## because osts do not influence the bulk-conjugation rates.
 limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
                      ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
-
-limitsbulkratesgd <- c(floor(min(log10(MyData$gdbulk))),
-                     ceiling(max(log10(MyData$gdbulk))))
-CreatePlot(fillvar = "log10(gdbulk)", facetx = "gt", facety = "gd", limits = limitsbulkratesgd, save = TRUE)
-
-limitsbulkratesgt <- c(floor(min(log10(MyData$gtbulk))),
-                       ceiling(max(log10(MyData$gtbulk))))
-CreatePlot(fillvar = "log10(gtbulk)", facetx = "gd", facety = "gt", limits = limitsbulkratesgt, save = TRUE)
+CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
+           fillvar = "log10(gdbulk)", facetx = "gt", facety = "gd",
+           limits = limitsbulkrates)
+CreatePlot(dataplot = filter(MyData, gd == 15 & cd == 0.05 & ct == 0.01),
+           fillvar = "log10(gtbulk)", facetx = "gd", facety = "gt",
+           limits = limitsbulkrates)
 
 CreatePlot(fillvar = "NutrEq")
 CreatePlot(fillvar = "REq")
