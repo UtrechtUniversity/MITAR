@@ -30,6 +30,8 @@
 
 # For PlotOverTime, I want the plot to be always shown, and saved only if save = TRUE.
 # Change to using ggplot instead of matplot.deSolve to enable saving an object through ggsave(...)
+# Displaying graph first and then use if (save == TRUE) {dev.copy(png,'myplot.png'); dev.off()}
+# might work without having to code the creation of the plot twice ?
 
 # The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
 # ect. for approximating bulk-rates can be moved inside the EstConjBulk function.
@@ -572,6 +574,9 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValNIw).png"))
 }
 
+CreatePlot(fillvar = "NutrEq")
+CreatePlot(fillvar = "REq")
+
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium, run with multiple values for kn, kp, cd, ct, gd, gt
 # and than plot:
@@ -607,12 +612,14 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk).png"))
 }
 
+# Check if sign of largest eigenvalues differ between the pair-formation and
+# bulk model (4 values do differ, all on border of invasion)
 CreatePlot(fillvar = "SignDomEigVal - SignDomEigValBulk", gradient2 = TRUE,
            limits = c(-2, 2))
 
 ## The influence of conjugation, attachment, and detachment rates on the 
 ## bulk-conjugation rates. Data is filtered to show only one value for costs,
-## because osts do not influence the bulk-conjugation rates.
+## because costs do not influence the bulk-conjugation rates.
 limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
                      ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
 CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
@@ -621,9 +628,6 @@ CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
 CreatePlot(dataplot = filter(MyData, gd == 15 & cd == 0.05 & ct == 0.01),
            fillvar = "log10(gtbulk)", facetx = "gd", facety = "gt",
            limits = limitsbulkrates)
-
-CreatePlot(fillvar = "NutrEq")
-CreatePlot(fillvar = "REq")
 
 summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
 summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
