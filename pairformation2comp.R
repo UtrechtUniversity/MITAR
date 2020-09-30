@@ -95,40 +95,6 @@ tmaxsteady <- 1e8
 timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 
-#### Parameter values ####
-# MigrLumWallSet: rate of migration from the lumen to the wall
-# MigrWallLumSet: rate of migration from the wall to the lumen
-# See script of the one-compartment model for explanation of the other parameter values
-
-# FileName <- "2020_september_09_12_18_07MyDataNoCarryCap.csv"
-# MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
-#                   dec = ".", stringsAsFactors = FALSE)
-# MyData <- as.data.frame(MyData)
-# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 36)
-
-# Parametervalues
-NILumSet <- c(1, 10, 100)
-NIWallSet <- c(1, 10, 100)
-wLumSet <- c(0.04)
-wWallSet <- c(0.01)
-NutrConvSet <- c(1e-6)
-bRSet <- c(1.7)
-MigrLumWallSet <- 0.03
-MigrWallLumSet <- 0.05
-ScaleAreaPerVolSet <- c(1)
-DInitLumSet <- 1E3
-DInitWallSet <- 1E3
-cdSet <- 0.05
-ctSet <- 0.01
-kpSet <- 10^-8
-kpWallSet <- 10^-8
-# kpWallSet <- 10^seq(from = -10, to = -6, by = 2)
-knSet <- 1
-knWallSet <- 1
-# knWallSet <- 10^seq(from = -1, to = 3, by = 2)
-gdSet <- 15
-gtSet <- 15
-
 #### Functions ####
 ModelBulkNutrPlasmidfree <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
@@ -554,6 +520,55 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
   }
 }
 
+# Parameterset 1: values to show influence of MigrLumWall and MigrWallLum on
+# biomass in the two compartments for the plasmid-free equilibrium
+NILumSet <- c(1, 10, 100)
+NIWallSet <- c(1, 10, 100)
+wLumSet <- 0.04
+wWallSet <- 0.01
+NutrConvSet <- c(1e-6)
+bRSet <- c(1.7)
+MigrLumWallSet <- seq(0.02, 0.2, 0.02)
+MigrWallLumSet <- seq(0.02, 0.2, 0.02)
+ScaleAreaPerVolSet <- c(1)
+DInitLumSet <- 1E3
+DInitWallSet <- 1E3
+cdSet <- 0.05
+ctSet <- 0.01
+kpSet <- 10^-8
+kpWallSet <- 10^-8
+knSet <- 1
+knWallSet <- 1
+gdSet <- 15
+gtSet <- 15
+
+# Parameterset 2: values that result in comparable biomass and nutrients in the
+# lumen and the wall. Show influence of attachment and detachment rates that can
+# be different in the lumen and at the wall, and costs and conjugation rates
+NILumSet <- 10
+NIWallSet <- 10
+wLumSet <- c(0.04)
+wWallSet <- c(0.01)
+NutrConvSet <- c(1e-6)
+bRSet <- c(1.7)
+MigrLumWallSet <- c(0.1)
+MigrWallLumSet <- c(0.1)
+ScaleAreaPerVolSet <- c(1)
+DInitLumSet <- 1E3
+DInitWallSet <- 1E3
+cdSet <- c(0.05) # eventually use cdSet <- c(0.01, 0.05), now for speed just use 0.05 since its value won't make any difference anyway
+ctSet <- c(0.01, 0.05)
+kpSet <- 10^seq(from = -10, to = -6, by = 0.5)
+kpWallSet <- 10^seq(from = -10, to = -6, by = 1) 
+knSet <- 10^seq(from = -1, to = 3, by = 0.5)
+knWallSet <- 10^seq(from = -1, to = 3, by = 1)
+gdSet <- c(15) # eventually use gdSet <- c(1, 15), now for speed just use 15 since its value won't make any difference anyway
+gtSet <- c(1, 15)
+
+# kpWall 10^-6: all equilibria unstable
+# kpWall 10^-7: is high kpLum or low knLum stable for knWall = 1000 and gt=1
+# for lower kpWall: more and more equilibria become stable
+
 #### Main script ####
 CheckParms <- c(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet, wWall = wWallSet, 
                 NutrConv = NutrConvSet, bR = bRSet,
@@ -616,9 +631,25 @@ print("Plasmid-free equilibrium determined:")
 print(Sys.time())
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 
-### Checking if the biomass in the two compartments are comparable 
-summary(MyData[, "RLumInit"] / MyData[, "RWallInit"])
-summary(MyData[, "NutrLumInit"] / MyData[, "NutrWallInit"])
+### Show that biomass and nutrient concentration can be different in lumen and wall ###
+# Using parameterset 1 the following plots shows that cell density in the lumen
+# can be 13 times lower or 11 times higher than cell density at the wall, and
+# nutrient concentration can be 52 times lower or 2000 times higher.
+# This will affect conjugation rate, so run again with parameter values that
+# result in similar biomass and nutrient concentrations in the lumen and at the
+# wall. To achieve this for wLum = 0.04 and wWall = 0.01, use NIWall = NILum,
+# MigrLumWall = MigrWallLum for values of MigrLumWall from 0.01 to 0.1
+summary(MyData$RLumInit/MyData$RWallInit)
+CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
+CreatePlot(fillvar = "log10(RLumInit/RWallInit)", xvar = "MigrLumWall",
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
+
+summary(MyData$NutrLumInit/MyData$NutrWallInit)
+CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall",
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
+CreatePlot(fillvar = "log10(NutrLumInit/NutrWallInit)", xvar = "MigrLumWall",
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
 
 ## Approximate gdbulk and gtbulk in the lumen
 MyData <- expand_grid(MyData, DInitLum = DInitLumSet, DInitWall = DInitWallSet,
@@ -671,6 +702,9 @@ print(Sys.time())
 
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
+
+# To show influence of kpWall and knWall
+CreatePlot2(fillvar = "SignDomEigVal", gradient2 = TRUE, limits = c(-1, 1))
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
