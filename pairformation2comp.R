@@ -558,9 +558,9 @@ DInitLumSet <- 1E3
 DInitWallSet <- 1E3
 cdSet <- c(0.05) # eventually use cdSet <- c(0.01, 0.05), now for speed just use 0.05 since its value won't make any difference anyway
 ctSet <- c(0.01, 0.05)
-kpSet <- 10^seq(from = -10, to = -6, by = 0.5)
+kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^seq(from = -10, to = -6, by = 1) 
-knSet <- 10^seq(from = -1, to = 3, by = 0.5)
+knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 knWallSet <- 10^seq(from = -1, to = 3, by = 1)
 gdSet <- c(15) # eventually use gdSet <- c(1, 15), now for speed just use 15 since its value won't make any difference anyway
 gtSet <- c(1, 15)
@@ -642,14 +642,17 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 summary(MyData$RLumInit/MyData$RWallInit)
 CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
            yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
-CreatePlot(fillvar = "log10(RLumInit/RWallInit)", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
+# Set limits to only show values where biomass in lumen and at wall are nearly equal
+CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = c(0.99, 1.01)) 
+
 
 summary(MyData$NutrLumInit/MyData$NutrWallInit)
 CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall",
            yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
-CreatePlot(fillvar = "log10(NutrLumInit/NutrWallInit)", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
+# Set limits to only show values where biomass in lumen and at wall are nearly equal
+CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall",
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = c(0.5, 2.0))
 
 ## Approximate gdbulk and gtbulk in the lumen
 MyData <- expand_grid(MyData, DInitLum = DInitLumSet, DInitWall = DInitWallSet,
@@ -705,6 +708,17 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
 
 # To show influence of kpWall and knWall
 CreatePlot2(fillvar = "SignDomEigVal", gradient2 = TRUE, limits = c(-1, 1))
+
+## Since cd and gd do not influence stability of the plasmid-free equilibrium,
+# a more informative plot would be:
+CreatePlot(fillvar = "SignDomEigVal", gradient2 = TRUE, limits = c(-1, 1),
+           facetx = "knWall")
+# But then all values of kpWall are plotted on top of each other.
+
+# To show this better, modify CreatePlot2 to only loop over values of knWall,
+# and show kpWall in facets:
+CreatePlot2(fillvar = "SignDomEigVal", gradient2 = TRUE, limits = c(-1, 1),
+           facetx = "knWall")
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
