@@ -559,7 +559,7 @@ DInitWallSet <- 1E3
 cdSet <- c(0.05) # eventually use cdSet <- c(0.01, 0.05), now for speed just use 0.05 since its value won't make any difference anyway
 ctSet <- c(0.01, 0.05)
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
-kpWallSet <- 10^seq(from = -10, to = -6, by = 1) 
+kpWallSet <- 10^seq(from = -12, to = -6, by = 3) 
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 knWallSet <- 10^seq(from = -1, to = 3, by = 1)
 gdSet <- c(15) # eventually use gdSet <- c(1, 15), now for speed just use 15 since its value won't make any difference anyway
@@ -710,15 +710,13 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
 CreatePlot2(fillvar = "SignDomEigVal", gradient2 = TRUE, limits = c(-1, 1))
 
 ## Since cd and gd do not influence stability of the plasmid-free equilibrium,
-# a more informative plot would be:
-CreatePlot(fillvar = "SignDomEigVal", gradient2 = TRUE, limits = c(-1, 1),
-           facetx = "knWall")
-# But then all values of kpWall are plotted on top of each other.
+# a more concise plot is:
+ggsave(filename = "PlotTest10.png", plot = CreatePlot(fillvar = "SignDomEigVal",
+                                          gradient2 = TRUE, limits = c(-1, 1),
+                                          facetx = "knWall",
+                                          facety = "kpWall + ct + gt"),
+       device = "png", width = 32, units = "cm")
 
-# To show this better, modify CreatePlot2 to only loop over values of knWall,
-# and show kpWall in facets:
-CreatePlot2(fillvar = "SignDomEigVal", gradient2 = TRUE, limits = c(-1, 1),
-           facetx = "knWall")
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
