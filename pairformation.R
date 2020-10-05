@@ -32,6 +32,9 @@
 # Change to using ggplot instead of matplot.deSolve to enable saving an object through ggsave(...)
 # Displaying graph first and then use if (save == TRUE) {dev.copy(png,'myplot.png'); dev.off()}
 # might work without having to code the creation of the plot twice ?
+# In saveplots == 1 does not work well with RunOverTime, since only the first two plots
+# are saved and then warning is issued that file already exists. Add column with
+# rownumber to dataframe to append to filename?
 
 # The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
 # ect. for approximating bulk-rates can be moved inside the EstConjBulk function.
@@ -44,6 +47,9 @@
 ## Voor plots over time waar ik het pair-formation en het bulk-model met elkaar Vergelijk
 # is plotten van TotalD, TotalR, TotalTrans van het pair-model en DBulk, RBulk, TransBulk van het bulk-model
 # een betere vergelijking, zie PlotOverTime uit het script voor het twee-compartimenten model.
+
+# For PlotOverTime: use \n to print subtitle over two lines, use oma (see ?par and ?mtext)
+# to prevent text from overlapping with legend
 
 # SummaryPlot() does not use the names of the arguments for creating titles
 
@@ -808,8 +814,8 @@ mycol <- c("black", brewer.pal(7, "Set1"))
 myylim <- c(1E-14, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 plotoutput <- 1
-extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinctionthreshold
-verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed and roots are indicated in the graphs
+extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinction threshold
+verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed and roots are indicated in the graphs
 smallchange <- c(1E-5)
 Mytmax <- c(1E4)
 Mytstep <- c(10)
@@ -938,6 +944,9 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
   }
 }
 
+# NOTE: sometimes takes very long to compute because of the root- and eventfunctions.
+# Could shift to only using rootfunction to determine if equilibrium has been
+# reached to prevent that.
 EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, verbose = FALSE))
 
 Data <- cbind(Mydf, EqAfterInvasionTotal)
