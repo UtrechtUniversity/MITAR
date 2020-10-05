@@ -101,6 +101,12 @@
 
 # Look for 'hardcoded', 'hard-coded' and rethink them.
 
+# Summary(...) is not reliable to PRINT range of data if range is > 7 orders
+# of magnitude?:
+# summary(c(1e-15, 1e-12, 1e-7)) prints 0.00e+00 as minimum
+# summary(c(1e-15, 1e-12, 1e-7))["Min."] prints 1e-15
+# summary(c(1e-15, 1e-12, 1e-8)) prints correct value
+
 ## NUTRIENTS are also in the root- and event-functions, see comment at their
 # function definitions
 
@@ -574,8 +580,10 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValNIw).png"))
 }
 
-CreatePlot(fillvar = "NutrEq")
-CreatePlot(fillvar = "REq")
+# These plots show that nutrient inflow and washout rate influence recipient
+# cell density (plots not shown in article)
+CreatePlot(fillvar = "log10(REq)", facetx = "w", facety = "NI")
+CreatePlot(fillvar = "NutrEq", facetx = "w", facety = "NI")
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium, run with multiple values for kn, kp, cd, ct, gd, gt
@@ -612,10 +620,19 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk).png"))
 }
 
-# Check if sign of largest eigenvalues differ between the pair-formation and
-# bulk model (4 values do differ, all on border of invasion)
-CreatePlot(fillvar = "SignDomEigVal - SignDomEigValBulk", gradient2 = TRUE,
-           limits = c(-2, 2))
+# Show if sign of dominant eigenvalues for pair-formation and bulk model is the same 
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("TRUE" = "aquamarine", "FALSE" = "red"),
+                    name = "Same sign of \ndominant eigenvalue")
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvalues.png"))
+}
 
 ## The influence of conjugation, attachment, and detachment rates on the 
 ## bulk-conjugation rates. Data is filtered to show only one value for costs,
@@ -629,88 +646,8 @@ CreatePlot(dataplot = filter(MyData, gd == 15 & cd == 0.05 & ct == 0.01),
            fillvar = "log10(gtbulk)", facetx = "gd", facety = "gt",
            limits = limitsbulkrates)
 
-summary(MyData$SignDomEigVal - MyData$SignDomEigValBulk)
-summary(MyData$SignDomEigVal / MyData$SignDomEigValBulk)
-
-# Instead of these plots, use the plots with hardcoded legends below
-# CreatePlot(fillvar = "SignDomEigVal", gradient2 = 1)
-# CreatePlot(fillvar = "SignDomEigValBulk", gradient2 = 1)
-# CreatePlot(fillvar = "SignDomEigVal / SignDomEigValBulk", gradient2 = 1)
-
-
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = log10(REq))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(w ~ log10(NI), labeller = label_both) +
-  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
-       y = "log10(detachment rate)") +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_gradientn(colours = MyColorBrew,
-                       guide_colourbar(title = "log10(Recipient density\nat equilibrium)"))
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "PlasmidFreeRecipientDensity.png"))
-}
-
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = NutrEq)) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(w ~ log10(NI), labeller = label_both) +
-  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
-       y = "log10(detachment rate)") +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_gradientn(colours = MyColorBrew,
-                       guide_colourbar(title = "Nutrient concentration\nat equilibrium"))
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "PlasmidFreeNutrientConc.png"))
-}
-
-
-# Note: hardcoded legend
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigValBulk))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
-                    name = "Plasmid-free equilibrium (bulk)",
-                    labels = c("stable", "unstable"))
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk).png"))
-}
-
-# Note: hardcoded legend
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal - SignDomEigValBulk))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("0" = "darkblue"),
-                    name = "Difference in sign eigenvalues")
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvalues.png"))
-}
-
-# Create limits to have the same limits and colorscale for the two plots
-DomEigVals <- c(MyData$DomEigVal, MyData$DomEigValBulk)
-limitseigenvalues <- log10(range(DomEigVals[DomEigVals > 0]))
-limitseigenvalues <- c(floor(limitseigenvalues[1]), ceiling(limitseigenvalues[2]))
-
-CreatePlot(fillvar = "log10(DomEigVal)", limits = limitseigenvalues)
-CreatePlot(fillvar = "log10(DomEigValBulk)", limits = limitseigenvalues)
-CreatePlot(fillvar = "DomEigVal/DomEigValBulk")
-CreatePlot(fillvar = "DomEigVal-DomEigValBulk")
-
-summary(MyData$DomEigVal)
-summary(MyData$DomEigValBulk)
-summary(MyData$DomEigVal - MyData$DomEigValBulk)
-summary(MyData$DomEigVal / MyData$DomEigValBulk)
-summary(DomEigVals)
+#### The remaining part of the script is not used in the main text of the manuscript ####
+# Some is used in the supplement
 
 print("Finished plotting:")
 print(Sys.time())
@@ -824,24 +761,19 @@ if(any(MyData$RBulk == MyData$TotalBioBulk & MyData$SignDomEigValBulk == 1)) {
 summary(MyData$TotalBio / MyData$TotalBioBulk)
 range(MyData$TotalBio / MyData$TotalBioBulk)
 
-# If the biomass is the same accross simulations, one could use the number of cells instead of fractions of total biomass
+# If the biomass is the same across simulations, one could use the number of cells instead of fractions of total biomass
 summary(MyData$TotalBio)
 max(MyData$TotalBio) / min(MyData$TotalBio) 
 summary(MyData$TotalBioBulk)
 max(MyData$TotalBioBulk) / min(MyData$TotalBioBulk)
 
-# Which proportion of cells is plasmid-bearing, if it is not 0
-min((MyData$TotalPlasmid / MyData$TotalBio)[which(MyData$TotalPlasmid / MyData$TotalBio != 0)])
-max((MyData$TotalPlasmid / MyData$TotalBio)[which(MyData$TotalPlasmid / MyData$TotalBio != 0)])
-
-min((MyData$TotalPlasmidBulk / MyData$TotalBioBulk)[which(MyData$TotalPlasmidBulk / MyData$TotalBioBulk != 0)])
-max((MyData$TotalPlasmidBulk / MyData$TotalBioBulk)[which(MyData$TotalPlasmidBulk / MyData$TotalBioBulk != 0)])
-
-A <- MyData[which(MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] > 1e-3 &
+# Which proportion of cells is plasmid-bearing, if it is not 0 or nearly 1
+PossibleCoexistence <- MyData[which(MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] > 1e-3 &
                     MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] < 0.999), ]
-dim(A)
+dim(PossibleCoexistence)
+CreatePlot(fillvar = "TotalPlasmid/TotalBio", dataplot = PossibleCoexistence)
 
-# Compare biomass accross the two models
+# Compare biomass across the two models
 CreatePlot(fillvar = "TotalBio / TotalBioBulk", gradient2 = 1)
 
 # Fraction plasmid-bearing cells
