@@ -52,6 +52,8 @@
 # and append the value from that column to the name? That would als make it
 # easier to see which plot is which iteration (so also print it in graph subtitles).
 
+# Add ... argument to CreatePlot to enable hardcoding legends and axis titles on the fly?
+
 ## To check if other parameters than kp, kn, gd, gt, cd, ct which are separately
 # shown in the plot have multiple values (which leads to plotting multiple values
 # on top of each other) the following can be used:
@@ -729,13 +731,15 @@ OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1,
                                  FUN = SimulationPairs))
 
 if(length(IndexSimulation) < nrow(MyData)) {
-  NoSimulationNeeded <- cbind(time = 0, steady = 1, Nutr = MyData[-IndexSimulation, "NutrInit"],
+  NoSimulationNeeded <- cbind(time = 0, steady = 1,
+                              NutrLum = MyData[-IndexSimulation, "NutrLumInit"],
                               DLum = 0, RLum = MyData[-IndexSimulation, "RLumInit"],
-                              TransLum = 0,  MdrLum = 0, MdtLum = 0, MrtLum = 0,
-                              MttLum = 0, DWall = 0,
-                              RWall = MyData[-IndexSimulation, "RLumInit"],
-                              TransWall = 0, MdrWall = 0, MdtWall = 0,
-                              MrtWall = 0, MttWall = 0)
+                              TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0,
+                              MttLum = 0,
+                              NutrWall = MyData[-IndexSimulation, "NutrWallInit"],
+                              DWall = 0, RWall = MyData[-IndexSimulation, "RWallInit"],
+                              TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0,
+                              MttWall = 0)
   MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
                   cbind(MyData[-IndexSimulation, ], NoSimulationNeeded))
 } else {
@@ -754,11 +758,13 @@ colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
 
 if(length(IndexSimulationBulk) < nrow(MyData)) {
   NoSimulationNeededBulk <- cbind(timeBulk = 0, steadyBulk = 1,
-                                  NutrBulk = MyData[-IndexSimulation, "NutrInit"],
+                                  NutrLumBulk = MyData[-IndexSimulation, "NutrLumInit"],
                                   DLumBulk = 0,
                                   RLumBulk = MyData[-IndexSimulation, "RLumInit"],
-                                  TransLumBulk = 0, DWallBulk = 0,
-                                  RWallBulk = MyData[-IndexSimulation, "RLumInit"],
+                                  TransLumBulk = 0,
+                                  NutrWallBulk = MyData[-IndexSimulation, "NutrWallInit"],
+                                  DWallBulk = 0,
+                                  RWallBulk = MyData[-IndexSimulation, "RWallInit"],
                                   TransWallBulk = 0)
   MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
                   cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk))
@@ -769,8 +775,6 @@ if(any(MyData$steadyBulk == 0)) warning("Steady-state has not always been reache
 
 print("Bulk-conjugation model completed running:")
 print(Sys.time())
-
-#### The remainder of the script still has to be adjusted to the new model ####
 
 MyData <- cbind(MyData, TotalDLum = NA, TotalRLum = NA, TotalTransLum = NA, TotalPlasmidLum = NA, TotalBioLum = NA,
                 TotalDWall = NA, TotalRWall = NA, TotalTransWall = NA, TotalPlasmidWall = NA, TotalBioWall = NA,
@@ -792,6 +796,8 @@ MyData[, "TotalBioWallBulk"] <- MyData[, "RWallBulk"] + MyData[, "TotalPlasmidWa
 
 write.csv(MyData, file = paste0(DateTimeStamp, "outputtwocompartment.csv"),
           quote = FALSE, row.names = FALSE)
+
+#### The remainder of the script still has to be adjusted to the new model ####
 
 limitsREq <- log10(c(min(c(MyData$RLumInit, MyData$RWallInit)), max(c(MyData$RLumInit, MyData$RWallInit))))
 limitsNutrEq <- log10(c(min(c(MyData$NutrLumInit, MyData$NutrWallInit)), max(c(MyData$NutrLumInit, MyData$NutrWallInit))))
@@ -907,7 +913,7 @@ yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed
 Mytmax <- c(500)
 Mytstep <- c(0.1)
-TheseRows <- 1:nrow(MyData) # Rows to use for simulations over time
+TheseRows <- c(1, nrow(MyData)) # Rows to use for simulations over time
 
 Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
