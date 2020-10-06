@@ -113,6 +113,13 @@
 # summary(c(1e-15, 1e-12, 1e-7))["Min."] prints 1e-15
 # summary(c(1e-15, 1e-12, 1e-8)) prints correct value
 
+# The functions RunOverTime and PlotOverTime in the two-compartment script are
+# more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
+# with TotalD, TotalR, TotalTrans in the pair-formation model.
+# In the two-compartment model I have not used root- and eventfunctions,
+# maybe should also delete them here, since it sometimes takes very long to
+# execute code (if populations go extinct and therefor many roots are found?)
+
 ## NUTRIENTS are also in the root- and event-functions, see comment at their
 # function definitions
 
@@ -318,7 +325,7 @@ SimulationBulk <- function(InputSimulationBulk) {
 # Create heatmaps, save if needed
 CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, dataplot = MyData,
                        xvar = "log10(kp)", yvar = "log10(kn)",
-                       facetx = "cd + gd", facety = "ct + gt", save = saveplots) {
+                       facetx = "cd + gd", facety = "ct + gt", save = saveplots, ...) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
@@ -873,6 +880,12 @@ eventfunBulk <- function(t, stateBulk, parmsBulk) {
   return(stateBulk)
 }
 
+# Note: the functions RunOverTime and PlotOverTime in the two-compartment script are
+# more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
+# with TotalD, TotalR, TotalTrans in the pair-formation model.
+# In the two-compartment model I have not used root- and eventfunctions,
+# maybe should also delete them here, since it sometimes takes very long to
+# execute code (if populations go extinct and therefor many roots are found?)
 RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]],
              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
