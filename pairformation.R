@@ -20,7 +20,9 @@
 # Using (1 - c)*b to model costs implies that a plasmid decreases the growth rate
 # by a certain percentage. So if you model more species and their growth rates
 # are different, using the same value for c leads to different absolute decrease
-# in growth rates. 
+# in growth rates.
+
+# Using cd = ct is not biologically realistic.
 
 # Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
 
@@ -690,7 +692,7 @@ print("Pair-formation model completed running:")
 print(Sys.time())
 
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
-print(paste(length(IndexSimulation), "simulations to run for the bulk model"))
+print(paste(length(IndexSimulationBulk), "simulations to run for the bulk model"))
 InputSimulationBulk <- MyData[IndexSimulationBulk, ColumnsToSelect]
 OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk))
 colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
