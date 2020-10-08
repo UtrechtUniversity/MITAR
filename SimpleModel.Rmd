@@ -155,7 +155,7 @@ boundary.plots + geom_point(aes(x = dpsi, y = loggamma, color =color),
 input.dir <- "C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/"
 conjugation.dataD <- read.csv(paste0(input.dir, "20200909_Conjug_rates_D_1_R.csv"))
 conjugation.dataT <- read.csv(paste0(input.dir, "20200909_Conjug_rates_T_R.csv"))
-growth.data <- read.csv(paste0(input.dir,"20200909_Growth_rates_D_1_R_T.csv"))
+growth.data <- read.csv(paste0(input.dir,"20201007_Growth_rates_D1_R_T_D2.csv"))
 
 #renaming to fit the existing script after renaming of columns
 colnames(conjugation.dataT)[colnames(conjugation.dataT) %in% c("Genera","Treatment", "Medium")] <- c("LABgenus","VL_type", "Experiment")
@@ -166,7 +166,7 @@ colnames(growth.data)[colnames(growth.data) %in% c( "Genera","Treatment")] <- c(
 #reshape the growth rates
 data.combinations <- reshape2::dcast(growth.data,formula =LABgenus + Medium + Replicate   ~ Strain, fun.aggregate = mean )
 #calculate rescaled  growth rate difference
-data.combinations$dpsiDR.scaled  <- (data.combinations$D_1 -data.combinations$R)/data.combinations$R
+data.combinations$dpsiDR.scaled  <- (data.combinations$D_2 -data.combinations$R)/data.combinations$R
 data.combinations$dpsiTR.scaled  <- (data.combinations$T -data.combinations$R)/data.combinations$R
 
 #order the growth rate data  and conjugation data in the same way
@@ -200,7 +200,7 @@ medium.colours <- setNames(c(rep("darkblue",2), rep("orange",6)), unique(plot.da
 medium.shapes <- setNames(c(15:19,8,3,12), unique(plot.data$Medium))
 
 boundary.plots + 
-  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = Medium,colour = Medium), data = plot.data[plot.data$Plasmid=="T",], size =1.75, alpha =.75)+
+  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = Medium,colour = Medium), data = plot.data[plot.data$Plasmid=="D",], size =1.75, alpha =.75)+
   scale_colour_manual(values = medium.colours, name = "Growth medium")+
   scale_shape_manual(values = medium.shapes, name = "Growth medium")+
    xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
@@ -230,7 +230,7 @@ labgenus.shapes <- setNames(c(19,8,2,6,4), unique(plot.data$LABgenus))
 replicate.shapes <- setNames(c(16,17,15), unique(plot.data$Replicate))
   
 boundary.plots + 
-  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = as.factor(LABgenus),colour = LABgenus), data = plot.data[plot.data$Plasmid=="T",], size =1.75, alpha =.75)+
+  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = as.factor(LABgenus),colour = LABgenus), data = plot.data[plot.data$Plasmid=="D",], size =1.75, alpha =.75)+
   scale_colour_manual(values = labgenus.colours, name = "LAB genus")+
   scale_shape_manual(values = labgenus.shapes, name = "LAB genus")+
    xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
