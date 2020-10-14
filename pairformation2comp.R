@@ -52,6 +52,10 @@
 # and append the value from that column to the name? That would als make it
 # easier to see which plot is which iteration (so also print it in graph subtitles).
 
+# dev.off() is not always called when needed
+ 
+# Total plasmid and biomass are not calculated when simulating over time
+
 # Add ... argument to CreatePlot to enable hardcoding legends and axis titles on the fly?
 
 ## To check if other parameters than kp, kn, gd, gt, cd, ct which are separately
@@ -87,7 +91,7 @@ library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
 library(dplyr) # for mutate() to create new variables in dataframe/tibble
 
-#### Plotting options ####
+#### Plotting and simulation options ####
 saveplots <- 0
 atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
@@ -108,7 +112,7 @@ ModelBulkNutrPlasmidfree <- function(t, state, parms) {
   })
 }
 
-# I used the equilibrium values for the one-compartment model as initial state values.
+# The equilibrium values for the one-compartment model are used as initial state
 RunToPlamidfreeEq <- function(parms) {
   with(as.list(parms), {
     state <- c(NutrLum = NutrLumGuess, RLum = RLumGuess,
@@ -463,7 +467,7 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, type = "Pair", ...) {
     print(diagnostics(out2bulk))
     print(attributes(out2bulk))
   }
-  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", saveplot = saveplots)
+  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", verbose = verbose, saveplot = saveplots)
   EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
   names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
                                    paste0(colnames(EqAfterInvasionBulk), "Bulk"))
@@ -532,7 +536,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
 NILumSet <- c(1, 10, 100)
 NIWallSet <- c(1, 10, 100)
 wLumSet <- 0.04
-wWallSet <- 0.01
+wWallSet <- 0.04
 NutrConvSet <- c(1e-6)
 bRSet <- c(1.7)
 MigrLumWallSet <- seq(0.02, 0.2, 0.02)
@@ -568,13 +572,9 @@ ctSet <- c(0.01, 0.05)
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^seq(from = -12, to = -6, by = 3) 
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
-knWallSet <- 10^seq(from = -1, to = 3, by = 1)
-gdSet <- c(15) # eventually use gdSet <- c(1, 15), now for speed just use 15 since its value won't make any difference anyway
-gtSet <- c(1, 15)
-
-# kpWall 10^-6: all equilibria unstable
-# kpWall 10^-7: is high kpLum or low knLum stable for knWall = 1000 and gt=1
-# for lower kpWall: more and more equilibria become stable
+knWallSet <- 10^seq(from = -1, to = 3, by = 2)
+gdSet <- c(15)
+gtSet <- c(15)
 
 #### Main script ####
 CheckParms <- c(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet, wWall = wWallSet, 
@@ -717,12 +717,12 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
 CreatePlot2(fillvar = "SignDomEigVal", gradient2 = TRUE, limits = c(-1, 1))
 
 ## Since cd and gd do not influence stability of the plasmid-free equilibrium,
-# a more concise plot is:
+# and I only used one value for gt for this plot, a more concise plot is:
 ggsave(filename = "SignDomEigVal2.png", plot = CreatePlot(fillvar = "SignDomEigVal",
                                           gradient2 = TRUE, limits = c(-1, 1),
                                           facetx = "knWall",
-                                          facety = "kpWall + ct + gt"),
-       device = "png", width = 32, units = "cm")
+                                          facety = "kpWall + ct"),
+       device = "png", width = 16, units = "cm")
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
@@ -801,9 +801,6 @@ MyData[, "TotalBioWallBulk"] <- MyData[, "RWallBulk"] + MyData[, "TotalPlasmidWa
 write.csv(MyData, file = paste0(DateTimeStamp, "outputtwocompartment.csv"),
           quote = FALSE, row.names = FALSE)
 
-#### The remainder of the script still has to be adjusted to the new model ####
-
-
 ##### Create plots over time #####
 myltypairs <- c(lty = rep(c(3, 1, 2, 1, 1, 1, 1, 1), 2))
 myltyother <- c(lty = rep(c(3, 1, 2, 1), 2))
@@ -816,6 +813,7 @@ Mytmax <- c(500)
 Mytstep <- c(0.1)
 TheseRows <- c(1, nrow(MyData)) # Rows to use for simulations over time
 
+ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
 Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
 print(TotalIterations)
@@ -827,12 +825,17 @@ print(TotalIterations)
 times <- seq(from = 0, to = Mytmax, by = Mytstep)
 
 # To see the dynamics of the different populations
-EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Pair"))
+EqAfterInvasionPair <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Pair"))
+EqAfterInvasion <- cbind(Mydf, EqAfterInvasionPair)
 
 # To compare total numbers of donors, recipients, and transconjugants in the
 # output of the pair-formation model with the bulk-formation model
-EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Total"))
+EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Total"))
+EqAfterInvasion <- cbind(Mydf, EqAfterInvasionTotal)
+write.csv(EqAfterInvasion, file = paste0(DateTimeStamp, "outputtwocomprunovertime.csv"),
+          quote = FALSE, row.names = FALSE)
 
+#### The remainder of the script still has to be adjusted to the new model ####
 
 ########### Other plotting
 
