@@ -159,7 +159,7 @@ library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
 library(dplyr) # for mutate() to create new variables in dataframe/tibble
 
-#### Plotting options ####
+#### Plotting and simulation options ####
 saveplots <- 0
 atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
@@ -909,7 +909,7 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
     print(diagnostics(out2bulk))
     print(attributes(out2bulk))
   }
-  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", saveplot = saveplots)
+  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", verbose = verbose, saveplot = saveplots)
   
   EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
   names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
@@ -962,12 +962,11 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
 # NOTE: sometimes takes very long to compute because of the root- and eventfunctions.
 # Could shift to only using rootfunction to determine if equilibrium has been
 # reached to prevent that.
-EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, verbose = FALSE))
+EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, verbose = FALSE))
 
-Data <- cbind(Mydf, EqAfterInvasionTotal)
+EqAfterInvasion <- cbind(Mydf, EqAfterInvasion)
 
-
-write.csv(EqAfterInvasionTotal, file = paste0(DateTimeStamp, "outputrunovertimeonecomp.csv"),
+write.csv(EqAfterInvasion, file = paste0(DateTimeStamp, "outputrunovertimeonecomp.csv"),
           quote = FALSE, row.names = FALSE)
 
 #### The code below is not used ####
