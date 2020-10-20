@@ -531,7 +531,30 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
   }
 }
 
-# Parameterset 1: values to show influence of MigrLumWall and MigrWallLum on
+# Parameterset 1: values that result in comparable biomass and nutrients in the
+# lumen and the wall. Show influence of attachment and detachment rates that can
+# be different in the lumen and at the wall, and costs for transconjugants.
+NILumSet <- 10
+NIWallSet <- 10
+wLumSet <- c(0.04)
+wWallSet <- c(0.01)
+NutrConvSet <- c(1e-6)
+bRSet <- c(1.7)
+MigrLumWallSet <- c(0.1)
+MigrWallLumSet <- c(0.1)
+ScaleAreaPerVolSet <- c(1)
+DInitLumSet <- 1E3
+DInitWallSet <- 1E3
+cdSet <- c(0.05)
+ctSet <- c(0.01, 0.05)
+kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
+kpWallSet <- 10^c(-12, -9, -6) 
+knSet <- 10^seq(from = -1, to = 3, by = 0.25)
+knWallSet <- 10^c(-1, 1, 3)
+gdSet <- c(15)
+gtSet <- c(15)
+
+# Parameterset 2: values to show influence of MigrLumWall and MigrWallLum on
 # biomass in the two compartments for the plasmid-free equilibrium
 NILumSet <- c(1, 10, 100)
 NIWallSet <- c(1, 10, 100)
@@ -552,29 +575,6 @@ knSet <- 1
 knWallSet <- 1
 gdSet <- 15
 gtSet <- 15
-
-# Parameterset 2: values that result in comparable biomass and nutrients in the
-# lumen and the wall. Show influence of attachment and detachment rates that can
-# be different in the lumen and at the wall, and costs and conjugation rates
-NILumSet <- 10
-NIWallSet <- 10
-wLumSet <- c(0.04)
-wWallSet <- c(0.01)
-NutrConvSet <- c(1e-6)
-bRSet <- c(1.7)
-MigrLumWallSet <- c(0.1)
-MigrWallLumSet <- c(0.1)
-ScaleAreaPerVolSet <- c(1)
-DInitLumSet <- 1E3
-DInitWallSet <- 1E3
-cdSet <- c(0.05) # eventually use cdSet <- c(0.01, 0.05), now for speed just use 0.05 since its value won't make any difference anyway
-ctSet <- c(0.01, 0.05)
-kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
-kpWallSet <- 10^seq(from = -12, to = -6, by = 3) 
-knSet <- 10^seq(from = -1, to = 3, by = 0.25)
-knWallSet <- 10^seq(from = -1, to = 3, by = 2)
-gdSet <- c(15)
-gtSet <- c(15)
 
 #### Main script ####
 CheckParms <- c(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet, wWall = wWallSet, 
@@ -606,7 +606,7 @@ dim(MyData)
 
 # Add equilibrium values of the one-compartment model as initial state values to
 # run to the plasmid-free equilibrium
-MyData <-  mutate(MyData, 
+MyData <- mutate(MyData, 
                   NutrLumGuess = wLum/bR,
                   RLumGuess = (NILum - wLum/bR)/NutrConv,
                   NutrWallGuess = wWall/bR,
@@ -637,29 +637,6 @@ MyData <- cbind(MyData, Eqplasmidfree)
 print("Plasmid-free equilibrium determined:")
 print(Sys.time())
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
-
-### Show that biomass and nutrient concentration can be different in lumen and wall ###
-# Using parameterset 1 the following plots shows that cell density in the lumen
-# can be 13 times lower or 11 times higher than cell density at the wall, and
-# nutrient concentration can be 52 times lower or 2000 times higher.
-# This will affect conjugation rate, so run again with parameter values that
-# result in similar biomass and nutrient concentrations in the lumen and at the
-# wall. To achieve this for wLum = 0.04 and wWall = 0.01, use NIWall = NILum,
-# MigrLumWall = MigrWallLum for values of MigrLumWall from 0.01 to 0.1
-summary(MyData$RLumInit/MyData$RWallInit)
-CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
-# Set limits to only show values where biomass in lumen and at wall are nearly equal
-CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = c(0.99, 1.01)) 
-
-
-summary(MyData$NutrLumInit/MyData$NutrWallInit)
-CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
-# Set limits to only show values where biomass in lumen and at wall are nearly equal
-CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = c(0.5, 2.0))
 
 ## Approximate gdbulk and gtbulk in the lumen
 MyData <- expand_grid(MyData, DInitLum = DInitLumSet, DInitWall = DInitWallSet,
@@ -713,16 +690,47 @@ print(Sys.time())
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
-# To show influence of kpWall and knWall
-CreatePlot2(fillvar = "SignDomEigVal", gradient2 = TRUE, limits = c(-1, 1))
+# Show if biomass in lumen and in wall are equal
+CreatePlot(fillvar = "RLumInit/RWallInit", limits = c(0.99, 1.01),
+           xvar = "wLum", yvar = "wWall",
+           facetx = "NILum + MigrLumWall", facety = "NIWall + MigrWallLum")
 
-## Since cd and gd do not influence stability of the plasmid-free equilibrium,
-# and I only used one value for gt for this plot, a more concise plot is:
-ggsave(filename = "SignDomEigVal2.png", plot = CreatePlot(fillvar = "SignDomEigVal",
-                                          gradient2 = TRUE, limits = c(-1, 1),
-                                          facetx = "knWall",
-                                          facety = "kpWall + ct"),
+# To show influence of kpWall and knWall on the stability of the plasmid-free
+# equilibrium
+ggsave(filename = "SignDomEigValTwoComp.png",
+       plot = CreatePlot(fillvar = "SignDomEigVal", gradient2 = TRUE,
+                         limits = c(-1, 1), facetx = "knWall",
+                         facety = "kpWall + ct", save = FALSE),
        device = "png", width = 16, units = "cm")
+
+### Show that biomass and nutrient concentration can be different in lumen and wall ###
+# Using parameterset 1 the following plots shows that cell density in the lumen
+# can be 13 times lower or 11 times higher than cell density at the wall, and
+# nutrient concentration can be 52 times lower or 2000 times higher.
+# This will affect conjugation rate, so run again with parameter values that
+# result in similar biomass and nutrient concentrations in the lumen and at the
+# wall. To achieve this for wLum = 0.04 and wWall = 0.01, use NIWall = NILum,
+# MigrLumWall = MigrWallLum for values of MigrLumWall from 0.01 to 0.1
+summary(MyData$RLumInit/MyData$RWallInit)
+CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
+# Set limits to only show values where biomass in lumen and at wall are nearly equal
+CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = c(0.99, 1.01)) 
+# Alternative plot:
+CreatePlot(fillvar = "RLumInit/RWallInit", limits = c(0.99, 1.01),
+           xvar = "wLum", yvar = "wWall",
+           facetx = "NILum + MigrLumWall", facety = "NIWall + MigrWallLum")
+
+summary(MyData$NutrLumInit/MyData$NutrWallInit)
+CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall",
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
+# Set limits to only show values where biomass in lumen and at wall are nearly equal
+CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall",
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = c(0.5, 2.0))
+
+
+
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
