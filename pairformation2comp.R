@@ -690,46 +690,39 @@ print(Sys.time())
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
-# Show if biomass in lumen and in wall are equal
+# Show that biomass in lumen and in wall are equal for parameterset 1
 CreatePlot(fillvar = "RLumInit/RWallInit", limits = c(0.99, 1.01),
            xvar = "wLum", yvar = "wWall",
            facetx = "NILum + MigrLumWall", facety = "NIWall + MigrWallLum")
 
-# To show influence of kpWall and knWall on the stability of the plasmid-free
-# equilibrium
+# Show influence of kpWall and knWall on the stability of the plasmid-free
+# equilibrium for parameterset 1
 ggsave(filename = "SignDomEigValTwoComp.png",
        plot = CreatePlot(fillvar = "SignDomEigVal", gradient2 = TRUE,
                          limits = c(-1, 1), facetx = "knWall",
                          facety = "kpWall + ct", save = FALSE),
        device = "png", width = 16, units = "cm")
 
-### Show that biomass and nutrient concentration can be different in lumen and wall ###
-# Using parameterset 1 the following plots shows that cell density in the lumen
-# can be 13 times lower or 11 times higher than cell density at the wall, and
-# nutrient concentration can be 52 times lower or 2000 times higher.
-# This will affect conjugation rate, so run again with parameter values that
-# result in similar biomass and nutrient concentrations in the lumen and at the
-# wall. To achieve this for wLum = 0.04 and wWall = 0.01, use NIWall = NILum,
-# MigrLumWall = MigrWallLum for values of MigrLumWall from 0.01 to 0.1
+# Show that biomass can be different in lumen and wall using parameterset 2.
 summary(MyData$RLumInit/MyData$RWallInit)
 CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
            yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
-# Set limits to only show values where biomass in lumen and at wall are nearly equal
+
+# Set limits to only show values where biomasses are nearly equal
 CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = c(0.99, 1.01)) 
-# Alternative plot:
-CreatePlot(fillvar = "RLumInit/RWallInit", limits = c(0.99, 1.01),
-           xvar = "wLum", yvar = "wWall",
-           facetx = "NILum + MigrLumWall", facety = "NIWall + MigrWallLum")
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall",
+           limits = c(0.99, 1.01)) 
 
+# Show that nutrient concentration can be different in lumen and wall using parameterset 2.
 summary(MyData$NutrLumInit/MyData$NutrWallInit)
-CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall",
+CreatePlot(fillvar = "log10(NutrLumInit/NutrWallInit)", xvar = "MigrLumWall",
            yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
-# Set limits to only show values where biomass in lumen and at wall are nearly equal
+
+# Set limits to only show values where biomass in lumen and at wall are within
+# two-fold difference of each other
 CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall", limits = c(0.5, 2.0))
-
-
+           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall",
+           limits = c(0.5, 2.0))
 
 
 # If invasion is possible, run simulation to see how many bacteria of each
