@@ -453,7 +453,7 @@ DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- 10^seq(from = -1, to = 2, by = 1)
 NutrConvSet <- 1e-6
-wSet <- seq(0.02, 0.10, 0.02)
+wSet <- seq(from = 0.02, to = 0.08, by = 0.02)
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.05)
@@ -473,7 +473,7 @@ knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
-gtSet <- c(1, 15) 
+gtSet <- c(1, 15)
 
 ## Small parameterset for tests
 DInitSet <- 1000
@@ -620,6 +620,7 @@ if(saveplots == 1 ) {
 }
 
 # Stability of the equilibrium for the bulk-conjugation model
+# (plot not shown in article)
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigValBulk))) +
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -636,6 +637,7 @@ if(saveplots == 1 ) {
 }
 
 # Show if sign of dominant eigenvalues for pair-formation and bulk model is the same 
+# (plot not shown in article)
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -644,7 +646,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   labs(caption = DateTimeStamp) +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
   scale_fill_manual(values = c("TRUE" = "aquamarine", "FALSE" = "red"),
-                    name = "Same sign of \ndominant eigenvalue")
+                    name = "Dominant eigenvalues \nhave equal signs")
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvalues.png"))
 }
