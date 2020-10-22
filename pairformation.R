@@ -476,48 +476,10 @@ ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
 gtSet <- c(1, 15)
 
-## Small parameterset for tests
-DInitSet <- 1000
-bRSet <- 1.7
-NISet <- 10
-NutrConvSet <- 1E-6
-wSet <- 0.04
-kpSet <- 10^seq(-12, -7, 0.5)
-knSet <- 10^seq(-1, 3, 0.5)
-cdSet <- 0.05
-ctSet <- 0.01
-gdSet <- 15
-gtSet <- 15
-
-## Large dataset for tests
-DInitSet <- c(10, 1E3)
-bRSet <- c(0.2, 2)
-NISet <- c(1, 10, 100)
-NutrConvSet <- c(1e-6, 1e-7)
-wSet <- c(0.04)
-kpSet <- 10^seq(from = -11, to = -5, by = 2)
-knSet <- 10^seq(from = -1, to = 3, by = 2)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
-gdSet <- c(1, 20)
-gtSet <- c(1, 20)
-
-## Try smaller steps for kp and kn (24 june 2020):
-# works for pair-formation model, not for bulk-conjugation model
-DInitSet <- c(1E3)
-bRSet <- c(1.7)
-NISet <- c(10)
-NutrConvSet <- 1e-6
-wSet <- c(0.04)
-kpSet <- 10^seq(from = -10, to = -6, by = 0.2)
-knSet <- 10^seq(from = -1, to = 3, by = 0.2)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
-gdSet <- c(1, 15)
-gtSet <- c(1, 15)
-
-## Retry using jactype = "sparse", could also try using stode(s?) and/or supply jacobian
-# if integration leads to errors ?
+## Using parameterset 3 with steps of 0.2 for kp and kn does not work for the
+# pair-formation model, or for the bulk-conjugation model. Lowering atol to 1e-11
+# doesn't resolve this. Maybe retry using jactype = "sparse", or use stode(s?)
+# and/or supply jacobian if integration leads to errors ?
 
 #### Main script ####
 
