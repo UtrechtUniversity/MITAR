@@ -851,13 +851,12 @@ BackupMyData <- MyData
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
 # mycol <- c("black", "purple", "green1", "red", "yellow", "hotpink", "blue", "cyan")
 mycol <- c("black", brewer.pal(7, "Set1"))
-myylim <- c(1E-14, 1E7) # Defining the limits for the y-axis
+myylim <- c(1E-7, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 plotoutput <- 1
-extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinction threshold
 verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed and roots are indicated in the graphs
 smallchange <- c(1E-5)
-Mytmax <- c(1E4)
+Mytmax <- c(1E5)
 Mytstep <- c(10)
 
 #### Create matrix to store data ####
@@ -875,58 +874,29 @@ CurrentIteration <- 0
 # help(diagnostics.deSolve()) and help(lsodar()) for details.
 times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 
-# Define root-function and event-function
-# If the root-argument is equal to 0, an event (as defined by the event-function)
-# is triggered. See help(events) and help(lsodar) (both in the deSolve package)
-# for background information and examples. 
-# The first root becomes 0 if the sum of absolute rates of change is equal to the
-# threshold smallchange, i.e., when equilibrium is nearly reached. This root is
-# set as the terminal root, in order to terminate the integration if this occurs.
-# The other roots are used to determine if any of the state variables are equal
-# to the extinction threshold. If this occurs, the event function is called,
-# which sets the states that are equal to threshold to zero, and the integration
-# continues.
-# NOTE that the NUTRIENTS are also in the root- and event-functions, so currently
-# they would also be set to 0 if they fall below the threshold, which is undesirable.
-# The nutrients can probably removed from the rootfunction by using state[-1] -
-# extinctionthreshold, but attempts to remove them from events failed for events
-# implemented as state2[state2[-1] < extinctionthreshold] <- 0 or state2[state2[-1]
-# < extinctionthreshold] <- 0 because the index shifts if nutrients are below the
-# threshold. Using state2[(state2[-1] < extinctionthreshold) + 1] <- 0 might work.
-# Note that it is still possible to have bacterial densities lower than the
-# threshold, if these populations are created from other populations at each
-# timestep.
+# Define root-function
+# The root-argument becomes equal to 0 if the sum of absolute rates of change is
+# equal to the threshold smallchange, i.e., when equilibrium is nearly reached.
+# Then the simulation is terminated. See help(events) and help(lsodar) (both in
+# the deSolve package) for background information and examples.
 rootfun <- function(t, state, parms) {
-  c(sum(abs(unlist(ModelPairsNutr(t, state, parms)))) - smallchange, state - extinctionthreshold)
+  sum(abs(unlist(ModelPairsNutr(t, state, parms)))) - smallchange
 }
 
 rootfunBulk <- function(t, stateBulk, parmsBulk) {
-  c(sum(abs(unlist(ModelBulkNutr(t, stateBulk, parmsBulk)))) - smallchange, stateBulk - extinctionthreshold)
-}
-
-eventfun <- function(t, state, parms) {
-  state[state < extinctionthreshold] <- 0
-  return(state)
-}
-
-eventfunBulk <- function(t, stateBulk, parmsBulk) {
-  stateBulk[stateBulk < extinctionthreshold] <- 0
-  return(stateBulk)
+  sum(abs(unlist(ModelBulkNutr(t, stateBulk, parmsBulk)))) - smallchange
 }
 
 # Note: the functions RunOverTime and PlotOverTime in the two-compartment script are
 # more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
 # with TotalD, TotalR, TotalTrans in the pair-formation model.
-# In the two-compartment model I have not used root- and eventfunctions,
-# maybe should also delete them here, since it sometimes takes very long to
-# execute code (if populations go extinct and therefor many roots are found?)
 RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]],
              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms,
-           rootfun = rootfun, events = list(func = eventfun, root = TRUE,
-                                            terminalroot = 1), verbose = verbose)
+           rootfun = rootfun, verbose = verbose)
   EqAfterInvasion <- tail(out2, 1)
+  print(EqAfterInvasion)
   if(verbose == TRUE) {
     print(diagnostics(out2))
     print(attributes(out2))
@@ -934,8 +904,7 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
   PlotOverTime(plotdata = out2, parms = parms, type = "Pair", verbose = verbose, saveplot = saveplots)
   stateBulk <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]], Trans = 0)
   out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parms,
-                rootfun = rootfunBulk, events = list(func = eventfunBulk, root = TRUE,
-                                                     terminalroot = 1), verbose = verbose)
+                rootfun = rootfunBulk, verbose = verbose)
   EqAfterInvasionBulk <- tail(out2bulk, 1)
   if(verbose == TRUE) {
     print(diagnostics(out2bulk))
@@ -973,7 +942,6 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
                     legend = list(x = "topright"))
     grid()
     if(verbose == TRUE) {
-      abline(h = extinctionthreshold)
       abline(v = attributes(plotdata)$troot)
     }
     if(file.exists(filename) == FALSE) {
@@ -985,16 +953,12 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
                     legend = list(x = "bottomright"))
     grid()
     if(verbose == TRUE) {
-      abline(h = extinctionthreshold)
       abline(v = attributes(plotdata)$troot)
     }
   }
 }
 
-# NOTE: sometimes takes very long to compute because of the root- and eventfunctions.
-# Could shift to only using rootfunction to determine if equilibrium has been
-# reached to prevent that.
-EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, verbose = FALSE))
+EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
 
 EqAfterInvasion <- cbind(Mydf, EqAfterInvasion)
 
