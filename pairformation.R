@@ -3,7 +3,7 @@
 
 #### To do ####
 
-
+## Costs in growth ##
 # Rethink the way of defining donor growth rate and costs: unless it is assumed 
 # that the donor is the same species as the recipient, it does not make sense
 # to define donor growth rates as recipient growth rate altered by costs from
@@ -12,17 +12,18 @@
 # plasmid it does not have plasmid costs, but the new environment could be assumed
 # to lead to costs in growth as well.
 
-# If I want to include stochastics, see Price 'An efficient moments-based inference
-# method for within-host bacterial infection dynamics' and Volkova 'Modelling dynamics
-# of plasmid-gene mediated antimicrobial resistance in enteric bacteria using stochastic
-# differential equations' for ideas
-
 # Using (1 - c)*b to model costs implies that a plasmid decreases the growth rate
 # by a certain percentage. So if you model more species and their growth rates
 # are different, using the same value for c leads to different absolute decrease
 # in growth rates.
 
 # Using cd = ct is not biologically realistic.
+
+## Other
+# If I want to include stochastics, see Price 'An efficient moments-based inference
+# method for within-host bacterial infection dynamics' and Volkova 'Modelling dynamics
+# of plasmid-gene mediated antimicrobial resistance in enteric bacteria using stochastic
+# differential equations' for ideas
 
 # Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
 
@@ -41,9 +42,6 @@
 # The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
 # ect. for approximating bulk-rates can be moved inside the EstConjBulk function.
 
-# Find method to obtain the order in which I specify the state from EstConjBulkDonor
-# or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object DataEstConjBulk
-
 # Prevent overlapping values for the colorbar (could use angle with hjust, vjust)
 
 ## Voor plots over time waar ik het pair-formation en het bulk-model met elkaar Vergelijk
@@ -52,6 +50,8 @@
 
 # For PlotOverTime: use \n to print subtitle over two lines, use oma (see ?par and ?mtext)
 # to prevent text from overlapping with legend
+
+# If save = TRUE for plots over time, dev.off is not called?
 
 # SummaryPlot() does not use the names of the arguments for creating titles
 
@@ -448,7 +448,7 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # Mdr = Mdt = 0, Mrt = 324.6586, Mtt = 1520.435, timeBulk = 728451.6,
 # NutrBulk = 0.02430818, DBulk = 0, RBulk = 3583808, TransBulk = 6391884.
 
-## To show NI and w influence stability of plasmid-free equilibrium
+## Parameterset 1: show NI and w influence stability of plasmid-free equilibrium
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- 10^seq(from = -1, to = 2, by = 1)
@@ -461,8 +461,9 @@ ctSet <- c(0.01)
 gdSet <- c(15)
 gtSet <- c(15)
 
-## To show influence of costs, conjugation, attachment, and detachment rates on
-## the stability of the plasmid-free equilibrium and on bulk-conjugation rates.
+## Parameterset 2: show influence of costs, conjugation, attachment, and 
+## detachment rates on the stability of the plasmid-free equilibrium and on
+## bulk-conjugation rates.
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
@@ -562,7 +563,7 @@ MyData <- cbind(MyData, gdbulk = gdbulk, gtbulk = gtbulk)
 print("Bulk-conjugation rates estimated:")
 print(Sys.time())
 
-# calculate (or approximate?) eigenvalues
+# Approximate eigenvalues
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
 
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
@@ -574,11 +575,12 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
-#### Plotting output ####
 
-# To show influence of washout rate and inflowing nutrient concentration on
-# stability of the plasmid-free equilibrium, run with multiple values for kn,
-# kp, w and NI and than plot:
+#### Plotting output for parameterset 1 ####
+
+
+# Show influence of washout rate and inflowing nutrient concentration on
+# stability of the plasmid-free equilibrium (run with parameterset 1).
 # Note: hardcoded legend and axis labels
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
   geom_raster() +
@@ -595,10 +597,30 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValNIw).png"))
 }
 
-# These plots show that nutrient inflow and washout rate influence recipient
-# cell density (plots not shown in article)
+# These plots (not shown in article) show that nutrient inflow influences
+# recipient cell density, whereas washout rate influences nutrient concentration
+# (run with parameterset 1).
 CreatePlot(fillvar = "log10(REq)", facetx = "w", facety = "NI")
 CreatePlot(fillvar = "NutrEq", facetx = "w", facety = "NI")
+
+# Show that dominant eigenvalues have equal signs for pair-formation and bulk
+# model (run with parameterset 1, plot not shown in article)
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) +
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(w ~ NI, labeller = label_both) +
+  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
+       y = "log10(detachment rate)") +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("TRUE" = "aquamarine", "FALSE" = "red"),
+                    name = "Dominant eigenvalues \nhave equal signs")
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvaluesNIw.png"))
+}
+
+
+#### Plotting output for parameterset 2 ####
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium, run with multiple values for kn, kp, cd, ct, gd, gt
@@ -637,7 +659,7 @@ if(saveplots == 1 ) {
 }
 
 # Show if sign of dominant eigenvalues for pair-formation and bulk model is the same 
-# (plot not shown in article)
+# (Figure S4 in article)
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -653,7 +675,8 @@ if(saveplots == 1 ) {
 
 ## The influence of conjugation, attachment, and detachment rates on the 
 ## bulk-conjugation rates. Data is filtered to show only one value for costs,
-## because costs do not influence the bulk-conjugation rates.
+## because costs do not influence the bulk-conjugation rates (Figure 4 in the
+## article).
 limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
                      ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
 CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
@@ -662,9 +685,6 @@ CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
 CreatePlot(dataplot = filter(MyData, gd == 15 & cd == 0.05 & ct == 0.01),
            fillvar = "log10(gtbulk)", facetx = "gd", facety = "gt",
            limits = limitsbulkrates)
-
-#### The remaining part of the script is not used in the main text of the manuscript ####
-# Some is used in the supplement
 
 print("Finished plotting:")
 print(Sys.time())
@@ -780,38 +800,47 @@ range(MyData$TotalBio / MyData$TotalBioBulk)
 
 # If the biomass is the same across simulations, one could use the number of cells instead of fractions of total biomass
 summary(MyData$TotalBio)
-max(MyData$TotalBio) / min(MyData$TotalBio) 
+max(MyData$TotalBio) / min(MyData$TotalBio)
 summary(MyData$TotalBioBulk)
 max(MyData$TotalBioBulk) / min(MyData$TotalBioBulk)
 
-# Which proportion of cells is plasmid-bearing, if it is not 0 or nearly 1
+# Which proportion of cells is plasmid-bearing, if it is not nearly 0 or nearly 1
 PossibleCoexistence <- MyData[which(MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] > 1e-3 &
-                    MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] < 0.999), ]
+                                          MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] < 0.999), ]
 dim(PossibleCoexistence)
-CreatePlot(fillvar = "TotalPlasmid/TotalBio", dataplot = PossibleCoexistence)
+write.csv(PossibleCoexistence, file = paste0(DateTimeStamp, "possiblecoexistence.csv"),
+          quote = FALSE, row.names = FALSE)
+
+PossibleCoexistenceBulk <- MyData[which(MyData[, "TotalPlasmidBulk"]/MyData[, "TotalBioBulk"] > 1e-3 &
+                    MyData[, "TotalPlasmidBulk"]/MyData[, "TotalBioBulk"] < 0.999), ]
+dim(PossibleCoexistenceBulk)
+write.csv(PossibleCoexistenceBulk, file = paste0(DateTimeStamp, "possiblecoexistencebulk.csv"),
+          quote = FALSE, row.names = FALSE)
+
+#### Plots for parameterset 1 ####
+CreatePlot(fillvar = "TotalPlasmid / TotalBio", facetx = "w", facety = "NI")
+CreatePlot(fillvar = "TotalPlasmidBulk / TotalBioBulk", facetx = "w", facety = "NI")
+
+#### Plots for parameterset 2 ####
 
 # Compare biomass across the two models
-CreatePlot(fillvar = "TotalBio / TotalBioBulk", gradient2 = 1)
+CreatePlot(fillvar = "TotalBio / TotalBioBulk")
 
 # Fraction plasmid-bearing cells
-CreatePlot(fillvar = "TotalPlasmid/TotalBio")
+CreatePlot(fillvar = "TotalPlasmid/TotalBio") # Figure S3 with parameterset 2
 CreatePlot(fillvar = "TotalPlasmidBulk/TotalBioBulk")
-CreatePlot(fillvar = "(TotalPlasmid/TotalBio) / (TotalPlasmidBulk/TotalBioBulk)")
 
 # Fraction donors
-CreatePlot(fillvar = "TotalD/TotalBio")
+CreatePlot(fillvar = "TotalD/TotalBio") # Figure S2 with parameterset 2
 CreatePlot(fillvar = "DBulk/TotalBioBulk")
-CreatePlot(fillvar = "(DBulk/TotalBioBulk) / (TotalD/TotalBio)")
 
 # Fraction recipients
 CreatePlot(fillvar = "TotalR/TotalBio")
 CreatePlot(fillvar = "RBulk/TotalBioBulk")
-CreatePlot(fillvar = "(RBulk/TotalBioBulk) / (TotalR/TotalBio)")
 
 # Fraction transconjugants
-CreatePlot(fillvar = "TotalTrans/TotalBio")
+CreatePlot(fillvar = "TotalTrans/TotalBio") # Figure S1 with parameterset 2
 CreatePlot(fillvar = "TransBulk/TotalBioBulk")
-CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)")
 
 ################################################################################
 BackupMyData <- MyData
@@ -834,6 +863,7 @@ Mytstep <- c(10)
 #### Create matrix to store data ####
 TheseRows <- c(1, nrow(MyData))
 TheseRows <- 1:nrow(MyData)
+TheseRows <- ceiling(seq(from = nrow(MyData)/(4*4*2*2), to = nrow(MyData), length.out = 4*4*2))
 Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
 print(TotalIterations)
