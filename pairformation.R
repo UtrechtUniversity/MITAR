@@ -3,7 +3,7 @@
 
 #### To do ####
 
-
+## Costs in growth ##
 # Rethink the way of defining donor growth rate and costs: unless it is assumed 
 # that the donor is the same species as the recipient, it does not make sense
 # to define donor growth rates as recipient growth rate altered by costs from
@@ -12,17 +12,18 @@
 # plasmid it does not have plasmid costs, but the new environment could be assumed
 # to lead to costs in growth as well.
 
-# If I want to include stochastics, see Price 'An efficient moments-based inference
-# method for within-host bacterial infection dynamics' and Volkova 'Modelling dynamics
-# of plasmid-gene mediated antimicrobial resistance in enteric bacteria using stochastic
-# differential equations' for ideas
-
 # Using (1 - c)*b to model costs implies that a plasmid decreases the growth rate
 # by a certain percentage. So if you model more species and their growth rates
 # are different, using the same value for c leads to different absolute decrease
 # in growth rates.
 
 # Using cd = ct is not biologically realistic.
+
+## Other
+# If I want to include stochastics, see Price 'An efficient moments-based inference
+# method for within-host bacterial infection dynamics' and Volkova 'Modelling dynamics
+# of plasmid-gene mediated antimicrobial resistance in enteric bacteria using stochastic
+# differential equations' for ideas
 
 # Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
 
@@ -41,9 +42,6 @@
 # The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
 # ect. for approximating bulk-rates can be moved inside the EstConjBulk function.
 
-# Find method to obtain the order in which I specify the state from EstConjBulkDonor
-# or from ModelEstConjBulkDonor, to prevent hardcoding names on the returned object DataEstConjBulk
-
 # Prevent overlapping values for the colorbar (could use angle with hjust, vjust)
 
 ## Voor plots over time waar ik het pair-formation en het bulk-model met elkaar Vergelijk
@@ -52,6 +50,8 @@
 
 # For PlotOverTime: use \n to print subtitle over two lines, use oma (see ?par and ?mtext)
 # to prevent text from overlapping with legend
+
+# If save = TRUE for plots over time, dev.off is not called?
 
 # SummaryPlot() does not use the names of the arguments for creating titles
 
@@ -159,7 +159,7 @@ library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
 library(dplyr) # for mutate() to create new variables in dataframe/tibble
 
-#### Plotting options ####
+#### Plotting and simulation options ####
 saveplots <- 0
 atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
@@ -448,12 +448,12 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # Mdr = Mdt = 0, Mrt = 324.6586, Mtt = 1520.435, timeBulk = 728451.6,
 # NutrBulk = 0.02430818, DBulk = 0, RBulk = 3583808, TransBulk = 6391884.
 
-## To show NI and w influence stability of plasmid-free equilibrium
+## Parameterset 1: show NI and w influence stability of plasmid-free equilibrium
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- 10^seq(from = -1, to = 2, by = 1)
 NutrConvSet <- 1e-6
-wSet <- seq(0.02, 0.10, 0.02)
+wSet <- seq(from = 0.02, to = 0.08, by = 0.02)
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.05)
@@ -461,8 +461,9 @@ ctSet <- c(0.01)
 gdSet <- c(15)
 gtSet <- c(15)
 
-## To show influence of costs, conjugation, attachment, and detachment rates on
-## the stability of the plasmid-free equilibrium and on bulk-conjugation rates.
+## Parameterset 2: show influence of costs, conjugation, attachment, and 
+## detachment rates on the stability of the plasmid-free equilibrium and on
+## bulk-conjugation rates.
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
 NISet <- c(10)
@@ -473,50 +474,12 @@ knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
-gtSet <- c(1, 15) 
-
-## Small parameterset for tests
-DInitSet <- 1000
-bRSet <- 1.7
-NISet <- 10
-NutrConvSet <- 1E-6
-wSet <- 0.04
-kpSet <- 10^seq(-12, -7, 0.5)
-knSet <- 10^seq(-1, 3, 0.5)
-cdSet <- 0.05
-ctSet <- 0.01
-gdSet <- 15
-gtSet <- 15
-
-## Large dataset for tests
-DInitSet <- c(10, 1E3)
-bRSet <- c(0.2, 2)
-NISet <- c(1, 10, 100)
-NutrConvSet <- c(1e-6, 1e-7)
-wSet <- c(0.04)
-kpSet <- 10^seq(from = -11, to = -5, by = 2)
-knSet <- 10^seq(from = -1, to = 3, by = 2)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
-gdSet <- c(1, 20)
-gtSet <- c(1, 20)
-
-## Try smaller steps for kp and kn (24 june 2020):
-# works for pair-formation model, not for bulk-conjugation model
-DInitSet <- c(1E3)
-bRSet <- c(1.7)
-NISet <- c(10)
-NutrConvSet <- 1e-6
-wSet <- c(0.04)
-kpSet <- 10^seq(from = -10, to = -6, by = 0.2)
-knSet <- 10^seq(from = -1, to = 3, by = 0.2)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
-gdSet <- c(1, 15)
 gtSet <- c(1, 15)
 
-## Retry using jactype = "sparse", could also try using stode(s?) and/or supply jacobian
-# if integration leads to errors ?
+## Using parameterset 3 with steps of 0.2 for kp and kn does not work for the
+# pair-formation model, or for the bulk-conjugation model. Lowering atol to 1e-11
+# doesn't resolve this. Maybe retry using jactype = "sparse", or use stode(s?)
+# and/or supply jacobian if integration leads to errors ?
 
 #### Main script ####
 
@@ -562,7 +525,7 @@ MyData <- cbind(MyData, gdbulk = gdbulk, gtbulk = gtbulk)
 print("Bulk-conjugation rates estimated:")
 print(Sys.time())
 
-# calculate (or approximate?) eigenvalues
+# Approximate eigenvalues
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
 
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
@@ -574,11 +537,12 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
-#### Plotting output ####
 
-# To show influence of washout rate and inflowing nutrient concentration on
-# stability of the plasmid-free equilibrium, run with multiple values for kn,
-# kp, w and NI and than plot:
+#### Plotting output for parameterset 1 ####
+
+
+# Show influence of washout rate and inflowing nutrient concentration on
+# stability of the plasmid-free equilibrium (run with parameterset 1).
 # Note: hardcoded legend and axis labels
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
   geom_raster() +
@@ -595,10 +559,30 @@ if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValNIw).png"))
 }
 
-# These plots show that nutrient inflow and washout rate influence recipient
-# cell density (plots not shown in article)
+# These plots (not shown in article) show that nutrient inflow influences
+# recipient cell density, whereas washout rate influences nutrient concentration
+# (run with parameterset 1).
 CreatePlot(fillvar = "log10(REq)", facetx = "w", facety = "NI")
 CreatePlot(fillvar = "NutrEq", facetx = "w", facety = "NI")
+
+# Show that dominant eigenvalues have equal signs for pair-formation and bulk
+# model (run with parameterset 1, plot not shown in article)
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) +
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(w ~ NI, labeller = label_both) +
+  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
+       y = "log10(detachment rate)") +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("TRUE" = "aquamarine", "FALSE" = "red"),
+                    name = "Dominant eigenvalues \nhave equal signs")
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvaluesNIw.png"))
+}
+
+
+#### Plotting output for parameterset 2 ####
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium, run with multiple values for kn, kp, cd, ct, gd, gt
@@ -620,6 +604,7 @@ if(saveplots == 1 ) {
 }
 
 # Stability of the equilibrium for the bulk-conjugation model
+# (plot not shown in article)
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigValBulk))) +
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -636,6 +621,7 @@ if(saveplots == 1 ) {
 }
 
 # Show if sign of dominant eigenvalues for pair-formation and bulk model is the same 
+# (Figure S4 in article)
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -644,14 +630,15 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   labs(caption = DateTimeStamp) +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
   scale_fill_manual(values = c("TRUE" = "aquamarine", "FALSE" = "red"),
-                    name = "Same sign of \ndominant eigenvalue")
+                    name = "Dominant eigenvalues \nhave equal signs")
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvalues.png"))
 }
 
 ## The influence of conjugation, attachment, and detachment rates on the 
 ## bulk-conjugation rates. Data is filtered to show only one value for costs,
-## because costs do not influence the bulk-conjugation rates.
+## because costs do not influence the bulk-conjugation rates (Figure 4 in the
+## article).
 limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
                      ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
 CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
@@ -660,9 +647,6 @@ CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
 CreatePlot(dataplot = filter(MyData, gd == 15 & cd == 0.05 & ct == 0.01),
            fillvar = "log10(gtbulk)", facetx = "gd", facety = "gt",
            limits = limitsbulkrates)
-
-#### The remaining part of the script is not used in the main text of the manuscript ####
-# Some is used in the supplement
 
 print("Finished plotting:")
 print(Sys.time())
@@ -778,38 +762,47 @@ range(MyData$TotalBio / MyData$TotalBioBulk)
 
 # If the biomass is the same across simulations, one could use the number of cells instead of fractions of total biomass
 summary(MyData$TotalBio)
-max(MyData$TotalBio) / min(MyData$TotalBio) 
+max(MyData$TotalBio) / min(MyData$TotalBio)
 summary(MyData$TotalBioBulk)
 max(MyData$TotalBioBulk) / min(MyData$TotalBioBulk)
 
-# Which proportion of cells is plasmid-bearing, if it is not 0 or nearly 1
+# Which proportion of cells is plasmid-bearing, if it is not nearly 0 or nearly 1
 PossibleCoexistence <- MyData[which(MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] > 1e-3 &
-                    MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] < 0.999), ]
+                                          MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] < 0.999), ]
 dim(PossibleCoexistence)
-CreatePlot(fillvar = "TotalPlasmid/TotalBio", dataplot = PossibleCoexistence)
+write.csv(PossibleCoexistence, file = paste0(DateTimeStamp, "possiblecoexistence.csv"),
+          quote = FALSE, row.names = FALSE)
+
+PossibleCoexistenceBulk <- MyData[which(MyData[, "TotalPlasmidBulk"]/MyData[, "TotalBioBulk"] > 1e-3 &
+                    MyData[, "TotalPlasmidBulk"]/MyData[, "TotalBioBulk"] < 0.999), ]
+dim(PossibleCoexistenceBulk)
+write.csv(PossibleCoexistenceBulk, file = paste0(DateTimeStamp, "possiblecoexistencebulk.csv"),
+          quote = FALSE, row.names = FALSE)
+
+#### Plots for parameterset 1 ####
+CreatePlot(fillvar = "TotalPlasmid / TotalBio", facetx = "w", facety = "NI")
+CreatePlot(fillvar = "TotalPlasmidBulk / TotalBioBulk", facetx = "w", facety = "NI")
+
+#### Plots for parameterset 2 ####
 
 # Compare biomass across the two models
-CreatePlot(fillvar = "TotalBio / TotalBioBulk", gradient2 = 1)
+CreatePlot(fillvar = "TotalBio / TotalBioBulk")
 
 # Fraction plasmid-bearing cells
-CreatePlot(fillvar = "TotalPlasmid/TotalBio")
+CreatePlot(fillvar = "TotalPlasmid/TotalBio") # Figure S3 with parameterset 2
 CreatePlot(fillvar = "TotalPlasmidBulk/TotalBioBulk")
-CreatePlot(fillvar = "(TotalPlasmid/TotalBio) / (TotalPlasmidBulk/TotalBioBulk)")
 
 # Fraction donors
-CreatePlot(fillvar = "TotalD/TotalBio")
+CreatePlot(fillvar = "TotalD/TotalBio") # Figure S2 with parameterset 2
 CreatePlot(fillvar = "DBulk/TotalBioBulk")
-CreatePlot(fillvar = "(DBulk/TotalBioBulk) / (TotalD/TotalBio)")
 
 # Fraction recipients
 CreatePlot(fillvar = "TotalR/TotalBio")
 CreatePlot(fillvar = "RBulk/TotalBioBulk")
-CreatePlot(fillvar = "(RBulk/TotalBioBulk) / (TotalR/TotalBio)")
 
 # Fraction transconjugants
-CreatePlot(fillvar = "TotalTrans/TotalBio")
+CreatePlot(fillvar = "TotalTrans/TotalBio") # Figure S1 with parameterset 2
 CreatePlot(fillvar = "TransBulk/TotalBioBulk")
-CreatePlot(fillvar = "(TransBulk/TotalBioBulk) / (TotalTrans/TotalBio)")
 
 ################################################################################
 BackupMyData <- MyData
@@ -820,18 +813,18 @@ BackupMyData <- MyData
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
 # mycol <- c("black", "purple", "green1", "red", "yellow", "hotpink", "blue", "cyan")
 mycol <- c("black", brewer.pal(7, "Set1"))
-myylim <- c(1E-14, 1E7) # Defining the limits for the y-axis
+myylim <- c(1E-7, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 plotoutput <- 1
-extinctionthreshold <- 1E-10 # Population size is set to 0 if it is below the extinction threshold
 verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed and roots are indicated in the graphs
 smallchange <- c(1E-5)
-Mytmax <- c(1E4)
+Mytmax <- c(1E5)
 Mytstep <- c(10)
 
 #### Create matrix to store data ####
 TheseRows <- c(1, nrow(MyData))
 TheseRows <- 1:nrow(MyData)
+TheseRows <- ceiling(seq(from = nrow(MyData)/(4*4*2*2), to = nrow(MyData), length.out = 4*4*2))
 Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
 print(TotalIterations)
@@ -843,58 +836,29 @@ CurrentIteration <- 0
 # help(diagnostics.deSolve()) and help(lsodar()) for details.
 times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 
-# Define root-function and event-function
-# If the root-argument is equal to 0, an event (as defined by the event-function)
-# is triggered. See help(events) and help(lsodar) (both in the deSolve package)
-# for background information and examples. 
-# The first root becomes 0 if the sum of absolute rates of change is equal to the
-# threshold smallchange, i.e., when equilibrium is nearly reached. This root is
-# set as the terminal root, in order to terminate the integration if this occurs.
-# The other roots are used to determine if any of the state variables are equal
-# to the extinction threshold. If this occurs, the event function is called,
-# which sets the states that are equal to threshold to zero, and the integration
-# continues.
-# NOTE that the NUTRIENTS are also in the root- and event-functions, so currently
-# they would also be set to 0 if they fall below the threshold, which is undesirable.
-# The nutrients can probably removed from the rootfunction by using state[-1] -
-# extinctionthreshold, but attempts to remove them from events failed for events
-# implemented as state2[state2[-1] < extinctionthreshold] <- 0 or state2[state2[-1]
-# < extinctionthreshold] <- 0 because the index shifts if nutrients are below the
-# threshold. Using state2[(state2[-1] < extinctionthreshold) + 1] <- 0 might work.
-# Note that it is still possible to have bacterial densities lower than the
-# threshold, if these populations are created from other populations at each
-# timestep.
+# Define root-function
+# The root-argument becomes equal to 0 if the sum of absolute rates of change is
+# equal to the threshold smallchange, i.e., when equilibrium is nearly reached.
+# Then the simulation is terminated. See help(events) and help(lsodar) (both in
+# the deSolve package) for background information and examples.
 rootfun <- function(t, state, parms) {
-  c(sum(abs(unlist(ModelPairsNutr(t, state, parms)))) - smallchange, state - extinctionthreshold)
+  sum(abs(unlist(ModelPairsNutr(t, state, parms)))) - smallchange
 }
 
 rootfunBulk <- function(t, stateBulk, parmsBulk) {
-  c(sum(abs(unlist(ModelBulkNutr(t, stateBulk, parmsBulk)))) - smallchange, stateBulk - extinctionthreshold)
-}
-
-eventfun <- function(t, state, parms) {
-  state[state < extinctionthreshold] <- 0
-  return(state)
-}
-
-eventfunBulk <- function(t, stateBulk, parmsBulk) {
-  stateBulk[stateBulk < extinctionthreshold] <- 0
-  return(stateBulk)
+  sum(abs(unlist(ModelBulkNutr(t, stateBulk, parmsBulk)))) - smallchange
 }
 
 # Note: the functions RunOverTime and PlotOverTime in the two-compartment script are
 # more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
 # with TotalD, TotalR, TotalTrans in the pair-formation model.
-# In the two-compartment model I have not used root- and eventfunctions,
-# maybe should also delete them here, since it sometimes takes very long to
-# execute code (if populations go extinct and therefor many roots are found?)
 RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]],
              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms,
-           rootfun = rootfun, events = list(func = eventfun, root = TRUE,
-                                            terminalroot = 1), verbose = verbose)
+           rootfun = rootfun, verbose = verbose)
   EqAfterInvasion <- tail(out2, 1)
+  print(EqAfterInvasion)
   if(verbose == TRUE) {
     print(diagnostics(out2))
     print(attributes(out2))
@@ -902,14 +866,13 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
   PlotOverTime(plotdata = out2, parms = parms, type = "Pair", verbose = verbose, saveplot = saveplots)
   stateBulk <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]], Trans = 0)
   out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parms,
-                rootfun = rootfunBulk, events = list(func = eventfunBulk, root = TRUE,
-                                                     terminalroot = 1), verbose = verbose)
+                rootfun = rootfunBulk, verbose = verbose)
   EqAfterInvasionBulk <- tail(out2bulk, 1)
   if(verbose == TRUE) {
     print(diagnostics(out2bulk))
     print(attributes(out2bulk))
   }
-  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", saveplot = saveplots)
+  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", verbose = verbose, saveplot = saveplots)
   
   EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
   names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
@@ -941,7 +904,6 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
                     legend = list(x = "topright"))
     grid()
     if(verbose == TRUE) {
-      abline(h = extinctionthreshold)
       abline(v = attributes(plotdata)$troot)
     }
     if(file.exists(filename) == FALSE) {
@@ -953,21 +915,16 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
                     legend = list(x = "bottomright"))
     grid()
     if(verbose == TRUE) {
-      abline(h = extinctionthreshold)
       abline(v = attributes(plotdata)$troot)
     }
   }
 }
 
-# NOTE: sometimes takes very long to compute because of the root- and eventfunctions.
-# Could shift to only using rootfunction to determine if equilibrium has been
-# reached to prevent that.
-EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, verbose = FALSE))
+EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
 
-Data <- cbind(Mydf, EqAfterInvasionTotal)
+EqAfterInvasion <- cbind(Mydf, EqAfterInvasion)
 
-
-write.csv(EqAfterInvasionTotal, file = paste0(DateTimeStamp, "outputrunovertimeonecomp.csv"),
+write.csv(EqAfterInvasion, file = paste0(DateTimeStamp, "outputrunovertimeonecomp.csv"),
           quote = FALSE, row.names = FALSE)
 
 #### The code below is not used ####
