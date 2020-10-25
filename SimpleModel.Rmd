@@ -156,7 +156,6 @@ input.dir <- "C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_commu
 conjugation.dataD <- read.csv(paste0(input.dir, "20200909_Conjug_rates_D_1_R.csv"))
 conjugation.dataT <- read.csv(paste0(input.dir, "20200909_Conjug_rates_T_R.csv"))
 growth.data <- read.csv(paste0(input.dir,"20201007_Growth_rates_D1_R_T_D2.csv"))
-
 #renaming to fit the existing script after renaming of columns
 colnames(conjugation.dataT)[colnames(conjugation.dataT) %in% c("Genera","Treatment", "Medium")] <- c("LABgenus","VL_type", "Experiment")
 colnames(conjugation.dataD)[colnames(conjugation.dataD) %in% c("Genera","Treatment", "Medium")] <- c("LABgenus","VL_type", "Experiment")
@@ -223,7 +222,7 @@ plot.data <- new.plot.data
 #plot
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",  "#0072B2","#F0E442", "#D55E00", "#CC79A7")
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7")
-sarahPalette <- c("orange", "darkorchid1", "chartreuse4","deepskyblue",  "#D55E00")
+sarahPalette <- c("#000000", "darkorchid1", "chartreuse4","deepskyblue",  "#D55E00")
 
 labgenus.colours <- setNames(sarahPalette, unique(plot.data$LABgenus))
 labgenus.shapes <- setNames(c(19,8,2,6,4), unique(plot.data$LABgenus))
@@ -231,8 +230,8 @@ replicate.shapes <- setNames(c(16,17,15), unique(plot.data$Replicate))
   
 boundary.plots + 
   geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = as.factor(LABgenus),colour = LABgenus), data = plot.data[plot.data$Plasmid=="D",], size =1.75, alpha =.75)+
-  scale_colour_manual(values = labgenus.colours, name = "LAB genus")+
-  scale_shape_manual(values = labgenus.shapes, name = "LAB genus")+
+  scale_colour_manual(values = labgenus.colours, name = "Medium")+
+  scale_shape_manual(values = labgenus.shapes, name = "Medium")+
    xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
   ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+facet_grid(.~10^N)+
 theme(aspect.ratio = 1.5)
