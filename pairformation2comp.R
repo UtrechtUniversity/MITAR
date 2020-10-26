@@ -355,7 +355,8 @@ SimulationBulk <- function(InputSimulationBulk, state) {
 
 CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0,
                        dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)",
-                       facetx = "cd + gd", facety = "ct + gt", save = saveplots, ...) {
+                       facetx = "cd + gd", facety = "ct + gt", mytag = NULL,
+                       save = saveplots, ...) {
   if(exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
@@ -367,7 +368,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0,
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
     facet_grid(as.formula(paste(facetx, "~", facety)), labeller = label_both) +
-    labs(caption = mycaption) +
+    labs(caption = mycaption, tag = mytag) +
     theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
   if(gradient2 == 1) {
     p <- p + scale_fill_gradient2(low = "darkblue", high = "darkred", midpoint = midpoint, limits = limits)
@@ -574,7 +575,7 @@ DInitWallSet <- 0
 cdSet <- 0.05
 ctSet <- 0.01
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
-kpWallSet <- 10^c(-12, -9) 
+kpWallSet <- 10^-12 
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 knWallSet <- 10^c(-1, 1, 3)
 gdSet <- 15
@@ -715,26 +716,12 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoComp.png"),
        device = "png", width = 16, units = "cm")
 
 
-#### Plotting output for parameterset 3 ####
+#### Plotting output for parameterset 2 ####
 
-# For parameterset 3: show influence of migration rates on biomass and nutrients
+# For parameterset 2: show influence of migration rates on biomass and nutrients
 # in lumen and at the wall, and influence on stability of the plasmid-free
 # equilibrium for different attachment and detachment rates in the lumen and at
 # the wall
-
-MyDataFiltered1 <- filter(.data = MyData, kpWall == 1e-12)
-MyDataFiltered2 <- filter(.data = MyData, kpWall == 1e-9)
-
-CreatePlot(dataplot = MyDataFiltered1, fillvar = "log10(RWallInit)",
-           xvar = "NILum", yvar = "NIWall",
-           facetx = "MigrLumWall", facety = "MigrWallLum", save = FALSE)
-
-CreatePlot(dataplot = MyDataFiltered1, fillvar = "log10(RLumInit)",
-           xvar = "log10(kp)", yvar = "log10(kn)",
-           facetx = "MigrLumWall + knWall",
-           facety = "MigrWallLum + kpWall",
-           limits = c(6.45, 8.65),
-           save = FALSE)
 
 ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "log10(RLumInit)",
@@ -750,6 +737,7 @@ ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
                          xvar = "log10(kp)", yvar = "log10(kn)",
                          facetx = "MigrLumWall + knWall",
                          facety = "MigrWallLum + kpWall",
+                         mytag = "A",
                          limits = c(6.45, 8.65),
                          save = FALSE),
        device = "png", width = 32, units = "cm")
@@ -785,6 +773,7 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
                          xvar = "log10(kp)", yvar = "log10(kn)",
                          facetx = "MigrLumWall + knWall",
                          facety = "MigrWallLum + kpWall",
+                         mytag = "B",
                          save = FALSE),
        device = "png", width = 32, units = "cm")
 
