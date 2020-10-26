@@ -92,7 +92,7 @@ library(tidyr) # for 'expand.grid()' with dataframe as input
 library(dplyr) # for mutate() to create new variables in dataframe/tibble
 
 #### Plotting and simulation options ####
-saveplots <- 0
+saveplots <- 1
 atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
 # in the machine, T + H = T on the next step  [1] 0 (H = step size). Solver will
@@ -106,7 +106,7 @@ ModelBulkNutrPlasmidfree <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum
     dRLum <- (bR*NutrLum - wLum - MigrLumWall)*RLum + MigrWallLum*RWall*ScaleAreaPerVol
-    dNutrWall <- (NIWall - NutrWall)*wWall - NutrConv*bR*NutrWall*RWall
+    dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall
     dRWall <- (bR*NutrWall - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleAreaPerVol
     return(list(c(dNutrLum, dRLum, dNutrWall, dRWall)))
   })
@@ -227,7 +227,7 @@ ModelBulkNutr <- function(t, state, parms) {
     dTransLum <- ((1 - ct)*bR*NutrLum - wLum - MigrLumWall)*TransLum + MigrWallLum*TransWall*ScaleAreaPerVol +
       (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum
 
-    dNutrWall <- (NIWall - NutrWall)*wWall - NutrConv*bR*NutrWall*((1 - cd)*DWall + RWall + (1 - ct)*TransWall)
+    dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*((1 - cd)*DWall + RWall + (1 - ct)*TransWall)
     dDWall <- ((1 - cd)*bR*NutrWall - wWall - MigrWallLum)*DWall + MigrLumWall*DLum/ScaleAreaPerVol
     dRWall <- (bR*NutrWall - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleAreaPerVol -
       (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
@@ -266,7 +266,7 @@ ModelPairsNutr <- function(t, state, parms) {
     dMrtLum <- kp*RLum*TransLum - (kn + gt + wLum + MigrLumWall)*MrtLum + MigrWallLum*ScaleAreaPerVol*MrtWall
     dMttLum <- gt*MrtLum - (kn + wLum + MigrLumWall)*MttLum + MigrWallLum*ScaleAreaPerVol*MttWall
     
-    dNutrWall <- (NIWall - NutrWall)*wWall -
+    dNutrWall <- (NIWall - NutrWall)*wNutrWall -
       NutrConv*bR*NutrWall*(
         (1 - cd)*(DWall + MdrWall + MdtWall) + (RWall + MdrWall + MrtWall) + (1 - ct)*(TransWall + MdtWall + MrtWall + 2*MttWall)
       )
@@ -287,7 +287,7 @@ ModelPairsNutr <- function(t, state, parms) {
 }
 
 # Numerically estimate the Jacobian matrix of the plasmid-free equilibrium of
-# the models, then calculate (or approximate?) the eigenvalues of this matrix.
+# the models, then approximate the eigenvalues of this matrix.
 # The maximum real part of the eigenvalues is used to determine stability.
 CalcEigenvalues <- function(MyData) {
   parms <- MyData
@@ -531,22 +531,26 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
   }
 }
 
-# Parameterset 1: values that result in comparable biomass and nutrients in the
-# lumen and the wall. Show influence of attachment and detachment rates that can
-# be different in the lumen and at the wall, and costs for transconjugants.
+# Parameterset 1: use wWall = wNutrWall to obtain equal recipient densities in
+# the lumen and at the wall. Limit to wWall = wLum = wNutrLum to get equal
+# nutrient concentrations in the lumen and at the wall. Those densities and
+# concentrations are then also equal to those in the one-compartment model.
+# This parameterset can be used to show influence of attachment and detachment
+# rates that are different in the lumen compared to at the wall.
 NILumSet <- 10
 NIWallSet <- 10
 wLumSet <- c(0.04)
-wWallSet <- c(0.01)
+wWallSet <- c(0.04)
+wNutrWallSet <- c(0.04)
 NutrConvSet <- c(1e-6)
 bRSet <- c(1.7)
 MigrLumWallSet <- c(0.1)
 MigrWallLumSet <- c(0.1)
 ScaleAreaPerVolSet <- c(1)
 DInitLumSet <- 1E3
-DInitWallSet <- 1E3
+DInitWallSet <- 0
 cdSet <- c(0.05)
-ctSet <- c(0.01, 0.05)
+ctSet <- c(0.01)
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^c(-12, -9, -6) 
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
@@ -554,42 +558,48 @@ knWallSet <- 10^c(-1, 1, 3)
 gdSet <- c(15)
 gtSet <- c(15)
 
-# Parameterset 2: values to show influence of MigrLumWall and MigrWallLum on
-# biomass in the two compartments for the plasmid-free equilibrium
-NILumSet <- c(1, 10, 100)
-NIWallSet <- c(1, 10, 100)
+# Parameterset 2 to show effect of migration rates on stability
+NILumSet <- c(10)
+NIWallSet <- c(10)
 wLumSet <- 0.04
-wWallSet <- 0.04
+wWallSet <- 0 # Cells do not washout from the wall
+wNutrWallSet <- c(0.04)
 NutrConvSet <- c(1e-6)
 bRSet <- c(1.7)
-MigrLumWallSet <- seq(0.02, 0.2, 0.02)
-MigrWallLumSet <- seq(0.02, 0.2, 0.02)
+MigrLumWallSet <- c(0.01, 0.20)
+MigrWallLumSet <- c(0.01, 0.20)
 ScaleAreaPerVolSet <- c(1)
 DInitLumSet <- 1E3
-DInitWallSet <- 1E3
+DInitWallSet <- 0
 cdSet <- 0.05
 ctSet <- 0.01
-kpSet <- 10^-8
-kpWallSet <- 10^-8
-knSet <- 1
-knWallSet <- 1
+kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
+kpWallSet <- 10^c(-12, -9) 
+knSet <- 10^seq(from = -1, to = 3, by = 0.25)
+knWallSet <- 10^c(-1, 1, 3)
 gdSet <- 15
 gtSet <- 15
 
+
 #### Main script ####
-CheckParms <- c(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet, wWall = wWallSet, 
+print(Sys.time())
+CheckParms <- c(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet,
+                wWall = wWallSet, wNutrWallSet = wNutrWallSet,
                 NutrConv = NutrConvSet, bR = bRSet,
-                MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet, ScaleAreaPerVol = ScaleAreaPerVolSet,
+                MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
+                ScaleAreaPerVol = ScaleAreaPerVolSet,
                 DInitLum = DInitLumSet, DInitWall = DInitWallSet, 
                 cd = cdSet, ct = ctSet,
                 kp = kpSet, kpWall = kpWallSet, kn = knSet, knWall = knWallSet,
                 gd = gdSet, gt = gtSet)
-warntext <- paste("Parameter(s)", names(which(CheckParms <= 0)), "contain(s) non-positive values.")
+warntext <- paste("Parameterset(s)",
+                  paste(names(which(CheckParms <= 0)), collapse = ", "),
+                  "contain(s) non-positive values.")
 if(any(CheckParms <= 0)) warning(warntext)
 if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
 
-TotalIterations <- length(NILumSet)*length(NIWallSet)*length(wLumSet)*length(wWallSet)*
-  length(NutrConvSet)*length(bRSet)*
+TotalIterations <- length(NILumSet)*length(NIWallSet)*length(wLumSet)*
+  length(wWallSet)*length(wNutrWallSet)*length(NutrConvSet)*length(bRSet)*
   length(MigrLumWallSet)*length(MigrWallLumSet)*length(ScaleAreaPerVolSet)*
   length(DInitLumSet)*length(DInitWallSet)*
   length(cdSet)*length(ctSet)*
@@ -599,7 +609,7 @@ TotalIterations
 
 ## Determine plasmid-free equilibrium for all parameter combinations
 MyData <- expand_grid(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet, wWall = wWallSet,
-                      NutrConv = NutrConvSet, bR = bRSet,
+                      wNutrWall = wNutrWallSet, NutrConv = NutrConvSet, bR = bRSet,
                       MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
                       ScaleAreaPerVol = ScaleAreaPerVolSet)
 dim(MyData)
@@ -690,39 +700,96 @@ print(Sys.time())
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
-# Show that biomass in lumen and in wall are equal for parameterset 1
-CreatePlot(fillvar = "RLumInit/RWallInit", limits = c(0.99, 1.01),
-           xvar = "wLum", yvar = "wWall",
-           facetx = "NILum + MigrLumWall", facety = "NIWall + MigrWallLum")
+
+#### Output parameterset 1 ####
+
+# Show that biomass in lumen and in wall are equal
+range(MyData$RLumInit/MyData$RWallInit)
 
 # Show influence of kpWall and knWall on the stability of the plasmid-free
-# equilibrium for parameterset 1
-ggsave(filename = "SignDomEigValTwoComp.png",
+# equilibrium for parameterset 1 (Figure 5 in the article)
+ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoComp.png"),
        plot = CreatePlot(fillvar = "SignDomEigVal", gradient2 = TRUE,
                          limits = c(-1, 1), facetx = "knWall",
                          facety = "kpWall + ct", save = FALSE),
        device = "png", width = 16, units = "cm")
 
-# Show that biomass can be different in lumen and wall using parameterset 2.
-summary(MyData$RLumInit/MyData$RWallInit)
-CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
 
-# Set limits to only show values where biomasses are nearly equal
-CreatePlot(fillvar = "RLumInit/RWallInit", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall",
-           limits = c(0.99, 1.01)) 
+#### Plotting output for parameterset 3 ####
 
-# Show that nutrient concentration can be different in lumen and wall using parameterset 2.
-summary(MyData$NutrLumInit/MyData$NutrWallInit)
-CreatePlot(fillvar = "log10(NutrLumInit/NutrWallInit)", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall")
+# For parameterset 3: show influence of migration rates on biomass and nutrients
+# in lumen and at the wall, and influence on stability of the plasmid-free
+# equilibrium for different attachment and detachment rates in the lumen and at
+# the wall
 
-# Set limits to only show values where biomass in lumen and at wall are within
-# two-fold difference of each other
-CreatePlot(fillvar = "NutrLumInit/NutrWallInit", xvar = "MigrLumWall",
-           yvar = "MigrWallLum", facetx = "NILum", facety = "NIWall",
-           limits = c(0.5, 2.0))
+MyDataFiltered1 <- filter(.data = MyData, kpWall == 1e-12)
+MyDataFiltered2 <- filter(.data = MyData, kpWall == 1e-9)
+
+CreatePlot(dataplot = MyDataFiltered1, fillvar = "log10(RWallInit)",
+           xvar = "NILum", yvar = "NIWall",
+           facetx = "MigrLumWall", facety = "MigrWallLum", save = FALSE)
+
+CreatePlot(dataplot = MyDataFiltered1, fillvar = "log10(RLumInit)",
+           xvar = "log10(kp)", yvar = "log10(kn)",
+           facetx = "MigrLumWall + knWall",
+           facety = "MigrWallLum + kpWall",
+           limits = c(6.45, 8.65),
+           save = FALSE)
+
+ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
+       plot = CreatePlot(fillvar = "log10(RLumInit)",
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "MigrLumWall + knWall",
+                         facety = "MigrWallLum + kpWall",
+                         limits = c(6.45, 8.65),
+                         save = FALSE),
+       device = "png", width = 32, units = "cm")
+
+ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
+       plot = CreatePlot(fillvar = "log10(RWallInit)",
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "MigrLumWall + knWall",
+                         facety = "MigrWallLum + kpWall",
+                         limits = c(6.45, 8.65),
+                         save = FALSE),
+       device = "png", width = 32, units = "cm")
+
+ggsave(filename = paste0(DateTimeStamp, "NutrLumTwoCompDiffBiomass.png"),
+       plot = CreatePlot(fillvar = "log10(NutrLumInit)",
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "MigrLumWall + knWall",
+                         facety = "MigrWallLum + kpWall",
+                         limits = c(-3.30, -1.10),
+                         save = FALSE),
+       device = "png", width = 32, units = "cm")
+
+ggsave(filename = paste0(DateTimeStamp, "NutrWallTwoCompDiffBiomass.png"),
+       plot = CreatePlot(fillvar = "log10(NutrWallInit)",
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "MigrLumWall + knWall",
+                         facety = "MigrWallLum + kpWall",
+                         limits = c(-3.30, -1.10),
+                         save = FALSE),
+       device = "png", width = 32, units = "cm")
+
+ggsave(filename = paste0(DateTimeStamp, "RLumWallTwoCompDiffBiomass.png"),
+       plot = CreatePlot(fillvar = "log10(RLumInit/RWallInit)",
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "MigrLumWall + knWall",
+                         facety = "MigrWallLum + kpWall",
+                         save = FALSE),
+       device = "png", width = 32, units = "cm")
+
+ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
+       plot = CreatePlot(fillvar = "SignDomEigVal", gradient2 = TRUE,
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "MigrLumWall + knWall",
+                         facety = "MigrWallLum + kpWall",
+                         save = FALSE),
+       device = "png", width = 32, units = "cm")
+
+abcd
+
 
 
 # If invasion is possible, run simulation to see how many bacteria of each
