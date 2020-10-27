@@ -36,9 +36,7 @@
 # use kn = knLum as function argument for lumen and kn = knWall as function argument for wall.
 # This will prevent creating 'DataWall' as separate dataframe
 
-## !! !! POSSIBLE ERROR !! !!
-# ! Should ScaleAreaPerVolume be the inverse (i.e. exchange multiplication and
-# division by ScaleAreaPerVolume). This factor includes two aspects: (1) what is
+# ScaleAreaPerVolume includes two aspects: (1) what is
 # the ratio of volume and surface occupied by the bacteria (i.e., how much
 # square cm of surface do the the bacteria contained in Y cubic cm occupy, see
 # Imran (2005) for some discussion of this) and (2) what is the ratio of the
@@ -46,6 +44,9 @@
 # to be an open square tube, the surface in square cm equals 4 times the
 # volume in cubic cm). When modelling a round tube, the volume / surface = r / 2,
 # irrespective of chosen length.
+# Since I do not use it (i.e., ScaleAreaPerVolume = 1 and all cell densities and
+# nutrient concentrations are considered to be per mL), I can just as well drop
+# it.
 
 # Saving plots in PlotOverTime() (called from RunOverTime()) fails after the
 # first plot because names are the same. Add 'Iteration' as column to data
