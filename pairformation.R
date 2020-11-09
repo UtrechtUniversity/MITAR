@@ -476,10 +476,23 @@ ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
 gtSet <- c(1, 15)
 
-## Using parameterset 3 with steps of 0.2 for kp and kn does not work for the
+## Using parameterset 2 with steps of 0.2 for kp and kn does not work for the
 # pair-formation model, or for the bulk-conjugation model. Lowering atol to 1e-11
 # doesn't resolve this. Maybe retry using jactype = "sparse", or use stode(s?)
 # and/or supply jacobian if integration leads to errors ?
+
+## Parameterset 2b: what happens at very low detachment rates?
+DInitSet <- c(1E3)
+bRSet <- c(1.7)
+NISet <- 10
+NutrConvSet <- 1e-6
+wSet <- 0.04
+kpSet <- 10^seq(from = -13, to = -4, by = 0.2)
+knSet <- 10^seq(from = -4, to = 3, by = 0.2)
+cdSet <- c(0.05)
+ctSet <- c(0.01)
+gdSet <- c(15)
+gtSet <- c(15)
 
 #### Main script ####
 
@@ -539,6 +552,7 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
 
 
 #### Plotting output for parameterset 1 ####
+
 
 
 # Show influence of washout rate and inflowing nutrient concentration on
@@ -647,6 +661,9 @@ CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
 CreatePlot(dataplot = filter(MyData, gd == 15 & cd == 0.05 & ct == 0.01),
            fillvar = "log10(gtbulk)", facetx = "gd", facety = "gt",
            limits = limitsbulkrates)
+
+CreatePlot(fillvar = "log10(gdbulk)", facetx = ".", facety = ".",
+           limits = limitsbulkrates, save = FALSE)
 
 print("Finished plotting:")
 print(Sys.time())
@@ -825,6 +842,7 @@ Mytstep <- c(10)
 TheseRows <- c(1, nrow(MyData))
 TheseRows <- 1:nrow(MyData)
 TheseRows <- ceiling(seq(from = nrow(MyData)/(4*4*2*2), to = nrow(MyData), length.out = 4*4*2))
+if(!exists("ColumnsToSelect")) {ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))}
 Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
 print(TotalIterations)
