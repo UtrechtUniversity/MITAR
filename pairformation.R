@@ -554,8 +554,6 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
 
 #### Plotting output for parameterset 1 ####
 
-
-
 # Show influence of washout rate and inflowing nutrient concentration on
 # stability of the plasmid-free equilibrium (run with parameterset 1).
 # Note: hardcoded legend and axis labels
@@ -567,9 +565,9 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
-                    name = "Plasmid-free equilibrium",
-                    labels = c("stable", "unstable"))
+  scale_fill_manual(values = c("1" = "darkred", "-1" = "darkblue"),
+                    name = "Plasmid can invade",
+                    labels = c("No", "Yes"))
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValNIw).png"))
 }
@@ -611,9 +609,9 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
-                    name = "Plasmid-free equilibrium",
-                    labels = c("stable", "unstable"))
+  scale_fill_manual(values = c("1" = "darkred", "-1" = "darkblue"),
+                    name = "Plasmid can invade",
+                    labels = c("No", "Yes"))
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
 }
@@ -628,9 +626,9 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("-1" = "darkblue", "1" = "darkred"),
-                    name = "Plasmid-free equilibrium (bulk-model)",
-                    labels = c("stable", "unstable"))
+  scale_fill_manual(values = c("1" = "darkred", "-1" = "darkblue"),
+                    name = "Plasmid can invade",
+                    labels = c("No", "Yes"))
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk).png"))
 }
