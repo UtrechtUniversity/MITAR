@@ -451,9 +451,10 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 ## Parameterset 1: show NI and w influence stability of plasmid-free equilibrium
 DInitSet <- c(1E3)
 bRSet <- c(1.7)
-NISet <- 10^seq(from = -1, to = 2, by = 1)
+NISet <- 10^seq(from = 0, to = 2, by = 1)
 NutrConvSet <- 1e-6
-wSet <- seq(from = 0.02, to = 0.08, by = 0.02)
+# ln(2)/24, 1/24, 1% remaining after 24h, 0.1% remaining after 24h:
+wSet <- c(0.029, 0.042, 0.192, 0.288) 
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 knSet <- 10^seq(from = -1, to = 3, by = 0.25)
 cdSet <- c(0.05)
