@@ -541,44 +541,44 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
 # rates that are different in the lumen compared to at the wall.
 NILumSet <- 10
 NIWallSet <- 10
-wLumSet <- c(0.04)
-wWallSet <- c(0.04)
-wNutrWallSet <- c(0.04)
-NutrConvSet <- c(1e-6)
-bRSet <- c(1.7)
-MigrLumWallSet <- c(0.1)
-MigrWallLumSet <- c(0.1)
-ScaleAreaPerVolSet <- c(1)
+wLumSet <- round(1/24, 3)
+wWallSet <- round(1/24, 3)
+wNutrWallSet <- round(1/24, 3)
+NutrConvSet <- 1e-6
+bRSet <- 0.66
+MigrLumWallSet <- 0.1
+MigrWallLumSet <- 0.1
+ScaleAreaPerVolSet <- 1
 DInitLumSet <- 1E3
 DInitWallSet <- 0
-cdSet <- c(0.05)
-ctSet <- c(0.01)
+cdSet <- 0.05
+ctSet <- 0.01
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^c(-12, -9, -6) 
-knSet <- 10^seq(from = -1, to = 3, by = 0.25)
-knWallSet <- 10^c(-1, 1, 3)
-gdSet <- c(15)
-gtSet <- c(15)
+knSet <- 10^seq(from = -2, to = 3, by = 0.25)
+knWallSet <- 10^seq(from = -2, to = 3, length.out = 3)
+gdSet <- 15
+gtSet <- 15
 
 # Parameterset 2 to show effect of migration rates on stability
-NILumSet <- c(10)
-NIWallSet <- c(10)
-wLumSet <- 0.04
+NILumSet <- 10
+NIWallSet <- 10
+wLumSet <- round(1/24, 3)
 wWallSet <- 0 # Cells do not washout from the wall
-wNutrWallSet <- c(0.04)
-NutrConvSet <- c(1e-6)
-bRSet <- c(1.7)
-MigrLumWallSet <- c(0.01, 0.20)
-MigrWallLumSet <- c(0.01, 0.20)
-ScaleAreaPerVolSet <- c(1)
+wNutrWallSet <- round(1/24, 3)
+NutrConvSet <- 1e-6
+bRSet <- 0.66
+MigrLumWallSet <- c(0.01, 0.1, 0.20)
+MigrWallLumSet <- c(0.01, 0.1, 0.20)
+ScaleAreaPerVolSet <- 1
 DInitLumSet <- 1E3
 DInitWallSet <- 0
 cdSet <- 0.05
 ctSet <- 0.01
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^-12 
-knSet <- 10^seq(from = -1, to = 3, by = 0.25)
-knWallSet <- 10^c(-1, 1, 3)
+knSet <- 10^seq(from = -2, to = 3, by = 0.25)
+knWallSet <- 10^seq(from = -2, to = 3, length.out = 3)
 gdSet <- 15
 gtSet <- 15
 
