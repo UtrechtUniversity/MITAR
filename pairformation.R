@@ -575,7 +575,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("TRUE" = "aquamarine", "FALSE" = "red"),
+  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "red"),
                     name = "Dominant eigenvalues \nhave equal signs")
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvaluesNIw.png"))
@@ -629,7 +629,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
   labs(caption = DateTimeStamp) +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("TRUE" = "aquamarine", "FALSE" = "red"),
+  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "red"),
                     name = "Dominant eigenvalues \nhave equal signs")
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvalues.png"))
