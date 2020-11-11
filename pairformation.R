@@ -450,13 +450,13 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 
 ## Parameterset 1: show NI and w influence stability of plasmid-free equilibrium
 DInitSet <- c(1E3)
-bRSet <- c(1.7)
+bRSet <- c(0.66)
 NISet <- 10^seq(from = 0, to = 2, by = 1)
 NutrConvSet <- 1e-6
 # ln(2)/24, 1/24, 1% remaining after 24h, 0.1% remaining after 24h:
-wSet <- c(0.029, 0.042, 0.192, 0.288) 
+wSet <- c(round(log(2)/24, 3), round(1/24, 3), 0.192, 0.288) 
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
-knSet <- 10^seq(from = -1, to = 3, by = 0.25)
+knSet <- 10^seq(from = -2, to = 3, by = 0.25)
 cdSet <- c(0.05)
 ctSet <- c(0.01)
 gdSet <- c(15)
@@ -466,12 +466,12 @@ gtSet <- c(15)
 ## detachment rates on the stability of the plasmid-free equilibrium and on
 ## bulk-conjugation rates.
 DInitSet <- c(1E3)
-bRSet <- c(1.7)
+bRSet <- c(0.66)
 NISet <- c(10)
 NutrConvSet <- 1e-6
-wSet <- c(0.04)
+wSet <- round(1/24, 3)
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
-knSet <- 10^seq(from = -1, to = 3, by = 0.25)
+knSet <- 10^seq(from = -2, to = 3, by = 0.25)
 cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
@@ -481,19 +481,6 @@ gtSet <- c(1, 15)
 # pair-formation model, or for the bulk-conjugation model. Lowering atol to 1e-11
 # doesn't resolve this. Maybe retry using jactype = "sparse", or use stode(s?)
 # and/or supply jacobian if integration leads to errors ?
-
-## Parameterset 2b: what happens at very low detachment rates?
-DInitSet <- c(1E3)
-bRSet <- c(1.7)
-NISet <- 10
-NutrConvSet <- 1e-6
-wSet <- 0.04
-kpSet <- 10^seq(from = -13, to = -4, by = 0.2)
-knSet <- 10^seq(from = -4, to = 3, by = 0.2)
-cdSet <- c(0.05)
-ctSet <- c(0.01)
-gdSet <- c(15)
-gtSet <- c(15)
 
 #### Main script ####
 
@@ -627,7 +614,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
        y = "log10(detachment rate)") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
   scale_fill_manual(values = c("1" = "darkred", "-1" = "darkblue"),
-                    name = "Plasmid can invade",
+                    name = "Plasmid can invade (bulk model)",
                     labels = c("No", "Yes"))
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk).png"))
