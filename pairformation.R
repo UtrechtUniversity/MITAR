@@ -154,7 +154,8 @@
 #### Loading packages ####
 library(deSolve) # Solve differential equations with results over time.
 library(ggplot2) # For plotting data
-library(RColorBrewer) # For better color schemes
+library(RColorBrewer) # For better color schemes [NOTE: only used for plots over time]
+library(viridis) # For better color schemes
 library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
 library(dplyr) # for mutate() to create new variables in dataframe/tibble
@@ -167,7 +168,6 @@ atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # continue anyway', which eventually leads to aborted integration.
 tmaxsteady <- 1e8
 timesEstConj <- seq(from = 0, to = 3, by = 0.1)
-MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 
 #### Functions ####
 # Calculate the plasmid-free equilibrium (R*, Nutr*) using the solution to
@@ -342,8 +342,7 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
   if(gradient2 == 1) {
     p <- p + scale_fill_gradient2(low = "darkblue", high = "darkred", midpoint = midpoint, limits = limits)
   } else {
-    p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
-    # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
+    p <- p + scale_fill_viridis(limits = limits)
   }
   print(p)
   if(save == TRUE) {
@@ -639,7 +638,7 @@ if(saveplots == 1 ) {
 ## bulk-conjugation rates. Data is filtered to show only one value for costs,
 ## because costs do not influence the bulk-conjugation rates (Figure 4 in the
 ## article).
-limitsbulkratesrange <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
+limitsbulkrates <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
 
 CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
            fillvar = "log10(gdbulk)", facetx = "gt", facety = "gd",
