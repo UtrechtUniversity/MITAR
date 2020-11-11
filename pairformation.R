@@ -639,8 +639,8 @@ if(saveplots == 1 ) {
 ## bulk-conjugation rates. Data is filtered to show only one value for costs,
 ## because costs do not influence the bulk-conjugation rates (Figure 4 in the
 ## article).
-limitsbulkrates <- c(floor(min(log10(c(MyData$gdbulk, MyData$gtbulk)))),
-                     ceiling(max(log10(c(MyData$gdbulk, MyData$gtbulk)))))
+limitsbulkratesrange <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
+
 CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
            fillvar = "log10(gdbulk)", facetx = "gt", facety = "gd",
            limits = limitsbulkrates)
@@ -648,8 +648,8 @@ CreatePlot(dataplot = filter(MyData, gd == 15 & cd == 0.05 & ct == 0.01),
            fillvar = "log10(gtbulk)", facetx = "gd", facety = "gt",
            limits = limitsbulkrates)
 
-CreatePlot(fillvar = "log10(gdbulk)", facetx = ".", facety = ".",
-           limits = limitsbulkrates, save = FALSE)
+# CreatePlot(fillvar = "log10(gdbulk)", facetx = ".", facety = ".",
+#            limits = limitsbulkrates, save = FALSE)
 
 print("Finished plotting:")
 print(Sys.time())
