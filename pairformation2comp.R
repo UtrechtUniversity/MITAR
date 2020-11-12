@@ -372,10 +372,9 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0,
     labs(caption = mycaption, tag = mytag) +
     theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
   if(gradient2 == 1) {
-    p <- p + scale_fill_gradient2(low = "darkblue", high = "darkred", midpoint = midpoint, limits = limits)
+    p <- p + scale_fill_viridis_d(limits = factor(limits))
   } else {
-    p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
-    # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
+    p <- p + scale_fill_viridis_c(limits = limits)
   }
   print(p)
   if(save == TRUE) {
@@ -556,7 +555,7 @@ ctSet <- 0.01
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^c(-12, -9, -6) 
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
-knWallSet <- 10^seq(from = -2, to = 3, length.out = 3)
+knWallSet <- signif(10^seq(from = -2, to = 3, length.out = 3), 3)
 gdSet <- 15
 gtSet <- 15
 
@@ -568,8 +567,8 @@ wWallSet <- 0 # Cells do not washout from the wall
 wNutrWallSet <- round(1/24, 3)
 NutrConvSet <- 1e-6
 bRSet <- 0.66
-MigrLumWallSet <- c(0.01, 0.1, 0.20)
-MigrWallLumSet <- c(0.01, 0.1, 0.20)
+MigrLumWallSet <- c(0.01, 0.1)
+MigrWallLumSet <- c(0.01, 0.1)
 ScaleAreaPerVolSet <- 1
 DInitLumSet <- 1E3
 DInitWallSet <- 0
@@ -578,7 +577,7 @@ ctSet <- 0.01
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^-12 
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
-knWallSet <- 10^seq(from = -2, to = 3, length.out = 3)
+knWallSet <- signif(10^seq(from = -2, to = 3, length.out = 3), 3)
 gdSet <- 15
 gtSet <- 15
 
@@ -711,9 +710,9 @@ range(MyData$RLumInit/MyData$RWallInit)
 # Show influence of kpWall and knWall on the stability of the plasmid-free
 # equilibrium for parameterset 1 (Figure 5 in the article)
 ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoComp.png"),
-       plot = CreatePlot(fillvar = "SignDomEigVal", gradient2 = TRUE,
+       plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
                          limits = c(-1, 1), facetx = "knWall",
-                         facety = "kpWall + ct", save = FALSE),
+                         facety = "kpWall", save = FALSE),
        device = "png", width = 16, units = "cm")
 
 
@@ -729,7 +728,6 @@ ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
                          xvar = "log10(kp)", yvar = "log10(kn)",
                          facetx = "MigrLumWall + knWall",
                          facety = "MigrWallLum + kpWall",
-                         limits = c(6.45, 8.65),
                          save = FALSE),
        device = "png", width = 32, units = "cm")
 
@@ -739,7 +737,6 @@ ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
                          facetx = "MigrLumWall + knWall",
                          facety = "MigrWallLum + kpWall",
                          mytag = "A",
-                         limits = c(6.45, 8.65),
                          save = FALSE),
        device = "png", width = 32, units = "cm")
 
@@ -748,7 +745,6 @@ ggsave(filename = paste0(DateTimeStamp, "NutrLumTwoCompDiffBiomass.png"),
                          xvar = "log10(kp)", yvar = "log10(kn)",
                          facetx = "MigrLumWall + knWall",
                          facety = "MigrWallLum + kpWall",
-                         limits = c(-3.30, -1.10),
                          save = FALSE),
        device = "png", width = 32, units = "cm")
 
@@ -757,7 +753,6 @@ ggsave(filename = paste0(DateTimeStamp, "NutrWallTwoCompDiffBiomass.png"),
                          xvar = "log10(kp)", yvar = "log10(kn)",
                          facetx = "MigrLumWall + knWall",
                          facety = "MigrWallLum + kpWall",
-                         limits = c(-3.30, -1.10),
                          save = FALSE),
        device = "png", width = 32, units = "cm")
 
@@ -770,7 +765,8 @@ ggsave(filename = paste0(DateTimeStamp, "RLumWallTwoCompDiffBiomass.png"),
        device = "png", width = 32, units = "cm")
 
 ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "SignDomEigVal", gradient2 = TRUE,
+       plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
+                         limits = c(-1, 1),
                          xvar = "log10(kp)", yvar = "log10(kn)",
                          facetx = "MigrLumWall + knWall",
                          facety = "MigrWallLum + kpWall",
