@@ -53,6 +53,12 @@
 
 # If save = TRUE for plots over time, dev.off is not called?
 
+# Using CreatePlot(gradient2 = TRUE) geeft probleem dat factor(limits) gebruikt
+# wordt terwijl default limits = NULL, dus
+# scale_fill_viridis_d(limits = factor(limits)) veranderen in iets als 
+# scale_fill_viridis_d(!if(is.null(limits)) {limits = factor(limits)})
+# om dat te voorkomen?
+
 # SummaryPlot() does not use the names of the arguments for creating titles
 
 # aes_string is soft-deprecated (see help(aes_string)), use tidy evaluation idioms instead,
