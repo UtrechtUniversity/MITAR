@@ -155,7 +155,6 @@
 library(deSolve) # Solve differential equations with results over time.
 library(ggplot2) # For plotting data
 library(RColorBrewer) # For better color schemes [NOTE: only used for plots over time]
-library(viridis) # For better color schemes
 library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # for 'expand.grid()' with dataframe as input
 library(dplyr) # for mutate() to create new variables in dataframe/tibble
@@ -340,9 +339,9 @@ CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, data
     labs(caption = DateTimeStamp) +
     theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
   if(gradient2 == 1) {
-    p <- p + scale_fill_gradient2(low = "darkblue", high = "darkred", midpoint = midpoint, limits = limits)
+    p <- p + scale_fill_viridis_d(limits = factor(limits))
   } else {
-    p <- p + scale_fill_viridis(limits = limits)
+    p <- p + scale_fill_viridis_c(limits = limits)
   }
   print(p)
   if(save == TRUE) {
