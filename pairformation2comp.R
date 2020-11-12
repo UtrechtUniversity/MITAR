@@ -544,7 +544,7 @@ wLumSet <- round(1/24, 3)
 wWallSet <- round(1/24, 3)
 wNutrWallSet <- round(1/24, 3)
 NutrConvSet <- 1e-6
-bRSet <- 0.66
+bRSet <- 0.68
 MigrLumWallSet <- 0.1
 MigrWallLumSet <- 0.1
 ScaleAreaPerVolSet <- 1
@@ -566,7 +566,7 @@ wLumSet <- round(1/24, 3)
 wWallSet <- 0 # Cells do not washout from the wall
 wNutrWallSet <- round(1/24, 3)
 NutrConvSet <- 1e-6
-bRSet <- 0.66
+bRSet <- 0.68
 MigrLumWallSet <- c(0.01, 0.1)
 MigrWallLumSet <- c(0.01, 0.1)
 ScaleAreaPerVolSet <- 1
