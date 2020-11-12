@@ -556,9 +556,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("1" = "darkred", "-1" = "darkblue"),
-                    name = "Plasmid can invade",
-                    labels = c("No", "Yes"))
+  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValNIw).png"))
 }
@@ -600,9 +598,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("1" = "darkred", "-1" = "darkblue"),
-                    name = "Plasmid can invade",
-                    labels = c("No", "Yes"))
+  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
 }
@@ -617,9 +613,8 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("1" = "darkred", "-1" = "darkblue"),
-                    name = "Plasmid can invade (bulk model)",
-                    labels = c("No", "Yes"))
+  scale_fill_viridis_d("Plasmid can invade (bulk model)",
+                       labels = c("No", "Yes"))
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk).png"))
 }
