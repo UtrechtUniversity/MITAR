@@ -454,7 +454,7 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 
 ## Parameterset 1: show NI and w influence stability of plasmid-free equilibrium
 DInitSet <- c(1E3)
-bRSet <- c(0.66)
+bRSet <- c(0.68)
 NISet <- 10^seq(from = 0, to = 2, by = 1)
 NutrConvSet <- 1e-6
 # ln(2)/24, 1/24, 1% remaining after 24h, 0.1% remaining after 24h:
@@ -470,7 +470,7 @@ gtSet <- c(15)
 ## detachment rates on the stability of the plasmid-free equilibrium and on
 ## bulk-conjugation rates.
 DInitSet <- c(1E3)
-bRSet <- c(0.66)
+bRSet <- c(0.68)
 NISet <- c(10)
 NutrConvSet <- 1e-6
 wSet <- round(1/24, 3)
