@@ -560,6 +560,7 @@ gdSet <- 15
 gtSet <- 15
 
 # Parameterset 2 to show effect of migration rates on stability
+# Note that washout from the wall is excluded
 NILumSet <- 10
 NIWallSet <- 10
 wLumSet <- round(1/24, 3)
@@ -578,6 +579,29 @@ kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^-12 
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
 knWallSet <- signif(10^seq(from = -2, to = 3, length.out = 3), 3)
+gdSet <- 15
+gtSet <- 15
+
+# Parameterset 3 to show effect of migration rates and washout from the wall on
+# stability with a different plot
+NILumSet <- 10
+NIWallSet <- 10
+wLumSet <- round(1/24, 3)
+wWallSet <- c(round(1/24, 3), 0) # Cells do not washout from the wall
+wNutrWallSet <- round(1/24, 3)
+NutrConvSet <- 1e-6
+bRSet <- 0.68
+MigrLumWallSet <- c(0.01, 0.1, 0.2)
+MigrWallLumSet <- 0.1
+ScaleAreaPerVolSet <- 1
+DInitLumSet <- 1E3
+DInitWallSet <- 0
+cdSet <- 0.05
+ctSet <- 0.01
+kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
+kpWallSet <- 10^-12 
+knSet <- 10^seq(from = -2, to = 3, by = 0.25)
+knWallSet <- signif(10^0.5, 3)
 gdSet <- 15
 gtSet <- 15
 
@@ -773,6 +797,41 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
                          mytag = "B",
                          save = FALSE),
        device = "png", width = 32, units = "cm")
+
+
+#### Plotting output for parameterset 3 ####
+
+limitsbiomass <- range(log10(c(MyData$RLumInit, MyData$RWallInit)))
+
+ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass2.png"),
+       plot = CreatePlot(fillvar = "log10(RLumInit)",
+                         limits = limitsbiomass,
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "wWall + MigrLumWall",
+                         facety = ".",
+                         mytag = "A",
+                         save = FALSE),
+       device = "png", width = 5.3, units = "cm")
+
+ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass2.png"),
+       plot = CreatePlot(fillvar = "log10(RWallInit)",
+                         limits = limitsbiomass,
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "wWall + MigrLumWall",
+                         facety = ".",
+                         mytag = "B",
+                         save = FALSE),
+       device = "png", width = 5.3, units = "cm")
+
+ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass3.png"),
+       plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
+                         limits = c(-1, 1),
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "wWall + MigrLumWall",
+                         facety = ".",
+                         mytag = "C",
+                         save = FALSE),
+       device = "png", width = 5.3, units = "cm")
 
 abcd
 
