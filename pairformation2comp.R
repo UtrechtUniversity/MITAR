@@ -559,8 +559,8 @@ knWallSet <- signif(10^seq(from = -2, to = 3, length.out = 3), 3)
 gdSet <- 15
 gtSet <- 15
 
-# Parameterset 2 to show effect of migration rates on stability
-# Note that washout from the wall is excluded
+# Parameterset 2 to show effect of migration rates on biomass and stability of
+# the plasmid-free equilibrium. Note that washout from the wall is excluded.
 NILumSet <- 10
 NIWallSet <- 10
 wLumSet <- round(1/24, 3)
@@ -568,31 +568,8 @@ wWallSet <- 0 # Cells do not washout from the wall
 wNutrWallSet <- round(1/24, 3)
 NutrConvSet <- 1e-6
 bRSet <- 0.68
-MigrLumWallSet <- c(0.01, 0.1)
-MigrWallLumSet <- c(0.01, 0.1)
-ScaleAreaPerVolSet <- 1
-DInitLumSet <- 1E3
-DInitWallSet <- 0
-cdSet <- 0.05
-ctSet <- 0.01
-kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
-kpWallSet <- 10^-12 
-knSet <- 10^seq(from = -2, to = 3, by = 0.25)
-knWallSet <- signif(10^seq(from = -2, to = 3, length.out = 3), 3)
-gdSet <- 15
-gtSet <- 15
-
-# Parameterset 3 to show effect of migration rates and washout from the wall on
-# stability with a different plot
-NILumSet <- 10
-NIWallSet <- 10
-wLumSet <- round(1/24, 3)
-wWallSet <- c(round(1/24, 3), 0) # Cells do not washout from the wall
-wNutrWallSet <- round(1/24, 3)
-NutrConvSet <- 1e-6
-bRSet <- 0.68
-MigrLumWallSet <- c(0.01, 0.1, 0.2)
-MigrWallLumSet <- 0.1
+MigrLumWallSet <- c(0.025, 0.1, 0.4)
+MigrWallLumSet <- c(0.025, 0.1, 0.4)
 ScaleAreaPerVolSet <- 1
 DInitLumSet <- 1E3
 DInitWallSet <- 0
@@ -737,106 +714,31 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoComp.png"),
        plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
                          limits = c(-1, 1), facetx = "knWall",
                          facety = "kpWall", save = FALSE),
-       device = "png", width = 16, units = "cm")
+       device = "png", width = 8, units = "cm")
 
 
-#### Plotting output for parameterset 2 ####
-
-# For parameterset 2: show influence of migration rates on biomass and nutrients
-# in lumen and at the wall, and influence on stability of the plasmid-free
-# equilibrium for different attachment and detachment rates in the lumen and at
-# the wall
-
-ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(RLumInit)",
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
-                         save = FALSE),
-       device = "png", width = 32, units = "cm")
-
+#### Output parameterset 2 ####
 ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "log10(RWallInit)",
                          xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
+                         facetx = "MigrLumWall",
+                         facety = "MigrWallLum",
                          mytag = "A",
                          save = FALSE),
-       device = "png", width = 32, units = "cm")
-
-ggsave(filename = paste0(DateTimeStamp, "NutrLumTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(NutrLumInit)",
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
-                         save = FALSE),
-       device = "png", width = 32, units = "cm")
-
-ggsave(filename = paste0(DateTimeStamp, "NutrWallTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(NutrWallInit)",
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
-                         save = FALSE),
-       device = "png", width = 32, units = "cm")
-
-ggsave(filename = paste0(DateTimeStamp, "RLumWallTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(RLumInit/RWallInit)",
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
-                         save = FALSE),
-       device = "png", width = 32, units = "cm")
+       device = "png", width = 10, units = "cm")
 
 ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
                          limits = c(-1, 1),
                          xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
+                         facetx = "MigrLumWall",
+                         facety = "MigrWallLum",
                          mytag = "B",
                          save = FALSE),
-       device = "png", width = 32, units = "cm")
+       device = "png", width = 10, units = "cm")
 
 
-#### Plotting output for parameterset 3 ####
-
-limitsbiomass <- range(log10(c(MyData$RLumInit, MyData$RWallInit)))
-
-ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass2.png"),
-       plot = CreatePlot(fillvar = "log10(RLumInit)",
-                         limits = limitsbiomass,
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "wWall + MigrLumWall",
-                         facety = ".",
-                         mytag = "A",
-                         save = FALSE),
-       device = "png", width = 5.3, units = "cm")
-
-ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass2.png"),
-       plot = CreatePlot(fillvar = "log10(RWallInit)",
-                         limits = limitsbiomass,
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "wWall + MigrLumWall",
-                         facety = ".",
-                         mytag = "B",
-                         save = FALSE),
-       device = "png", width = 5.3, units = "cm")
-
-ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass3.png"),
-       plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
-                         limits = c(-1, 1),
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "wWall + MigrLumWall",
-                         facety = ".",
-                         mytag = "C",
-                         save = FALSE),
-       device = "png", width = 5.3, units = "cm")
-
-abcd
-
-
-
+#### Final equilibria after invasion ####
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
 
