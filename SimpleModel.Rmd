@@ -155,7 +155,7 @@ boundary.plots + geom_point(aes(x = dpsi, y = loggamma, color =color),
 input.dir <- "C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/RcodeAndDataFiles/repository_R_data/"
 conjugation.dataD <- read.csv(paste0(input.dir, "20200909_Conjug_rates_D_1_R.csv"))
 conjugation.dataT <- read.csv(paste0(input.dir, "20200909_Conjug_rates_T_R.csv"))
-growth.data <- read.csv(paste0(input.dir,"20201007_Growth_rates_D1_R_T_D2"))
+growth.data <- read.csv(paste0(input.dir,"20201007_Growth_rates_D1_R_T_D2.csv"))
 #renaming to fit the existing script after renaming of columns
 colnames(conjugation.dataT)[colnames(conjugation.dataT) %in% c("Genera","Treatment", "Medium")] <- c("LABgenus","VL_type", "Experiment")
 colnames(conjugation.dataD)[colnames(conjugation.dataD) %in% c("Genera","Treatment", "Medium")] <- c("LABgenus","VL_type", "Experiment")
@@ -237,19 +237,19 @@ boundary.plots +
 theme(aspect.ratio = 1.5)
 
   
-ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_GENUS",format(Sys.Date(),"%Y%m%d"),".tiff"))
+ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_GENUS",format(Sys.Date(),"%Y%m%d"),".tiff"), scale = 1.5)
 
-boundary.plots + 
-  geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = as.factor(LABgenus),colour = LABgenus), data = plot.data[plot.data$Plasmid=="T",], size =1.75, alpha =.75)+
-  scale_colour_manual(values = labgenus.colours, name = "LAB genus")+
-  scale_shape_manual(values = labgenus.shapes, name = "LAB genus")+
-   xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
-  ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+facet_grid(.~10^N)+
-theme(aspect.ratio = 1.5)
-
-
-  
-ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_GENUS_donor",format(Sys.Date(),"%Y%m%d"),".tiff"))
+# boundary.plots + 
+#   geom_point(aes(x = dpsi.scaled, y = loggamma.scaled, shape = as.factor(LABgenus),colour = LABgenus), data = plot.data[plot.data$Plasmid=="D",], size =1.75, alpha =.75)+
+#   scale_colour_manual(values = labgenus.colours, name = "LAB genus")+
+#   scale_shape_manual(values = labgenus.shapes, name = "LAB genus")+
+#    xlab(expression(paste("Growth rate difference: ", Delta, psi)))+
+#   ylab(expression(paste("log conjugation rate: ",  log[10](gamma))))+facet_grid(.~10^N)+
+# theme(aspect.ratio = 1.5)
+# 
+# 
+#   
+# ggsave(paste0("C:/Surfdrive/Projecten/MITAR/ProjectShareMITAR/Papers/Microb_communities_conjugation/Figure_estimatesandequilibrium_GENUS_donor",format(Sys.Date(),"%Y%m%d"),".tiff"))
 
 
 ```
