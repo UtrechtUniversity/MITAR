@@ -36,18 +36,6 @@
 # use kn = knLum as function argument for lumen and kn = knWall as function argument for wall.
 # This will prevent creating 'DataWall' as separate dataframe
 
-# ScaleAreaPerVolume includes two aspects: (1) what is
-# the ratio of volume and surface occupied by the bacteria (i.e., how much
-# square cm of surface do the the bacteria contained in Y cubic cm occupy, see
-# Imran (2005) for some discussion of this) and (2) what is the ratio of the
-# volume and surface of the system that is modelled (i.e., if the gut is assumed
-# to be an open square tube, the surface in square cm equals 4 times the
-# volume in cubic cm). When modelling a round tube, the volume / surface = r / 2,
-# irrespective of chosen length.
-# Since I do not use it (i.e., ScaleAreaPerVolume = 1 and all cell densities and
-# nutrient concentrations are considered to be per mL), I can just as well drop
-# it.
-
 # Saving plots in PlotOverTime() (called from RunOverTime()) fails after the
 # first plot because names are the same. Add 'Iteration' as column to data
 # and append the value from that column to the name? That would als make it
@@ -64,7 +52,7 @@
 # on top of each other) the following can be used:
 # # Parms <- list(DInitLumSet = DInitLumSet, DInitWallSet = DInitWallSet, bRSet = bRSet,
 # NISet = NISet, NutrConvSet = NutrConvSet, MigrLumWallSet = MigrLumWallSet,
-# MigrWallLumSet = MigrWallLumSet, ScaleAreaPerVolSet = ScaleAreaPerVolSet,
+# MigrWallLumSet = MigrWallLumSet,
 # wSet = wSet, kpSet = kpSet, knSet = knSet, kpWallSet = kpWallSet,
 # knWallSet = knWallSet, cdSet = cdSet, ctSet = ctSet)
 # ColIndexRelParms <- which(lengths(Parms) > 1)
@@ -106,9 +94,9 @@ MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 ModelBulkNutrPlasmidfree <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum
-    dRLum <- (bR*NutrLum - wLum - MigrLumWall)*RLum + MigrWallLum*RWall*ScaleAreaPerVol
+    dRLum <- (bR*NutrLum - wLum - MigrLumWall)*RLum + MigrWallLum*RWall
     dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall
-    dRWall <- (bR*NutrWall - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleAreaPerVol
+    dRWall <- (bR*NutrWall - wWall - MigrWallLum)*RWall + MigrLumWall*RLum
     return(list(c(dNutrLum, dRLum, dNutrWall, dRWall)))
   })
 }
@@ -222,17 +210,17 @@ EstConjBulkWall <- function(MyData) {
 ModelBulkNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*((1 - cd)*DLum + RLum + (1 - ct)*TransLum)
-    dDLum <- ((1 - cd)*bR*NutrLum - wLum - MigrLumWall)*DLum + MigrWallLum*DWall*ScaleAreaPerVol
-    dRLum <- (bR*NutrLum - wLum - MigrLumWall)*RLum + MigrWallLum*RWall*ScaleAreaPerVol -
+    dDLum <- ((1 - cd)*bR*NutrLum - wLum - MigrLumWall)*DLum + MigrWallLum*DWall
+    dRLum <- (bR*NutrLum - wLum - MigrLumWall)*RLum + MigrWallLum*RWall -
       (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum
-    dTransLum <- ((1 - ct)*bR*NutrLum - wLum - MigrLumWall)*TransLum + MigrWallLum*TransWall*ScaleAreaPerVol +
+    dTransLum <- ((1 - ct)*bR*NutrLum - wLum - MigrLumWall)*TransLum + MigrWallLum*TransWall +
       (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum
 
     dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*((1 - cd)*DWall + RWall + (1 - ct)*TransWall)
-    dDWall <- ((1 - cd)*bR*NutrWall - wWall - MigrWallLum)*DWall + MigrLumWall*DLum/ScaleAreaPerVol
-    dRWall <- (bR*NutrWall - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleAreaPerVol -
+    dDWall <- ((1 - cd)*bR*NutrWall - wWall - MigrWallLum)*DWall + MigrLumWall*DLum
+    dRWall <- (bR*NutrWall - wWall - MigrWallLum)*RWall + MigrLumWall*RLum -
       (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
-    dTransWall <- ((1 - ct)*bR*NutrWall - wWall - MigrWallLum)*TransWall + MigrLumWall*TransLum/ScaleAreaPerVol +
+    dTransWall <- ((1 - ct)*bR*NutrWall - wWall - MigrWallLum)*TransWall + MigrLumWall*TransLum +
       (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
     return(list(c(dNutrLum, dDLum, dRLum, dTransLum, dNutrWall, dDWall, dRWall, dTransWall)))
   })
@@ -257,30 +245,30 @@ ModelPairsNutr <- function(t, state, parms) {
         (1 - cd)*(DLum + MdrLum + MdtLum) + (RLum + MdrLum + MrtLum) + (1 - ct)*(TransLum + MdtLum + MrtLum + 2*MttLum)
       )
     dDLum <- (1 - cd)*bR*NutrLum*(DLum + MdrLum + MdtLum) - (wLum + MigrLumWall + kp*RLum)*DLum +
-      kn*(MdrLum + MdtLum) + MigrWallLum*ScaleAreaPerVol*DWall
+      kn*(MdrLum + MdtLum) + MigrWallLum*DWall
     dRLum <- bR*NutrLum*(RLum + MdrLum + MrtLum) - (wLum + MigrLumWall + kp*(DLum + TransLum))*RLum +
-      kn*(MdrLum + MrtLum) + MigrWallLum*ScaleAreaPerVol*RWall
+      kn*(MdrLum + MrtLum) + MigrWallLum*RWall
     dTransLum <- (1 - ct)*bR*NutrLum*(TransLum + MdtLum + MrtLum + 2*MttLum) - (wLum + MigrLumWall + kp*RLum)*TransLum +
-      kn*(MdtLum + MrtLum + 2*MttLum) + MigrWallLum*ScaleAreaPerVol*TransWall
-    dMdrLum <- kp*DLum*RLum - (kn + gd + wLum + MigrLumWall)*MdrLum + MigrWallLum*MdrWall*ScaleAreaPerVol
-    dMdtLum <- gd*MdrLum - (kn + wLum + MigrLumWall)*MdtLum + MigrWallLum*ScaleAreaPerVol*MdtWall
-    dMrtLum <- kp*RLum*TransLum - (kn + gt + wLum + MigrLumWall)*MrtLum + MigrWallLum*ScaleAreaPerVol*MrtWall
-    dMttLum <- gt*MrtLum - (kn + wLum + MigrLumWall)*MttLum + MigrWallLum*ScaleAreaPerVol*MttWall
+      kn*(MdtLum + MrtLum + 2*MttLum) + MigrWallLum*TransWall
+    dMdrLum <- kp*DLum*RLum - (kn + gd + wLum + MigrLumWall)*MdrLum + MigrWallLum*MdrWall
+    dMdtLum <- gd*MdrLum - (kn + wLum + MigrLumWall)*MdtLum + MigrWallLum*MdtWall
+    dMrtLum <- kp*RLum*TransLum - (kn + gt + wLum + MigrLumWall)*MrtLum + MigrWallLum*MrtWall
+    dMttLum <- gt*MrtLum - (kn + wLum + MigrLumWall)*MttLum + MigrWallLum*MttWall
     
     dNutrWall <- (NIWall - NutrWall)*wNutrWall -
       NutrConv*bR*NutrWall*(
         (1 - cd)*(DWall + MdrWall + MdtWall) + (RWall + MdrWall + MrtWall) + (1 - ct)*(TransWall + MdtWall + MrtWall + 2*MttWall)
       )
     dDWall <- (1 - cd)*bR*NutrWall*(DWall + MdrWall + MdtWall) - (wWall + MigrWallLum + kpWall*RWall)*DWall +
-      knWall*(MdrWall + MdtWall) + MigrLumWall*DLum/ScaleAreaPerVol
+      knWall*(MdrWall + MdtWall) + MigrLumWall*DLum
     dRWall <- bR*NutrWall*(RWall + MdrWall + MrtWall) - (wWall + MigrWallLum + kpWall*(DWall + TransWall))*RWall +
-      knWall*(MdrWall + MrtWall) + MigrLumWall*RLum/ScaleAreaPerVol
+      knWall*(MdrWall + MrtWall) + MigrLumWall*RLum
     dTransWall <- (1 - ct)*bR*NutrWall*(TransWall + MdtWall + MrtWall + 2*MttWall) - (wWall + MigrWallLum + kpWall*RWall)*TransWall +
-      knWall*(MdtWall + MrtWall + 2*MttWall) + MigrLumWall*TransLum/ScaleAreaPerVol
-    dMdrWall <- kpWall*DWall*RWall - (knWall + gd + wWall + MigrWallLum)*MdrWall + MigrLumWall*MdrLum/ScaleAreaPerVol
-    dMdtWall <- gd*MdrWall - (knWall + wWall + MigrWallLum)*MdtWall + MigrLumWall*MdtLum/ScaleAreaPerVol
-    dMrtWall <- kpWall*RWall*TransWall - (knWall + gt + wWall + MigrWallLum)*MrtWall + MigrLumWall*MrtLum/ScaleAreaPerVol
-    dMttWall <- gt*MrtWall - (knWall + wWall + MigrWallLum)*MttWall + MigrLumWall*MttLum/ScaleAreaPerVol
+      knWall*(MdtWall + MrtWall + 2*MttWall) + MigrLumWall*TransLum
+    dMdrWall <- kpWall*DWall*RWall - (knWall + gd + wWall + MigrWallLum)*MdrWall + MigrLumWall*MdrLum
+    dMdtWall <- gd*MdrWall - (knWall + wWall + MigrWallLum)*MdtWall + MigrLumWall*MdtLum
+    dMrtWall <- kpWall*RWall*TransWall - (knWall + gt + wWall + MigrWallLum)*MrtWall + MigrLumWall*MrtLum
+    dMttWall <- gt*MrtWall - (knWall + wWall + MigrWallLum)*MttWall + MigrLumWall*MttLum
     
     return(list(c(dNutrLum, dDLum, dRLum, dTransLum, dMdrLum, dMdtLum, dMrtLum, dMttLum,
                   dNutrWall, dDWall, dRWall, dTransWall, dMdrWall, dMdtWall, dMrtWall, dMttWall)))
@@ -544,10 +532,9 @@ wLumSet <- round(1/24, 3)
 wWallSet <- round(1/24, 3)
 wNutrWallSet <- round(1/24, 3)
 NutrConvSet <- 1e-6
-bRSet <- 0.66
+bRSet <- 0.68
 MigrLumWallSet <- 0.1
 MigrWallLumSet <- 0.1
-ScaleAreaPerVolSet <- 1
 DInitLumSet <- 1E3
 DInitWallSet <- 0
 cdSet <- 0.05
@@ -559,17 +546,17 @@ knWallSet <- signif(10^seq(from = -2, to = 3, length.out = 3), 3)
 gdSet <- 15
 gtSet <- 15
 
-# Parameterset 2 to show effect of migration rates on stability
+# Parameterset 2 to show effect of migration rates on biomass and stability of
+# the plasmid-free equilibrium. Note that washout from the wall is excluded.
 NILumSet <- 10
 NIWallSet <- 10
 wLumSet <- round(1/24, 3)
 wWallSet <- 0 # Cells do not washout from the wall
 wNutrWallSet <- round(1/24, 3)
 NutrConvSet <- 1e-6
-bRSet <- 0.66
-MigrLumWallSet <- c(0.01, 0.1)
-MigrWallLumSet <- c(0.01, 0.1)
-ScaleAreaPerVolSet <- 1
+bRSet <- 0.68
+MigrLumWallSet <- c(0.025, 0.1, 0.4)
+MigrWallLumSet <- c(0.025, 0.1, 0.4)
 DInitLumSet <- 1E3
 DInitWallSet <- 0
 cdSet <- 0.05
@@ -577,7 +564,7 @@ ctSet <- 0.01
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^-12 
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
-knWallSet <- signif(10^seq(from = -2, to = 3, length.out = 3), 3)
+knWallSet <- signif(10^0.5, 3)
 gdSet <- 15
 gtSet <- 15
 
@@ -588,7 +575,6 @@ CheckParms <- c(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet,
                 wWall = wWallSet, wNutrWallSet = wNutrWallSet,
                 NutrConv = NutrConvSet, bR = bRSet,
                 MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
-                ScaleAreaPerVol = ScaleAreaPerVolSet,
                 DInitLum = DInitLumSet, DInitWall = DInitWallSet, 
                 cd = cdSet, ct = ctSet,
                 kp = kpSet, kpWall = kpWallSet, kn = knSet, knWall = knWallSet,
@@ -601,7 +587,7 @@ if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller
 
 TotalIterations <- length(NILumSet)*length(NIWallSet)*length(wLumSet)*
   length(wWallSet)*length(wNutrWallSet)*length(NutrConvSet)*length(bRSet)*
-  length(MigrLumWallSet)*length(MigrWallLumSet)*length(ScaleAreaPerVolSet)*
+  length(MigrLumWallSet)*length(MigrWallLumSet)*
   length(DInitLumSet)*length(DInitWallSet)*
   length(cdSet)*length(ctSet)*
   length(kpSet)*length(kpWallSet)*length(knSet)*length(knWallSet)*
@@ -611,8 +597,7 @@ TotalIterations
 ## Determine plasmid-free equilibrium for all parameter combinations
 MyData <- expand_grid(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet, wWall = wWallSet,
                       wNutrWall = wNutrWallSet, NutrConv = NutrConvSet, bR = bRSet,
-                      MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
-                      ScaleAreaPerVol = ScaleAreaPerVolSet)
+                      MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet)
 dim(MyData)
 
 # Add equilibrium values of the one-compartment model as initial state values to
@@ -713,71 +698,31 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoComp.png"),
        plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
                          limits = c(-1, 1), facetx = "knWall",
                          facety = "kpWall", save = FALSE),
-       device = "png", width = 16, units = "cm")
+       device = "png", width = 8, units = "cm")
 
 
-#### Plotting output for parameterset 2 ####
-
-# For parameterset 2: show influence of migration rates on biomass and nutrients
-# in lumen and at the wall, and influence on stability of the plasmid-free
-# equilibrium for different attachment and detachment rates in the lumen and at
-# the wall
-
-ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(RLumInit)",
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
-                         save = FALSE),
-       device = "png", width = 32, units = "cm")
-
+#### Output parameterset 2 ####
 ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "log10(RWallInit)",
                          xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
+                         facetx = "MigrLumWall",
+                         facety = "MigrWallLum",
                          mytag = "A",
                          save = FALSE),
-       device = "png", width = 32, units = "cm")
-
-ggsave(filename = paste0(DateTimeStamp, "NutrLumTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(NutrLumInit)",
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
-                         save = FALSE),
-       device = "png", width = 32, units = "cm")
-
-ggsave(filename = paste0(DateTimeStamp, "NutrWallTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(NutrWallInit)",
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
-                         save = FALSE),
-       device = "png", width = 32, units = "cm")
-
-ggsave(filename = paste0(DateTimeStamp, "RLumWallTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(RLumInit/RWallInit)",
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
-                         save = FALSE),
-       device = "png", width = 32, units = "cm")
+       device = "png", width = 10, units = "cm")
 
 ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
                          limits = c(-1, 1),
                          xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall + knWall",
-                         facety = "MigrWallLum + kpWall",
+                         facetx = "MigrLumWall",
+                         facety = "MigrWallLum",
                          mytag = "B",
                          save = FALSE),
-       device = "png", width = 32, units = "cm")
-
-abcd
+       device = "png", width = 10, units = "cm")
 
 
-
+#### Final equilibria after invasion ####
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
 
@@ -900,10 +845,10 @@ CreatePlot(fillvar = "log10(RLumInit)", limits = limitsREq, facetx = "NILum", fa
 CreatePlot2(fillvar = "log10(RLumInit)", gradient2 = 1, limits = c(-1, 1), facetx = "NILum", facety = "NIWall")
 
 SetsWithMoreThanOneValue <- c("NILum", "NIWall", "wLum", "wWall", "NutrConv",
-                              "bR", "MigrLumWall", "MigrWallLum", "ScaleAreaPerVol")[c(length(NILumSet),
-                                                                                       length(NIWallSet), length(wLumSet), length(wWallSet), length(NutrConvSet),
-                                                                                       length(bRSet), length(MigrLumWallSet), length(MigrWallLumSet),
-                                                                                       length(ScaleAreaPerVolSet)) > 1]
+                              "bR", "MigrLumWall", "MigrWallLum")[c(length(NILumSet),
+                             length(NIWallSet), length(wLumSet), length(wWallSet),
+                             length(NutrConvSet), length(bRSet),
+                             length(MigrLumWallSet), length(MigrWallLumSet)) > 1]
 
 if(length(SetsWithMoreThanOneValue) < 5) {
   CreatePlot(fillvar = "RLumInit/RWallInit",
