@@ -128,6 +128,10 @@
 # maybe should also delete them here, since it sometimes takes very long to
 # execute code (if populations go extinct and therefor many roots are found?)
 
+# Try to get different plot objects together as different panels in one figure.
+# See ggpubr:ggarrange(labels = c("A", "B"), common.legend = TRUE, legend = "bottom")
+# 
+
 ## NUTRIENTS are also in the root- and event-functions, see comment at their
 # function definitions
 
@@ -433,8 +437,8 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # Conjugation rates (1/h) from donor and transconjugant: gd and gt
 # Mating pair attachment rate (mL * cell^-1 * h^-1): kp (k+ in Zhong's notation)
 # Mating pair detachment rate (1/h): kn (k- in Zhong's notation)
-# Nutrient concentration in the inflowing liquid (microgram * mL^-1): NI
-# Resource conversion rate (microgram per cell division): e
+# Nutrient concentration in the inflowing liquid (milligram * mL^-1): NI
+# Resource conversion rate (milligram per cell division): e
 # Washout rate (1/h): w
 
 ## To read data from csv-file
@@ -455,8 +459,8 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 ## Parameterset 1: show NI and w influence stability of plasmid-free equilibrium
 DInitSet <- c(1E3)
 bRSet <- c(0.68)
-NISet <- 10^seq(from = 0, to = 2, by = 1)
-NutrConvSet <- 1e-6
+NISet <- c(0.14, 1.4, 14)
+NutrConvSet <- 1.3e-7
 # ln(2)/24, 1/24, 1% remaining after 24h, 0.1% remaining after 24h:
 wSet <- c(round(log(2)/24, 3), round(1/24, 3), 0.192, 0.288) 
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
@@ -471,8 +475,8 @@ gtSet <- c(15)
 ## bulk-conjugation rates.
 DInitSet <- c(1E3)
 bRSet <- c(0.68)
-NISet <- c(10)
-NutrConvSet <- 1e-6
+NISet <- 1.4
+NutrConvSet <- 1.3e-7
 wSet <- round(1/24, 3)
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
@@ -480,6 +484,19 @@ cdSet <- c(0.01, 0.05)
 ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
 gtSet <- c(1, 15)
+
+## Testset influence of attachment and detachment on approximation of bulkrates
+DInitSet <- c(1E3)
+bRSet <- c(0.68)
+NISet <- 1.4
+NutrConvSet <- 1.3e-7
+wSet <- round(1/24, 3)
+kpSet <- 10^c(-11, -9)
+knSet <- 10^seq(from = -2, to = 3, by = 1)
+cdSet <- c(0.05)
+ctSet <- c(0.01)
+gdSet <- c(15)
+gtSet <- c(15)
 
 ## Using parameterset 2 with steps of 0.2 for kp and kn does not work for the
 # pair-formation model, or for the bulk-conjugation model. Lowering atol to 1e-11
