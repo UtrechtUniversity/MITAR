@@ -526,12 +526,12 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
 # concentrations are then also equal to those in the one-compartment model.
 # This parameterset can be used to show influence of attachment and detachment
 # rates that are different in the lumen compared to at the wall.
-NILumSet <- 10
-NIWallSet <- 10
+NILumSet <- 1.4
+NIWallSet <- 1.4
 wLumSet <- round(1/24, 3)
 wWallSet <- round(1/24, 3)
 wNutrWallSet <- round(1/24, 3)
-NutrConvSet <- 1e-6
+NutrConvSet <- 1.3e-7
 bRSet <- 0.68
 MigrLumWallSet <- 0.1
 MigrWallLumSet <- 0.1
@@ -548,12 +548,12 @@ gtSet <- 15
 
 # Parameterset 2 to show effect of migration rates on biomass and stability of
 # the plasmid-free equilibrium. Note that washout from the wall is excluded.
-NILumSet <- 10
-NIWallSet <- 10
+NILumSet <- 1.4
+NIWallSet <- 1.4
 wLumSet <- round(1/24, 3)
 wWallSet <- 0 # Cells do not washout from the wall
 wNutrWallSet <- round(1/24, 3)
-NutrConvSet <- 1e-6
+NutrConvSet <- 1.3e-7
 bRSet <- 0.68
 MigrLumWallSet <- c(0.025, 0.1, 0.4)
 MigrWallLumSet <- c(0.025, 0.1, 0.4)
@@ -702,6 +702,8 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoComp.png"),
 
 
 #### Output parameterset 2 ####
+
+# Show the effect of migration rates on biomass at the wall (Figure 6A).
 ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "log10(RWallInit)",
                          xvar = "log10(kp)", yvar = "log10(kn)",
@@ -711,6 +713,8 @@ ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
                          save = FALSE),
        device = "png", width = 10, units = "cm")
 
+# Show the effect of migration rates on stability of the plasmid-free
+# equilibrium (Figure 6B).
 ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
                          limits = c(-1, 1),
@@ -721,6 +725,16 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
                          save = FALSE),
        device = "png", width = 10, units = "cm")
 
+# Show the effect of migration rates on biomass in the lumen (plot not shown).
+ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
+       plot = CreatePlot(fillvar = "log10(RLumInit)",
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "MigrLumWall",
+                         facety = "MigrWallLum",
+                         limits = range(log10(MyData$RWallInit)),
+                         mytag = "C",
+                         save = FALSE),
+       device = "png", width = 10, units = "cm")
 
 #### Final equilibria after invasion ####
 # If invasion is possible, run simulation to see how many bacteria of each
