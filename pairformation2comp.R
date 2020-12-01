@@ -840,6 +840,7 @@ times <- seq(from = 0, to = Mytmax, by = Mytstep)
 # To see the dynamics of the different populations
 EqAfterInvasionPair <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Pair"))
 EqAfterInvasion <- cbind(Mydf, EqAfterInvasionPair)
+for(i in TotalIterations) {dev.off()} # Not a clean way of implementing, but it works
 
 # To compare total numbers of donors, recipients, and transconjugants in the
 # output of the pair-formation model with the bulk-formation model
