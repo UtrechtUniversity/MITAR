@@ -170,7 +170,7 @@ library(tidyr) # for 'expand.grid()' with dataframe as input
 library(dplyr) # for mutate() to create new variables in dataframe/tibble
 
 #### Plotting and simulation options ####
-saveplots <- 0
+saveplots <- 1
 atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
 # in the machine, T + H = T on the next step  [1] 0 (H = step size). Solver will
@@ -180,12 +180,13 @@ timesEstConj <- seq(from = 0, to = 3, by = 0.1)
 
 #### Functions ####
 # Calculate the plasmid-free equilibrium (R*, Nutr*) using the solution to
-# dR/dt = R*(Nutr*bR - w) == 0, dNutr/dt = (NI - Nutr)*w - NutrConv*Nutr*bR*R ==
+# dR/dt = R*(bR*Nutr / (Ks + Nutr) - w) == 0,
+# dNutr/dt = (NI - Nutr)*w - NutrConv*Nutr*R*bR / (Ks + Nutr) ==
 # 0 with R > 0 and Nutr > 0
 CalcEqPlasmidfree <- function(MyData) {
   with(as.list(MyData), {
-    REq <- (NI - (w / bR)) / NutrConv
-    NutrEq <- w / bR
+    NutrEq <- w*Ks / (bR - w)
+    REq <- (NI - NutrEq) / NutrConv
     Eq <- c(NutrEq = NutrEq, REq = REq)
     return(Eq)
   })
@@ -250,12 +251,12 @@ EstConjBulk <- function(MyData) {
 # bacteria, washout, and nutrients.
 ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutr <- (NI - Nutr)*w - NutrConv*Nutr*((1 - cd)*bR*(D + Mdr + Mdt) + bR*(R + Mdr + Mrt) +
-                                              (1 - ct)*bR*(Trans + Mdt + Mrt + 2*Mtt))
-    dD <- (1 - cd)*bR*Nutr*(D + Mdr + Mdt) - kp*D*R + kn*(Mdr + Mdt) - w*D
-    dR <- bR*Nutr*(R + Mdr + Mrt) - kp*R*(D + Trans) + kn*(Mdr + Mrt) - w*R
-    dTrans <- (1 - ct)*bR*Nutr*(Trans + Mdt + Mrt + 2*Mtt) - kp*R*Trans + kn*(Mdt + Mrt + 2*Mtt) -
-      w*Trans
+    dNutr <- (NI - Nutr)*w - NutrConv*Nutr*((1 - cd)*bR*(D + Mdr + Mdt) +
+                              bR*(R + Mdr + Mrt) + (1 - ct)*bR*(Trans + Mdt + Mrt + 2*Mtt))/(Ks + Nutr)
+    dD <- (1 - cd)*bR*Nutr*(D + Mdr + Mdt)/(Ks + Nutr) - kp*D*R + kn*(Mdr + Mdt) - w*D
+    dR <- bR*Nutr*(R + Mdr + Mrt)/(Ks + Nutr) - kp*R*(D + Trans) + kn*(Mdr + Mrt) - w*R
+    dTrans <- (1 - ct)*bR*Nutr*(Trans + Mdt + Mrt + 2*Mtt)/(Ks + Nutr) - kp*R*Trans +
+      kn*(Mdt + Mrt + 2*Mtt) - w*Trans
     dMdr <- kp*D*R - kn*Mdr - gd*Mdr - w*Mdr
     dMdt <- gd*Mdr - kn*Mdt - w*Mdt
     dMrt <- kp*R*Trans - kn*Mrt - gt*Mrt - w*Mrt
@@ -267,10 +268,10 @@ ModelPairsNutr <- function(t, state, parms) {
 # The bulk-conjugation model
 ModelBulkNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutr <- (NI - Nutr)*w - NutrConv*bR*Nutr*((1 - cd)*D + R + (1 - ct)*Trans)
-    dD <- ((1 - cd)*bR*Nutr - w)*D
-    dR <- (bR*Nutr - gdbulk*D - gtbulk*Trans - w)*R
-    dTrans <- (1 - ct)*bR*Nutr*Trans + gdbulk*D*R + gtbulk*Trans*R - w*Trans
+    dNutr <- (NI - Nutr)*w - NutrConv*bR*Nutr*((1 - cd)*D + R + (1 - ct)*Trans)/(Ks + Nutr)
+    dD <- ((1 - cd)*bR*Nutr/(Ks + Nutr) - w)*D
+    dR <- (bR*Nutr/(Ks + Nutr) - gdbulk*D - gtbulk*Trans - w)*R
+    dTrans <- (1 - ct)*bR*Nutr*Trans/(Ks + Nutr) + gdbulk*D*R + gtbulk*Trans*R - w*Trans
     return(list(c(dNutr, dD, dR, dTrans)))
   })
 }
@@ -442,11 +443,11 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # Washout rate (1/h): w
 
 ## To read data from csv-file
-# FileName <- "2020_augustus_03_12_54_32outputnosimulationtwocompartment.csv"
+# FileName <- "2020_12_02_10_00outputnosimulation.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
 # MyData <- as.data.frame(MyData)
-# DateTimeStamp <- substr(FileName, 1, nchar(FileName) - 36)
+# DateTimeStamp <- substr(FileName, 1, 16)
 
 ## Stable co-existence of recipients, transconjugants, and Mrt and Mtt pairs
 # bRSet <- 1.7; NISet <- 10; kpSet <- 10^-9.6; knSet <- 10^0.5
@@ -458,9 +459,10 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 
 ## Parameterset 1: show NI and w influence stability of plasmid-free equilibrium
 DInitSet <- c(1E3)
-bRSet <- c(0.68)
+bRSet <- c(0.738)
+Ks <- 0.004
 NISet <- c(0.14, 1.4, 14)
-NutrConvSet <- 1.3e-7
+NutrConvSet <- 1.4e-7
 # ln(2)/24, 1/24, 1% remaining after 24h, 0.1% remaining after 24h:
 wSet <- c(round(log(2)/24, 3), round(1/24, 3), 0.192, 0.288) 
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
@@ -474,9 +476,10 @@ gtSet <- c(15)
 ## detachment rates on the stability of the plasmid-free equilibrium and on
 ## bulk-conjugation rates.
 DInitSet <- c(1E3)
-bRSet <- c(0.68)
+bRSet <- c(0.738)
+Ks <- 0.004
 NISet <- 1.4
-NutrConvSet <- 1.3e-7
+NutrConvSet <- 1.4e-7
 wSet <- round(1/24, 3)
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
@@ -487,9 +490,10 @@ gtSet <- c(1, 15)
 
 ## Testset influence of attachment and detachment on approximation of bulkrates
 DInitSet <- c(1E3)
-bRSet <- c(0.68)
+bRSet <- c(0.738)
 NISet <- 1.4
-NutrConvSet <- 1.3e-7
+Ks <- 0.004
+NutrConvSet <- 1.4e-7
 wSet <- round(1/24, 3)
 kpSet <- 10^c(-11, -9)
 knSet <- 10^seq(from = -2, to = 3, by = 1)
@@ -505,17 +509,17 @@ gtSet <- c(15)
 
 #### Main script ####
 
-CheckParms <- c(DInitSet, bRSet, NISet, NutrConvSet, wSet, kpSet, knSet, cdSet, ctSet)
+CheckParms <- c(DInitSet, bRSet, NISet, Ks, NutrConvSet, wSet, kpSet, knSet, cdSet, ctSet)
 if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
 if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
 
-TotalIterations <- length(DInitSet)*length(bRSet)*length(NISet)*length(NutrConvSet)*
+TotalIterations <- length(DInitSet)*length(bRSet)*length(NISet)*length(Ks)*length(NutrConvSet)*
   length(wSet)*length(kpSet)*length(knSet)*length(cdSet)*length(ctSet)*
   length(gdSet)*length(gtSet)
 TotalIterations
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
-MyData <- expand_grid(bR = bRSet, NI = NISet, NutrConv = NutrConvSet, w = wSet)
+MyData <- expand_grid(bR = bRSet, NI = NISet, Ks = Ks, NutrConv = NutrConvSet, w = wSet)
 
 Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
 MyData <- cbind(MyData, Eqplasmidfree)
@@ -693,6 +697,9 @@ if(any(MyData$steady == 0)) warning("Steady-state has not always been reached")
 
 print("Pair-formation model completed running:")
 print(Sys.time())
+
+write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpart1.csv"),
+          quote = FALSE, row.names = FALSE)
 
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
 print(paste(length(IndexSimulationBulk), "simulations to run for the bulk model"))
