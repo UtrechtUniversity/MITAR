@@ -93,10 +93,10 @@ MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 #### Functions ####
 ModelBulkNutrPlasmidfree <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum
-    dRLum <- (bR*NutrLum - wLum - MigrLumWall)*RLum + MigrWallLum*RWall
-    dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall
-    dRWall <- (bR*NutrWall - wWall - MigrWallLum)*RWall + MigrLumWall*RLum
+    dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum/(Ks + NutrLum)
+    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall
+    dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall/(Ks + NutrWall)
+    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum
     return(list(c(dNutrLum, dRLum, dNutrWall, dRWall)))
   })
 }
@@ -209,18 +209,18 @@ EstConjBulkWall <- function(MyData) {
 # from donors and transconjugants for bacterial equations.
 ModelBulkNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*((1 - cd)*DLum + RLum + (1 - ct)*TransLum)
-    dDLum <- ((1 - cd)*bR*NutrLum - wLum - MigrLumWall)*DLum + MigrWallLum*DWall
-    dRLum <- (bR*NutrLum - wLum - MigrLumWall)*RLum + MigrWallLum*RWall -
+    dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*((1 - cd)*DLum + RLum + (1 - ct)*TransLum)/(Ks + NutrLum)
+    dDLum <- ((1 - cd)*bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*DLum + MigrWallLum*DWall
+    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall -
       (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum
-    dTransLum <- ((1 - ct)*bR*NutrLum - wLum - MigrLumWall)*TransLum + MigrWallLum*TransWall +
+    dTransLum <- ((1 - ct)*bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*TransLum + MigrWallLum*TransWall +
       (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum
 
-    dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*((1 - cd)*DWall + RWall + (1 - ct)*TransWall)
-    dDWall <- ((1 - cd)*bR*NutrWall - wWall - MigrWallLum)*DWall + MigrLumWall*DLum
-    dRWall <- (bR*NutrWall - wWall - MigrWallLum)*RWall + MigrLumWall*RLum -
+    dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*((1 - cd)*DWall + RWall + (1 - ct)*TransWall)/(Ks + NutrWall)
+    dDWall <- ((1 - cd)*bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*DWall + MigrLumWall*DLum
+    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum -
       (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
-    dTransWall <- ((1 - ct)*bR*NutrWall - wWall - MigrWallLum)*TransWall + MigrLumWall*TransLum +
+    dTransWall <- ((1 - ct)*bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*TransWall + MigrLumWall*TransLum +
       (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
     return(list(c(dNutrLum, dDLum, dRLum, dTransLum, dNutrWall, dDWall, dRWall, dTransWall)))
   })
@@ -242,13 +242,13 @@ ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutrLum <- (NILum - NutrLum)*wLum -
       NutrConv*bR*NutrLum*(
-        (1 - cd)*(DLum + MdrLum + MdtLum) + (RLum + MdrLum + MrtLum) + (1 - ct)*(TransLum + MdtLum + MrtLum + 2*MttLum)
+        (1 - cd)*(DLum + MdrLum + MdtLum) + (RLum + MdrLum + MrtLum) + (1 - ct)*(TransLum + MdtLum + MrtLum + 2*MttLum)/(Ks + NutrLum)
       )
-    dDLum <- (1 - cd)*bR*NutrLum*(DLum + MdrLum + MdtLum) - (wLum + MigrLumWall + kp*RLum)*DLum +
+    dDLum <- (1 - cd)*bR*NutrLum*(DLum + MdrLum + MdtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*DLum +
       kn*(MdrLum + MdtLum) + MigrWallLum*DWall
-    dRLum <- bR*NutrLum*(RLum + MdrLum + MrtLum) - (wLum + MigrLumWall + kp*(DLum + TransLum))*RLum +
+    dRLum <- bR*NutrLum*(RLum + MdrLum + MrtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*(DLum + TransLum))*RLum +
       kn*(MdrLum + MrtLum) + MigrWallLum*RWall
-    dTransLum <- (1 - ct)*bR*NutrLum*(TransLum + MdtLum + MrtLum + 2*MttLum) - (wLum + MigrLumWall + kp*RLum)*TransLum +
+    dTransLum <- (1 - ct)*bR*NutrLum*(TransLum + MdtLum + MrtLum + 2*MttLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*TransLum +
       kn*(MdtLum + MrtLum + 2*MttLum) + MigrWallLum*TransWall
     dMdrLum <- kp*DLum*RLum - (kn + gd + wLum + MigrLumWall)*MdrLum + MigrWallLum*MdrWall
     dMdtLum <- gd*MdrLum - (kn + wLum + MigrLumWall)*MdtLum + MigrWallLum*MdtWall
@@ -257,13 +257,13 @@ ModelPairsNutr <- function(t, state, parms) {
     
     dNutrWall <- (NIWall - NutrWall)*wNutrWall -
       NutrConv*bR*NutrWall*(
-        (1 - cd)*(DWall + MdrWall + MdtWall) + (RWall + MdrWall + MrtWall) + (1 - ct)*(TransWall + MdtWall + MrtWall + 2*MttWall)
+        (1 - cd)*(DWall + MdrWall + MdtWall) + (RWall + MdrWall + MrtWall) + (1 - ct)*(TransWall + MdtWall + MrtWall + 2*MttWall)/(Ks + NutrWall)
       )
-    dDWall <- (1 - cd)*bR*NutrWall*(DWall + MdrWall + MdtWall) - (wWall + MigrWallLum + kpWall*RWall)*DWall +
+    dDWall <- (1 - cd)*bR*NutrWall*(DWall + MdrWall + MdtWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*RWall)*DWall +
       knWall*(MdrWall + MdtWall) + MigrLumWall*DLum
-    dRWall <- bR*NutrWall*(RWall + MdrWall + MrtWall) - (wWall + MigrWallLum + kpWall*(DWall + TransWall))*RWall +
+    dRWall <- bR*NutrWall*(RWall + MdrWall + MrtWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*(DWall + TransWall))*RWall +
       knWall*(MdrWall + MrtWall) + MigrLumWall*RLum
-    dTransWall <- (1 - ct)*bR*NutrWall*(TransWall + MdtWall + MrtWall + 2*MttWall) - (wWall + MigrWallLum + kpWall*RWall)*TransWall +
+    dTransWall <- (1 - ct)*bR*NutrWall*(TransWall + MdtWall + MrtWall + 2*MttWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*RWall)*TransWall +
       knWall*(MdtWall + MrtWall + 2*MttWall) + MigrLumWall*TransLum
     dMdrWall <- kpWall*DWall*RWall - (knWall + gd + wWall + MigrWallLum)*MdrWall + MigrLumWall*MdrLum
     dMdtWall <- gd*MdrWall - (knWall + wWall + MigrWallLum)*MdtWall + MigrLumWall*MdtLum
@@ -531,6 +531,7 @@ NIWallSet <- 1.4
 wLumSet <- round(1/24, 3)
 wWallSet <- round(1/24, 3)
 wNutrWallSet <- round(1/24, 3)
+Ks <- 0.004
 NutrConvSet <- 1.3e-7
 bRSet <- 0.68
 MigrLumWallSet <- 0.1
@@ -553,6 +554,7 @@ NIWallSet <- 1.4
 wLumSet <- round(1/24, 3)
 wWallSet <- 0 # Cells do not washout from the wall
 wNutrWallSet <- round(1/24, 3)
+Ks <- 0.004
 NutrConvSet <- 1.3e-7
 bRSet <- 0.68
 MigrLumWallSet <- c(0.025, 0.1, 0.4)
@@ -573,7 +575,7 @@ gtSet <- 15
 print(Sys.time())
 CheckParms <- c(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet,
                 wWall = wWallSet, wNutrWallSet = wNutrWallSet,
-                NutrConv = NutrConvSet, bR = bRSet,
+                Ks = Ks, NutrConv = NutrConvSet, bR = bRSet,
                 MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
                 DInitLum = DInitLumSet, DInitWall = DInitWallSet, 
                 cd = cdSet, ct = ctSet,
@@ -586,7 +588,7 @@ if(any(CheckParms <= 0)) warning(warntext)
 if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
 
 TotalIterations <- length(NILumSet)*length(NIWallSet)*length(wLumSet)*
-  length(wWallSet)*length(wNutrWallSet)*length(NutrConvSet)*length(bRSet)*
+  length(wWallSet)*length(wNutrWallSet)*length(Ks)*length(NutrConvSet)*length(bRSet)*
   length(MigrLumWallSet)*length(MigrWallLumSet)*
   length(DInitLumSet)*length(DInitWallSet)*
   length(cdSet)*length(ctSet)*
@@ -603,10 +605,10 @@ dim(MyData)
 # Add equilibrium values of the one-compartment model as initial state values to
 # run to the plasmid-free equilibrium
 MyData <- mutate(MyData, 
-                  NutrLumGuess = wLum/bR,
-                  RLumGuess = (NILum - wLum/bR)/NutrConv,
-                  NutrWallGuess = wWall/bR,
-                  RWallGuess = (NIWall - wWall/bR)/NutrConv
+                  NutrLumGuess = wLum*Ks / (bR - wLum),
+                  RLumGuess = (NILum - NutrLumGuess)/NutrConv,
+                  NutrWallGuess = wWall*Ks / (bR - wWall),
+                  RWallGuess = (NIWall - NutrWallGuess)/NutrConv
 )
 
 if(any(select(MyData, ends_with("Guess")) < 0)) {
@@ -698,7 +700,7 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoComp.png"),
        plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
                          limits = c(-1, 1), facetx = "knWall",
                          facety = "kpWall", save = FALSE),
-       device = "png", width = 8, units = "cm")
+       device = "png", width = 16, units = "cm")
 
 
 #### Output parameterset 2 ####
@@ -736,6 +738,30 @@ ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
                          save = FALSE),
        device = "png", width = 10, units = "cm")
 
+ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomassBulk.png"),
+       plot = CreatePlot(fillvar = "factor(SignDomEigValBulk)", gradient2 = TRUE,
+                         limits = c(-1, 1),
+                         xvar = "log10(kp)", yvar = "log10(kn)",
+                         facetx = "MigrLumWall",
+                         facety = "MigrWallLum",
+                         mytag = "B",
+                         save = FALSE),
+       device = "png", width = 10, units = "cm")
+
+# Are signs of the largest eigenvalues equal for bulk- and pair-formation model?
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(MigrLumWall ~ MigrWallLum, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "red"),
+                    name = "Dominant eigenvalues \nhave equal signs")
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvalues.png"))
+}
+
 #### Final equilibria after invasion ####
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
@@ -766,6 +792,9 @@ if(any(MyData$steady == 0)) warning("Steady-state has not always been reached")
 
 print("Pair-formation model completed running:")
 print(Sys.time())
+
+write.csv(MyData, file = paste0(DateTimeStamp, "outputtwocompartmentpart1.csv"),
+          quote = FALSE, row.names = FALSE)
 
 IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
 print(paste(length(IndexSimulationBulk), "simulations to run for the bulk model"))
