@@ -532,8 +532,8 @@ wLumSet <- round(1/24, 3)
 wWallSet <- round(1/24, 3)
 wNutrWallSet <- round(1/24, 3)
 Ks <- 0.004
-NutrConvSet <- 1.3e-7
-bRSet <- 0.68
+NutrConvSet <- 1.4e-7
+bRSet <- 0.738
 MigrLumWallSet <- 0.1
 MigrWallLumSet <- 0.1
 DInitLumSet <- 1E3
@@ -555,8 +555,8 @@ wLumSet <- round(1/24, 3)
 wWallSet <- 0 # Cells do not washout from the wall
 wNutrWallSet <- round(1/24, 3)
 Ks <- 0.004
-NutrConvSet <- 1.3e-7
-bRSet <- 0.68
+NutrConvSet <- 1.4e-7
+bRSet <- 0.738
 MigrLumWallSet <- c(0.025, 0.1, 0.4)
 MigrWallLumSet <- c(0.025, 0.1, 0.4)
 DInitLumSet <- 1E3
@@ -744,7 +744,7 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomassBulk.png
                          xvar = "log10(kp)", yvar = "log10(kn)",
                          facetx = "MigrLumWall",
                          facety = "MigrWallLum",
-                         mytag = "B",
+                         mytag = "B2",
                          save = FALSE),
        device = "png", width = 10, units = "cm")
 
