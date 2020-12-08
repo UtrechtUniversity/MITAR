@@ -489,6 +489,21 @@ ctSet <- c(0.01, 0.05)
 gdSet <- c(1, 15)
 gtSet <- c(1, 15)
 
+## Parameterset 3: to compare bulk- and pair model over time
+DInitSet <- c(1E3)
+bRSet <- c(0.738)
+Ks <- 0.004
+NISet <- 1.4
+NutrConvSet <- 1.4e-7
+wSet <- round(1/24, 3)
+kpSet <- 10^c(-12, -9)
+knSet <- 10^0.5
+cdSet <- 0.05
+ctSet <- 0.01
+gdSet <- 15
+gtSet <- 15
+
+
 ## Testset influence of attachment and detachment on approximation of bulkrates
 DInitSet <- c(1E3)
 bRSet <- c(0.738)
@@ -591,7 +606,7 @@ CreatePlot(fillvar = "log10(REq)", facetx = "w", facety = "NI")
 CreatePlot(fillvar = "NutrEq", facetx = "w", facety = "NI")
 
 # Show that dominant eigenvalues have equal signs for pair-formation and bulk
-# model (run with parameterset 1, plot not shown in article)
+# model (run with parameterset 1, Figure S1 in article)
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) +
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -648,7 +663,7 @@ if(saveplots == 1 ) {
 }
 
 # Show if sign of dominant eigenvalues for pair-formation and bulk model is the same 
-# (Figure S4 in article)
+# (Figure S2 in article)
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -852,13 +867,13 @@ yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 plotoutput <- 1
 verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed and roots are indicated in the graphs
 smallchange <- c(1E-5)
-Mytmax <- c(1E5)
+Mytmax <- c(1E4)
 Mytstep <- c(10)
 
 #### Create matrix to store data ####
 TheseRows <- c(1, nrow(MyData))
 TheseRows <- 1:nrow(MyData)
-TheseRows <- ceiling(seq(from = nrow(MyData)/(4*4*2*2), to = nrow(MyData), length.out = 4*4*2))
+# TheseRows <- ceiling(seq(from = nrow(MyData)/(4*4*2*2), to = nrow(MyData), length.out = 4*4*2))
 if(!exists("ColumnsToSelect")) {ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))}
 Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
@@ -928,12 +943,14 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
                        " gtbulk=", signif(parms[["gtbulk"]], digits = 4))
   }
   if(saveplot == TRUE) {
-    filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
-    if(file.exists(filename)) {
-      warning("File already exists, not saved again!")
-    } else {
+    # filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
+    # filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), "%03d", ".png")
+    filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), "output", gsub(" ", "", maintitle), ".png") 
+   if(file.exists(filename)) {
+     warning("File already exists, not saved again!")
+   } else {
       png(filename = filename)
-    }
+   }
     matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
                     legend = list(x = "topright"))
@@ -941,9 +958,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
     if(verbose == TRUE) {
       abline(v = attributes(plotdata)$troot)
     }
-    if(file.exists(filename) == FALSE) {
-      dev.off()
-    }
+    dev.off()
   } else {
     matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
@@ -955,6 +970,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
   }
 }
 
+# Plots are shown in Figure S3 in the article.
 EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
 
 EqAfterInvasion <- cbind(Mydf, EqAfterInvasion)
