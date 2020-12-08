@@ -37,7 +37,8 @@
 # might work without having to code the creation of the plot twice ?
 # In saveplots == 1 does not work well with RunOverTime, since only the first two plots
 # are saved and then warning is issued that file already exists. Add column with
-# rownumber to dataframe to append to filename?
+# rownumber to dataframe to append to filename? See remark in ?ggsave() on use of 
+# filename = "figure%03d.png" to get sequential numbers.
 
 # The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
 # ect. for approximating bulk-rates can be moved inside the EstConjBulk function.
@@ -439,7 +440,7 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # Mating pair attachment rate (mL * cell^-1 * h^-1): kp (k+ in Zhong's notation)
 # Mating pair detachment rate (1/h): kn (k- in Zhong's notation)
 # Nutrient concentration in the inflowing liquid (milligram * mL^-1): NI
-# Resource conversion rate (milligram per cell division): e
+# Resource conversion rate (milligram per cell division): NutrConv
 # Washout rate (1/h): w
 
 ## To read data from csv-file
@@ -573,6 +574,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
   facet_grid(w ~ NI, labeller = label_both) +
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
@@ -594,6 +596,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
   facet_grid(w ~ NI, labeller = label_both) +
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
@@ -609,20 +612,23 @@ if(saveplots == 1 ) {
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium, run with multiple values for kn, kp, cd, ct, gd, gt
-# and than plot:
+# and than plot (Figure 3 in article):
 # Note: hardcoded legend
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
   facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
   scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
 if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
+  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal)AspRat.png"))
 }
+
+FilteredData <- filter(MyData, cd == 0.05 & ct == 0.01 & gd == 15 & gt == 15)
 
 # Stability of the equilibrium for the bulk-conjugation model
 # (plot not shown in article)
@@ -630,6 +636,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
   facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
   labs(caption = DateTimeStamp, x = "log10(attachment rate)",
        y = "log10(detachment rate)") +
@@ -646,6 +653,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
   facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
   labs(caption = DateTimeStamp) +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
