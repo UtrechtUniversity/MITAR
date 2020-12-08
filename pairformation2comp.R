@@ -696,16 +696,25 @@ range(MyData$RLumInit/MyData$RWallInit)
 
 # Show influence of kpWall and knWall on the stability of the plasmid-free
 # equilibrium for parameterset 1 (Figure 5 in the article)
-ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoComp.png"),
-       plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
-                         limits = c(-1, 1), facetx = "knWall",
-                         facety = "kpWall", save = FALSE),
-       device = "png", width = 16, units = "cm")
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_grid(knWall ~ kpWall, labeller = label_both) +
+  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
+       y = "log10(detachment rate)") +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "SignDomEigValTwoComp.png"))
+}
 
 
 #### Output parameterset 2 ####
 
 # Show the effect of migration rates on biomass at the wall (Figure 6A).
+# NOTE: aspect ratio is not fixed in this plot
 ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "log10(RWallInit)",
                          xvar = "log10(kp)", yvar = "log10(kn)",
@@ -717,6 +726,7 @@ ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
 
 # Show the effect of migration rates on stability of the plasmid-free
 # equilibrium (Figure 6B).
+# NOTE: aspect ratio is not fixed in this plot
 ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
                          limits = c(-1, 1),
@@ -728,6 +738,7 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
        device = "png", width = 10, units = "cm")
 
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
+# NOTE: aspect ratio is not fixed in this plot
 ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "log10(RLumInit)",
                          xvar = "log10(kp)", yvar = "log10(kn)",
@@ -738,6 +749,7 @@ ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
                          save = FALSE),
        device = "png", width = 10, units = "cm")
 
+# NOTE: aspect ratio is not fixed in this plot
 ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomassBulk.png"),
        plot = CreatePlot(fillvar = "factor(SignDomEigValBulk)", gradient2 = TRUE,
                          limits = c(-1, 1),
@@ -753,6 +765,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
   facet_grid(MigrLumWall ~ MigrWallLum, labeller = label_both) +
   labs(caption = DateTimeStamp) +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
