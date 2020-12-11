@@ -178,6 +178,7 @@ atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # continue anyway', which eventually leads to aborted integration.
 tmaxsteady <- 1e8
 timesEstConj <- seq(from = 0, to = 3, by = 0.1)
+showdatabulkapproximation <- 0
 
 #### Functions ####
 # Calculate the plasmid-free equilibrium (R*, Nutr*) using the solution to
@@ -228,13 +229,27 @@ EstConjBulk <- function(MyData) {
   with(as.list(MyData), {
     state <- c(D = MyData[["DInit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     parms <- MyData
-    DataEstConjBulkDonor <- tail(ode(t = timesEstConj, y = state,
-                                     func = ModelEstConjBulkDonor, parms = parms), 1)
-
+    DataEstConjBulkDonor <- ode(t = timesEstConj, y = state,
+                                func = ModelEstConjBulkDonor, parms = parms)
+    if(showdatabulkapproximation == 1) {
+      matplot.deSolve(DataEstConjBulkDonor, ylim = c(1E-7, 1E7), log = "y",
+                      col = c("black", "purple", "green1", "red", "yellow", "hotpink"),
+                      lty = c(1, 2, 1, 1, 1, 1), lwd = 2,
+                      legend = list(x = "bottomright"))
+      grid()
+    }
+    DataEstConjBulkDonor <- tail(DataEstConjBulkDonor, 1)
     state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
-    DataEstConjBulkTrans <- tail(ode(t = timesEstConj, y = state,
-                                     func = ModelEstConjBulkTrans, parms = parms), 1)
-
+    DataEstConjBulkTrans <- ode(t = timesEstConj, y = state,
+                                     func = ModelEstConjBulkTrans, parms = parms)
+    if(showdatabulkapproximation == 1) {
+      matplot.deSolve(DataEstConjBulkTrans, ylim = c(1E-7, 1E7), log = "y",
+                      col = c("purple", "green1", "hotpink", "cyan"),
+                      lty = c(2, 1, 1, 1), lwd = 2,
+                      legend = list(x = "bottomright"))
+      grid()
+    }
+    DataEstConjBulkTrans <- tail(DataEstConjBulkTrans, 1)
     DataEstConjBulk <- cbind(DataEstConjBulkDonor, DataEstConjBulkTrans)
     names(DataEstConjBulk) <- c(paste0("Donor", colnames(DataEstConjBulkDonor)),
                                 paste0("Trans", colnames(DataEstConjBulkTrans)))
