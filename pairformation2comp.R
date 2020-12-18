@@ -538,8 +538,8 @@ MigrLumWallSet <- 0.1
 MigrWallLumSet <- 0.1
 DInitLumSet <- 1E3
 DInitWallSet <- 0
-cdSet <- 0.05
-ctSet <- 0.01
+cdSet <- 0.18
+ctSet <- 0.09
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^c(-12, -9, -6) 
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
@@ -561,8 +561,8 @@ MigrLumWallSet <- c(0.025, 0.1, 0.4)
 MigrWallLumSet <- c(0.025, 0.1, 0.4)
 DInitLumSet <- 1E3
 DInitWallSet <- 0
-cdSet <- 0.05
-ctSet <- 0.01
+cdSet <- 0.18
+ctSet <- 0.09
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 kpWallSet <- 10^-12 
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
@@ -761,6 +761,7 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomassBulk.png
        device = "png", width = 10, units = "cm")
 
 # Are signs of the largest eigenvalues equal for bulk- and pair-formation model?
+# (Figure S4 in article).
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
