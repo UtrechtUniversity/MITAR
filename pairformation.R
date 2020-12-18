@@ -133,6 +133,9 @@
 # See ggpubr:ggarrange(labels = c("A", "B"), common.legend = TRUE, legend = "bottom")
 # 
 
+# Use vectors for atol, to have different tolerances for the cell-densities (~1),
+# and nutrient concentration (~1*10^-8 ?)
+
 ## NUTRIENTS are also in the root- and event-functions, see comment at their
 # function definitions
 
@@ -479,12 +482,12 @@ bRSet <- c(0.738)
 Ks <- 0.004
 NISet <- c(0.14, 1.4, 14)
 NutrConvSet <- 1.4e-7
-# ln(2)/24, 1/24, 1% remaining after 24h, 0.1% remaining after 24h:
-wSet <- c(round(log(2)/24, 3), round(1/24, 3), 0.192, 0.288) 
+# median and mean residence time of 24 hour, and 1% remaining after 24h:
+wSet <- c(round(log(2)/24, 3), round(1/24, 3), 0.192) 
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
-cdSet <- c(0.05)
-ctSet <- c(0.01)
+cdSet <- c(0.18)
+ctSet <- c(0.09)
 gdSet <- c(15)
 gtSet <- c(15)
 
@@ -499,8 +502,8 @@ NutrConvSet <- 1.4e-7
 wSet <- round(1/24, 3)
 kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
-cdSet <- c(0.01, 0.05)
-ctSet <- c(0.01, 0.05)
+cdSet <- c(0.09, 0.18)
+ctSet <- c(0.09, 0.18)
 gdSet <- c(1, 15)
 gtSet <- c(1, 15)
 
@@ -513,8 +516,8 @@ NutrConvSet <- 1.4e-7
 wSet <- round(1/24, 3)
 kpSet <- 10^c(-12, -9)
 knSet <- 10^0.5
-cdSet <- 0.05
-ctSet <- 0.01
+cdSet <- c(0.18)
+ctSet <- c(0.09)
 gdSet <- 15
 gtSet <- 15
 
@@ -528,8 +531,8 @@ NutrConvSet <- 1.4e-7
 wSet <- round(1/24, 3)
 kpSet <- 10^c(-11, -9)
 knSet <- 10^seq(from = -2, to = 3, by = 1)
-cdSet <- c(0.05)
-ctSet <- c(0.01)
+cdSet <- c(0.18)
+ctSet <- c(0.09)
 gdSet <- c(15)
 gtSet <- c(15)
 
@@ -699,10 +702,10 @@ if(saveplots == 1 ) {
 ## article).
 limitsbulkrates <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
 
-CreatePlot(dataplot = filter(MyData, gt == 15 & cd == 0.05 & ct == 0.01),
+CreatePlot(dataplot = filter(MyData, gt == 15 & cd == cdSet[1] & ct == ctSet[1]),
            fillvar = "log10(gdbulk)", facetx = "gt", facety = "gd",
            limits = limitsbulkrates)
-CreatePlot(dataplot = filter(MyData, gd == 15 & cd == 0.05 & ct == 0.01),
+CreatePlot(dataplot = filter(MyData, gd == 15 & cd == cdSet[1] & ct == ctSet[1]),
            fillvar = "log10(gtbulk)", facetx = "gd", facety = "gt",
            limits = limitsbulkrates)
 
