@@ -1,6 +1,5 @@
 #### Pair-formation model of conjugation ####
 
-
 #### To do ####
 
 ## Costs in growth ##
@@ -180,8 +179,11 @@ atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # in the machine, T + H = T on the next step  [1] 0 (H = step size). Solver will
 # continue anyway', which eventually leads to aborted integration.
 tmaxsteady <- 1e8
-timesEstConj <- seq(from = 0, to = 3, by = 0.1)
-showdatabulkapproximation <- 0
+tmaxEstConj <- 100
+tstepEstConj <- 0.02
+timesEstConj <- seq(from = 0, to = tmaxEstConj, by = tstepEstConj)
+ThresholdEstConj <- 1E-5
+showdatabulkapproximation <- 1
 
 #### Functions ####
 # Calculate the plasmid-free equilibrium (R*, Nutr*) using the solution to
@@ -234,23 +236,74 @@ EstConjBulk <- function(MyData) {
     parms <- MyData
     DataEstConjBulkDonor <- ode(t = timesEstConj, y = state,
                                 func = ModelEstConjBulkDonor, parms = parms)
+    
     if(showdatabulkapproximation == 1) {
-      matplot.deSolve(DataEstConjBulkDonor, ylim = c(1E-7, 1E7), log = "y",
-                      col = c("black", "purple", "green1", "red", "yellow", "hotpink"),
-                      lty = c(1, 2, 1, 1, 1, 1), lwd = 2,
-                      legend = list(x = "bottomright"))
+      DataPlotDonor <- cbind(DataEstConjBulkDonor, "TotalD" = NA, "TotalR" = NA,
+                             "Bulk" = NA)
+      DataPlotDonor[, "TotalD"] <- c(DataPlotDonor[, "D"] + DataPlotDonor[, "Mdr"] +
+                                       DataPlotDonor[, "Mdt"])
+      DataPlotDonor[, "TotalR"] <- DataPlotDonor[, "R"] + DataPlotDonor[, "Mdr"] +
+        DataPlotDonor[, "Mrt"]
+      DataPlotDonor[, "Bulk"] <- unname(MyData[["gd"]] * DataPlotDonor[, "Mdr"] /
+                                 (DataPlotDonor[, "TotalD"] * DataPlotDonor[, "TotalR"]))
+      subtitle <- paste0("log10(kp)=", log10(MyData[["kp"]]),
+                         " log10(kn)=", log10(MyData[["kn"]]))
+      EstBulkStable <- DataPlotDonor[, c("time", "Bulk")]
+      EstBulkStableHead <- EstBulkStable[-dim(EstBulkStable)[1], "Bulk"]
+      EstBulkStableTail <- EstBulkStable[-1, "Bulk"]
+      EstBulkStable <- cbind(EstBulkStable,
+                             diffBulk = c(1, abs(EstBulkStableTail - EstBulkStableHead)/EstBulkStableTail))
+      timePickedEstBulk <- EstBulkStable[min(which(EstBulkStable[, "diffBulk"] <
+                                                     ThresholdEstConj)), "time"]
+      plot(x =  EstBulkStable[, "time"], y = EstBulkStable[, "diffBulk"], log = "y")
       grid()
+      abline(v = timePickedEstBulk)
+      abline(h = ThresholdEstConj)
+      matplot.deSolve(DataPlotDonor, xlim = c(0, tail(timesEstConj, 1)),
+                      ylim = c(1E-14, 1E7), log = "y",
+                      col = c("gray", "purple", "green1", "cyan", "darkorange",
+                              "red", "azure",   "blue", "black"),
+                      lty = c(1, 2, 1, 1, 1, 1, 1, 1, 1), lwd = 2,
+                      legend = list(x = "topright"), sub = subtitle)
+      grid()
+      abline(v = timePickedEstBulk)
+      abline(h = ThresholdEstConj)
     }
     DataEstConjBulkDonor <- tail(DataEstConjBulkDonor, 1)
     state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
     DataEstConjBulkTrans <- ode(t = timesEstConj, y = state,
                                      func = ModelEstConjBulkTrans, parms = parms)
     if(showdatabulkapproximation == 1) {
-      matplot.deSolve(DataEstConjBulkTrans, ylim = c(1E-7, 1E7), log = "y",
-                      col = c("purple", "green1", "hotpink", "cyan"),
-                      lty = c(2, 1, 1, 1), lwd = 2,
-                      legend = list(x = "bottomright"))
+      DataPlotTrans <- cbind(DataEstConjBulkTrans, "TotalTrans" = NA,
+                             "TotalR" = NA, "Bulk" = NA)
+      DataPlotTrans[, "TotalTrans"] <- c(DataPlotTrans[, "Trans"] +
+                                           DataPlotTrans[, "Mrt"] +
+                                           2*DataPlotTrans[, "Mtt"])
+      DataPlotTrans[, "TotalR"] <- DataPlotTrans[, "R"] + DataPlotTrans[, "Mrt"]
+      DataPlotTrans[, "Bulk"] <- unname(MyData[["gt"]] * DataPlotTrans[, "Mrt"] /
+                                          (DataPlotTrans[, "TotalTrans"] *
+                                             DataPlotTrans[, "TotalR"]))
+      EstBulkStable <- DataPlotTrans[, c("time", "Bulk")]
+      EstBulkStableHead <- EstBulkStable[-dim(EstBulkStable)[1], "Bulk"]
+      EstBulkStableTail <- EstBulkStable[-1, "Bulk"]
+      EstBulkStable <- cbind(EstBulkStable,
+                             diffBulk = c(1, abs(EstBulkStableTail - EstBulkStableHead)/EstBulkStableTail))
+      timePickedEstBulk <- EstBulkStable[min(which(EstBulkStable[, "diffBulk"] <
+                                                     ThresholdEstConj)), "time"]
+      plot(x =  EstBulkStable[, "time"], y = EstBulkStable[, "diffBulk"], log = "y")
       grid()
+      abline(v = timePickedEstBulk)
+      abline(h = ThresholdEstConj)
+      
+      matplot.deSolve(DataPlotTrans, xlim = c(0, tail(timesEstConj, 1)),
+                      ylim = c(1E-14, 1E7), log = "y",
+                      col = c("purple", "green1", "red", "yellow", "hotpink",
+                              "blue", "black"),
+                      lty = c(2, 1, 1, 1, 1, 2, 1), lwd = 2,
+                      legend = list(x = "topright"), sub = subtitle)
+      grid()
+      abline(v = timePickedEstBulk)
+      abline(h = ThresholdEstConj)
     }
     DataEstConjBulkTrans <- tail(DataEstConjBulkTrans, 1)
     DataEstConjBulk <- cbind(DataEstConjBulkDonor, DataEstConjBulkTrans)
@@ -514,7 +567,7 @@ Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
 wSet <- round(1/24, 3)
-kpSet <- 10^c(-12, -9)
+kpSet <- 10^c(-12, -9, -6)
 knSet <- 10^0.5
 cdSet <- c(0.18)
 ctSet <- c(0.09)
@@ -571,7 +624,9 @@ print(Sys.time())
 ## Add combinations with the parameters needed to approximate gdbulk and gtbulk
 MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInit = DInitSet,
                       kp = kpSet, kn = knSet)
+par(mfcol=c(2, length(knSet)))
 DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk))
+par(mfcol=c(1, 1))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
 TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
@@ -596,6 +651,8 @@ print(Sys.time())
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
+
+
 
 
 #### Plotting output for parameterset 1 ####
@@ -658,10 +715,10 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
   scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
 if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal)AspRat.png"))
+  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
 }
 
-FilteredData <- filter(MyData, cd == 0.05 & ct == 0.01 & gd == 15 & gt == 15)
+FilteredData <- filter(MyData, cd == cdSet[1] & ct == ctSet[1] & gd == 15 & gt == 15)
 
 # Stability of the equilibrium for the bulk-conjugation model
 # (plot not shown in article)
