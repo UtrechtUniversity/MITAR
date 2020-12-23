@@ -19,6 +19,13 @@
 # Using cd = ct is not biologically realistic.
 
 ## Other
+# Naming of objects inside EstConjBulk() should be updated, see DataEstConjBulk
+# and EstConjBulk() in older versions of the script. Consider using mutate(),
+# see the script of the two-compartment model.
+
+# Use diff() in EstConjBulk() instead of manually calculating the difference
+# between consecutive values
+
 # If I want to include stochastics, see Price 'An efficient moments-based inference
 # method for within-host bacterial infection dynamics' and Volkova 'Modelling dynamics
 # of plasmid-gene mediated antimicrobial resistance in enteric bacteria using stochastic
@@ -230,86 +237,124 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
 # adjusted pair-formation models for a short time (i.e., tail(timesEstConj, 1)
 # hours) and calculate approximations of gdbulk and gtbulk from the output,
 # following Zhong's approach for the calculations.
+
+# The estimated bulk-conjugation rates appear to decrease with increasing kp
+# if log10(kp) > -8 and log10(kn) < 0. This artefact is caused by estimating
+# the bulk-rates over time while they are still decreasing. I attempted to
+# circumvent this by selecting a timepoint where the relative change in the
+# bulkrate is lower than a threshold, in an attempt to select bulkrates after
+# they become stable over time. This was not successful, because this relative
+# change also varied strangely over time, and both the current implementation
+# and using the t=80 to estimate the bulk-rates still leads to non-monotonic
+# increase in gtbulk for kp > 10^-8, and sometimes to negative values or
+# errors in the integration. It also worsened the discrepancies between the
+# sign of the dominant eigenvalues of the bulk- and pair-formation models.
+# So this approach does not work.
 EstConjBulk <- function(MyData) {
   with(as.list(MyData), {
     state <- c(D = MyData[["DInit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     parms <- MyData
     DataEstConjBulkDonor <- ode(t = timesEstConj, y = state,
                                 func = ModelEstConjBulkDonor, parms = parms)
+    DataPlotDonor <- cbind(DataEstConjBulkDonor, "TotalD" = NA, "TotalR" = NA,
+                           "Bulk" = NA)
+    DataPlotDonor[, "TotalD"] <- c(DataPlotDonor[, "D"] + DataPlotDonor[, "Mdr"] +
+                                     DataPlotDonor[, "Mdt"])
+    DataPlotDonor[, "TotalR"] <- DataPlotDonor[, "R"] + DataPlotDonor[, "Mdr"] +
+      DataPlotDonor[, "Mrt"]
+    DataPlotDonor[, "Bulk"] <- unname(MyData[["gd"]] * DataPlotDonor[, "Mdr"] /
+                                        (DataPlotDonor[, "TotalD"] * DataPlotDonor[, "TotalR"]))
+    EstBulkStable <- DataPlotDonor[-(1:round(1/tstepEstConj)), c("time", "Bulk")]
+    EstBulkStable <- cbind(EstBulkStable[-1, ],
+                           diffBulk = abs(diff(EstBulkStable[, "Bulk"]))/
+                             EstBulkStable[-1, "Bulk"])
+    RowIndex <- if(any(EstBulkStable[, "diffBulk"] < ThresholdEstConj)) {
+      min(which(EstBulkStable[, "diffBulk"] < ThresholdEstConj))
+    } else {
+      dim(EstBulkStable)[1]
+    }
+    timeEstBulk <- EstBulkStable[RowIndex, "time"]
+    gdbulk <- EstBulkStable[RowIndex, "Bulk"]
+    gdbulkEst <- c(timeEstBulk, gdbulk)
     
     if(showdatabulkapproximation == 1) {
-      DataPlotDonor <- cbind(DataEstConjBulkDonor, "TotalD" = NA, "TotalR" = NA,
-                             "Bulk" = NA)
-      DataPlotDonor[, "TotalD"] <- c(DataPlotDonor[, "D"] + DataPlotDonor[, "Mdr"] +
-                                       DataPlotDonor[, "Mdt"])
-      DataPlotDonor[, "TotalR"] <- DataPlotDonor[, "R"] + DataPlotDonor[, "Mdr"] +
-        DataPlotDonor[, "Mrt"]
-      DataPlotDonor[, "Bulk"] <- unname(MyData[["gd"]] * DataPlotDonor[, "Mdr"] /
-                                 (DataPlotDonor[, "TotalD"] * DataPlotDonor[, "TotalR"]))
       subtitle <- paste0("log10(kp)=", log10(MyData[["kp"]]),
                          " log10(kn)=", log10(MyData[["kn"]]))
-      EstBulkStable <- DataPlotDonor[, c("time", "Bulk")]
-      EstBulkStableHead <- EstBulkStable[-dim(EstBulkStable)[1], "Bulk"]
-      EstBulkStableTail <- EstBulkStable[-1, "Bulk"]
-      EstBulkStable <- cbind(EstBulkStable,
-                             diffBulk = c(1, abs(EstBulkStableTail - EstBulkStableHead)/EstBulkStableTail))
-      timePickedEstBulk <- EstBulkStable[min(which(EstBulkStable[, "diffBulk"] <
-                                                     ThresholdEstConj)), "time"]
       plot(x =  EstBulkStable[, "time"], y = EstBulkStable[, "diffBulk"], log = "y")
       grid()
-      abline(v = timePickedEstBulk)
+      abline(v = timeEstBulk)
       abline(h = ThresholdEstConj)
-      matplot.deSolve(DataPlotDonor, xlim = c(0, tail(timesEstConj, 1)),
-                      ylim = c(1E-14, 1E7), log = "y",
+      matplot.deSolve(DataPlotDonor,
+                      select = "Bulk",
+                      xlim = c(0, tail(timesEstConj, 1)),
+                      ylim = c(1E-15, 1E-6), log = "y",
                       col = c("gray", "purple", "green1", "cyan", "darkorange",
                               "red", "azure",   "blue", "black"),
                       lty = c(1, 2, 1, 1, 1, 1, 1, 1, 1), lwd = 2,
                       legend = list(x = "topright"), sub = subtitle)
       grid()
-      abline(v = timePickedEstBulk)
-      abline(h = ThresholdEstConj)
+      abline(v = timeEstBulk)
+      abline(h = gdbulk)
     }
-    DataEstConjBulkDonor <- tail(DataEstConjBulkDonor, 1)
+    
     state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
     DataEstConjBulkTrans <- ode(t = timesEstConj, y = state,
-                                     func = ModelEstConjBulkTrans, parms = parms)
+                                func = ModelEstConjBulkTrans, parms = parms)
+    DataPlotTrans <- cbind(DataEstConjBulkTrans, "TotalTrans" = NA,
+                           "TotalR" = NA, "Bulk" = NA)
+    DataPlotTrans[, "TotalTrans"] <- c(DataPlotTrans[, "Trans"] +
+                                         DataPlotTrans[, "Mrt"] +
+                                         2*DataPlotTrans[, "Mtt"])
+    DataPlotTrans[, "TotalR"] <- DataPlotTrans[, "R"] + DataPlotTrans[, "Mrt"]
+    DataPlotTrans[, "Bulk"] <- unname(MyData[["gt"]] * DataPlotTrans[, "Mrt"] /
+                                        (DataPlotTrans[, "TotalTrans"] *
+                                           DataPlotTrans[, "TotalR"]))
+    
+    
+    EstBulkStable <- DataPlotTrans[-(1:round(1/tstepEstConj)), c("time", "Bulk")]
+    EstBulkStable <- cbind(EstBulkStable[-1, ],
+                           diffBulk = abs(diff(EstBulkStable[, "Bulk"]))/
+                             EstBulkStable[-1, "Bulk"])
+    RowIndex <- if(any(EstBulkStable[, "diffBulk"] < ThresholdEstConj)) {
+      min(which(EstBulkStable[, "diffBulk"] < ThresholdEstConj))
+    } else {
+      dim(EstBulkStable)[1]
+    }
+    
+    
+    timeEstBulk <- EstBulkStable[RowIndex, "time"]
+    gtbulk <- EstBulkStable[RowIndex, "Bulk"]
+    gtbulkEst <- c(timeEstBulk, gtbulk)
+    
+    # print(EstBulkStable[round(seq(from = 1, to = dim(EstBulkStable)[1],
+    #                         by = 0.05*dim(EstBulkStable)[1])), ])
+    
     if(showdatabulkapproximation == 1) {
-      DataPlotTrans <- cbind(DataEstConjBulkTrans, "TotalTrans" = NA,
-                             "TotalR" = NA, "Bulk" = NA)
-      DataPlotTrans[, "TotalTrans"] <- c(DataPlotTrans[, "Trans"] +
-                                           DataPlotTrans[, "Mrt"] +
-                                           2*DataPlotTrans[, "Mtt"])
-      DataPlotTrans[, "TotalR"] <- DataPlotTrans[, "R"] + DataPlotTrans[, "Mrt"]
-      DataPlotTrans[, "Bulk"] <- unname(MyData[["gt"]] * DataPlotTrans[, "Mrt"] /
-                                          (DataPlotTrans[, "TotalTrans"] *
-                                             DataPlotTrans[, "TotalR"]))
-      EstBulkStable <- DataPlotTrans[, c("time", "Bulk")]
-      EstBulkStableHead <- EstBulkStable[-dim(EstBulkStable)[1], "Bulk"]
-      EstBulkStableTail <- EstBulkStable[-1, "Bulk"]
-      EstBulkStable <- cbind(EstBulkStable,
-                             diffBulk = c(1, abs(EstBulkStableTail - EstBulkStableHead)/EstBulkStableTail))
-      timePickedEstBulk <- EstBulkStable[min(which(EstBulkStable[, "diffBulk"] <
-                                                     ThresholdEstConj)), "time"]
-      plot(x =  EstBulkStable[, "time"], y = EstBulkStable[, "diffBulk"], log = "y")
+      subtitle <- paste0("log10(kp,kn)=", log10(MyData[["kp"]]),
+                         " ", log10(MyData[["kn"]]), " t=", timeEstBulk)
+      plot(x =  EstBulkStable[, "time"], y = EstBulkStable[, "diffBulk"], log = "y",
+           sub = subtitle)
+      # plot(x =  EstBulkStable[, "time"], y = EstBulkStable[, "diffBulk"])
       grid()
-      abline(v = timePickedEstBulk)
+      abline(v = timeEstBulk)
       abline(h = ThresholdEstConj)
       
-      matplot.deSolve(DataPlotTrans, xlim = c(0, tail(timesEstConj, 1)),
-                      ylim = c(1E-14, 1E7), log = "y",
+      matplot.deSolve(DataPlotTrans,
+                      select = "Bulk",
+                      xlim = c(0, tail(timesEstConj, 1)),
+                      ylim = c(1E-15, 1E-6), log = "y",
                       col = c("purple", "green1", "red", "yellow", "hotpink",
                               "blue", "black"),
-                      lty = c(2, 1, 1, 1, 1, 2, 1), lwd = 2,
+                      lty = c(1), lwd = 2,
+                      # lty = c(2, 1, 1, 1, 1, 2, 1), lwd = 2,
                       legend = list(x = "topright"), sub = subtitle)
       grid()
-      abline(v = timePickedEstBulk)
-      abline(h = ThresholdEstConj)
+      abline(v = timeEstBulk)
+      abline(h = gtbulk)
     }
-    DataEstConjBulkTrans <- tail(DataEstConjBulkTrans, 1)
-    DataEstConjBulk <- cbind(DataEstConjBulkDonor, DataEstConjBulkTrans)
-    names(DataEstConjBulk) <- c(paste0("Donor", colnames(DataEstConjBulkDonor)),
-                                paste0("Trans", colnames(DataEstConjBulkTrans)))
-    return(DataEstConjBulk)
+    EstBulkrates <- cbind(gdbulkEst, gtbulkEst)
+    names(EstBulkrates) <- c("gdbulktime", "gdbulk", "gtbulktime", "gtbulk")
+    return(EstBulkrates)
   })
 }
 
@@ -624,19 +669,11 @@ print(Sys.time())
 ## Add combinations with the parameters needed to approximate gdbulk and gtbulk
 MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInit = DInitSet,
                       kp = kpSet, kn = knSet)
-par(mfcol=c(2, length(knSet)))
-DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk))
+par(mfcol=c(4, length(knSet)))
+Bulkrates <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk))
 par(mfcol=c(1, 1))
 
-TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
-TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
-gdbulk <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
-
-TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
-TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
-gtbulk <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
-
-MyData <- cbind(MyData, gdbulk = gdbulk, gtbulk = gtbulk)
+MyData <- cbind(MyData, Bulkrates)
 print("Bulk-conjugation rates estimated:")
 print(Sys.time())
 
