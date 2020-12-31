@@ -3,20 +3,6 @@
 #### To do ####
 
 ## Costs in growth ##
-# Rethink the way of defining donor growth rate and costs: unless it is assumed 
-# that the donor is the same species as the recipient, it does not make sense
-# to define donor growth rates as recipient growth rate altered by costs from
-# plasmid carriage. Instead, the donor could be assumed to have a growth rate
-# unrelated to the recipient growth rate, and if the donor is adapted to the
-# plasmid it does not have plasmid costs, but the new environment could be assumed
-# to lead to costs in growth as well.
-
-# Using (1 - c)*b to model costs implies that a plasmid decreases the growth rate
-# by a certain percentage. So if you model more species and their growth rates
-# are different, using the same value for c leads to different absolute decrease
-# in growth rates.
-
-# Using cd = ct is not biologically realistic.
 
 ## Other
 # Naming of objects inside EstConjBulk() should be updated, see DataEstConjBulk
@@ -187,9 +173,9 @@ atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # continue anyway', which eventually leads to aborted integration.
 tmaxsteady <- 1e8
 tmaxEstConj <- 3
-tstepEstConj <- 0.02
+tstepEstConj <- 0.1
 timesEstConj <- seq(from = 0, to = tmaxEstConj, by = tstepEstConj)
-showdatabulkapproximation <- 1
+showdatabulkapproximation <- 0
 
 #### Functions ####
 # Calculate the plasmid-free equilibrium (R*, Nutr*) using the solution to
@@ -364,30 +350,52 @@ SimulationBulk <- function(InputSimulationBulk) {
 }
 
 # Create heatmaps, save if needed
-CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0, dataplot = MyData,
-                       xvar = "log10(kp)", yvar = "log10(kn)",
-                       facetx = "cd + gd", facety = "ct + gt", save = saveplots, ...) {
-  if(exists("DateTimeStamp") == FALSE) {
-    warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
+CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)",
+                       fillvar = "factor(SignDomEigVal)",
+                       filltype = "discrete", limits = NULL, 
+                       labx = "Log10(attachment rate in lumen)",
+                       laby = "Log10(detachment rate in lumen)",
+                       filltitle = NULL,
+                       filllabels = c("No", "Yes"),
+                       manualvalues = c("TRUE" = "darkgreen", "FALSE" = "red"),
+                       facetx = "gt + ct", facety = "gd + cd",
+                       save = saveplots, filename = NULL, addstamp = FALSE,
+                       ...) {
+  if(addstamp == TRUE & exists("DateTimeStamp") == FALSE) {
+    warning("DateTimeStamp created to include in plot does not correspond to filename of the dataset")
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
   }
   p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar)) + 
     geom_raster() +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
-    facet_grid(as.formula(paste(facetx, "~", facety)), labeller = label_both) +
-    labs(caption = DateTimeStamp) +
-    theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
-  if(gradient2 == 1) {
-    p <- p + scale_fill_viridis_d(limits = factor(limits))
-  } else {
-    p <- p + scale_fill_viridis_c(limits = limits)
+    coord_fixed(ratio = 1, expand = FALSE) +
+    facet_grid(as.formula(paste(facety, "~", facetx)), labeller = label_both) +
+    theme(legend.position = "bottom") +
+    labs(x = labx, y = laby)
+  if(addstamp == TRUE) {
+    p <- p + labs(caption = DateTimeStamp) +
+      theme(plot.caption = element_text(vjust = 20))
+  }
+  if(filltype == "discrete") {
+    p <- p + scale_fill_viridis_d(filltitle,
+                                  limits = if(is.null(limits)) {NULL} else {factor(limits)},
+                                  labels = filllabels)
+  }
+  if(filltype == "continuous") {
+    p <- p + scale_fill_viridis_c(filltitle, limits = limits)
+  }
+  if(filltype == "manual") {
+    p <- p + scale_fill_manual(values = manualvalues,
+                               name = filltitle)
   }
   print(p)
   if(save == TRUE) {
-    fillvarname <- gsub("/", ".", fillvar)
-    fillvarname <- gsub(" ", "", fillvarname)
-    filename <- paste0(DateTimeStamp, "output", fillvarname, ".png")
+    if(is.null(filename)) {
+      fillvarname <- gsub("/", ".", fillvar)
+      fillvarname <- gsub(" ", "", fillvarname)
+      filename <- paste0(DateTimeStamp, "output", fillvarname, ".png")      
+    }
     if(file.exists(filename)) {
       warning("File already exists, not saved again!")
     } else {
@@ -494,7 +502,7 @@ NISet <- c(0.14, 1.4, 14)
 NutrConvSet <- 1.4e-7
 # median and mean residence time of 24 hour, and 1% remaining after 24h:
 wSet <- c(round(log(2)/24, 3), round(1/24, 3), 0.192) 
-kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
+kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
 cdSet <- c(0.18)
 ctSet <- c(0.09)
@@ -510,7 +518,7 @@ Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
 wSet <- round(1/24, 3)
-kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
+kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
 cdSet <- c(0.09, 0.18)
 ctSet <- c(0.09, 0.18)
@@ -524,7 +532,7 @@ Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
 wSet <- round(1/24, 3)
-kpSet <- 10^c(-12, -9, -6)
+kpSet <- 10^c(-12, -10, -8)
 knSet <- 10^0.5
 cdSet <- c(0.18)
 ctSet <- c(0.09)
@@ -607,125 +615,82 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
-
-
-
 #### Plotting output for parameterset 1 ####
 
-# Show influence of washout rate and inflowing nutrient concentration on
-# stability of the plasmid-free equilibrium (run with parameterset 1).
-# Note: hardcoded legend and axis labels
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(w ~ NI, labeller = label_both) +
-  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
-       y = "log10(detachment rate)") +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValNIw).png"))
-}
+# labelsnutrients <- paste(signif(NISet, 3), "mg nutrients/mL\n at the inflow")
+# names(labelsnutrients) <- NISet
+# labelswashout <- paste0("Washout rate ", signif(wSet, 3), "/h")
+# names(labelswashout) <- wSet
 
-# These plots (not shown in article) show that nutrient inflow influences
-# recipient cell density, whereas washout rate influences nutrient concentration
-# (run with parameterset 1).
-CreatePlot(fillvar = "log10(REq)", facetx = "w", facety = "NI")
-CreatePlot(fillvar = "NutrEq", facetx = "w", facety = "NI")
+# Show influence of washout rate and inflowing nutrient concentration on
+# stability of the plasmid-free equilibrium (Figure 2 in article).
+CreatePlot(filltitle = "Plasmid can invade",
+           facetx = "NI", facety = "w")
+
+# These two plots (not shown in article) show that nutrient concentration at
+# the inflow influences recipient cell density, whereas washout rate influences
+# nutrient concentration.
+CreatePlot(fillvar = "log10(REq)", filltype = "continuous",
+           filltitle = "Log10(Recipient density)",
+           facetx = "NI", facety = "w")
+CreatePlot(fillvar = "log10(NutrEq)", filltype = "continuous",
+           filltitle = "Log10(Nutrient concentration)",
+           facetx = "NI", facety = "w")
 
 # Show that dominant eigenvalues have equal signs for pair-formation and bulk
 # model (run with parameterset 1, Figure S1 in article)
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) +
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(w ~ NI, labeller = label_both) +
-  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
-       y = "log10(detachment rate)") +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "red"),
-                    name = "Dominant eigenvalues \nhave equal signs")
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvaluesNIw.png"))
-}
-
+CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
+           filltype = "manual",
+           filltitle = "Dominant eigenvalues \nhave equal signs",
+           facetx = "NI", facety = "w")
 
 #### Plotting output for parameterset 2 ####
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
-# plasmid-free equilibrium, run with multiple values for kn, kp, cd, ct, gd, gt
-# and than plot (Figure 3 in article):
-# Note: hardcoded legend
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
-       y = "log10(detachment rate)") +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal).png"))
-}
+# plasmid-free equilibrium (Figure 3 in article):
+CreatePlot(filltitle = "Plasmid can invade")
 
-FilteredData <- filter(MyData, cd == cdSet[1] & ct == ctSet[1] & gd == 15 & gt == 15)
+# Could add:
+# labelsdonorconj <- paste0("Donor conjugation\n rate ", gdSet, "/h")
+# names(labelsdonorconj) <- gdSet
+# labelsdonorcosts <- paste("and costs", cdSet)
+# names(labelsdonorcosts) <- cdSet
+# labelstransconj <- paste0("Transconjugant\nconjugation rate\n", gtSet, "/h")
+# names(labelstransconj) <- gtSet
+# labelstranscosts <- paste("and costs", ctSet)
+# names(labelstranscosts) <- ctSet
+# facet_grid(gd + cd ~ gt + ct,
+#            labeller = labeller(gd = labelsdonorconj, cd = labelsdonorcosts,
+#                                gt = labelstransconj, ct = labelstranscosts)) +
 
 # Stability of the equilibrium for the bulk-conjugation model
 # (plot not shown in article)
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigValBulk))) +
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
-       y = "log10(detachment rate)") +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_viridis_d("Plasmid can invade (bulk model)",
-                       labels = c("No", "Yes"))
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk).png"))
-}
+CreatePlot(fillvar = "factor(SignDomEigValBulk)",
+           filltitle = "Plasmid can invade \n(bulk model)")
 
 # Show if sign of dominant eigenvalues for pair-formation and bulk model is the same 
 # (Figure S2 in article)
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(cd + gd ~ ct + gt, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "red"),
-                    name = "Dominant eigenvalues \nhave equal signs")
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvalues.png"))
-}
+CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
+           filltype = "manual",
+           filltitle = "Dominant eigenvalues \nhave equal signs")
 
 ## The influence of conjugation, attachment, and detachment rates on the 
-## bulk-conjugation rates. Data is filtered to show only one value for costs,
-## because costs do not influence the bulk-conjugation rates (Figure 4 in the
-## article).
+## bulk-conjugation rates (Figure 4 in the article). Data is filtered to show
+## only one value for costs, because costs do not influence the bulk-conjugation
+## rates.
 limitsbulkrates <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
-
 CreatePlot(dataplot = filter(MyData, gt == 15 & cd == cdSet[1] & ct == ctSet[1]),
-           fillvar = "log10(gdbulk)", facetx = "gt", facety = "gd",
-           limits = limitsbulkrates)
+           fillvar = "log10(gdbulk)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Donor bulkrate)",
+           facetx = "gd", facety = "gt")
+
 CreatePlot(dataplot = filter(MyData, gd == 15 & cd == cdSet[1] & ct == ctSet[1]),
-           fillvar = "log10(gtbulk)", facetx = "gd", facety = "gt",
-           limits = limitsbulkrates)
+           fillvar = "log10(gtbulk)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Transconjugant bulkrate)",
+           facetx = "gt", facety = "gd")
 
-# CreatePlot(fillvar = "log10(gdbulk)", facetx = ".", facety = ".",
-#            limits = limitsbulkrates, save = FALSE)
-
-print("Finished plotting:")
-print(Sys.time())
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
