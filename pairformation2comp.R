@@ -334,33 +334,51 @@ SimulationBulk <- function(InputSimulationBulk, state) {
   return(EqAfterInvDonor)
 }
 
-CreatePlot <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0,
-                       dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)",
-                       facetx = "cd + gd", facety = "ct + gt", mytag = NULL,
-                       save = saveplots, ...) {
-  if(exists("DateTimeStamp") == FALSE) {
-    warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
+# Function to create and save heatmaps
+CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)",
+                       fillvar = "factor(SignDomEigVal)",
+                       filltype = "discrete", limits = NULL, 
+                       labx = "Log10(attachment rate in lumen)",
+                       laby = "Log10(detachment rate in lumen)",
+                       filltitle, filllabels = c("No", "Yes"),
+                       mytag = NULL,
+                       manualvalues = c("TRUE" = "darkgreen", "FALSE" = "red"),
+                       facetx = "gt + ct", facety = "gd + cd",
+                       save = saveplots, filename = NULL, addstamp = FALSE, ...) {
+  if(addstamp == TRUE & exists("DateTimeStamp") == FALSE) {
+    warning("DateTimeStamp created to include in plot does not correspond to filename of the dataset")
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
   }
-  mycaption <- paste(DateTimeStamp)
-  
-  p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar), subtitle = subtitle) + 
+  p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar),
+              subtitle = subtitle) + 
     geom_raster() +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
-    facet_grid(as.formula(paste(facetx, "~", facety)), labeller = label_both) +
-    labs(caption = mycaption, tag = mytag) +
-    theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
-  if(gradient2 == 1) {
-    p <- p + scale_fill_viridis_d(limits = factor(limits))
-  } else {
-    p <- p + scale_fill_viridis_c(limits = limits)
+    coord_fixed(ratio = 1, expand = FALSE) +
+    facet_grid(as.formula(paste(facety, "~", facetx)), labeller = label_both) +
+    theme(legend.position = "bottom") +
+    labs(x = labx, y = laby, tag = mytag)
+  if(addstamp == TRUE) {
+    p <- p + labs(caption = DateTimeStamp) +
+      theme(plot.caption = element_text(vjust = 20))
+  }
+  if(filltype == "discrete") {
+    p <- p + scale_fill_viridis_d(filltitle, limits = if(is.null(limits)) {NULL
+    } else {factor(limits)}, labels = filllabels)
+  }
+  if(filltype == "continuous") {
+    p <- p + scale_fill_viridis_c(filltitle, limits = limits)
+  }
+  if(filltype == "manual") {
+    p <- p + scale_fill_manual(values = manualvalues, name = filltitle)
   }
   print(p)
   if(save == TRUE) {
-    fillvarname <- gsub("/", ".", fillvar)
-    fillvarname <- gsub(" ", "", fillvarname)
-    filename <- paste0(DateTimeStamp, "output", fillvarname, ".png")
+    if(is.null(filename)) {
+      fillvarname <- gsub("/", ".", fillvar)
+      fillvarname <- gsub(" ", "", fillvarname)
+      filename <- paste0(DateTimeStamp, "output", fillvarname, "twocomp", ".png")      
+    }
     if(file.exists(filename)) {
       warning("File already exists, not saved again!")
     } else {
@@ -680,7 +698,6 @@ print(Sys.time())
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
-
 #### Output parameterset 1 ####
 
 # Show that biomass in lumen and in wall are equal
@@ -740,67 +757,44 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
 #### Output parameterset 2 ####
 
 # Show the effect of migration rates on biomass at the wall (Figure 6A).
-# NOTE: aspect ratio is not fixed in this plot
 ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(RWallInit)",
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall",
-                         facety = "MigrWallLum",
-                         mytag = "A",
-                         save = FALSE),
+       plot = CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
+                         filltitle = "Log10(Recipient \nconcentration at the wall)",
+                         facetx = "MigrLumWall", facety = "MigrWallLum",
+                         mytag = "A", save = FALSE),
        device = "png", width = 10, units = "cm")
 
 # Show the effect of migration rates on stability of the plasmid-free
 # equilibrium (Figure 6B).
-# NOTE: aspect ratio is not fixed in this plot
 ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "factor(SignDomEigVal)", gradient2 = TRUE,
-                         limits = c(-1, 1),
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall",
-                         facety = "MigrWallLum",
-                         mytag = "B",
-                         save = FALSE),
+       plot = CreatePlot(filltitle = "Plasmid can invade",
+                         facetx = "MigrLumWall", facety = "MigrWallLum",
+                         mytag = "B", save = FALSE),
        device = "png", width = 10, units = "cm")
 
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
-# NOTE: aspect ratio is not fixed in this plot
 ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(RLumInit)",
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall",
-                         facety = "MigrWallLum",
-                         limits = range(log10(MyData$RWallInit)),
-                         mytag = "C",
-                         save = FALSE),
+       plot = CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
+                         filltitle = "Log10(Recipient \nconcentration in the lumen)",
+                         facetx = "MigrLumWall", facety = "MigrWallLum",
+                         limits = range(c(log10(MyData$RLumInit),
+                                          log10(MyData$RWallInit))),
+                         mytag = "C", save = FALSE),
        device = "png", width = 10, units = "cm")
 
 # NOTE: aspect ratio is not fixed in this plot
 ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomassBulk.png"),
-       plot = CreatePlot(fillvar = "factor(SignDomEigValBulk)", gradient2 = TRUE,
-                         limits = c(-1, 1),
-                         xvar = "log10(kp)", yvar = "log10(kn)",
-                         facetx = "MigrLumWall",
-                         facety = "MigrWallLum",
-                         mytag = "B2",
+       plot = CreatePlot(filltitle = "Plasmid can invade\n(bulk model)",
+                         facetx = "MigrLumWall", facety = "MigrWallLum",
                          save = FALSE),
        device = "png", width = 10, units = "cm")
 
 # Are signs of the largest eigenvalues equal for bulk- and pair-formation model?
 # (Figure S4 in article).
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(MigrLumWall ~ MigrWallLum, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "red"),
-                    name = "Dominant eigenvalues \nhave equal signs")
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvalues.png"))
-}
+CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
+           filltype = "manual",
+           filltitle = "Dominant eigenvalues \nhave equal signs",
+           facetx = "MigrLumWall", facety = "MigrWallLum")
 
 #### Final equilibria after invasion ####
 # If invasion is possible, run simulation to see how many bacteria of each
@@ -926,7 +920,7 @@ limitsREq <- log10(c(min(c(MyData$RLumInit, MyData$RWallInit)), max(c(MyData$RLu
 limitsNutrEq <- log10(c(min(c(MyData$NutrLumInit, MyData$NutrWallInit)), max(c(MyData$NutrLumInit, MyData$NutrWallInit))))
 
 CreatePlot(fillvar = "log10(RLumInit)", limits = limitsREq, facetx = "NILum", facety = "NIWall")
-CreatePlot2(fillvar = "log10(RLumInit)", gradient2 = 1, limits = c(-1, 1), facetx = "NILum", facety = "NIWall")
+CreatePlot2(fillvar = "log10(RLumInit)", filltype = "discrete", limits = c(-1, 1), facetx = "NILum", facety = "NIWall")
 
 SetsWithMoreThanOneValue <- c("NILum", "NIWall", "wLum", "wWall", "NutrConv",
                               "bR", "MigrLumWall", "MigrWallLum")[c(length(NILumSet),
