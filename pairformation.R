@@ -349,45 +349,43 @@ SimulationBulk <- function(InputSimulationBulk) {
   return(EqAfterInvDonor)
 }
 
-# Create heatmaps, save if needed
+# Function to create and save heatmaps
 CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)",
                        fillvar = "factor(SignDomEigVal)",
                        filltype = "discrete", limits = NULL, 
                        labx = "Log10(attachment rate in lumen)",
                        laby = "Log10(detachment rate in lumen)",
-                       filltitle = NULL,
-                       filllabels = c("No", "Yes"),
+                       filltitle, filllabels = c("No", "Yes"),
+                       mytag = NULL,
                        manualvalues = c("TRUE" = "darkgreen", "FALSE" = "red"),
                        facetx = "gt + ct", facety = "gd + cd",
-                       save = saveplots, filename = NULL, addstamp = FALSE,
-                       ...) {
+                       save = saveplots, filename = NULL, addstamp = FALSE, ...) {
   if(addstamp == TRUE & exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot does not correspond to filename of the dataset")
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
   }
-  p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar)) + 
+  p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar),
+              subtitle = subtitle) + 
     geom_raster() +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
     coord_fixed(ratio = 1, expand = FALSE) +
     facet_grid(as.formula(paste(facety, "~", facetx)), labeller = label_both) +
     theme(legend.position = "bottom") +
-    labs(x = labx, y = laby)
+    labs(x = labx, y = laby, tag = mytag)
   if(addstamp == TRUE) {
     p <- p + labs(caption = DateTimeStamp) +
       theme(plot.caption = element_text(vjust = 20))
   }
   if(filltype == "discrete") {
-    p <- p + scale_fill_viridis_d(filltitle,
-                                  limits = if(is.null(limits)) {NULL} else {factor(limits)},
-                                  labels = filllabels)
+    p <- p + scale_fill_viridis_d(filltitle, limits = if(is.null(limits)) {NULL
+      } else {factor(limits)}, labels = filllabels)
   }
   if(filltype == "continuous") {
     p <- p + scale_fill_viridis_c(filltitle, limits = limits)
   }
   if(filltype == "manual") {
-    p <- p + scale_fill_manual(values = manualvalues,
-                               name = filltitle)
+    p <- p + scale_fill_manual(values = manualvalues, name = filltitle)
   }
   print(p)
   if(save == TRUE) {
