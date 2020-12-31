@@ -9,19 +9,9 @@
 
 # Can I use the migration rates to set better states for the plasmid-free equilibrium
 
-# Rethink the way of defining donor growth rate and costs: unless it is assumed 
-# that the donor is the same species as the recipient, it does not make sense
-# to define donor growth rates as recipient growth rate altered by costs from
-# plasmid carriage. Instead, the donor could be assumed to have a growth rate
-# unrelated to the recipient growth rate, and if the donor is adapted to the
-# plasmid it does not have plasmid costs, but the new environment could be assumed
-# to lead to costs in growth as well.
-
 # See Macken 1994 'The dynamics of bacteria-plasmid systems' for analytic treatment
 # and a way to get rid of the nutrient equation (but is that feasible if I want
 # to modify nutrient levels over time?)
-
-# Add SummaryPlot() function (see script for one-compartment model)
 
 # Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
 # results as the single-compartment model.
@@ -87,7 +77,9 @@ atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # in the machine, T + H = T on the next step  [1] 0 (H = step size). Solver will
 # continue anyway', which eventually leads to aborted integration.
 tmaxsteady <- 1e8
-timesEstConj <- seq(from = 0, to = 3, by = 0.1)
+tmaxEstConj <- 3
+tstepEstConj <- 0.1
+timesEstConj <- seq(from = 0, to = tmaxEstConj, by = tstepEstConj)
 MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 
 #### Functions ####
@@ -540,10 +532,10 @@ DInitLumSet <- 1E3
 DInitWallSet <- 0
 cdSet <- 0.18
 ctSet <- 0.09
-kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
-kpWallSet <- 10^c(-12, -9, -6) 
+kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
+kpWallSet <- 10^c(-12, -10, -8) 
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
-knWallSet <- signif(10^seq(from = -2, to = 3, length.out = 3), 3)
+knWallSet <- 10^seq(from = -2, to = 3, length.out = 3)
 gdSet <- 15
 gtSet <- 15
 
@@ -563,10 +555,10 @@ DInitLumSet <- 1E3
 DInitWallSet <- 0
 cdSet <- 0.18
 ctSet <- 0.09
-kpSet <- 10^seq(from = -12, to = -6, by = 0.25)
+kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
 kpWallSet <- 10^-12 
 knSet <- 10^seq(from = -2, to = 3, by = 0.25)
-knWallSet <- signif(10^0.5, 3)
+knWallSet <- 10^0.5
 gdSet <- 15
 gtSet <- 15
 
@@ -709,6 +701,40 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
 if(saveplots == 1 ) {
   ggsave(paste0(DateTimeStamp, "SignDomEigValTwoComp.png"))
 }
+
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) +
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_grid(knWall ~ kpWall, labeller = label_both) +
+  labs(caption = DateTimeStamp) +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "red"),
+                    name = "Dominant eigenvalues \nhave equal signs")
+if(saveplots == 1 ) {
+  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvaluesTwoComp.png"))
+}
+
+## Test to change facet labels to names with values
+
+labelsdetachment <- paste0("Detachment rate\n at wall: ", signif(knWallSet, 3))
+names(labelsdetachment) <- knWallSet
+
+
+labelsattachment <- paste0("Attachment rate\n at wall: ", signif(kpWallSet, 3))
+names(labelsattachment) <- kpWallSet
+
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_grid(knWall ~ kpWall, labeller = labeller(knWall = labelsdetachment, kpWall = labelsattachment)) +
+  labs(caption = DateTimeStamp, x = "Log10(attachment rate in lumen)",
+       y = "Log10(detachment rate in lumen)") +
+  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
+  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
 
 
 #### Output parameterset 2 ####
