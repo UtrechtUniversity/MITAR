@@ -370,7 +370,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
     coord_fixed(ratio = 1, expand = FALSE) +
-    facet_grid(as.formula(paste(facety, "~", facetx)), labeller = label_both) +
+    facet_grid(as.formula(paste(facety, "~", facetx)), labeller = mylabeller) +
     theme(legend.position = "bottom") +
     labs(x = labx, y = laby, tag = mytag)
   if(addstamp == TRUE) {
@@ -613,17 +613,28 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
-#### Plotting output for parameterset 1 ####
+#### Create facet labels and labeller 'function' ####
+labNI <- paste(signif(NISet, 3), "mg nutrients/mL\n at inflow")
+names(labNI) <- NISet
+labw <- paste0("Washout rate ", signif(wSet, 3), "/h")
+names(labw) <- wSet
+labcd <- paste("Donor costs", cdSet)
+names(labcd) <- cdSet
+labct <- paste("Transconjugant costs", ctSet)
+names(labct) <- ctSet
+labgd <- paste0("Donor conjugation\n rate ", gdSet, "/h")
+names(labgd) <- gdSet
+labgt <- paste0("Transconjugant\nconjugation rate\n", gtSet, "/h")
+names(labgt) <- gtSet
 
-# labelsnutrients <- paste(signif(NISet, 3), "mg nutrients/mL\n at the inflow")
-# names(labelsnutrients) <- NISet
-# labelswashout <- paste0("Washout rate ", signif(wSet, 3), "/h")
-# names(labelswashout) <- wSet
+mylabeller <- labeller(NI = labNI, w = labw, cd = labcd, ct = labct,
+                       gd = labgd, gt = labgt, .default = label_both)
+
+#### Plotting output for parameterset 1 ####
 
 # Show influence of washout rate and inflowing nutrient concentration on
 # stability of the plasmid-free equilibrium (Figure 2 in article).
-CreatePlot(filltitle = "Plasmid can invade",
-           facetx = "NI", facety = "w")
+CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
 
 # These two plots (not shown in article) show that nutrient concentration at
 # the inflow influences recipient cell density, whereas washout rate influences
@@ -642,24 +653,51 @@ CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltitle = "Dominant eigenvalues \nhave equal signs",
            facetx = "NI", facety = "w")
 
+#### Different way of plotting Figure 2 above ####
+
+# To show more combinations in one facet, use 'waffle charts' as shown at
+# http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html#Waffle%20Chart
+
+# Dataset splitsen naar nutr. conc. (kan waarschijnlijk sneller met dplyr)
+MyData0.14 <- filter(MyData, NI == 0.14)
+MyData1.4 <- filter(MyData, NI == 1.4)
+MyData14 <- filter(MyData, NI == 14)
+
+all(MyData0.14[, "kp"] == MyData1.4[, "kp"])
+all(MyData0.14[, "kn"] == MyData1.4[, "kn"])
+all(MyData1.4[, "kp"] == MyData14[, "kp"])
+all(MyData1.4[, "kn"] == MyData14[, "kn"])
+
+DataStruct <- filter(MyData, NI == 0.14)
+DataStruct <- cbind(DataStruct, sign0.14 = MyData0.14[, "SignDomEigVal"],
+                    sign1.4 = MyData1.4[, "SignDomEigVal"],
+                    sign14 = MyData14[, "SignDomEigVal"])
+
+PlotCol <- as.character(interaction(DataStruct[, "sign0.14"],
+                                    DataStruct[, "sign1.4"],
+                                    DataStruct[, "sign14"]))
+DataStruct <- cbind(DataStruct, PlotCol = PlotCol)
+
+# New plot
+ggplot(data = DataStruct, aes(x = log10(kp), y = log10(kn), fill = PlotCol)) +
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_grid(w ~ NI, labeller = label_both) +
+  labs(x = "Log10(attachment rate in lumen)",
+       y = "Log10(detachment rate in lumen)") +
+  theme(legend.position = "bottom") +
+  scale_fill_viridis_d()
+
+# Compare to the default plot
+CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
+
 #### Plotting output for parameterset 2 ####
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium (Figure 3 in article):
 CreatePlot(filltitle = "Plasmid can invade")
-
-# Could add:
-# labelsdonorconj <- paste0("Donor conjugation\n rate ", gdSet, "/h")
-# names(labelsdonorconj) <- gdSet
-# labelsdonorcosts <- paste("and costs", cdSet)
-# names(labelsdonorcosts) <- cdSet
-# labelstransconj <- paste0("Transconjugant\nconjugation rate\n", gtSet, "/h")
-# names(labelstransconj) <- gtSet
-# labelstranscosts <- paste("and costs", ctSet)
-# names(labelstranscosts) <- ctSet
-# facet_grid(gd + cd ~ gt + ct,
-#            labeller = labeller(gd = labelsdonorconj, cd = labelsdonorcosts,
-#                                gt = labelstransconj, ct = labelstranscosts)) +
 
 # Stability of the equilibrium for the bulk-conjugation model
 # (plot not shown in article)
