@@ -35,7 +35,10 @@
  
 # Total plasmid and biomass are not calculated when simulating over time
 
-# Add ... argument to CreatePlot to enable hardcoding legends and axis titles on the fly?
+# An alternative to using the labelling function and supplying names would be to
+# rename the variables before plotting. This has as drawback that names cannot
+# contain spaces, and I don't know how automated wrapping long names behaves.
+# MyData <- rename(MyData, "Nutr_conc_inflow" = "NI", "Washout_rate" = "w")
 
 ## To check if other parameters than kp, kn, gd, gt, cd, ct which are separately
 # shown in the plot have multiple values (which leads to plotting multiple values
@@ -355,7 +358,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
     coord_fixed(ratio = 1, expand = FALSE) +
-    facet_grid(as.formula(paste(facety, "~", facetx)), labeller = label_both) +
+    facet_grid(as.formula(paste(facety, "~", facetx)), labeller = mylabeller) +
     theme(legend.position = "bottom") +
     labs(x = labx, y = laby, tag = mytag)
   if(addstamp == TRUE) {
@@ -698,6 +701,20 @@ print(Sys.time())
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
+#### Create facet labels and labeller 'function' ####
+labkpWall <- paste0("Attachment rate\n at wall: ", signif(kpWallSet, 3))
+names(labkpWall) <- kpWallSet
+labknWall <- paste0("Detachment rate\n at wall: ", signif(knWallSet, 3))
+names(labknWall) <- knWallSet
+labmigrlumwall <- paste0("Migration rate from \nlumen to wall: ", MigrLumWallSet)
+names(labmigrlumwall) <- MigrLumWallSet
+labmigrwalllum <- paste0("Migration rate from \nwall to lumen: ", MigrWallLumSet)
+names(labmigrwalllum) <- MigrWallLumSet
+
+mylabeller <- labeller(kpWall = labkpWall, knWall = labknWall,
+                       MigrLumWall = labmigrlumwall,
+                       MigrWallLum = labmigrwalllum, .default = label_both)
+
 #### Output parameterset 1 ####
 
 # Show that biomass in lumen and in wall are equal
@@ -705,53 +722,34 @@ range(MyData$RLumInit/MyData$RWallInit)
 
 # Show influence of kpWall and knWall on the stability of the plasmid-free
 # equilibrium for parameterset 1 (Figure 5 in the article)
+CreatePlot(filltitle = "Plasmid can invade", facetx = "kpWall",
+           facety = "knWall")
+
+# Show that recipient density in lumen and in wall are equal
+CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
+           filltitle = "Recipient concentration\n at the lumen / at the wall)",
+           facetx = "kpWall", facety = "knWall", mytag = "A")
+
+# Signs of bulk and pair-model are equal (Figure in supplement)
+CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
+           filltype = "manual",
+           filltitle = "Dominant eigenvalues \nhave equal signs",
+           facetx = "kpWall", facety = "knWall")
+
+### VANAF HIER VERDER ###
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
   coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(knWall ~ kpWall, labeller = label_both) +
-  labs(caption = DateTimeStamp, x = "log10(attachment rate)",
-       y = "log10(detachment rate)") +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "SignDomEigValTwoComp.png"))
-}
-
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal == SignDomEigValBulk))) +
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(knWall ~ kpWall, labeller = label_both) +
-  labs(caption = DateTimeStamp) +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "red"),
-                    name = "Dominant eigenvalues \nhave equal signs")
-if(saveplots == 1 ) {
-  ggsave(paste0(DateTimeStamp, "DifferenceInSignEigenvaluesTwoComp.png"))
-}
-
-## Test to change facet labels to names with values
-
-labelsdetachment <- paste0("Detachment rate\n at wall: ", signif(knWallSet, 3))
-names(labelsdetachment) <- knWallSet
-
-
-labelsattachment <- paste0("Attachment rate\n at wall: ", signif(kpWallSet, 3))
-names(labelsattachment) <- kpWallSet
-
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(knWall ~ kpWall, labeller = labeller(knWall = labelsdetachment, kpWall = labelsattachment)) +
+  facet_grid(knWall ~ kpWall, labeller = mylabeller) +
   labs(caption = DateTimeStamp, x = "Log10(attachment rate in lumen)",
        y = "Log10(detachment rate in lumen)") +
   theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
   scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
+
+
+
 
 
 #### Output parameterset 2 ####
@@ -782,7 +780,6 @@ ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
                          mytag = "C", save = FALSE),
        device = "png", width = 10, units = "cm")
 
-# NOTE: aspect ratio is not fixed in this plot
 ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomassBulk.png"),
        plot = CreatePlot(filltitle = "Plasmid can invade\n(bulk model)",
                          facetx = "MigrLumWall", facety = "MigrWallLum",
