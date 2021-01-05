@@ -702,13 +702,13 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
 #### Create facet labels and labeller 'function' ####
-labkpWall <- paste0("Attachment rate\n at wall: ", signif(kpWallSet, 3))
+labkpWall <- paste0("Attachment rate\nat wall: ", signif(kpWallSet, 3))
 names(labkpWall) <- kpWallSet
-labknWall <- paste0("Detachment rate\n at wall: ", signif(knWallSet, 3))
+labknWall <- paste0("Detachment rate\nat wall: ", signif(knWallSet, 3))
 names(labknWall) <- knWallSet
-labmigrlumwall <- paste0("Migration rate from \nlumen to wall: ", MigrLumWallSet)
+labmigrlumwall <- paste0("Migration rate from\nlumen to wall: ", MigrLumWallSet)
 names(labmigrlumwall) <- MigrLumWallSet
-labmigrwalllum <- paste0("Migration rate from \nwall to lumen: ", MigrWallLumSet)
+labmigrwalllum <- paste0("Migration rate from\nwall to lumen: ", MigrWallLumSet)
 names(labmigrwalllum) <- MigrWallLumSet
 
 mylabeller <- labeller(kpWall = labkpWall, knWall = labknWall,
@@ -727,13 +727,13 @@ CreatePlot(filltitle = "Plasmid can invade", facetx = "kpWall",
 
 # Show that recipient density in lumen and in wall are equal
 CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
-           filltitle = "Recipient concentration\n at the lumen / at the wall)",
+           filltitle = "Recipient concentration\nat the lumen / at the wall)",
            facetx = "kpWall", facety = "knWall", mytag = "A")
 
 # Signs of bulk and pair-model are equal (Figure in supplement)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
-           filltitle = "Dominant eigenvalues \nhave equal signs",
+           filltitle = "Dominant eigenvalues\nhave equal signs",
            facetx = "kpWall", facety = "knWall")
 
 ### VANAF HIER VERDER ###
@@ -757,7 +757,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
 # Show the effect of migration rates on biomass at the wall (Figure 6A).
 ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
-                         filltitle = "Log10(Recipient \nconcentration at the wall)",
+                         filltitle = "Log10(Recipient\nconcentration at the wall)",
                          facetx = "MigrLumWall", facety = "MigrWallLum",
                          mytag = "A", save = FALSE),
        device = "png", width = 10, units = "cm")
@@ -773,7 +773,7 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
 ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
-                         filltitle = "Log10(Recipient \nconcentration in the lumen)",
+                         filltitle = "Log10(Recipient\nconcentration in the lumen)",
                          facetx = "MigrLumWall", facety = "MigrWallLum",
                          limits = range(c(log10(MyData$RLumInit),
                                           log10(MyData$RWallInit))),
@@ -790,7 +790,7 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomassBulk.png
 # (Figure S4 in article).
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
-           filltitle = "Dominant eigenvalues \nhave equal signs",
+           filltitle = "Dominant eigenvalues\nhave equal signs",
            facetx = "MigrLumWall", facety = "MigrWallLum")
 
 #### Final equilibria after invasion ####
