@@ -614,15 +614,15 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
 #### Create facet labels and labeller 'function' ####
-labNI <- paste(signif(NISet, 3), "mg nutrients/mL\n at inflow")
+labNI <- paste(signif(NISet, 3), "mg nutrients/mL\nat inflow")
 names(labNI) <- NISet
 labw <- paste0("Washout rate ", signif(wSet, 3), "/h")
 names(labw) <- wSet
 labcd <- paste("Donor costs", cdSet)
 names(labcd) <- cdSet
-labct <- paste("Transconjugant costs", ctSet)
+labct <- paste("Transconjugant\ncosts", ctSet)
 names(labct) <- ctSet
-labgd <- paste0("Donor conjugation\n rate ", gdSet, "/h")
+labgd <- paste0("Donor conjugation\nrate ", gdSet, "/h")
 names(labgd) <- gdSet
 labgt <- paste0("Transconjugant\nconjugation rate\n", gtSet, "/h")
 names(labgt) <- gtSet
@@ -650,7 +650,7 @@ CreatePlot(fillvar = "log10(NutrEq)", filltype = "continuous",
 # model (run with parameterset 1, Figure S1 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
-           filltitle = "Dominant eigenvalues \nhave equal signs",
+           filltitle = "Dominant eigenvalues\nhave equal signs",
            facetx = "NI", facety = "w")
 
 #### Different way of plotting Figure 2 above ####
@@ -663,23 +663,21 @@ MyData0.14 <- filter(MyData, NI == 0.14)
 MyData1.4 <- filter(MyData, NI == 1.4)
 MyData14 <- filter(MyData, NI == 14)
 
-all(MyData0.14[, "kp"] == MyData1.4[, "kp"])
-all(MyData0.14[, "kn"] == MyData1.4[, "kn"])
-all(MyData1.4[, "kp"] == MyData14[, "kp"])
-all(MyData1.4[, "kn"] == MyData14[, "kn"])
+all(MyData0.14[, "kp"] == MyData1.4[, "kp"], MyData0.14[, "kn"] == MyData1.4[, "kn"],
+    MyData1.4[, "kp"] == MyData14[, "kp"], MyData1.4[, "kn"] == MyData14[, "kn"])
 
 DataStruct <- filter(MyData, NI == 0.14)
 DataStruct <- cbind(DataStruct, sign0.14 = MyData0.14[, "SignDomEigVal"],
                     sign1.4 = MyData1.4[, "SignDomEigVal"],
                     sign14 = MyData14[, "SignDomEigVal"])
 
-PlotCol <- as.character(interaction(DataStruct[, "sign0.14"],
+Invasion <- as.character(interaction(DataStruct[, "sign0.14"],
                                     DataStruct[, "sign1.4"],
                                     DataStruct[, "sign14"]))
-DataStruct <- cbind(DataStruct, PlotCol = PlotCol)
+DataStruct <- cbind(DataStruct, Invasion = Invasion)
 
 # New plot
-ggplot(data = DataStruct, aes(x = log10(kp), y = log10(kn), fill = PlotCol)) +
+ggplot(data = DataStruct, aes(x = log10(kp), y = log10(kn), fill = Invasion)) +
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -689,6 +687,7 @@ ggplot(data = DataStruct, aes(x = log10(kp), y = log10(kn), fill = PlotCol)) +
        y = "Log10(detachment rate in lumen)") +
   theme(legend.position = "bottom") +
   scale_fill_viridis_d()
+ggsave(paste0(DateTimeStamp, "FacetToColors2.png"))
 
 # Compare to the default plot
 CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
@@ -702,13 +701,21 @@ CreatePlot(filltitle = "Plasmid can invade")
 # Stability of the equilibrium for the bulk-conjugation model
 # (plot not shown in article)
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
-           filltitle = "Plasmid can invade \n(bulk model)")
+           filltitle = "Plasmid can invade\n(bulk model)")
 
 # Show if sign of dominant eigenvalues for pair-formation and bulk model is the same 
 # (Figure S2 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
-           filltitle = "Dominant eigenvalues \nhave equal signs")
+           filltitle = "Dominant eigenvalues\nhave equal signs")
+
+# Change layout of labels for next plots
+labgd <- paste0("Donor conjugation rate ", gdSet, "/h")
+names(labgd) <- gdSet
+labgt <- paste0("Transconjugant conjugation rate ", gtSet, "/h")
+names(labgt) <- gtSet
+mylabeller <- labeller(NI = labNI, w = labw, cd = labcd, ct = labct,
+                       gd = labgd, gt = labgt, .default = label_both)
 
 ## The influence of conjugation, attachment, and detachment rates on the 
 ## bulk-conjugation rates (Figure 4 in the article). Data is filtered to show
