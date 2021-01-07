@@ -500,8 +500,8 @@ NISet <- c(0.14, 1.4, 14)
 NutrConvSet <- 1.4e-7
 # median and mean residence time of 24 hour, and 1% remaining after 24h:
 wSet <- c(round(log(2)/24, 3), round(1/24, 3), 0.192) 
-kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
-knSet <- 10^seq(from = -2, to = 3, by = 0.25)
+kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
+knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 cdSet <- c(0.18)
 ctSet <- c(0.09)
 gdSet <- c(15)
@@ -516,8 +516,8 @@ Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
 wSet <- round(1/24, 3)
-kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
-knSet <- 10^seq(from = -2, to = 3, by = 0.25)
+kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
+knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 cdSet <- c(0.09, 0.18)
 ctSet <- c(0.09, 0.18)
 gdSet <- c(1, 15)
@@ -682,12 +682,12 @@ ggplot(data = DataStruct, aes(x = log10(kp), y = log10(kn), fill = Invasion)) +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
   coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(w ~ NI, labeller = label_both) +
+  facet_grid(w ~ ., labeller = label_both) +
   labs(x = "Log10(attachment rate in lumen)",
        y = "Log10(detachment rate in lumen)") +
   theme(legend.position = "bottom") +
   scale_fill_viridis_d()
-ggsave(paste0(DateTimeStamp, "FacetToColors2.png"))
+ggsave(paste0(DateTimeStamp, "FacetToColors.png"))
 
 # Compare to the default plot
 CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
@@ -734,6 +734,9 @@ CreatePlot(dataplot = filter(MyData, gd == 15 & cd == cdSet[1] & ct == ctSet[1])
            filltitle = "Log10(Transconjugant bulkrate)",
            facetx = "gt", facety = "gd")
 
+# NOTE: running for kpSet = 10^seq(from = -12, to = -8, by = 0.1) and knSet = 
+# 10^seq(from = -2, to = 3, by = 0.1) leads to problems in the integration.
+# Using by = 0.25 instead of by = 0.1 does work.
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
