@@ -541,9 +541,9 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
 # rates that are different in the lumen compared to at the wall.
 NILumSet <- 1.4
 NIWallSet <- 1.4
-wLumSet <- round(1/24, 3)
-wWallSet <- round(1/24, 3)
-wNutrWallSet <- round(1/24, 3)
+wLumSet <- round(-log(0.5)/24, 3)
+wWallSet <- round(-log(0.5)/24, 3)
+wNutrWallSet <- round(-log(0.5)/24, 3)
 Ks <- 0.004
 NutrConvSet <- 1.4e-7
 bRSet <- 0.738
@@ -564,9 +564,9 @@ gtSet <- 15
 # the plasmid-free equilibrium. Note that washout from the wall is excluded.
 NILumSet <- 1.4
 NIWallSet <- 1.4
-wLumSet <- round(1/24, 3)
+wLumSet <- round(-log(0.5)/24, 3)
 wWallSet <- 0 # Cells do not washout from the wall
-wNutrWallSet <- round(1/24, 3)
+wNutrWallSet <- round(-log(0.5)/24, 3)
 Ks <- 0.004
 NutrConvSet <- 1.4e-7
 bRSet <- 0.738
