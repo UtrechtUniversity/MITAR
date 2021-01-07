@@ -498,8 +498,9 @@ bRSet <- c(0.738)
 Ks <- 0.004
 NISet <- c(0.14, 1.4, 14)
 NutrConvSet <- 1.4e-7
-# median and mean residence time of 24 hour, and 1% remaining after 24h:
-wSet <- c(round(log(2)/24, 3), round(1/24, 3), 0.192) 
+# 75%, 50%, and 25% remaining after 24h (corresponding to median residence times
+# of 58, 24, and 12 hours, and mean residence times of 83, 35 and 17 hours).
+wSet <- round(-log(c(0.75, 0.50, 0.25))/24, 3)
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 cdSet <- c(0.18)
@@ -515,7 +516,7 @@ bRSet <- c(0.738)
 Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
-wSet <- round(1/24, 3)
+wSet <- round(-log(0.5)/24, 3)
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 cdSet <- c(0.09, 0.18)
@@ -529,7 +530,7 @@ bRSet <- c(0.738)
 Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
-wSet <- round(1/24, 3)
+wSet <- round(-log(0.5)/24, 3)
 kpSet <- 10^c(-12, -10, -8)
 knSet <- 10^0.5
 cdSet <- c(0.18)
@@ -544,7 +545,7 @@ bRSet <- c(0.738)
 NISet <- 1.4
 Ks <- 0.004
 NutrConvSet <- 1.4e-7
-wSet <- round(1/24, 3)
+wSet <- round(-log(0.5)/24, 3)
 kpSet <- 10^c(-11, -9)
 knSet <- 10^seq(from = -2, to = 3, by = 1)
 cdSet <- c(0.18)
