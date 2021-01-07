@@ -553,9 +553,9 @@ DInitLumSet <- 1E3
 DInitWallSet <- 0
 cdSet <- 0.18
 ctSet <- 0.09
-kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
+kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 kpWallSet <- 10^c(-12, -10, -8) 
-knSet <- 10^seq(from = -2, to = 3, by = 0.25)
+knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 knWallSet <- 10^seq(from = -2, to = 3, length.out = 3)
 gdSet <- 15
 gtSet <- 15
@@ -576,9 +576,9 @@ DInitLumSet <- 1E3
 DInitWallSet <- 0
 cdSet <- 0.18
 ctSet <- 0.09
-kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
+kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 kpWallSet <- 10^-12 
-knSet <- 10^seq(from = -2, to = 3, by = 0.25)
+knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 knWallSet <- 10^0.5
 gdSet <- 15
 gtSet <- 15
@@ -730,11 +730,34 @@ CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
            filltitle = "Recipient concentration\nat the lumen / at the wall)",
            facetx = "kpWall", facety = "knWall", mytag = "A")
 
+# Show influence of kpWall and knWall on the stability of the plasmid-free
+# equilibrium in the bulk-model for parameterset 1 (not shown in article)
+CreatePlot(fillvar = "factor(SignDomEigValBulk)",
+           filltitle = "Plasmid can invade\n(bulk-model)", facetx = "kpWall",
+           facety = "knWall")
+
 # Signs of bulk and pair-model are equal (Figure in supplement)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs",
            facetx = "kpWall", facety = "knWall")
+
+dim(MyData)
+dim(MyData[which(MyData[, "kpWall"]== 1e-12), ])
+DataWall1 <- MyData[which(MyData[, "kpWall"] == 1e-12 & MyData[, "knWall"] == 10^-2), ]
+DataWall2 <- MyData[which(MyData[, "kpWall"] == 1e-12 & MyData[, "knWall"] == 10^0.5), ]
+DataWall3 <- MyData[which(MyData[, "kpWall"] == 1e-12 & MyData[, "knWall"] == 10^3), ]
+
+CreatePlot(dataplot = DataWall1,
+           filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".", filename = paste0(DateTimeStamp, "DataWall1.png"))
+CreatePlot(dataplot = DataWall2,
+           filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".", filename = paste0(DateTimeStamp, "DataWall2.png"))
+CreatePlot(dataplot = DataWall3,
+           filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".", filename = paste0(DateTimeStamp, "DataWall3.png"))
+
 
 ### VANAF HIER VERDER ###
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
@@ -773,7 +796,7 @@ ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
 ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
-                         filltitle = "Log10(Recipient\nconcentration in the lumen)",
+                         filltitle = "Log10(Recipient\ndensity in the lumen)",
                          facetx = "MigrLumWall", facety = "MigrWallLum",
                          limits = range(c(log10(MyData$RLumInit),
                                           log10(MyData$RWallInit))),
@@ -794,6 +817,10 @@ CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            facetx = "MigrLumWall", facety = "MigrWallLum")
 
 #### Final equilibria after invasion ####
+# NOTE: running for kpLumSet = 10^seq(from = -12, to = -8, by = 0.1) and
+# knLumSet = 10^seq(from = -2, to = 3, by = 0.1) leads to problems in the
+# integration. Using by = 0.25 instead of by = 0.1 does work.
+
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
 
