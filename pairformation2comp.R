@@ -722,8 +722,8 @@ range(MyData$RLumInit/MyData$RWallInit)
 
 # Show influence of kpWall and knWall on the stability of the plasmid-free
 # equilibrium for parameterset 1 (Figure 5 in the article)
-CreatePlot(filltitle = "Plasmid can invade", facetx = "kpWall",
-           facety = "knWall")
+CreatePlot(filltitle = "Plasmid can invade",
+           facetx = "kpWall", facety = "knWall")
 
 # Show that recipient density in lumen and in wall are equal
 CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
@@ -733,10 +733,10 @@ CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
 # Show influence of kpWall and knWall on the stability of the plasmid-free
 # equilibrium in the bulk-model for parameterset 1 (not shown in article)
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
-           filltitle = "Plasmid can invade\n(bulk-model)", facetx = "kpWall",
-           facety = "knWall")
+           filltitle = "Plasmid can invade\n(bulk-model)",
+           facetx = "kpWall", facety = "knWall")
 
-# Signs of bulk and pair-model are equal (Figure in supplement)
+# Signs of bulk and pair-model are equal (Figure S4 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs",
@@ -748,69 +748,43 @@ DataWall1 <- MyData[which(MyData[, "kpWall"] == 1e-12 & MyData[, "knWall"] == 10
 DataWall2 <- MyData[which(MyData[, "kpWall"] == 1e-12 & MyData[, "knWall"] == 10^0.5), ]
 DataWall3 <- MyData[which(MyData[, "kpWall"] == 1e-12 & MyData[, "knWall"] == 10^3), ]
 
-CreatePlot(dataplot = DataWall1,
-           filltitle = "Plasmid can invade",
-           facetx = ".", facety = ".", filename = paste0(DateTimeStamp, "DataWall1.png"))
-CreatePlot(dataplot = DataWall2,
-           filltitle = "Plasmid can invade",
-           facetx = ".", facety = ".", filename = paste0(DateTimeStamp, "DataWall2.png"))
-CreatePlot(dataplot = DataWall3,
-           filltitle = "Plasmid can invade",
-           facetx = ".", facety = ".", filename = paste0(DateTimeStamp, "DataWall3.png"))
-
-
-### VANAF HIER VERDER ###
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(knWall ~ kpWall, labeller = mylabeller) +
-  labs(caption = DateTimeStamp, x = "Log10(attachment rate in lumen)",
-       y = "Log10(detachment rate in lumen)") +
-  theme(legend.position = "bottom", plot.caption = element_text(vjust = 20)) +
-  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
-
-
-
+CreatePlot(dataplot = DataWall1, filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".",
+           filename = paste0(DateTimeStamp, "DataWall1.png"))
+CreatePlot(dataplot = DataWall2, filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".",
+           filename = paste0(DateTimeStamp, "DataWall2.png"))
+CreatePlot(dataplot = DataWall3, filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".",
+           filename = paste0(DateTimeStamp, "DataWall3.png"))
 
 
 #### Output parameterset 2 ####
 
-# Show the effect of migration rates on biomass at the wall (Figure 6A).
-ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
-                         filltitle = "Log10(Recipient\ndensity at the wall)",
-                         facetx = "MigrLumWall", facety = "MigrWallLum",
-                         mytag = "A", save = FALSE),
-       device = "png", width = 10, units = "cm")
+# Show the effect of migration rates on biomass at the wall (plot not shown).
+CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
+           filltitle = "Log10(Recipient\ndensity at the wall",
+           facetx = "MigrLumWall", facety = "MigrWallLum")
 
 # Show the effect of migration rates on stability of the plasmid-free
-# equilibrium (Figure 6B).
-ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomass.png"),
-       plot = CreatePlot(filltitle = "Plasmid can invade",
-                         facetx = "MigrLumWall", facety = "MigrWallLum",
-                         mytag = "B", save = FALSE),
-       device = "png", width = 10, units = "cm")
+# equilibrium (Figure 6).
+CreatePlot(filltitle = "Plasmid can invade",
+           facetx = "MigrLumWall", facety = "MigrWallLum")
 
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
-ggsave(filename = paste0(DateTimeStamp, "RLumTwoCompDiffBiomass.png"),
-       plot = CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
-                         filltitle = "Log10(Recipient\ndensity in the lumen)",
-                         facetx = "MigrLumWall", facety = "MigrWallLum",
-                         limits = range(c(log10(MyData$RLumInit),
-                                          log10(MyData$RWallInit))),
-                         mytag = "C", save = FALSE),
-       device = "png", width = 10, units = "cm")
+CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
+           filltitle = "Log10(Recipient\ndensity in the lumen",
+           facetx = "MigrLumWall", facety = "MigrWallLum",
+           limits = range(log10(c(MyData$RLumInit, MyData$RWallInit))))
 
-ggsave(filename = paste0(DateTimeStamp, "SignDomEigValTwoCompDiffBiomassBulk.png"),
-       plot = CreatePlot(filltitle = "Plasmid can invade\n(bulk model)",
-                         facetx = "MigrLumWall", facety = "MigrWallLum",
-                         save = FALSE),
-       device = "png", width = 10, units = "cm")
+# Show the effect of migration rates on stability of the plasmid-free
+# equilibrium for the bulk-model (plot not shown).
+CreatePlot(fillvar = "factor(SignDomEigValBulk)",
+           filltitle = "Plasmid can invade\n(bulk model)",
+           facetx = "MigrLumWall", facety = "MigrWallLum")
 
 # Are signs of the largest eigenvalues equal for bulk- and pair-formation model?
-# (Figure S4 in article).
+# (Figure S5 in article).
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs",
