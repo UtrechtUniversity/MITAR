@@ -353,8 +353,8 @@ SimulationBulk <- function(InputSimulationBulk) {
 CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)",
                        fillvar = "factor(SignDomEigVal)",
                        filltype = "discrete", limits = NULL, 
-                       labx = "Log10(attachment rate in lumen)",
-                       laby = "Log10(detachment rate in lumen)",
+                       labx = "Log10(attachment rate)",
+                       laby = "Log10(detachment rate)",
                        filltitle, filllabels = c("No", "Yes"),
                        mytag = NULL,
                        manualvalues = c("TRUE" = "darkgreen", "FALSE" = "red"),
@@ -637,6 +637,25 @@ mylabeller <- labeller(NI = labNI, w = labw, cd = labcd, ct = labct,
 # stability of the plasmid-free equilibrium (Figure 2 in article).
 CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
 
+filteredDf <- NULL
+for(i in NISet) {
+  for(j in wSet) {
+    MyDataFiltered <- filter(MyData, NI == i, w == j)
+    invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
+    no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+    total_n <- invasion_n + no_invasion_n
+    invasion_perc <- round(100*invasion_n/total_n, 0)
+    no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
+    
+    filteredDf <- rbind(filteredDf,
+                        data.frame(NI = i, w = j, invasion_perc = invasion_perc,
+                                   no_invasion_perc = no_invasion_perc,
+                                   invasion_n = invasion_n,
+                                   no_invasion_n = no_invasion_n, total_n = total_n))
+  }
+}
+print(filteredDf)
+
 # These two plots (not shown in article) show that nutrient concentration at
 # the inflow influences recipient cell density, whereas washout rate influences
 # nutrient concentration.
@@ -698,6 +717,28 @@ CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium (Figure 3 in article):
 CreatePlot(filltitle = "Plasmid can invade")
+
+filteredDf <- NULL
+for(k in cdSet) {
+  for(l in gdSet) {
+    for(i in ctSet) {
+      for(j in gtSet) {
+        MyDataFiltered <- filter(MyData, ct == i, gt == j, cd == k, gd == l)
+        invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
+        no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+        total_n <- invasion_n + no_invasion_n
+        invasion_perc <- round(100*invasion_n/total_n, 0)
+        no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
+        filteredDf <- rbind(filteredDf,
+                            data.frame(ct = i, gt = j, invasion_perc = invasion_perc,
+                                       no_invasion_perc = no_invasion_perc,
+                                       invasion_n = invasion_n,
+                                       no_invasion_n = no_invasion_n, total_n = total_n))
+      }
+    }
+  }
+}
+print(filteredDf)
 
 # Stability of the equilibrium for the bulk-conjugation model
 # (plot not shown in article)
