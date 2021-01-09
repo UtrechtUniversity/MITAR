@@ -727,8 +727,8 @@ CreatePlot(filltitle = "Plasmid can invade", facetx = "kpWall",
 
 # Show that recipient density in lumen and in wall are equal
 CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
-           filltitle = "Recipient concentration\nat the lumen / at the wall)",
-           facetx = "kpWall", facety = "knWall", mytag = "A")
+           filltitle = "Recipient density\nin the lumen / at the wall)",
+           facetx = "kpWall", facety = "knWall")
 
 # Show influence of kpWall and knWall on the stability of the plasmid-free
 # equilibrium in the bulk-model for parameterset 1 (not shown in article)
@@ -780,7 +780,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEig
 # Show the effect of migration rates on biomass at the wall (Figure 6A).
 ggsave(filename = paste0(DateTimeStamp, "RWallTwoCompDiffBiomass.png"),
        plot = CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
-                         filltitle = "Log10(Recipient\nconcentration at the wall)",
+                         filltitle = "Log10(Recipient\ndensity at the wall)",
                          facetx = "MigrLumWall", facety = "MigrWallLum",
                          mytag = "A", save = FALSE),
        device = "png", width = 10, units = "cm")
