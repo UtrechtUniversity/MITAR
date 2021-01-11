@@ -2,9 +2,6 @@
 
 #### To do ####
 
-## Costs in growth ##
-
-## Other
 # Naming of objects inside EstConjBulk() should be updated, see DataEstConjBulk
 # and EstConjBulk() in older versions of the script. Consider using mutate(),
 # see the script of the two-compartment model.
@@ -633,8 +630,8 @@ mylabeller <- labeller(NI = labNI, w = labw, cd = labcd, ct = labct,
 
 #### Plotting output for parameterset 1 ####
 
-# Show influence of washout rate and inflowing nutrient concentration on
-# stability of the plasmid-free equilibrium (Figure 2 in article).
+# Influence of washout rate and inflowing nutrient concentration on stability of
+# the plasmid-free equilibrium (Figure 2 in article).
 CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
 
 filteredDf <- NULL
@@ -656,9 +653,9 @@ for(i in NISet) {
 }
 print(filteredDf)
 
-# These two plots (not shown in article) show that nutrient concentration at
-# the inflow influences recipient cell density, whereas washout rate influences
-# nutrient concentration.
+# Nutrient concentration at the inflow influences recipient cell density,
+# whereas the washout rate influences nutrient concentration (not shown in
+# article).
 CreatePlot(fillvar = "log10(REq)", filltype = "continuous",
            filltitle = "Log10(Recipient density)",
            facetx = "NI", facety = "w")
@@ -666,17 +663,27 @@ CreatePlot(fillvar = "log10(NutrEq)", filltype = "continuous",
            filltitle = "Log10(Nutrient concentration)",
            facetx = "NI", facety = "w")
 
-# Show that dominant eigenvalues have equal signs for pair-formation and bulk
-# model (run with parameterset 1, Figure S1 in article)
+# Show if the dominant eigenvalues of the pair-formation model and bulk model
+# have equal signs (Figure S1 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs",
            facetx = "NI", facety = "w")
 
-#### Different way of plotting Figure 2 above ####
+# Bulk conjugation rates
+limitsbulkrates <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
+CreatePlot(dataplot = filter(MyData, cd == cdSet[1] & ct == ctSet[1]),
+           fillvar = "log10(gdbulk)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Donor bulkrate)",
+           facetx = "NI", facety = "w", save = FALSE)
+CreatePlot(dataplot = filter(MyData, cd == cdSet[1] & ct == ctSet[1]),
+           fillvar = "log10(gtbulk)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Transconjugant bulkrate)",
+           facetx = "NI", facety = "w", save = FALSE)
 
-# To show more combinations in one facet, use 'waffle charts' as shown at
-# http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html#Waffle%20Chart
+#### Different way of plotting Figure 2 above ####
 
 # Dataset splitsen naar nutr. conc. (kan waarschijnlijk sneller met dplyr)
 MyData0.14 <- filter(MyData, NI == 0.14)
@@ -696,7 +703,6 @@ Invasion <- as.character(interaction(DataStruct[, "sign0.14"],
                                     DataStruct[, "sign14"]))
 DataStruct <- cbind(DataStruct, Invasion = Invasion)
 
-# New plot
 ggplot(data = DataStruct, aes(x = log10(kp), y = log10(kn), fill = Invasion)) +
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -710,7 +716,8 @@ ggplot(data = DataStruct, aes(x = log10(kp), y = log10(kn), fill = Invasion)) +
 ggsave(paste0(DateTimeStamp, "FacetToColors.png"))
 
 # Compare to the default plot
-CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
+CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w",
+           save = FALSE)
 
 #### Plotting output for parameterset 2 ####
 
@@ -745,8 +752,8 @@ print(filteredDf)
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk model)")
 
-# Show if sign of dominant eigenvalues for pair-formation and bulk model is the same 
-# (Figure S2 in article)
+# Show if sign of dominant eigenvalues for pair-formation and bulk model is the 
+# same (Figure S2 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs")
