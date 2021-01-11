@@ -554,7 +554,7 @@ DInitWallSet <- 0
 cdSet <- 0.18
 ctSet <- 0.09
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
-kpWallSet <- 10^c(-12, -10, -8) 
+kpWallSet <- 10^c(-12, -9.5, -9) 
 knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 knWallSet <- 10^seq(from = -2, to = 3, length.out = 3)
 gdSet <- 15
@@ -731,7 +731,7 @@ CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
            facetx = "kpWall", facety = "knWall")
 
 # Show influence of kpWall and knWall on the stability of the plasmid-free
-# equilibrium in the bulk-model for parameterset 1 (not shown in article)
+# equilibrium in the bulk-model (not shown in article)
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk-model)",
            facetx = "kpWall", facety = "knWall")
@@ -742,6 +742,30 @@ CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltitle = "Dominant eigenvalues\nhave equal signs",
            facetx = "kpWall", facety = "knWall")
 
+# Bulk conjugation rates in the lumen
+limitsbulkrates <- range(log10(c(MyData$gdbulkLum, MyData$gtbulkLum,
+                                 MyData$gdbulkWall, MyData$gtbulkWall)))
+CreatePlot(fillvar = "log10(gdbulkLum)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Donor bulkrate\nin the lumen)",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "log10(gtbulkLum)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Transconjugant\nbulkrate in the lumen)",
+           facetx = "kpWall", facety = "knWall")
+
+# Bulk conjugation rates at the wall
+CreatePlot(fillvar = "log10(gdbulkWall)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Donor bulkrate\nat the wall)",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "log10(gtbulkWall)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
+           facetx = "kpWall", facety = "knWall")
+
+# Separate plots for low attachment rates at the wall, to compare them to the
+# output of the one-compartment model.
 dim(MyData)
 dim(MyData[which(MyData[, "kpWall"]== 1e-12), ])
 DataWall1 <- MyData[which(MyData[, "kpWall"] == 1e-12 & MyData[, "knWall"] == 10^-2), ]
@@ -788,6 +812,26 @@ CreatePlot(fillvar = "factor(SignDomEigValBulk)",
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs",
+           facetx = "MigrLumWall", facety = "MigrWallLum")
+
+# show effect of migration rates on the bulk-conjugation rates
+limitsbulkrates <- range(log10(c(MyData$gdbulkLum, MyData$gtbulkLum,
+                                 MyData$gdbulkWall, MyData$gtbulkWall)))
+CreatePlot(fillvar = "log10(gdbulkLum)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Donor bulkrate\nin the lumen)",
+           facetx = "MigrLumWall", facety = "MigrWallLum")
+CreatePlot(fillvar = "log10(gtbulkLum)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Transconjugant bulkrate\nin the lumen)",
+           facetx = "MigrLumWall", facety = "MigrWallLum")
+CreatePlot(fillvar = "log10(gdbulkWall)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Donor\nbulkrate at the wall)",
+           facetx = "MigrLumWall", facety = "MigrWallLum")
+CreatePlot(fillvar = "log10(gtbulkWall)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
            facetx = "MigrLumWall", facety = "MigrWallLum")
 
 #### Final equilibria after invasion ####
