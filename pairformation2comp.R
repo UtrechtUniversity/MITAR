@@ -89,9 +89,9 @@ MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 ModelBulkNutrPlasmidfree <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum/(Ks + NutrLum)
-    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall
+    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall*ScaleWallPerLum
     dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall/(Ks + NutrWall)
-    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum
+    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleWallPerLum
     return(list(c(dNutrLum, dRLum, dNutrWall, dRWall)))
   })
 }
@@ -205,17 +205,17 @@ EstConjBulkWall <- function(MyData) {
 ModelBulkNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*((1 - cd)*DLum + RLum + (1 - ct)*TransLum)/(Ks + NutrLum)
-    dDLum <- ((1 - cd)*bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*DLum + MigrWallLum*DWall
-    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall -
+    dDLum <- ((1 - cd)*bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*DLum + MigrWallLum*DWall*ScaleWallPerLum
+    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall*ScaleWallPerLum -
       (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum
-    dTransLum <- ((1 - ct)*bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*TransLum + MigrWallLum*TransWall +
+    dTransLum <- ((1 - ct)*bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*TransLum + MigrWallLum*TransWall*ScaleWallPerLum +
       (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum
 
     dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*((1 - cd)*DWall + RWall + (1 - ct)*TransWall)/(Ks + NutrWall)
-    dDWall <- ((1 - cd)*bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*DWall + MigrLumWall*DLum
-    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum -
+    dDWall <- ((1 - cd)*bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*DWall + MigrLumWall*DLum/ScaleWallPerLum
+    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleWallPerLum -
       (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
-    dTransWall <- ((1 - ct)*bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*TransWall + MigrLumWall*TransLum +
+    dTransWall <- ((1 - ct)*bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*TransWall + MigrLumWall*TransLum/ScaleWallPerLum +
       (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
     return(list(c(dNutrLum, dDLum, dRLum, dTransLum, dNutrWall, dDWall, dRWall, dTransWall)))
   })
@@ -240,30 +240,30 @@ ModelPairsNutr <- function(t, state, parms) {
         (1 - cd)*(DLum + MdrLum + MdtLum) + (RLum + MdrLum + MrtLum) + (1 - ct)*(TransLum + MdtLum + MrtLum + 2*MttLum)/(Ks + NutrLum)
       )
     dDLum <- (1 - cd)*bR*NutrLum*(DLum + MdrLum + MdtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*DLum +
-      kn*(MdrLum + MdtLum) + MigrWallLum*DWall
+      kn*(MdrLum + MdtLum) + MigrWallLum*DWall*ScaleWallPerLum
     dRLum <- bR*NutrLum*(RLum + MdrLum + MrtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*(DLum + TransLum))*RLum +
-      kn*(MdrLum + MrtLum) + MigrWallLum*RWall
+      kn*(MdrLum + MrtLum) + MigrWallLum*RWall*ScaleWallPerLum
     dTransLum <- (1 - ct)*bR*NutrLum*(TransLum + MdtLum + MrtLum + 2*MttLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*TransLum +
-      kn*(MdtLum + MrtLum + 2*MttLum) + MigrWallLum*TransWall
-    dMdrLum <- kp*DLum*RLum - (kn + gd + wLum + MigrLumWall)*MdrLum + MigrWallLum*MdrWall
-    dMdtLum <- gd*MdrLum - (kn + wLum + MigrLumWall)*MdtLum + MigrWallLum*MdtWall
-    dMrtLum <- kp*RLum*TransLum - (kn + gt + wLum + MigrLumWall)*MrtLum + MigrWallLum*MrtWall
-    dMttLum <- gt*MrtLum - (kn + wLum + MigrLumWall)*MttLum + MigrWallLum*MttWall
+      kn*(MdtLum + MrtLum + 2*MttLum) + MigrWallLum*TransWall*ScaleWallPerLum
+    dMdrLum <- kp*DLum*RLum - (kn + gd + wLum + MigrLumWall)*MdrLum + MigrWallLum*MdrWall*ScaleWallPerLum
+    dMdtLum <- gd*MdrLum - (kn + wLum + MigrLumWall)*MdtLum + MigrWallLum*MdtWall*ScaleWallPerLum
+    dMrtLum <- kp*RLum*TransLum - (kn + gt + wLum + MigrLumWall)*MrtLum + MigrWallLum*MrtWall*ScaleWallPerLum
+    dMttLum <- gt*MrtLum - (kn + wLum + MigrLumWall)*MttLum + MigrWallLum*MttWall*ScaleWallPerLum
     
     dNutrWall <- (NIWall - NutrWall)*wNutrWall -
       NutrConv*bR*NutrWall*(
         (1 - cd)*(DWall + MdrWall + MdtWall) + (RWall + MdrWall + MrtWall) + (1 - ct)*(TransWall + MdtWall + MrtWall + 2*MttWall)/(Ks + NutrWall)
       )
     dDWall <- (1 - cd)*bR*NutrWall*(DWall + MdrWall + MdtWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*RWall)*DWall +
-      knWall*(MdrWall + MdtWall) + MigrLumWall*DLum
+      knWall*(MdrWall + MdtWall) + MigrLumWall*DLum/ScaleWallPerLum
     dRWall <- bR*NutrWall*(RWall + MdrWall + MrtWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*(DWall + TransWall))*RWall +
-      knWall*(MdrWall + MrtWall) + MigrLumWall*RLum
+      knWall*(MdrWall + MrtWall) + MigrLumWall*RLum/ScaleWallPerLum
     dTransWall <- (1 - ct)*bR*NutrWall*(TransWall + MdtWall + MrtWall + 2*MttWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*RWall)*TransWall +
-      knWall*(MdtWall + MrtWall + 2*MttWall) + MigrLumWall*TransLum
-    dMdrWall <- kpWall*DWall*RWall - (knWall + gd + wWall + MigrWallLum)*MdrWall + MigrLumWall*MdrLum
-    dMdtWall <- gd*MdrWall - (knWall + wWall + MigrWallLum)*MdtWall + MigrLumWall*MdtLum
-    dMrtWall <- kpWall*RWall*TransWall - (knWall + gt + wWall + MigrWallLum)*MrtWall + MigrLumWall*MrtLum
-    dMttWall <- gt*MrtWall - (knWall + wWall + MigrWallLum)*MttWall + MigrLumWall*MttLum
+      knWall*(MdtWall + MrtWall + 2*MttWall) + MigrLumWall*TransLum/ScaleWallPerLum
+    dMdrWall <- kpWall*DWall*RWall - (knWall + gd + wWall + MigrWallLum)*MdrWall + MigrLumWall*MdrLum/ScaleWallPerLum
+    dMdtWall <- gd*MdrWall - (knWall + wWall + MigrWallLum)*MdtWall + MigrLumWall*MdtLum/ScaleWallPerLum
+    dMrtWall <- kpWall*RWall*TransWall - (knWall + gt + wWall + MigrWallLum)*MrtWall + MigrLumWall*MrtLum/ScaleWallPerLum
+    dMttWall <- gt*MrtWall - (knWall + wWall + MigrWallLum)*MttWall + MigrLumWall*MttLum/ScaleWallPerLum
     
     return(list(c(dNutrLum, dDLum, dRLum, dTransLum, dMdrLum, dMdtLum, dMrtLum, dMttLum,
                   dNutrWall, dDWall, dRWall, dTransWall, dMdrWall, dMdtWall, dMrtWall, dMttWall)))
@@ -535,15 +535,17 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
 
 # Parameterset 1: use wWall = wNutrWall to obtain equal recipient densities in
 # the lumen and at the wall. Limit to wWall = wLum = wNutrLum to get equal
-# nutrient concentrations in the lumen and at the wall. Those densities and
-# concentrations are then also equal to those in the one-compartment model.
+# nutrient concentrations in the lumen and at the wall. If those values are equal
+# to the values used in the one-compartment model, then the densities and
+# concentrations are also equal to those in the one-compartment model.
 # This parameterset can be used to show influence of attachment and detachment
 # rates that are different in the lumen compared to at the wall.
+ScaleWallPerLum <- 1 # equal volumes in wall-compartment and lumen compartment
 NILumSet <- 1.4
 NIWallSet <- 1.4
-wLumSet <- round(-log(0.5)/24, 3)
-wWallSet <- round(-log(0.5)/24, 3)
-wNutrWallSet <- round(-log(0.5)/24, 3)
+wLumSet <- -log(0.5)/24
+wWallSet <- -log(0.5)/24
+wNutrWallSet <- -log(0.5)/24
 Ks <- 0.004
 NutrConvSet <- 1.4e-7
 bRSet <- 0.738
@@ -554,7 +556,7 @@ DInitWallSet <- 0
 cdSet <- 0.18
 ctSet <- 0.09
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
-kpWallSet <- 10^c(-12, -9.5, -9) 
+kpWallSet <- c(0, 10^seq(from = -10, to = -8, by = 0.5))
 knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 knWallSet <- 10^seq(from = -2, to = 3, length.out = 3)
 gdSet <- 15
@@ -562,11 +564,12 @@ gtSet <- 15
 
 # Parameterset 2 to show effect of migration rates on biomass and stability of
 # the plasmid-free equilibrium. Note that washout from the wall is excluded.
+ScaleWallPerLum <- 1 # volume wall-compartiment / volume lumen compartiment
 NILumSet <- 1.4
 NIWallSet <- 1.4
-wLumSet <- round(-log(0.5)/24, 3)
+wLumSet <- -log(0.5)/24
 wWallSet <- 0 # Cells do not washout from the wall
-wNutrWallSet <- round(-log(0.5)/24, 3)
+wNutrWallSet <- -log(0.5)/24
 Ks <- 0.004
 NutrConvSet <- 1.4e-7
 bRSet <- 0.738
@@ -612,7 +615,8 @@ TotalIterations
 ## Determine plasmid-free equilibrium for all parameter combinations
 MyData <- expand_grid(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet, wWall = wWallSet,
                       wNutrWall = wNutrWallSet, NutrConv = NutrConvSet, bR = bRSet,
-                      MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet)
+                      MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
+                      ScaleWallPerLum = ScaleWallPerLum)
 dim(MyData)
 
 # Add equilibrium values of the one-compartment model as initial state values to
@@ -782,6 +786,77 @@ CreatePlot(dataplot = DataWall3, filltitle = "Plasmid can invade",
            facetx = ".", facety = ".",
            filename = paste0(DateTimeStamp, "DataWall3.png"))
 
+### Output to compare one-compartment model to two-compartment model
+
+# Show that biomass in lumen and in wall are equal
+range(MyData$RLumInit/MyData$RWallInit)
+
+CreatePlot(filltitle = "Plasmid can invade",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "factor(SignDomEigValBulk)",
+           filltitle = "Plasmid can invade\n(bulk-model)",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
+           filltype = "manual",
+           filltitle = "Dominant eigenvalues\nhave equal signs",
+           facetx = "kpWall", facety = "knWall")
+
+CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
+           filltitle = "log10(Recipient density\nin the lumen)",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
+           filltitle = "log10(Recipient density\nat the wall)",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
+           filltitle = "Recipient density\nin the lumen / at the wall)",
+           facetx = "kpWall", facety = "knWall")
+
+CreatePlot(fillvar = "log10(NutrLumInit)", filltype = "continuous",
+           filltitle = "log10(Nutrient concentration\nin the lumen)",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "log10(NutrWallInit)", filltype = "continuous",
+           filltitle = "log10(Nutrient concentration\nat the wall)",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "NutrLumInit/NutrWallInit", filltype = "continuous",
+           filltitle = "Nutrient concentration\nin the lumen / at the wall",
+           facetx = "kpWall", facety = "knWall")
+
+# Bulk conjugation rates in the lumen
+# bulkrates <- c(MyData$gdbulkLum, MyData$gtbulkLum,
+#                MyData$gdbulkWall, MyData$gtbulkWall)
+# length(bulkrates)
+# bulkrates <- bulkrates[which(bulkrates > 0)]
+# length(bulkrates)
+# limitsbulkrates <- range(log10(bulkrates))
+CreatePlot(fillvar = "log10(gdbulkLum)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Donor bulkrate\nin the lumen)",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "log10(gtbulkLum)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Transconjugant\nbulkrate in the lumen)",
+           facetx = "kpWall", facety = "knWall")
+
+# Bulk conjugation rates at the wall
+CreatePlot(fillvar = "log10(gdbulkWall)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Donor bulkrate\nat the wall)",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "log10(gtbulkWall)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
+           facetx = "kpWall", facety = "knWall")
+
+# Highest bulk-rate across lumen and wall
+CreatePlot(fillvar = "log10(pmax(gdbulkLum, gdbulkWall))", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(max(Donor bulkrate\nin lumen and at wall))",
+           facetx = "kpWall", facety = "knWall")
+CreatePlot(fillvar = "log10(pmax(gtbulkLum, gtbulkWall))", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(max(Transconjugant\nbulkrate in lumen and at the wall))",
+           facetx = "kpWall", facety = "knWall")
+
 
 #### Output parameterset 2 ####
 
@@ -797,9 +872,15 @@ CreatePlot(filltitle = "Plasmid can invade",
 
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
 CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
-           filltitle = "Log10(Recipient\ndensity in the lumen",
+           filltitle = "Log10(Recipient\ndensity in the lumen)",
            facetx = "MigrLumWall", facety = "MigrWallLum",
            limits = range(log10(c(MyData$RLumInit, MyData$RWallInit))))
+
+# Show the effect of migration rates on ratio of biomass at the wall to
+# biomass in the lumen (plot not shown).
+CreatePlot(fillvar = "log10(RWallInit/RLumInit)", filltype = "continuous",
+           filltitle = "Log10(Recipient density at\nthe wall / in the lumen)",
+           facetx = "MigrLumWall", facety = "MigrWallLum")
 
 # Show the effect of migration rates on stability of the plasmid-free
 # equilibrium for the bulk-model (plot not shown).
@@ -833,6 +914,43 @@ CreatePlot(fillvar = "log10(gtbulkWall)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
            facetx = "MigrLumWall", facety = "MigrWallLum")
+
+MyDataTwoComp <- MyData
+dim(MyDataTwoComp)
+MyDataTwoComp1 <- filter(MyDataTwoComp, kpWall == kpWallSet[1], knWall == 10^-2)
+MyDataTwoComp2 <- filter(MyDataTwoComp, kpWall == kpWallSet[1], knWall > 10^0.499 & knWall < 10^0.501)
+MyDataTwoComp3 <- filter(MyDataTwoComp, kpWall == kpWallSet[1], knWall == 10^3)
+dim(MyDataTwoComp1)
+
+# See if bulk-rates differ for different detachment rates at the wall
+CreatePlot(dataplot = MyDataTwoComp1, fillvar = "log10(gtbulkWall)", filltype = "continuous",
+           limits = log10(range(MyDataTwoComp[, "gtbulkWall"])),
+           filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
+           facetx = ".", facety = ".", save = FALSE)
+CreatePlot(dataplot = MyDataTwoComp2, fillvar = "log10(gtbulkWall)", filltype = "continuous",
+           limits = log10(range(MyDataTwoComp[, "gtbulkWall"])),
+           filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
+           facetx = ".", facety = ".", save = FALSE)
+CreatePlot(dataplot = MyDataTwoComp3, fillvar = "log10(gtbulkWall)", filltype = "continuous",
+           limits = log10(range(MyDataTwoComp[, "gtbulkWall"])),
+           filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
+           facetx = ".", facety = ".", save = FALSE)
+
+CreatePlot(dataplot = filter(MyDataTwoComp, kpWall == 10^-12),
+           filltitle = "Plasmid can invade",
+           facetx = ".", facety = "knWall", save = FALSE)
+CreatePlot(dataplot = MyDataTwoComp1,
+           filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".", save = FALSE)
+CreatePlot(dataplot = MyDataTwoComp2,
+           filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".", save = FALSE)
+CreatePlot(dataplot = MyDataTwoComp3,
+           filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".", save = FALSE)
+CreatePlot(dataplot = MyData,
+           filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".", save = FALSE)
 
 #### Final equilibria after invasion ####
 # NOTE: running for kpLumSet = 10^seq(from = -12, to = -8, by = 0.1) and
