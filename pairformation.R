@@ -125,6 +125,10 @@
 # Use vectors for atol, to have different tolerances for the cell-densities (~1),
 # and nutrient concentration (~1*10^-8 ?)
 
+# To compare the pair-formation and bulk-model select rows where any of the two
+# models have instable equilibrium, i.e. which(pmax(MyData[, "SignDomEigVal"],
+# MyData[, "SignDomEigValBulk"]) == 1)
+
 ## NUTRIENTS are also in the root- and event-functions, see comment at their
 # function definitions
 
@@ -497,7 +501,10 @@ NISet <- c(0.14, 1.4, 14)
 NutrConvSet <- 1.4e-7
 # 75%, 50%, and 25% remaining after 24h (corresponding to median residence times
 # of 58, 24, and 12 hours, and mean residence times of 83, 35 and 17 hours).
-wSet <- round(-log(c(0.75, 0.50, 0.25))/24, 3)
+# wSet <- -log(c(0.75, 0.50, 0.25))/24
+# Washout rates corresponding to median residence times of 240, 24, and 2.4 h
+# (corresponding to mean residence times of 346, 35, and 3.5 hours).
+wSet <- c(-log(0.5)/(24*10), -log(0.5)/24, -log(0.5)/(24/10))
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 cdSet <- c(0.18)
@@ -513,7 +520,7 @@ bRSet <- c(0.738)
 Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
-wSet <- round(-log(0.5)/24, 3)
+wSet <- -log(0.5)/24
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 cdSet <- c(0.09, 0.18)
@@ -527,7 +534,7 @@ bRSet <- c(0.738)
 Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
-wSet <- round(-log(0.5)/24, 3)
+wSet <- -log(0.5)/24
 kpSet <- 10^c(-12, -10, -8)
 knSet <- 10^0.5
 cdSet <- c(0.18)
@@ -542,7 +549,7 @@ bRSet <- c(0.738)
 NISet <- 1.4
 Ks <- 0.004
 NutrConvSet <- 1.4e-7
-wSet <- round(-log(0.5)/24, 3)
+wSet <- -log(0.5)/24
 kpSet <- 10^c(-11, -9)
 knSet <- 10^seq(from = -2, to = 3, by = 1)
 cdSet <- c(0.18)
@@ -612,9 +619,9 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
 #### Create facet labels and labeller 'function' ####
-labNI <- paste(signif(NISet, 3), "mg nutrients/mL\nat inflow")
+labNI <- paste(signif(NISet, 2), "mg nutrients/mL\nat inflow")
 names(labNI) <- NISet
-labw <- paste0("Washout rate ", signif(wSet, 3), "/h")
+labw <- paste0("Washout rate ", signif(wSet, 2), "/h")
 names(labw) <- wSet
 labcd <- paste("Donor costs", cdSet)
 names(labcd) <- cdSet
@@ -786,6 +793,7 @@ CreatePlot(dataplot = filter(MyData, gd == 15 & cd == cdSet[1] & ct == ctSet[1])
 # NOTE: running for kpSet = 10^seq(from = -12, to = -8, by = 0.1) and knSet = 
 # 10^seq(from = -2, to = 3, by = 0.1) leads to problems in the integration.
 # Using by = 0.25 instead of by = 0.1 does work.
+
 
 # If invasion is possible, run simulation to see how many bacteria of each
 # population are present at equilibrium
