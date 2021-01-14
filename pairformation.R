@@ -32,6 +32,8 @@
 # The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
 # ect. for approximating bulk-rates can be moved inside the EstConjBulk function.
 
+# Terminology: residence time or retention time?
+
 # Prevent overlapping values for the colorbar (could use angle with hjust, vjust)
 
 ## Voor plots over time waar ik het pair-formation en het bulk-model met elkaar Vergelijk
@@ -499,9 +501,6 @@ bRSet <- c(0.738)
 Ks <- 0.004
 NISet <- c(0.14, 1.4, 14)
 NutrConvSet <- 1.4e-7
-# 75%, 50%, and 25% remaining after 24h (corresponding to median residence times
-# of 58, 24, and 12 hours, and mean residence times of 83, 35 and 17 hours).
-# wSet <- -log(c(0.75, 0.50, 0.25))/24
 # Washout rates corresponding to median residence times of 240, 24, and 2.4 h
 # (corresponding to mean residence times of 346, 35, and 3.5 hours).
 wSet <- c(-log(0.5)/(24*10), -log(0.5)/24, -log(0.5)/(24/10))
@@ -637,28 +636,20 @@ mylabeller <- labeller(NI = labNI, w = labw, cd = labcd, ct = labct,
 
 #### Plotting output for parameterset 1 ####
 
-# Influence of washout rate and inflowing nutrient concentration on stability of
-# the plasmid-free equilibrium (Figure 2 in article).
+# Influence of washout rate and nutrient concentration in the inflowing liquid
+# on stability of the plasmid-free equilibrium (Figure 2 in article).
 CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
 
-filteredDf <- NULL
-for(i in NISet) {
-  for(j in wSet) {
-    MyDataFiltered <- filter(MyData, NI == i, w == j)
-    invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
-    no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
-    total_n <- invasion_n + no_invasion_n
-    invasion_perc <- round(100*invasion_n/total_n, 0)
-    no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
-    
-    filteredDf <- rbind(filteredDf,
-                        data.frame(NI = i, w = j, invasion_perc = invasion_perc,
-                                   no_invasion_perc = no_invasion_perc,
-                                   invasion_n = invasion_n,
-                                   no_invasion_n = no_invasion_n, total_n = total_n))
-  }
-}
-print(filteredDf)
+CreatePlot(fillvar = "factor(SignDomEigValBulk)",
+           filltitle = "Plasmid can invade\n(bulk model)",
+           facetx = "NI", facety = "w")
+
+# Show if the dominant eigenvalues of the pair-formation model and bulk model
+# have equal signs (Figure S1 in article)
+CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
+           filltype = "manual",
+           filltitle = "Dominant eigenvalues\nhave equal signs",
+           facetx = "NI", facety = "w")
 
 # Nutrient concentration at the inflow influences recipient cell density,
 # whereas the washout rate influences nutrient concentration (not shown in
@@ -668,13 +659,6 @@ CreatePlot(fillvar = "log10(REq)", filltype = "continuous",
            facetx = "NI", facety = "w")
 CreatePlot(fillvar = "log10(NutrEq)", filltype = "continuous",
            filltitle = "Log10(Nutrient concentration)",
-           facetx = "NI", facety = "w")
-
-# Show if the dominant eigenvalues of the pair-formation model and bulk model
-# have equal signs (Figure S1 in article)
-CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
-           filltype = "manual",
-           filltitle = "Dominant eigenvalues\nhave equal signs",
            facetx = "NI", facety = "w")
 
 # Bulk conjugation rates
@@ -722,37 +706,32 @@ ggplot(data = DataStruct, aes(x = log10(kp), y = log10(kn), fill = Invasion)) +
   scale_fill_viridis_d()
 ggsave(paste0(DateTimeStamp, "FacetToColors.png"))
 
-# Compare to the default plot
-CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w",
-           save = FALSE)
+# Show percentage and counts of parameter combinations for which invasion is,
+# or is not, possible
+filteredDf <- NULL
+for(i in NISet) {
+  for(j in wSet) {
+    MyDataFiltered <- filter(MyData, NI == i, w == j)
+    invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
+    no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+    total_n <- invasion_n + no_invasion_n
+    invasion_perc <- round(100*invasion_n/total_n, 0)
+    no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
+    
+    filteredDf <- rbind(filteredDf,
+                        data.frame(NI = i, w = j, invasion_perc = invasion_perc,
+                                   no_invasion_perc = no_invasion_perc,
+                                   invasion_n = invasion_n,
+                                   no_invasion_n = no_invasion_n, total_n = total_n))
+  }
+}
+print(filteredDf)
 
 #### Plotting output for parameterset 2 ####
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium (Figure 3 in article):
 CreatePlot(filltitle = "Plasmid can invade")
-
-filteredDf <- NULL
-for(k in cdSet) {
-  for(l in gdSet) {
-    for(i in ctSet) {
-      for(j in gtSet) {
-        MyDataFiltered <- filter(MyData, ct == i, gt == j, cd == k, gd == l)
-        invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
-        no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
-        total_n <- invasion_n + no_invasion_n
-        invasion_perc <- round(100*invasion_n/total_n, 0)
-        no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
-        filteredDf <- rbind(filteredDf,
-                            data.frame(ct = i, gt = j, invasion_perc = invasion_perc,
-                                       no_invasion_perc = no_invasion_perc,
-                                       invasion_n = invasion_n,
-                                       no_invasion_n = no_invasion_n, total_n = total_n))
-      }
-    }
-  }
-}
-print(filteredDf)
 
 # Stability of the equilibrium for the bulk-conjugation model
 # (plot not shown in article)
@@ -789,6 +768,30 @@ CreatePlot(dataplot = filter(MyData, gd == 15 & cd == cdSet[1] & ct == ctSet[1])
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant bulkrate)",
            facetx = "gt", facety = "gd")
+
+filteredDf <- NULL
+for(k in cdSet) {
+  for(l in gdSet) {
+    for(i in ctSet) {
+      for(j in gtSet) {
+        MyDataFiltered <- filter(MyData, ct == i, gt == j, cd == k, gd == l)
+        invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
+        no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+        total_n <- invasion_n + no_invasion_n
+        invasion_perc <- round(100*invasion_n/total_n, 0)
+        no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
+        filteredDf <- rbind(filteredDf,
+                            data.frame(ct = i, gt = j, invasion_perc = invasion_perc,
+                                       no_invasion_perc = no_invasion_perc,
+                                       invasion_n = invasion_n,
+                                       no_invasion_n = no_invasion_n, total_n = total_n))
+      }
+    }
+  }
+}
+print(filteredDf)
+
+
 
 # NOTE: running for kpSet = 10^seq(from = -12, to = -8, by = 0.1) and knSet = 
 # 10^seq(from = -2, to = 3, by = 0.1) leads to problems in the integration.
