@@ -361,7 +361,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
                        filltitle, filllabels = c("No", "Yes"),
                        mytag = NULL,
                        manualvalues = c("TRUE" = "darkgreen", "FALSE" = "red"),
-                       facetx = "gt + ct", facety = "gd + cd",
+                       facetx = "gt + ct", facety = "gd + cd", as.table = TRUE,
                        save = saveplots, filename = NULL, addstamp = FALSE, ...) {
   if(addstamp == TRUE & exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot does not correspond to filename of the dataset")
@@ -373,7 +373,8 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
     coord_fixed(ratio = 1, expand = FALSE) +
-    facet_grid(as.formula(paste(facety, "~", facetx)), labeller = mylabeller) +
+    facet_grid(as.formula(paste(facety, "~", facetx)), as.table = as.table,
+               labeller = mylabeller) +
     theme(legend.position = "bottom") +
     labs(x = labx, y = laby, tag = mytag)
   if(addstamp == TRUE) {
