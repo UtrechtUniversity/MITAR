@@ -758,8 +758,11 @@ CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
            facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 # Bulk conjugation rates in the lumen
-limitsbulkrates <- range(log10(c(MyData$gdbulkLum, MyData$gtbulkLum,
-               MyData$gdbulkWall, MyData$gtbulkWall)), na.rm = TRUE)
+bulkrates <- c(MyData$gdbulkLum, MyData$gtbulkLum,
+               MyData$gdbulkWall, MyData$gtbulkWall)
+bulkrates <- bulkrates[which(bulkrates > 0)]
+limitsbulkrates <- range(log10(bulkrates))
+
 CreatePlot(fillvar = "log10(gdbulkLum)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Donor bulkrate\nin the lumen)",
@@ -867,12 +870,10 @@ CreatePlot(fillvar = "NutrLumInit/NutrWallInit", filltype = "continuous",
            facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 # Bulk conjugation rates in the lumen
-# bulkrates <- c(MyData$gdbulkLum, MyData$gtbulkLum,
-#                MyData$gdbulkWall, MyData$gtbulkWall)
-# length(bulkrates)
-# bulkrates <- bulkrates[which(bulkrates > 0)]
-# length(bulkrates)
-# limitsbulkrates <- range(log10(bulkrates))
+bulkrates <- c(MyData$gdbulkLum, MyData$gtbulkLum,
+               MyData$gdbulkWall, MyData$gtbulkWall)
+bulkrates <- bulkrates[which(bulkrates > 0)]
+limitsbulkrates <- range(log10(bulkrates))
 CreatePlot(fillvar = "log10(gdbulkLum)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Donor bulkrate\nin the lumen)",
