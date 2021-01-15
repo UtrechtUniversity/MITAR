@@ -563,6 +563,29 @@ knWallSet <- 10^seq(from = -2, to = 3, length.out = 4)
 gdSet <- 15
 gtSet <- 15
 
+# Paramterset 1b, to get clearer plots
+ScaleWallPerLum <- 1 # equal volumes in wall-compartment and lumen compartment
+NILumSet <- 1.4
+NIWallSet <- 1.4
+wLumSet <- -log(0.5)/24
+wWallSet <- -log(0.5)/24
+wNutrWallSet <- -log(0.5)/24
+Ks <- 0.004
+NutrConvSet <- 1.4e-7
+bRSet <- 0.738
+MigrLumWallSet <- 0.1
+MigrWallLumSet <- 0.1
+DInitLumSet <- 1E3
+DInitWallSet <- 0
+cdSet <- 0.18
+ctSet <- 0.09
+kpSet <- 10^seq(from = -10, to = -8, by = 0.25)
+kpWallSet <- kpSet
+knSet <- 10^seq(from = 0, to = 3, by = 0.5)
+knWallSet <- 10^seq(from = 0, to = 3, by = 0.5)
+gdSet <- 15
+gtSet <- 15
+
 # Parameterset 2 to show effect of migration rates on biomass and stability of
 # the plasmid-free equilibrium. Note that washout from the wall is excluded.
 ScaleWallPerLum <- 1 # volume wall-compartiment / volume lumen compartiment
@@ -707,16 +730,18 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
 #### Create facet labels and labeller 'function' ####
-labkpWall <- paste0("Attachment rate\nat wall: ", signif(kpWallSet, 3))
+labkn <- paste0("Log10(detachment\nrates): ", signif(log10(knWallSet), 3))
+names(labkn) <- knSet # Note: intended to be used if kn = knWall
+labkpWall <- paste0("Attachment rate\nat the wall: ", signif(kpWallSet, 3))
 names(labkpWall) <- kpWallSet
-labknWall <- paste0("Detachment rate\nat wall: ", signif(knWallSet, 3))
+labknWall <- paste0("Detachment rate\nat the wall: ", signif(knWallSet, 3))
 names(labknWall) <- knWallSet
 labmigrlumwall <- paste0("Migration rate from\nlumen to wall: ", MigrLumWallSet)
 names(labmigrlumwall) <- MigrLumWallSet
 labmigrwalllum <- paste0("Migration rate from\nwall to lumen: ", MigrWallLumSet)
 names(labmigrwalllum) <- MigrWallLumSet
 
-mylabeller <- labeller(kpWall = labkpWall, knWall = labknWall,
+mylabeller <- labeller(kn = labkn, kpWall = labkpWall, knWall = labknWall,
                        MigrLumWall = labmigrlumwall,
                        MigrWallLum = labmigrwalllum, .default = label_both)
 
@@ -813,6 +838,38 @@ for(i in kpWallSet) {
   }
 }
 print(filteredDf)
+
+
+# To avoid another 4x4 plot, filter for facets where the detachment rate in the
+# lumen equals the detachment rate at the wall.
+FilteredData <- filter(MyData, kn == knWall)
+ggplot(data = FilteredData,
+       aes(x = log10(kp), y = log10(kpWall), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_wrap("kn", nrow = 2, labeller = mylabeller) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate in the lumen)",
+       y = "Log10(attachment rate at the wall)", tag = NULL) +
+  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes")) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+ggsave(paste0(DateTimeStamp, "InvasionTwoComp.png"))
+
+ggplot(data = MyData,
+       aes(x = log10(kp), y = log10(kpWall), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_grid(log10(kn) ~ log10(knWall), as.table = FALSE, labeller = mylabeller) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate in the lumen)",
+       y = "Log10(attachment rate at the wall)", tag = NULL) +
+  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes")) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompAlternative.png"))
 
 
 
