@@ -346,7 +346,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
                        filltitle, filllabels = c("No", "Yes"),
                        mytag = NULL,
                        manualvalues = c("TRUE" = "darkgreen", "FALSE" = "red"),
-                       facetx = "gt + ct", facety = "gd + cd",
+                       facetx = "gt + ct", facety = "gd + cd", as.table = TRUE,
                        save = saveplots, filename = NULL, addstamp = FALSE, ...) {
   if(addstamp == TRUE & exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot does not correspond to filename of the dataset")
@@ -358,7 +358,8 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
     coord_fixed(ratio = 1, expand = FALSE) +
-    facet_grid(as.formula(paste(facety, "~", facetx)), labeller = mylabeller) +
+    facet_grid(as.formula(paste(facety, "~", facetx)), as.table = as.table,
+               labeller = mylabeller) +
     theme(legend.position = "bottom") +
     labs(x = labx, y = laby, tag = mytag)
   if(addstamp == TRUE) {
@@ -556,7 +557,7 @@ DInitWallSet <- 0
 cdSet <- 0.18
 ctSet <- 0.09
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
-kpWallSet <- c(0, 10^seq(from = -10, to = -8, by = 0.5))
+kpWallSet <- c(0, 10^seq(from = -10, to = -8, by = 1))
 knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 knWallSet <- 10^seq(from = -2, to = 3, length.out = 3)
 gdSet <- 15
@@ -727,54 +728,98 @@ range(MyData$RLumInit/MyData$RWallInit)
 # Show influence of kpWall and knWall on the stability of the plasmid-free
 # equilibrium for parameterset 1 (Figure 5 in the article)
 CreatePlot(filltitle = "Plasmid can invade",
-           facetx = "kpWall", facety = "knWall")
-
-# Show that recipient density in lumen and in wall are equal
-CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
-           filltitle = "Recipient density\nin the lumen / at the wall)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 # Show influence of kpWall and knWall on the stability of the plasmid-free
 # equilibrium in the bulk-model (not shown in article)
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk-model)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
-# Signs of bulk and pair-model are equal (Figure S4 in article)
+# Show if signs of bulk and pair-model are equal (Figure S4 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
+
+# Recipient density in the lumen
+CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
+           filltitle = "Log10(Recipient density\nin the lumen)",
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
+
+# Recipient density at the wall
+CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
+           filltitle = "Log10(Recipient density\nat the wall)",
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
+
+# Show that recipient density in lumen and in wall are equal
+CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
+           filltitle = "Recipient density\nin the lumen / at the wall)",
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 # Bulk conjugation rates in the lumen
 limitsbulkrates <- range(log10(c(MyData$gdbulkLum, MyData$gtbulkLum,
-                                 MyData$gdbulkWall, MyData$gtbulkWall)))
+               MyData$gdbulkWall, MyData$gtbulkWall)), na.rm = TRUE)
 CreatePlot(fillvar = "log10(gdbulkLum)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Donor bulkrate\nin the lumen)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "log10(gtbulkLum)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant\nbulkrate in the lumen)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 # Bulk conjugation rates at the wall
 CreatePlot(fillvar = "log10(gdbulkWall)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Donor bulkrate\nat the wall)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "log10(gtbulkWall)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
+
+# Highest bulk-rate across lumen and wall
+CreatePlot(fillvar = "log10(pmax(gdbulkLum, gdbulkWall))", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(max(Donor bulkrate\nin lumen and at wall))",
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
+CreatePlot(fillvar = "log10(pmax(gtbulkLum, gtbulkWall))", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(max(Transconjugant\nbulkrate in lumen and at the wall))",
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
+
+# Show percentage and counts of parameter combinations for which invasion is,
+# or is not, possible
+filteredDf <- NULL
+for(i in kpWallSet) {
+  for(j in knWallSet) {
+    MyDataFiltered <- filter(MyData, kpWall == i, knWall == j)
+    invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
+    no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+    total_n <- invasion_n + no_invasion_n
+    invasion_perc <- round(100*invasion_n/total_n, 0)
+    no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
+    
+    filteredDf <- rbind(filteredDf,
+                        data.frame(kpWall = i, knWall = j,
+                                   invasion_perc = invasion_perc,
+                                   no_invasion_perc = no_invasion_perc,
+                                   invasion_n = invasion_n,
+                                   no_invasion_n = no_invasion_n, total_n = total_n))
+  }
+}
+print(filteredDf)
+
+
 
 # Separate plots for low attachment rates at the wall, to compare them to the
 # output of the one-compartment model.
 dim(MyData)
-dim(MyData[which(MyData[, "kpWall"]== 1e-12), ])
-DataWall1 <- MyData[which(MyData[, "kpWall"] == 1e-12 & MyData[, "knWall"] == 10^-2), ]
-DataWall2 <- MyData[which(MyData[, "kpWall"] == 1e-12 & MyData[, "knWall"] == 10^0.5), ]
-DataWall3 <- MyData[which(MyData[, "kpWall"] == 1e-12 & MyData[, "knWall"] == 10^3), ]
+dim(MyData[which(MyData[, "kpWall"] == kpWallSet[1]), ])
+DataWall1 <- MyData[which(MyData[, "kpWall"] == kpWallSet[1] & MyData[, "knWall"] == 10^-2), ]
+DataWall2 <- MyData[which(MyData[, "kpWall"] == kpWallSet[1] & MyData[, "knWall"] == 10^0.5), ]
+DataWall3 <- MyData[which(MyData[, "kpWall"] == kpWallSet[1] & MyData[, "knWall"] == 10^3), ]
 
 CreatePlot(dataplot = DataWall1, filltitle = "Plasmid can invade",
            facetx = ".", facety = ".",
@@ -792,34 +837,34 @@ CreatePlot(dataplot = DataWall3, filltitle = "Plasmid can invade",
 range(MyData$RLumInit/MyData$RWallInit)
 
 CreatePlot(filltitle = "Plasmid can invade",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk-model)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
            filltitle = "log10(Recipient density\nin the lumen)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
            filltitle = "log10(Recipient density\nat the wall)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "RLumInit/RWallInit", filltype = "continuous",
            filltitle = "Recipient density\nin the lumen / at the wall)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 CreatePlot(fillvar = "log10(NutrLumInit)", filltype = "continuous",
            filltitle = "log10(Nutrient concentration\nin the lumen)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "log10(NutrWallInit)", filltype = "continuous",
            filltitle = "log10(Nutrient concentration\nat the wall)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "NutrLumInit/NutrWallInit", filltype = "continuous",
            filltitle = "Nutrient concentration\nin the lumen / at the wall",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 # Bulk conjugation rates in the lumen
 # bulkrates <- c(MyData$gdbulkLum, MyData$gtbulkLum,
@@ -831,31 +876,31 @@ CreatePlot(fillvar = "NutrLumInit/NutrWallInit", filltype = "continuous",
 CreatePlot(fillvar = "log10(gdbulkLum)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Donor bulkrate\nin the lumen)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "log10(gtbulkLum)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant\nbulkrate in the lumen)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 # Bulk conjugation rates at the wall
 CreatePlot(fillvar = "log10(gdbulkWall)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Donor bulkrate\nat the wall)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "log10(gtbulkWall)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 # Highest bulk-rate across lumen and wall
 CreatePlot(fillvar = "log10(pmax(gdbulkLum, gdbulkWall))", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(max(Donor bulkrate\nin lumen and at wall))",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 CreatePlot(fillvar = "log10(pmax(gtbulkLum, gtbulkWall))", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(max(Transconjugant\nbulkrate in lumen and at the wall))",
-           facetx = "kpWall", facety = "knWall")
+           facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 
 #### Output parameterset 2 ####
@@ -863,37 +908,37 @@ CreatePlot(fillvar = "log10(pmax(gtbulkLum, gtbulkWall))", filltype = "continuou
 # Show the effect of migration rates on biomass at the wall (plot not shown).
 CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
            filltitle = "Log10(Recipient\ndensity at the wall",
-           facetx = "MigrLumWall", facety = "MigrWallLum")
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 
 # Show the effect of migration rates on stability of the plasmid-free
 # equilibrium (Figure 6).
 CreatePlot(filltitle = "Plasmid can invade",
-           facetx = "MigrLumWall", facety = "MigrWallLum")
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
 CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
            filltitle = "Log10(Recipient\ndensity in the lumen)",
-           facetx = "MigrLumWall", facety = "MigrWallLum",
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE,
            limits = range(log10(c(MyData$RLumInit, MyData$RWallInit))))
 
 # Show the effect of migration rates on ratio of biomass at the wall to
 # biomass in the lumen (plot not shown).
 CreatePlot(fillvar = "log10(RWallInit/RLumInit)", filltype = "continuous",
            filltitle = "Log10(Recipient density at\nthe wall / in the lumen)",
-           facetx = "MigrLumWall", facety = "MigrWallLum")
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 
 # Show the effect of migration rates on stability of the plasmid-free
 # equilibrium for the bulk-model (plot not shown).
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk model)",
-           facetx = "MigrLumWall", facety = "MigrWallLum")
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 
 # Are signs of the largest eigenvalues equal for bulk- and pair-formation model?
 # (Figure S5 in article).
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs",
-           facetx = "MigrLumWall", facety = "MigrWallLum")
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 
 # show effect of migration rates on the bulk-conjugation rates
 limitsbulkrates <- range(log10(c(MyData$gdbulkLum, MyData$gtbulkLum,
@@ -901,19 +946,19 @@ limitsbulkrates <- range(log10(c(MyData$gdbulkLum, MyData$gtbulkLum,
 CreatePlot(fillvar = "log10(gdbulkLum)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Donor bulkrate\nin the lumen)",
-           facetx = "MigrLumWall", facety = "MigrWallLum")
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 CreatePlot(fillvar = "log10(gtbulkLum)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant bulkrate\nin the lumen)",
-           facetx = "MigrLumWall", facety = "MigrWallLum")
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 CreatePlot(fillvar = "log10(gdbulkWall)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Donor\nbulkrate at the wall)",
-           facetx = "MigrLumWall", facety = "MigrWallLum")
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 CreatePlot(fillvar = "log10(gtbulkWall)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
-           facetx = "MigrLumWall", facety = "MigrWallLum")
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 
 MyDataTwoComp <- MyData
 dim(MyDataTwoComp)
