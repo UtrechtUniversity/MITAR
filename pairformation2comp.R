@@ -566,8 +566,8 @@ cdSet <- 0.18
 ctSet <- 0.09
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 kpWallSet <- c(0, 10^seq(from = -10, to = -8, by = 1))
-knSet <- 10^seq(from = -2, to = 3, by = 0.1)
-knWallSet <- 10^seq(from = -2, to = 3, length.out = 4)
+knSet <- 10^seq(from = -1, to = 3, by = 0.1)
+knWallSet <- 10^seq(from = -1, to = 3, length.out = 4)
 gdSet <- 15
 gtSet <- gdSet
 
@@ -591,7 +591,7 @@ cdSet <- 0.18
 ctSet <- 0.09
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 kpWallSet <- kpSet
-knSet <- 10^seq(from = -2, to = 3, length.out = 4)
+knSet <- 10^seq(from = -1, to = 3, length.out = 4)
 knWallSet <- knSet
 gdSet <- 15
 gtSet <- gdSet
@@ -615,8 +615,8 @@ cdSet <- 0.18
 ctSet <- 0.09
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 kpWallSet <- 10^-12 
-knSet <- 10^seq(from = -2, to = 3, by = 0.1)
-knWallSet <- 10^0.5
+knSet <- 10^seq(from = -1, to = 3, by = 0.1)
+knWallSet <- 10
 gdSet <- 15
 gtSet <- 15
 
