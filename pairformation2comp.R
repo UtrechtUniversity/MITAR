@@ -7,6 +7,9 @@
 # I could derive the invasion-criterion of the cell-free equilibrium
 # (i.e. Nutr* = NI, D*, R*, ... = 0) to determine if cells can exist.
 
+# ScaleAreaPerVol is now used to check input and written to the .csv-file, that
+# has to be replaced by VLum and VWall.
+
 # Can I use the migration rates to set better states for the plasmid-free equilibrium
 
 # See Macken 1994 'The dynamics of bacteria-plasmid systems' for analytic treatment
@@ -96,10 +99,10 @@ MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 #### Functions ####
 ModelBulkNutrPlasmidfree <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum/(Ks + NutrLum)
-    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall*ScaleWallPerLum
-    dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall/(Ks + NutrWall)
-    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleWallPerLum
+    dNutrLum <- VLum*((NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum/(Ks + NutrLum))
+    dRLum <- VLum*((bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall*ScaleWallPerLum)
+    dNutrWall <- VWall*((NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall/(Ks + NutrWall))
+    dRWall <- VWall*((bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleWallPerLum)
     return(list(c(dNutrLum, dRLum, dNutrWall, dRWall)))
   })
 }
@@ -107,8 +110,8 @@ ModelBulkNutrPlasmidfree <- function(t, state, parms) {
 # The equilibrium values for the one-compartment model are used as initial state
 RunToPlamidfreeEq <- function(parms) {
   with(as.list(parms), {
-    state <- c(NutrLum = NutrLumGuess, RLum = RLumGuess,
-               NutrWall = NutrWallGuess, RWall = RWallGuess)
+    state <- c(NutrLum = NutrLumGuess*VLum, RLum = RLumGuess*VLum,
+               NutrWall = NutrWallGuess*VWall, RWall = RWallGuess*VWall)
     out <- runsteady(y = state, time = c(0, tmaxsteady),
                      func = ModelBulkNutrPlasmidfree, parms = parms,
                      stol = 1.25e-6, atol = atol)
@@ -153,9 +156,11 @@ EstConjBulkLum <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitLum"]] == 0) {
       warning("DInitLum == 0, DInitWall will be used to approximate bulkrates in the lumen instead!")
-      state <- c(D = MyData[["DInitWall"]], R = MyData[["RLumInit"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+      state <- c(D = MyData[["DInitWall"]], R = MyData[["RLumInit"]],
+                 Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VLum
     } else {
-      state <- c(D = MyData[["DInitLum"]], R = MyData[["RLumInit"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+      state <- c(D = MyData[["DInitLum"]], R = MyData[["RLumInit"]],
+                 Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VLum
     }
     
     parms <- MyData
@@ -163,9 +168,11 @@ EstConjBulkLum <- function(MyData) {
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
     
     if(MyData[["DInitLum"]] == 0) {
-      state <- c(R = MyData[["RLumInit"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
+      state <- c(R = MyData[["RLumInit"]], Trans = MyData[["DInitWall"]],
+                 Mrt = 0, Mtt = 0)*VWall
     } else {
-      state <- c(R = MyData[["RLumInit"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
+      state <- c(R = MyData[["RLumInit"]], Trans = MyData[["DInitLum"]],
+                 Mrt = 0, Mtt = 0)*VWall
     }
     
     DataEstConjBulkTrans <- tail(ode(t = timesEstConj, y = state,
@@ -182,9 +189,11 @@ EstConjBulkWall <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitWall"]] == 0) {
       warning("DInitWall == 0, DInitLum will be used to approximate bulkrates at the wall instead!")
-      state <- c(D = MyData[["DInitLum"]], R = MyData[["RWallInit"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+      state <- c(D = MyData[["DInitLum"]], R = MyData[["RWallInit"]],
+                 Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VLum
     } else {
-      state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallInit"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+      state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallInit"]],
+                 Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VLum
     }
     
     parms <- MyData
@@ -192,9 +201,11 @@ EstConjBulkWall <- function(MyData) {
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
     
     if(MyData[["DInitWall"]] == 0) {
-      state <- c(R = MyData[["RWallInit"]], Trans = MyData[["DInitLum"]], Mrt = 0, Mtt = 0)
+      state <- c(R = MyData[["RWallInit"]], Trans = MyData[["DInitLum"]],
+                 Mrt = 0, Mtt = 0)*VWall
     } else {
-      state <- c(R = MyData[["RWallInit"]], Trans = MyData[["DInitWall"]], Mrt = 0, Mtt = 0)
+      state <- c(R = MyData[["RWallInit"]], Trans = MyData[["DInitWall"]],
+                 Mrt = 0, Mtt = 0)*VWall
     }
     
     DataEstConjBulkTrans <- tail(ode(t = timesEstConj, y = state,
@@ -207,24 +218,27 @@ EstConjBulkWall <- function(MyData) {
   })
 }
 
+## NOTE: have to  CHECK IF SCALING for migration in two-comp model DID NOT INTRODUCE ERRORS
+
+
 # Bulk-conjugation model, with inflow, outflow, conversion by bacteria for nutrient
 # equations, and growth, washout, migration from and to compartment, conjugation
 # from donors and transconjugants for bacterial equations.
 ModelBulkNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutrLum <- (NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*((1 - cd)*DLum + RLum + (1 - ct)*TransLum)/(Ks + NutrLum)
-    dDLum <- ((1 - cd)*bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*DLum + MigrWallLum*DWall*ScaleWallPerLum
-    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall*ScaleWallPerLum -
-      (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum
-    dTransLum <- ((1 - ct)*bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*TransLum + MigrWallLum*TransWall*ScaleWallPerLum +
-      (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum
+    dNutrLum <- ((NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*((1 - cd)*DLum + RLum + (1 - ct)*TransLum)/(Ks + NutrLum))*VLum
+    dDLum <- ((1 - cd)*bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*DLum*VLum + MigrWallLum*DWall*VWall
+    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum*VLum + MigrWallLum*RWall*VWall -
+      (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum*VLum
+    dTransLum <- ((1 - ct)*bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*TransLum*VLum + MigrWallLum*TransWall*VWall +
+      (gdbulkLum*DLum + gtbulkLum*TransLum)*RLum*VLum
 
-    dNutrWall <- (NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*((1 - cd)*DWall + RWall + (1 - ct)*TransWall)/(Ks + NutrWall)
-    dDWall <- ((1 - cd)*bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*DWall + MigrLumWall*DLum/ScaleWallPerLum
-    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleWallPerLum -
-      (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
-    dTransWall <- ((1 - ct)*bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*TransWall + MigrLumWall*TransLum/ScaleWallPerLum +
-      (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall
+    dNutrWall <- ((NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*((1 - cd)*DWall + RWall + (1 - ct)*TransWall)/(Ks + NutrWall))*VWall
+    dDWall <- ((1 - cd)*bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*DWall*VWall + MigrLumWall*DLum*VLum
+    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall*VWall + MigrLumWall*RLum*VLum -
+      (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall*VWall
+    dTransWall <- ((1 - ct)*bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*TransWall*VWall + MigrLumWall*TransLum*VLum +
+      (gdbulkWall*DWall + gtbulkWall*TransWall)*RWall*VWall
     return(list(c(dNutrLum, dDLum, dRLum, dTransLum, dNutrWall, dDWall, dRWall, dTransWall)))
   })
 }
@@ -241,37 +255,42 @@ ModelBulkNutr <- function(t, state, parms) {
 # is based on Imran (2005), but I added nutrient inflow and washout of nutrients
 # and bacteria from the wall compartment. I also added costs in growth for
 # plasmid-bearing bacteria.
+
+
+## NOTE: have to  CHECK IF SCALING for migration in two-comp model DID NOT INTRODUCE ERRORS
+
+
 ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutrLum <- (NILum - NutrLum)*wLum -
+    dNutrLum <- ((NILum - NutrLum)*wLum -
       NutrConv*bR*NutrLum*(
         (1 - cd)*(DLum + MdrLum + MdtLum) + (RLum + MdrLum + MrtLum) + (1 - ct)*(TransLum + MdtLum + MrtLum + 2*MttLum)/(Ks + NutrLum)
-      )
-    dDLum <- (1 - cd)*bR*NutrLum*(DLum + MdrLum + MdtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*DLum +
-      kn*(MdrLum + MdtLum) + MigrWallLum*DWall*ScaleWallPerLum
-    dRLum <- bR*NutrLum*(RLum + MdrLum + MrtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*(DLum + TransLum))*RLum +
-      kn*(MdrLum + MrtLum) + MigrWallLum*RWall*ScaleWallPerLum
-    dTransLum <- (1 - ct)*bR*NutrLum*(TransLum + MdtLum + MrtLum + 2*MttLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*TransLum +
-      kn*(MdtLum + MrtLum + 2*MttLum) + MigrWallLum*TransWall*ScaleWallPerLum
-    dMdrLum <- kp*DLum*RLum - (kn + gd + wLum + MigrLumWall)*MdrLum + MigrWallLum*MdrWall*ScaleWallPerLum
-    dMdtLum <- gd*MdrLum - (kn + wLum + MigrLumWall)*MdtLum + MigrWallLum*MdtWall*ScaleWallPerLum
-    dMrtLum <- kp*RLum*TransLum - (kn + gt + wLum + MigrLumWall)*MrtLum + MigrWallLum*MrtWall*ScaleWallPerLum
-    dMttLum <- gt*MrtLum - (kn + wLum + MigrLumWall)*MttLum + MigrWallLum*MttWall*ScaleWallPerLum
+      ))*VLum
+    dDLum <- ((1 - cd)*bR*NutrLum*(DLum + MdrLum + MdtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*DLum +
+      kn*(MdrLum + MdtLum))*VLum + MigrWallLum*DWall*VWall
+    dRLum <- (bR*NutrLum*(RLum + MdrLum + MrtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*(DLum + TransLum))*RLum +
+      kn*(MdrLum + MrtLum))*VLum + MigrWallLum*RWall*VWall
+    dTransLum <- ((1 - ct)*bR*NutrLum*(TransLum + MdtLum + MrtLum + 2*MttLum)*VLum/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*TransLum +
+      kn*(MdtLum + MrtLum + 2*MttLum))*VLum + MigrWallLum*TransWall*VWall
+    dMdrLum <- (kp*DLum*RLum - (kn + gd + wLum + MigrLumWall)*MdrLum)*VLum + MigrWallLum*MdrWall*VWall
+    dMdtLum <- (gd*MdrLum - (kn + wLum + MigrLumWall)*MdtLum)*VLum + MigrWallLum*MdtWall*VWall
+    dMrtLum <- (kp*RLum*TransLum - (kn + gt + wLum + MigrLumWall)*MrtLum)*VLum + MigrWallLum*MrtWall*VWall
+    dMttLum <- (gt*MrtLum - (kn + wLum + MigrLumWall)*MttLum)*VLum + MigrWallLum*MttWall*VWall
     
-    dNutrWall <- (NIWall - NutrWall)*wNutrWall -
+    dNutrWall <- ((NIWall - NutrWall)*wNutrWall -
       NutrConv*bR*NutrWall*(
         (1 - cd)*(DWall + MdrWall + MdtWall) + (RWall + MdrWall + MrtWall) + (1 - ct)*(TransWall + MdtWall + MrtWall + 2*MttWall)/(Ks + NutrWall)
-      )
-    dDWall <- (1 - cd)*bR*NutrWall*(DWall + MdrWall + MdtWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*RWall)*DWall +
-      knWall*(MdrWall + MdtWall) + MigrLumWall*DLum/ScaleWallPerLum
-    dRWall <- bR*NutrWall*(RWall + MdrWall + MrtWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*(DWall + TransWall))*RWall +
-      knWall*(MdrWall + MrtWall) + MigrLumWall*RLum/ScaleWallPerLum
-    dTransWall <- (1 - ct)*bR*NutrWall*(TransWall + MdtWall + MrtWall + 2*MttWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*RWall)*TransWall +
-      knWall*(MdtWall + MrtWall + 2*MttWall) + MigrLumWall*TransLum/ScaleWallPerLum
-    dMdrWall <- kpWall*DWall*RWall - (knWall + gd + wWall + MigrWallLum)*MdrWall + MigrLumWall*MdrLum/ScaleWallPerLum
-    dMdtWall <- gd*MdrWall - (knWall + wWall + MigrWallLum)*MdtWall + MigrLumWall*MdtLum/ScaleWallPerLum
-    dMrtWall <- kpWall*RWall*TransWall - (knWall + gt + wWall + MigrWallLum)*MrtWall + MigrLumWall*MrtLum/ScaleWallPerLum
-    dMttWall <- gt*MrtWall - (knWall + wWall + MigrWallLum)*MttWall + MigrLumWall*MttLum/ScaleWallPerLum
+      ))*VWall
+    dDWall <- ((1 - cd)*bR*NutrWall*(DWall + MdrWall + MdtWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*RWall)*DWall +
+      knWall*(MdrWall + MdtWall))*VWall + MigrLumWall*DLum*VLum
+    dRWall <- (bR*NutrWall*(RWall + MdrWall + MrtWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*(DWall + TransWall))*RWall +
+      knWall*(MdrWall + MrtWall))*VWall + MigrLumWall*RLum*VLum
+    dTransWall <- ((1 - ct)*bR*NutrWall*(TransWall + MdtWall + MrtWall + 2*MttWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*RWall)*TransWall +
+      knWall*(MdtWall + MrtWall + 2*MttWall))*VWall + MigrLumWall*TransLum*VLum
+    dMdrWall <- (kpWall*DWall*RWall - (knWall + gd + wWall + MigrWallLum)*MdrWall)*VWall + MigrLumWall*MdrLum*VLum
+    dMdtWall <- (gd*MdrWall - (knWall + wWall + MigrWallLum)*MdtWall)*VWall + MigrLumWall*MdtLum*VLum
+    dMrtWall <- (kpWall*RWall*TransWall - (knWall + gt + wWall + MigrWallLum)*MrtWall)*VWall + MigrLumWall*MrtLum*VLum
+    dMttWall <- (gt*MrtWall - (knWall + wWall + MigrWallLum)*MttWall)*VWall + MigrLumWall*MttLum*VLum
     
     return(list(c(dNutrLum, dDLum, dRLum, dTransLum, dMdrLum, dMdtLum, dMrtLum, dMttLum,
                   dNutrWall, dDWall, dRWall, dTransWall, dMdrWall, dMdtWall, dMrtWall, dMttWall)))
@@ -550,6 +569,8 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
 # This parameterset can be used to show influence of attachment and detachment
 # rates that are different in the lumen compared to at the wall.
 ScaleWallPerLum <- 1 # equal volumes in wall-compartment and lumen compartment
+VLum <- 1
+VWall <- 1
 NILumSet <- 1.4
 NIWallSet <- NILumSet
 wLumSet <- -log(0.5)/24
@@ -575,6 +596,8 @@ gtSet <- gdSet
 
 # Paramterset 1b, to get clearer plots
 ScaleWallPerLum <- 1 # equal volumes in wall-compartment and lumen compartment
+VLum <- 1
+VWall <- 1
 NILumSet <- 1.4
 NIWallSet <- NILumSet
 wLumSet <- -log(0.5)/24
@@ -599,6 +622,8 @@ gtSet <- gdSet
 # Parameterset 2 to show effect of migration rates on biomass and stability of
 # the plasmid-free equilibrium. Note that washout from the wall is excluded.
 ScaleWallPerLum <- 1 # volume wall-compartiment / volume lumen compartiment
+VLum <- 1
+VWall <- 1
 NILumSet <- 1.4
 NIWallSet <- NILumSet
 wLumSet <- -log(0.5)/24
