@@ -911,8 +911,8 @@ ggsave(paste0(DateTimeStamp, "InvasionTwoCompAlternative.png"))
 # output of the one-compartment model.
 dim(MyData)
 dim(MyData[which(MyData[, "kpWall"] == kpWallSet[1]), ])
-DataWall1 <- MyData[which(MyData[, "kpWall"] == kpWallSet[1] & MyData[, "knWall"] == 10^-2), ]
-DataWall2 <- MyData[which(MyData[, "kpWall"] == kpWallSet[1] & MyData[, "knWall"] == 10^0.5), ]
+DataWall1 <- MyData[which(MyData[, "kpWall"] == kpWallSet[1] & MyData[, "knWall"] == 10^-1), ]
+DataWall2 <- MyData[which(MyData[, "kpWall"] == kpWallSet[1] & MyData[, "knWall"] == 10^1), ]
 DataWall3 <- MyData[which(MyData[, "kpWall"] == kpWallSet[1] & MyData[, "knWall"] == 10^3), ]
 
 CreatePlot(dataplot = DataWall1, filltitle = "Plasmid can invade",
