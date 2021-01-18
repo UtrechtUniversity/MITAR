@@ -127,6 +127,10 @@
 # Use vectors for atol, to have different tolerances for the cell-densities (~1),
 # and nutrient concentration (~1*10^-8 ?)
 
+# To decrease the space in the facet lables that use multiple variables, try
+# add + theme(strip.text.x = element_text(margin = margin(2, 0, 2, 0))), see
+# http://zevross.com/blog/2019/04/02/easy-multi-panel-plots-in-r-using-facet_wrap-and-facet_grid-from-ggplot2/
+
 # To compare the pair-formation and bulk-model select rows where any of the two
 # models have instable equilibrium, i.e. which(pmax(MyData[, "SignDomEigVal"],
 # MyData[, "SignDomEigValBulk"]) == 1)
@@ -506,7 +510,7 @@ NutrConvSet <- 1.4e-7
 # (corresponding to mean residence times of 346, 35, and 3.5 hours).
 wSet <- c(-log(0.5)/(24*10), -log(0.5)/24, -log(0.5)/(24/10))
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
-knSet <- 10^seq(from = -2, to = 3, by = 0.1)
+knSet <- 10^seq(from = -1, to = 3, by = 0.1)
 cdSet <- c(0.18)
 ctSet <- c(0.09)
 gdSet <- c(15)
@@ -522,7 +526,7 @@ NISet <- 1.4
 NutrConvSet <- 1.4e-7
 wSet <- -log(0.5)/24
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
-knSet <- 10^seq(from = -2, to = 3, by = 0.1)
+knSet <- 10^seq(from = -1, to = 3, by = 0.1)
 cdSet <- c(0.09, 0.18)
 ctSet <- c(0.09, 0.18)
 gdSet <- c(1, 15)
@@ -536,7 +540,7 @@ NISet <- 1.4
 NutrConvSet <- 1.4e-7
 wSet <- -log(0.5)/24
 kpSet <- 10^c(-12, -10, -8)
-knSet <- 10^0.5
+knSet <- 10
 cdSet <- c(0.18)
 ctSet <- c(0.09)
 gdSet <- 15
@@ -551,7 +555,7 @@ Ks <- 0.004
 NutrConvSet <- 1.4e-7
 wSet <- -log(0.5)/24
 kpSet <- 10^c(-11, -9)
-knSet <- 10^seq(from = -2, to = 3, by = 1)
+knSet <- 10^seq(from = -1, to = 3, by = 1)
 cdSet <- c(0.18)
 ctSet <- c(0.09)
 gdSet <- c(15)
@@ -675,8 +679,7 @@ CreatePlot(dataplot = filter(MyData, cd == cdSet[1] & ct == ctSet[1]),
            filltitle = "Log10(Transconjugant bulkrate)",
            facetx = "NI", facety = "w", save = FALSE)
 
-#### Different way of plotting Figure 2 above ####
-
+# Different way of plotting Figure 2 above
 # Dataset splitsen naar nutr. conc. (kan waarschijnlijk sneller met dplyr)
 MyData0.14 <- filter(MyData, NI == 0.14)
 MyData1.4 <- filter(MyData, NI == 1.4)
