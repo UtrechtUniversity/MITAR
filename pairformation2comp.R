@@ -13,6 +13,10 @@
 # and a way to get rid of the nutrient equation (but is that feasible if I want
 # to modify nutrient levels over time?)
 
+# In filtering data, using filter(MyData, kpWall == i, knWall == j) is error-prone
+# because comparing two floating-point vectors gives troubles.
+# Use dplyr::near(kpWall, i), or maybe base-R isTRUE(all.equal(...)).
+
 # Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
 # results as the single-compartment model.
 
@@ -30,6 +34,10 @@
 # first plot because names are the same. Add 'Iteration' as column to data
 # and append the value from that column to the name? That would als make it
 # easier to see which plot is which iteration (so also print it in graph subtitles).
+
+# Now a loop is used to get a dataframe with percentage and counts of parameter
+# combinations for which the plasmid can, or cannot, invade. That could go into
+# a function. 
 
 # dev.off() is not always called when needed
  
@@ -66,12 +74,12 @@
 # maintenance question. Mathematical biosciences 193:183-204.
 
 #### Loading packages ####
-library(deSolve) # Solve differential equations with results over time.
-library(ggplot2) # For plotting data
-library(RColorBrewer) # For better color schemes
+library(deSolve) # Integrate differential equations with results over time.
+library(ggplot2) # To create plots
+library(RColorBrewer) # To get better color schemes
 library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
-library(tidyr) # for 'expand.grid()' with dataframe as input
-library(dplyr) # for mutate() to create new variables in dataframe/tibble
+library(tidyr) # expand.grid() with dataframe as input
+library(dplyr) # mutate(), filter(), near()
 
 #### Plotting and simulation options ####
 saveplots <- 1
@@ -543,15 +551,15 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
 # rates that are different in the lumen compared to at the wall.
 ScaleWallPerLum <- 1 # equal volumes in wall-compartment and lumen compartment
 NILumSet <- 1.4
-NIWallSet <- 1.4
+NIWallSet <- NILumSet
 wLumSet <- -log(0.5)/24
-wWallSet <- -log(0.5)/24
-wNutrWallSet <- -log(0.5)/24
+wWallSet <- wLumSet
+wNutrWallSet <- wLumSet
 Ks <- 0.004
 NutrConvSet <- 1.4e-7
 bRSet <- 0.738
 MigrLumWallSet <- 0.1
-MigrWallLumSet <- 0.1
+MigrWallLumSet <- MigrLumWallSet
 DInitLumSet <- 1E3
 DInitWallSet <- 0
 cdSet <- 0.18
@@ -561,44 +569,44 @@ kpWallSet <- c(0, 10^seq(from = -10, to = -8, by = 1))
 knSet <- 10^seq(from = -2, to = 3, by = 0.1)
 knWallSet <- 10^seq(from = -2, to = 3, length.out = 4)
 gdSet <- 15
-gtSet <- 15
+gtSet <- gdSet
 
 # Paramterset 1b, to get clearer plots
 ScaleWallPerLum <- 1 # equal volumes in wall-compartment and lumen compartment
 NILumSet <- 1.4
-NIWallSet <- 1.4
+NIWallSet <- NILumSet
 wLumSet <- -log(0.5)/24
-wWallSet <- -log(0.5)/24
-wNutrWallSet <- -log(0.5)/24
+wWallSet <- wLumSet
+wNutrWallSet <- wLumSet
 Ks <- 0.004
 NutrConvSet <- 1.4e-7
 bRSet <- 0.738
 MigrLumWallSet <- 0.1
-MigrWallLumSet <- 0.1
+MigrWallLumSet <- MigrLumWallSet
 DInitLumSet <- 1E3
 DInitWallSet <- 0
 cdSet <- 0.18
 ctSet <- 0.09
-kpSet <- 10^seq(from = -10, to = -8, by = 0.25)
+kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 kpWallSet <- kpSet
-knSet <- 10^seq(from = 0, to = 3, by = 0.5)
-knWallSet <- 10^seq(from = 0, to = 3, by = 0.5)
+knSet <- 10^seq(from = -2, to = 3, length.out = 4)
+knWallSet <- knSet
 gdSet <- 15
-gtSet <- 15
+gtSet <- gdSet
 
 # Parameterset 2 to show effect of migration rates on biomass and stability of
 # the plasmid-free equilibrium. Note that washout from the wall is excluded.
 ScaleWallPerLum <- 1 # volume wall-compartiment / volume lumen compartiment
 NILumSet <- 1.4
-NIWallSet <- 1.4
+NIWallSet <- NILumSet
 wLumSet <- -log(0.5)/24
 wWallSet <- 0 # Cells do not washout from the wall
-wNutrWallSet <- -log(0.5)/24
+wNutrWallSet <- wLumSet
 Ks <- 0.004
 NutrConvSet <- 1.4e-7
 bRSet <- 0.738
 MigrLumWallSet <- c(0.025, 0.1, 0.4)
-MigrWallLumSet <- c(0.025, 0.1, 0.4)
+MigrWallLumSet <- MigrLumWallSet
 DInitLumSet <- 1E3
 DInitWallSet <- 0
 cdSet <- 0.18
@@ -831,6 +839,29 @@ for(i in kpWallSet) {
     
     filteredDf <- rbind(filteredDf,
                         data.frame(kpWall = i, knWall = j,
+                                   invasion_perc = invasion_perc,
+                                   no_invasion_perc = no_invasion_perc,
+                                   invasion_n = invasion_n,
+                                   no_invasion_n = no_invasion_n, total_n = total_n))
+  }
+}
+print(filteredDf)
+
+# Alternative version (to be used with dataset 1b) to show percentage and counts
+# of parameter combinations for which invasion is, or is not, possible
+filteredDf <- NULL
+for(i in knSet) {
+  for(j in knWallSet) {
+    MyDataFiltered <- filter(MyData, kn > i*0.999, kn < i*1.001,
+                             knWall > j*0.999, knWall < j*1.001)
+    invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
+    no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+    total_n <- invasion_n + no_invasion_n
+    invasion_perc <- round(100*invasion_n/total_n, 0)
+    no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
+    
+    filteredDf <- rbind(filteredDf,
+                        data.frame(kn = i, knWall = j,
                                    invasion_perc = invasion_perc,
                                    no_invasion_perc = no_invasion_perc,
                                    invasion_n = invasion_n,
