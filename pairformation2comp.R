@@ -571,6 +571,8 @@ knWallSet <- 10^seq(from = -2, to = 3, length.out = 4)
 gdSet <- 15
 gtSet <- gdSet
 
+# MyDataPar1 <- MyData
+
 # Paramterset 1b, to get clearer plots
 ScaleWallPerLum <- 1 # equal volumes in wall-compartment and lumen compartment
 NILumSet <- 1.4
@@ -618,6 +620,7 @@ knWallSet <- 10^0.5
 gdSet <- 15
 gtSet <- 15
 
+# MyDataPar2 <- MyData
 
 #### Main script ####
 print(Sys.time())
@@ -1055,6 +1058,27 @@ MyDataTwoComp1 <- filter(MyDataTwoComp, kpWall == kpWallSet[1], knWall == 10^-2)
 MyDataTwoComp2 <- filter(MyDataTwoComp, kpWall == kpWallSet[1], knWall > 10^0.499 & knWall < 10^0.501)
 MyDataTwoComp3 <- filter(MyDataTwoComp, kpWall == kpWallSet[1], knWall == 10^3)
 dim(MyDataTwoComp1)
+
+filteredDf <- NULL
+for(i in MigrLumWallSet) {
+  for(j in MigrWallLumSet) {
+    MyDataFiltered <- filter(MyData, MigrLumWall == i, MigrWallLum == j)
+    invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
+    no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+    total_n <- invasion_n + no_invasion_n
+    invasion_perc <- round(100*invasion_n/total_n, 0)
+    no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
+    
+    filteredDf <- rbind(filteredDf,
+                        data.frame(MigrLumWall = i, MigrWallLum = j,
+                                   invasion_perc = invasion_perc,
+                                   no_invasion_perc = no_invasion_perc,
+                                   invasion_n = invasion_n,
+                                   no_invasion_n = no_invasion_n, total_n = total_n))
+  }
+}
+print(filteredDf)
+
 
 # See if bulk-rates differ for different detachment rates at the wall
 CreatePlot(dataplot = MyDataTwoComp1, fillvar = "log10(gtbulkWall)", filltype = "continuous",
