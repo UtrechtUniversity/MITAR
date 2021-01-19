@@ -161,13 +161,18 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
 # supplied as number of cells per mL so should be multiplied by the appropriate
 # volumes to be used as state. RLumInit and RWallInit have been calculated as
 # the number of cells, so do not need to be multiplied by volume again.
+# 
+# NOTE: now I actually calculate the bulk-rates as I used to do (so using densities
+# and concentrations), and only convert
+# them when using them in the bulk-conjugation models.
+# 
 EstConjBulkLum <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitLum"]] == 0) {
-      state <- c(D = VLum*MyData[["DInitWall"]], R = MyData[["RLumInit"]],
+      state <- c(D = MyData[["DInitWall"]], R = MyData[["RLumInit"]]/VLum,
                  Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     } else {
-      state <- c(D = VLum*MyData[["DInitLum"]], R = MyData[["RLumInit"]],
+      state <- c(D = MyData[["DInitLum"]], R = MyData[["RLumInit"]]/VLum,
                  Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     }
     
@@ -176,10 +181,10 @@ EstConjBulkLum <- function(MyData) {
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
     
     if(MyData[["DInitLum"]] == 0) {
-      state <- c(R = MyData[["RLumInit"]], Trans = VLum*MyData[["DInitWall"]],
+      state <- c(R = MyData[["RLumInit"]]/VLum, Trans = MyData[["DInitWall"]],
                  Mrt = 0, Mtt = 0)
     } else {
-      state <- c(R = MyData[["RLumInit"]], Trans = VLum*MyData[["DInitLum"]],
+      state <- c(R = MyData[["RLumInit"]]/VLum, Trans = MyData[["DInitLum"]],
                  Mrt = 0, Mtt = 0)
     }
     
@@ -196,10 +201,10 @@ EstConjBulkLum <- function(MyData) {
 EstConjBulkWall <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitWall"]] == 0) {
-      state <- c(D = VWall*MyData[["DInitLum"]], R = MyData[["RWallInit"]],
+      state <- c(D = MyData[["DInitLum"]], R = MyData[["RWallInit"]]/VWall,
                  Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     } else {
-      state <- c(D = VWall*MyData[["DInitWall"]], R = MyData[["RWallInit"]],
+      state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallInit"]]/VWall,
                  Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
     }
     
@@ -208,10 +213,10 @@ EstConjBulkWall <- function(MyData) {
                                      func = ModelEstConjBulkDonor, parms = parms), 1)
     
     if(MyData[["DInitWall"]] == 0) {
-      state <- c(R = MyData[["RWallInit"]], Trans = VWall*MyData[["DInitLum"]],
+      state <- c(R = MyData[["RWallInit"]]/VWall, Trans = MyData[["DInitLum"]],
                  Mrt = 0, Mtt = 0)
     } else {
-      state <- c(R = MyData[["RWallInit"]], Trans = VWall*MyData[["DInitWall"]],
+      state <- c(R = MyData[["RWallInit"]]/VWall, Trans = MyData[["DInitWall"]],
                  Mrt = 0, Mtt = 0)
     }
     
@@ -278,7 +283,7 @@ ModelPairsNutr <- function(t, state, parms) {
       kn*(MdrLum + MdtLum))*VLum + MigrWallLum*DWall*VWall
     dRLum <- (bR*NutrLum*(RLum + MdrLum + MrtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*(DLum + TransLum))*RLum +
       kn*(MdrLum + MrtLum))*VLum + MigrWallLum*RWall*VWall
-    dTransLum <- ((1 - ct)*bR*NutrLum*(TransLum + MdtLum + MrtLum + 2*MttLum)*VLum/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*TransLum +
+    dTransLum <- ((1 - ct)*bR*NutrLum*(TransLum + MdtLum + MrtLum + 2*MttLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*TransLum +
       kn*(MdtLum + MrtLum + 2*MttLum))*VLum + MigrWallLum*TransWall*VWall
     dMdrLum <- (kp*DLum*RLum - (kn + gd + wLum + MigrLumWall)*MdrLum)*VLum + MigrWallLum*MdrWall*VWall
     dMdtLum <- (gd*MdrLum - (kn + wLum + MigrLumWall)*MdtLum)*VLum + MigrWallLum*MdtWall*VWall
@@ -734,9 +739,9 @@ print(Sys.time())
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 
 ## Approximate gdbulk and gtbulk in the lumen
+VComp <- VLum
 MyData <- expand_grid(MyData, DInitLum = DInitLumSet, DInitWall = DInitWallSet,
                       kp = kpSet, kn = knSet, gd = gdSet, gt = gtSet)
-VComp <- VLum
 DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulkLum))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
@@ -749,13 +754,13 @@ gtbulkLum <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTrans
 MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
 
 ## Approximate gdbulk and gtbulk at the wall
+VComp <- VWall
 MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
 
 # Replace columns kn and kn with the values in the columns kpWall and knWall in
 # new dataframe to be used to estimate bulk conjugation rates at the wall
 MyDataWall <- select(MyData, !c(kp, kn, gdbulkLum, gtbulkLum))
 MyDataWall <- rename(MyDataWall, kp = kpWall, kn = knWall)
-VComp <- VWall
 DataEstConjBulk <- t(apply(X = MyDataWall, MARGIN = 1, FUN = EstConjBulkWall))
 DataEstConjBulk <- as.data.frame(DataEstConjBulk)
 
@@ -962,7 +967,37 @@ ggplot(data = MyData,
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
 ggsave(paste0(DateTimeStamp, "InvasionTwoCompAlternative.png"))
 
+ggplot(data = FilteredData,
+       aes(x = log10(kp), y = log10(kpWall),
+           fill = factor(SignDomEigVal==SignDomEigValBulk))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_wrap("kn", nrow = 2, labeller = mylabeller) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate in the lumen)",
+       y = "Log10(attachment rate at the wall)", tag = NULL) +
+  scale_fill_manual("Dominant eigenvalues\nhave equal signs",
+                    values = c("TRUE" = "darkgreen", "FALSE" = "red")) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompSameSign.png"))
 
+ggplot(data = MyData,
+       aes(x = log10(kp), y = log10(kpWall),
+           fill = factor(SignDomEigVal==SignDomEigValBulk))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_grid(log10(kn) ~ log10(knWall), as.table = FALSE, labeller = mylabeller) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate in the lumen)",
+       y = "Log10(attachment rate at the wall)", tag = NULL) +
+  scale_fill_manual("Dominant eigenvalues\nhave equal signs",
+                    values = c("TRUE" = "darkgreen", "FALSE" = "red")) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompAlternativeSameSign.png"))
 
 # Separate plots for low attachment rates at the wall, to compare them to the
 # output of the one-compartment model.
@@ -1050,7 +1085,6 @@ CreatePlot(fillvar = "log10(pmax(gtbulkLum, gtbulkWall))", filltype = "continuou
            limits = limitsbulkrates,
            filltitle = "Log10(max(Transconjugant\nbulkrate in lumen and at the wall))",
            facetx = "kpWall", facety = "knWall", as.table = FALSE)
-
 
 #### Output parameterset 2 ####
 
