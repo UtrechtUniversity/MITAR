@@ -99,10 +99,10 @@ MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 #### Functions ####
 ModelBulkNutrPlasmidfree <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutrLum <- VLum*((NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum/(Ks + NutrLum))
-    dRLum <- VLum*((bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall*ScaleWallPerLum)
-    dNutrWall <- VWall*((NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall/(Ks + NutrWall))
-    dRWall <- VWall*((bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleWallPerLum)
+    dNutrLum <- ((NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum/(Ks + NutrLum))*VLum
+    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum*VLum + MigrWallLum*RWall*VWall
+    dNutrWall <- ((NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall/(Ks + NutrWall))*VWall
+    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall*VWall + MigrLumWall*RLum*VLum
     return(list(c(dNutrLum, dRLum, dNutrWall, dRWall)))
   })
 }
