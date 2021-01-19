@@ -161,7 +161,6 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
 EstConjBulkLum <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitLum"]] == 0) {
-      warning("DInitLum == 0, DInitWall will be used to approximate bulkrates in the lumen instead!")
       state <- c(D = MyData[["DInitWall"]], R = MyData[["RLumInit"]],
                  Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VLum
     } else {
@@ -194,7 +193,6 @@ EstConjBulkLum <- function(MyData) {
 EstConjBulkWall <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitWall"]] == 0) {
-      warning("DInitWall == 0, DInitLum will be used to approximate bulkrates at the wall instead!")
       state <- c(D = MyData[["DInitLum"]], R = MyData[["RWallInit"]],
                  Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VWall
     } else {
