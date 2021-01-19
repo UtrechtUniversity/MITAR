@@ -99,10 +99,10 @@ MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 #### Functions ####
 ModelBulkNutrPlasmidfree <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutrLum <- VLum*((NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum/(Ks + NutrLum))
-    dRLum <- VLum*((bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum + MigrWallLum*RWall*ScaleWallPerLum)
-    dNutrWall <- VWall*((NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall/(Ks + NutrWall))
-    dRWall <- VWall*((bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall + MigrLumWall*RLum/ScaleWallPerLum)
+    dNutrLum <- ((NILum - NutrLum)*wLum - NutrConv*bR*NutrLum*RLum/(Ks + NutrLum))*VLum
+    dRLum <- (bR*NutrLum/(Ks + NutrLum) - wLum - MigrLumWall)*RLum*VLum + MigrWallLum*RWall*VWall
+    dNutrWall <- ((NIWall - NutrWall)*wNutrWall - NutrConv*bR*NutrWall*RWall/(Ks + NutrWall))*VWall
+    dRWall <- (bR*NutrWall/(Ks + NutrWall) - wWall - MigrWallLum)*RWall*VWall + MigrLumWall*RLum*VLum
     return(list(c(dNutrLum, dRLum, dNutrWall, dRWall)))
   })
 }
@@ -121,9 +121,13 @@ RunToPlamidfreeEq <- function(parms) {
   })
 }
 
+# Corrected volumes used to approximate bulk-rates. NOTE: the equations to approximate bulkrates are NOT YET multiplied by the volumes of lumen and wall!
+
 # ODE-model used to approximate the bulk-conjugation rate of the donor.
 # Nutrients, growth, washout, conjugation from transconjugants, and Mtt-pairs
 # are not included in this model.
+
+# NOTE: the equations to approximate bulkrates are NOT YET multiplied by the volumes of lumen and wall!
 ModelEstConjBulkDonor <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dD <- - kp*D*R + kn*(Mdr + Mdt)
@@ -135,6 +139,8 @@ ModelEstConjBulkDonor <- function(t, state, parms) {
     return(list(c(dD, dR, dTrans, dMdr, dMdt, dMrt)))
   })
 }
+
+# NOTE: the equations to approximate bulkrates are NOT YET multiplied by the volumes of lumen and wall!
 
 # ODE-model used to approximate the bulk-conjugation rate of the transconjugant.
 # Nutrients, growth, washout, and donors are not included in this model.
@@ -155,7 +161,6 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
 EstConjBulkLum <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitLum"]] == 0) {
-      warning("DInitLum == 0, DInitWall will be used to approximate bulkrates in the lumen instead!")
       state <- c(D = MyData[["DInitWall"]], R = MyData[["RLumInit"]],
                  Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VLum
     } else {
@@ -169,10 +174,10 @@ EstConjBulkLum <- function(MyData) {
     
     if(MyData[["DInitLum"]] == 0) {
       state <- c(R = MyData[["RLumInit"]], Trans = MyData[["DInitWall"]],
-                 Mrt = 0, Mtt = 0)*VWall
+                 Mrt = 0, Mtt = 0)*VLum
     } else {
       state <- c(R = MyData[["RLumInit"]], Trans = MyData[["DInitLum"]],
-                 Mrt = 0, Mtt = 0)*VWall
+                 Mrt = 0, Mtt = 0)*VLum
     }
     
     DataEstConjBulkTrans <- tail(ode(t = timesEstConj, y = state,
@@ -188,12 +193,11 @@ EstConjBulkLum <- function(MyData) {
 EstConjBulkWall <- function(MyData) {
   with(as.list(MyData), {
     if(MyData[["DInitWall"]] == 0) {
-      warning("DInitWall == 0, DInitLum will be used to approximate bulkrates at the wall instead!")
       state <- c(D = MyData[["DInitLum"]], R = MyData[["RWallInit"]],
-                 Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VLum
+                 Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VWall
     } else {
       state <- c(D = MyData[["DInitWall"]], R = MyData[["RWallInit"]],
-                 Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VLum
+                 Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)*VWall
     }
     
     parms <- MyData
