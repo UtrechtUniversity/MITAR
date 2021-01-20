@@ -802,7 +802,7 @@ names(labmigrlumwall) <- MigrLumWallSet
 labmigrwalllum <- paste0("Migration rate from\nwall to lumen: ", MigrWallLumSet)
 names(labmigrwalllum) <- MigrWallLumSet
 if(length(knSet)==length(knWallSet)) {
-  if(knSet == knWallSet) {
+  if(all(knSet == knWallSet)) {
     labkn <- paste0("Log10(detachment\nrates): ", signif(log10(knWallSet), 3))
     names(labkn) <- knSet
   }
