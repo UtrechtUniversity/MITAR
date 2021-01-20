@@ -709,7 +709,7 @@ dim(MyData)
 MyData <- mutate(MyData, 
                   NutrLumGuess = wLum*Ks*VLum / (bR - wLum),
                   RLumGuess = (NILum - NutrLumGuess)*VLum/NutrConv,
-                  NutrWallGuess = wWall*Ks*VWall / (bR - wWall),
+                  NutrWallGuess = wNutrWall*Ks*VWall / (bR - wWall),
                   RWallGuess = (NIWall - NutrWallGuess)*VWall/NutrConv
 )
 
