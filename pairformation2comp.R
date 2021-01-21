@@ -700,7 +700,6 @@ MyData <- expand_grid(NILum = NILumSet, NIWall = NIWallSet, wLum = wLumSet, wWal
                       wNutrWall = wNutrWallSet, NutrConv = NutrConvSet, bR = bRSet,
                       MigrLumWall = MigrLumWallSet, MigrWallLum = MigrWallLumSet,
                       ScaleWallPerLum = ScaleWallPerLum)
-dim(MyData)
 
 # Multiply the equilibrium values of the one-compartment model with the
 # appropriate volumes of the lumen or wall compartment to get milligram
@@ -793,29 +792,17 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
 #### Create facet labels and labeller 'function' ####
-labkpWall <- paste0("Attachment rate\nat the wall: ", signif(kpWallSet, 3))
-names(labkpWall) <- kpWallSet
+labkn <- paste0("Detachment rate\nin the lumen: ", signif(knSet, 3))
+names(labkn) <- knSet
 labknWall <- paste0("Detachment rate\nat the wall: ", signif(knWallSet, 3))
 names(labknWall) <- knWallSet
 labmigrlumwall <- paste0("Migration rate from\nlumen to wall: ", MigrLumWallSet)
 names(labmigrlumwall) <- MigrLumWallSet
 labmigrwalllum <- paste0("Migration rate from\nwall to lumen: ", MigrWallLumSet)
 names(labmigrwalllum) <- MigrWallLumSet
-if(length(knSet)==length(knWallSet)) {
-  if(all(knSet == knWallSet)) {
-    labkn <- paste0("Log10(detachment\nrates): ", signif(log10(knWallSet), 3))
-    names(labkn) <- knSet
-  }
-}
-if(exists("labkn")) {
-  mylabeller <- labeller(kn = labkn, kpWall = labkpWall, knWall = labknWall,
-                         MigrLumWall = labmigrlumwall,
-                         MigrWallLum = labmigrwalllum, .default = label_both)  
-} else {
-  mylabeller <- labeller(kpWall = labkpWall, knWall = labknWall,
-                         MigrLumWall = labmigrlumwall,
-                         MigrWallLum = labmigrwalllum, .default = label_both)
-}
+mylabeller <- labeller(kn = labkn, knWall = labknWall,
+                       MigrLumWall = labmigrlumwall,
+                       MigrWallLum = labmigrwalllum, .default = label_both)
 
 
 #### Output parameterset 1 ####
@@ -936,30 +923,13 @@ for(i in knSet) {
 print(filteredDf)
 
 
-# To avoid another 4x4 plot, filter for facets where the detachment rate in the
-# lumen equals the detachment rate at the wall.
-FilteredData <- filter(MyData, kn == knWall)
-ggplot(data = FilteredData,
-       aes(x = log10(kp), y = log10(kpWall), fill = factor(SignDomEigVal))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_wrap("kn", nrow = 2, labeller = mylabeller) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment rate in the lumen)",
-       y = "Log10(attachment rate at the wall)", tag = NULL) +
-  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes")) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "InvasionTwoComp.png"))
-
 ggplot(data = MyData,
        aes(x = log10(kp), y = log10(kpWall), fill = factor(SignDomEigVal))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
   coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(log10(kn) ~ log10(knWall), as.table = FALSE, labeller = mylabeller) +
+  facet_grid(knWall ~ kn, as.table = FALSE, labeller = mylabeller) +
   theme(legend.position = "bottom") +
   labs(x = "Log10(attachment rate in the lumen)",
        y = "Log10(attachment rate at the wall)", tag = NULL) +
@@ -967,22 +937,6 @@ ggplot(data = MyData,
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
 ggsave(paste0(DateTimeStamp, "InvasionTwoCompAlternative.png"))
 
-ggplot(data = FilteredData,
-       aes(x = log10(kp), y = log10(kpWall),
-           fill = factor(SignDomEigVal==SignDomEigValBulk))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_wrap("kn", nrow = 2, labeller = mylabeller) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment rate in the lumen)",
-       y = "Log10(attachment rate at the wall)", tag = NULL) +
-  scale_fill_manual("Dominant eigenvalues\nhave equal signs",
-                    values = c("TRUE" = "darkgreen", "FALSE" = "red")) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "InvasionTwoCompSameSign.png"))
-
 ggplot(data = MyData,
        aes(x = log10(kp), y = log10(kpWall),
            fill = factor(SignDomEigVal==SignDomEigValBulk))) + 
@@ -990,7 +944,7 @@ ggplot(data = MyData,
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
   coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(log10(kn) ~ log10(knWall), as.table = FALSE, labeller = mylabeller) +
+  facet_grid(knWall ~ kn, as.table = FALSE, labeller = mylabeller) +
   theme(legend.position = "bottom") +
   labs(x = "Log10(attachment rate in the lumen)",
        y = "Log10(attachment rate at the wall)", tag = NULL) +
@@ -998,6 +952,18 @@ ggplot(data = MyData,
                     values = c("TRUE" = "darkgreen", "FALSE" = "red")) +
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
 ggsave(paste0(DateTimeStamp, "InvasionTwoCompAlternativeSameSign.png"))
+
+for(knSel in knSet) {
+  for(knWallSel in knWallSet) {
+    FilteredData <- filter(MyData, kn == knSel, knWall == knWallSel,
+                           kp == kpWall, SignDomEigVal == 1)
+    minkp <- min(FilteredData[, "kp"])
+    print(paste0("log10(kn)=", signif(log10(knSel), 3)))
+    print(paste0("log10(knWall)=", signif(log10(knWallSel), 3)))
+    print(paste0("log10(minkp)=", log10(minkp)))
+    print("", quote = FALSE)
+  }
+}
 
 # Separate plots for low attachment rates at the wall, to compare them to the
 # output of the one-compartment model.
