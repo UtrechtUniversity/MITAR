@@ -12,6 +12,10 @@
 
 # Can I use the migration rates to set better states for the plasmid-free equilibrium
 
+# Using sec.axis without breaks and labels to use the axis title as point to
+# draw arrows for the plot with differences in biomass at the wall works, but
+# leads to warnings being issued because no limits are supplied.
+
 # See Macken 1994 'The dynamics of bacteria-plasmid systems' for analytic treatment
 # and a way to get rid of the nutrient equation (but is that feasible if I want
 # to modify nutrient levels over time?)
@@ -388,8 +392,8 @@ SimulationBulk <- function(InputSimulationBulk, state) {
 CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)",
                        fillvar = "factor(SignDomEigVal)",
                        filltype = "discrete", limits = NULL, 
-                       labx = "Log10(attachment rate in lumen)",
-                       laby = "Log10(detachment rate in lumen)",
+                       labx = "Log10(attachment rate in the lumen)",
+                       laby = "Log10(detachment rate in the lumen)",
                        filltitle, filllabels = c("No", "Yes"),
                        mytag = NULL,
                        manualvalues = c("TRUE" = "darkgreen", "FALSE" = "red"),
@@ -1063,6 +1067,40 @@ CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
 # equilibrium (Figure 6).
 CreatePlot(filltitle = "Plasmid can invade",
            facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
+
+## Original plot
+ggplot(data = MyData,
+       aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_grid(MigrWallLum ~ MigrLumWall, as.table = FALSE, labeller = mylabeller) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate in the lumen)",
+       y = "Log10(attachment rate at the wall)", tag = NULL) +
+  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
+
+# Original plot + sec_axis to create new axis, with iexpression in axis title
+# to draw an arrow
+ggplot(data = MyData,
+       aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0), sec.axis = dup_axis(
+    name = expression(paste("Increasing biomass at the ", wall %->% "")),
+    breaks = NULL, labels = NULL)) +
+  scale_y_continuous(expand = c(0, 0), sec.axis = dup_axis(
+    name = expression(paste("Increasing biomass at the ", wall %->% "")),
+    breaks = NULL, labels = NULL)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_grid(MigrWallLum ~ MigrLumWall, as.table = FALSE, labeller = mylabeller) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate in the lumen)",
+       y = "Log10(attachment rate at the wall)", tag = NULL) +
+  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomass.png"))
+
+
 
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
 CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
