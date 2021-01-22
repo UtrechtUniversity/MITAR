@@ -362,10 +362,10 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
                        filltype = "discrete", limits = NULL, 
                        labx = "Log10(attachment rate)",
                        laby = "Log10(detachment rate)",
-                       filltitle, filllabels = c("No", "Yes"),
-                       mytag = NULL,
+                       filltitle, filllabels = c("No", "Yes"), mytag = NULL,
                        manualvalues = c("TRUE" = "darkgreen", "FALSE" = "red"),
                        facetx = "gt + ct", facety = "gd + cd", as.table = TRUE,
+                       marginx = NULL, marginy = NULL,
                        save = saveplots, filename = NULL, addstamp = FALSE, ...) {
   if(addstamp == TRUE & exists("DateTimeStamp") == FALSE) {
     warning("DateTimeStamp created to include in plot does not correspond to filename of the dataset")
@@ -381,6 +381,12 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
                labeller = mylabeller) +
     theme(legend.position = "bottom") +
     labs(x = labx, y = laby, tag = mytag)
+  if(!is.null(marginx)) {
+    p <- p + theme(strip.text.x = element_text(margin = margin(marginx)))
+  }
+  if(!is.null(marginy)) {
+    p <- p + theme(strip.text.y = element_text(margin = margin(marginy)))
+  }
   if(addstamp == TRUE) {
     p <- p + labs(caption = DateTimeStamp) +
       theme(plot.caption = element_text(vjust = 20))
@@ -486,7 +492,7 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # Washout rate (1/h): w
 
 ## To read data from csv-file
-# FileName <- "2020_12_02_10_00outputnosimulation.csv"
+# FileName <- "2021_01_21_16_58outputnosimulation.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
 # MyData <- as.data.frame(MyData)
@@ -735,18 +741,21 @@ print(filteredDf)
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium (Figure 3 in article):
-CreatePlot(filltitle = "Plasmid can invade")
+CreatePlot(filltitle = "Plasmid can invade",
+           marginx = c(0,0,0,0), marginy = c(0,0,0,0))
 
 # Stability of the equilibrium for the bulk-conjugation model
 # (plot not shown in article)
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
-           filltitle = "Plasmid can invade\n(bulk model)")
+           filltitle = "Plasmid can invade\n(bulk model)",
+           marginx = c(0,0,0,0), marginy = c(0,0,0,0))
 
 # Show if sign of dominant eigenvalues for pair-formation and bulk model is the 
 # same (Figure S2 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
-           filltitle = "Dominant eigenvalues\nhave equal signs")
+           filltitle = "Dominant eigenvalues\nhave equal signs",
+           marginx = c(0,0,0,0), marginy = c(0,0,0,0))
 
 # Change layout of labels for next plots
 labgd <- paste0("Donor conjugation rate ", gdSet, "/h")
