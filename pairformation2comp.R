@@ -22,7 +22,7 @@
 
 # In filtering data, using filter(MyData, kpWall == i, knWall == j) is error-prone
 # because comparing two floating-point vectors gives troubles.
-# Use dplyr::near(kpWall, i), or maybe base-R isTRUE(all.equal(...)).
+# Use dplyr::near(log10(kpWall), log10(i)), or maybe base-R isTRUE(all.equal(...)).
 
 # Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
 # results as the single-compartment model.
@@ -1063,26 +1063,8 @@ CreatePlot(fillvar = "log10(RWallInit)", filltype = "continuous",
            filltitle = "Log10(Recipient\ndensity at the wall",
            facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 
-# Show the effect of migration rates on stability of the plasmid-free
-# equilibrium (Figure 6).
-CreatePlot(filltitle = "Plasmid can invade",
-           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
-
-## Original plot
-ggplot(data = MyData,
-       aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(MigrWallLum ~ MigrLumWall, as.table = FALSE, labeller = mylabeller) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment rate in the lumen)",
-       y = "Log10(attachment rate at the wall)", tag = NULL) +
-  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
-
-# Original plot + sec_axis to create new axis, with iexpression in axis title
-# to draw an arrow
+# Original plot + sec_axis to create new axis, with expression in axis title
+# to draw an arrow (Figure 6).
 ggplot(data = MyData,
        aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
   geom_raster() +
@@ -1096,11 +1078,9 @@ ggplot(data = MyData,
   facet_grid(MigrWallLum ~ MigrLumWall, as.table = FALSE, labeller = mylabeller) +
   theme(legend.position = "bottom") +
   labs(x = "Log10(attachment rate in the lumen)",
-       y = "Log10(attachment rate at the wall)", tag = NULL) +
+       y = "Log10(detachment rate in the lumen)", tag = NULL) +
   scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
 ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomass.png"))
-
-
 
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
 CreatePlot(fillvar = "log10(RLumInit)", filltype = "continuous",
@@ -1147,17 +1127,10 @@ CreatePlot(fillvar = "log10(gtbulkWall)", filltype = "continuous",
            filltitle = "Log10(Transconjugant\nbulkrate at the wall)",
            facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 
-MyDataTwoComp <- MyData
-dim(MyDataTwoComp)
-MyDataTwoComp1 <- filter(MyDataTwoComp, kpWall == kpWallSet[1], knWall == 10^-2)
-MyDataTwoComp2 <- filter(MyDataTwoComp, kpWall == kpWallSet[1], knWall > 10^0.499 & knWall < 10^0.501)
-MyDataTwoComp3 <- filter(MyDataTwoComp, kpWall == kpWallSet[1], knWall == 10^3)
-dim(MyDataTwoComp1)
-
 filteredDf <- NULL
 for(i in MigrLumWallSet) {
   for(j in MigrWallLumSet) {
-    MyDataFiltered <- filter(MyData, MigrLumWall == i, MigrWallLum == j)
+    MyDataFiltered <- filter(MyData, near(MigrLumWall, i), near(MigrWallLum, j))
     invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
     no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
     total_n <- invasion_n + no_invasion_n
@@ -1174,7 +1147,9 @@ for(i in MigrLumWallSet) {
 }
 print(filteredDf)
 
-
+MyDataTwoComp1 <- filter(MyDataTwoComp, near(log10(kpWall), log10(kpWallSet[1])))
+MyDataTwoComp2 <- filter(MyDataTwoComp, near(log10(kpWall), log10(kpWallSet[2])))
+MyDataTwoComp3 <- filter(MyDataTwoComp, near(log10(kpWall), log10(kpWallSet[3])))
 # See if bulk-rates differ for different detachment rates at the wall
 CreatePlot(dataplot = MyDataTwoComp1, fillvar = "log10(gtbulkWall)", filltype = "continuous",
            limits = log10(range(MyDataTwoComp[, "gtbulkWall"])),
