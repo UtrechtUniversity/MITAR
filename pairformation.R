@@ -2,41 +2,7 @@
 
 #### To do ####
 
-# Naming of objects inside EstConjBulk() should be updated, see DataEstConjBulk
-# and EstConjBulk() in older versions of the script. Consider using mutate(),
-# see the script of the two-compartment model.
-
-# Use diff() in EstConjBulk() instead of manually calculating the difference
-# between consecutive values
-
-# If I want to include stochastics, see Price 'An efficient moments-based inference
-# method for within-host bacterial infection dynamics' and Volkova 'Modelling dynamics
-# of plasmid-gene mediated antimicrobial resistance in enteric bacteria using stochastic
-# differential equations' for ideas
-
 # Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
-
-# Instead of 'biomass', I should use 'density'.
-
-# The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
-# ect. for approximating bulk-rates can be moved inside the EstConjBulk function.
-
-# Terminology: residence time or retention time?
-
-# Prevent overlapping values for the colorbar (could use angle with hjust, vjust)
-
-## Voor plots over time waar ik het pair-formation en het bulk-model met elkaar Vergelijk
-# is plotten van TotalD, TotalR, TotalTrans van het pair-model en DBulk, RBulk, TransBulk van het bulk-model
-# een betere vergelijking, zie PlotOverTime uit het script voor het twee-compartimenten model.
-
-# For PlotOverTime: use \n to print subtitle over two lines, use oma (see ?par and ?mtext)
-# to prevent text from overlapping with legend
-
-# Using CreatePlot(gradient2 = TRUE) geeft probleem dat factor(limits) gebruikt
-# wordt terwijl default limits = NULL, dus
-# scale_fill_viridis_d(limits = factor(limits)) veranderen in iets als 
-# scale_fill_viridis_d(!if(is.null(limits)) {limits = factor(limits)})
-# om dat te voorkomen?
 
 # aes_string is soft-deprecated (see help(aes_string)), use tidy evaluation idioms instead,
 # see the quasiquotation section in aes() documentation and https://www.tidyverse.org/blog/2018/07/ggplot2-tidy-evaluation/
@@ -46,80 +12,16 @@
 
 # In functions use more informative name arguments instead of e.g. mydf = mydf.
 
-# Make better comparison to check for unstable equilibrium where invasion is not
-# possible, currently comparison of values that will not be exact. For example,
-# use dplyr::near(SignDomEigVal, 1)
-
 # Use dplyr to rename columns?
-
-# Change facetting in CreatePlot() to only use facets for variables that are
-# not unique. Then moving CreatePlot(fillvar = "NutrEq") and
-# CreatePlot(fillvar = "log10(gtbulk)", limits = limitsbulkrates) to directly
-# after they have been created will prevent plotting them multiple times because
-# of different values of cd, ct, gd, gt which do not influence log10(gtbulk).
-# Currently that is not possible because CreatePlot() needs cd, ct, gd, gt for
-# facetting.
-
-# Warn if lenght of variables that are not passed on to the CreatePlot function
-# are > 1. E.g., if DInitset <- c(100, 1000) there will be 2 values for each
-# kp*kn*cd*ct combination. I don't know how these are handled when plotting,
-# probably the different values are plotted on top of each other so only the
-# last value is visible. See the To-do section in the script for the
-# Two-compartment model for a stub to check which parameters have multiple
-# values that are not handled as such when plotting.
 
 # Run bulk-model for short time (same as short pair-model) and compare them
 # to see if the bulk-conjugation parameter holds (automated analysis somehow)
-
-# QUESTION: have the resources to be considered for stability analysis?
-# Imran does exclude them from stability analysis?
-# Since I am only interested in perturbations of the equilibrium by adding donors,
-# can the stability analysis be simplified (by only looking at the eigenvectors
-# (eigenvalue?) of the donor-equation?). See 'A Practical Guide to Ecological
-# Modelling: Using R as a Simulation Platform', p. 229-230)
-
-# Other way of plotting data: instead of using cdSet = c(0.01, 0.025, 0.05) and
-# ctSet = c(0.01, 0.025, 0.05) and plotting facets cd ~ ct, one could also use
-# cdSet = 0.025 and plot facets for ct < cd, ct = cd, ct > cd. The same approach
-# can be used for gd and gt.
-
-# Rethink the comments: comment why you do something, not what you did (if you
-# have to comment what you did, rewrite your code to make it clearer from the
-# code itself).
-
-# Check for use of tabs and double spaces and switch to using double spaces ?
-
-# Look for 'hardcoded', 'hard-coded' and rethink them.
-
-# The functions RunOverTime and PlotOverTime in the two-compartment script are
-# more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
-# with TotalD, TotalR, TotalTrans in the pair-formation model.
-# In the two-compartment model I have not used root- and eventfunctions,
-# maybe should also delete them here, since it sometimes takes very long to
-# execute code (if populations go extinct and therefor many roots are found?)
 
 # Try to get different plot objects together as different panels in one figure.
 # See ggpubr:ggarrange(labels = c("A", "B"), common.legend = TRUE, legend = "bottom")
 
 # Use vectors for atol, to have different tolerances for the cell-densities (~1),
 # and nutrient concentration (~1*10^-8 ?)
-
-# To compare the pair-formation and bulk-model select rows where any of the two
-# models have instable equilibrium, i.e. which(pmax(MyData[, "SignDomEigVal"],
-# MyData[, "SignDomEigValBulk"]) == 1)
-
-## NUTRIENTS are also in the root- and event-functions, see comment at their
-# function definitions
-
-## Remarks
-# Indexing of tibbles: use MyData[[1, "REq"]] to return a vector
-# (MyData[1, "REq"] returns a LIST). See is.vector(state) and is.numeric(state).
-# Using MyData$DInit[i] in a loop does work with tibbles as well.
-
-## Previously names of the object returned by apply were sometimes not preserved,
-# because return had a colnames attribute instead of a names attribute. Now I
-# included setting names in the function, did not slow down code execution for
-# 7488 rows (actually it was faster, 97 instead of 101 seconds)
 
 #### Introduction ####
 # The pair-formation model was taken from equation (2) of Zhong (2010) and
@@ -147,11 +49,6 @@ library(dplyr) # for mutate() to create new variables in dataframe/tibble
 
 #### Plotting and simulation options ####
 saveplots <- 1
-atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
-# to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
-# in the machine, T + H = T on the next step  [1] 0 (H = step size). Solver will
-# continue anyway', which eventually leads to aborted integration.
-tmaxsteady <- 1e8
 tmaxEstConj <- 3
 tstepEstConj <- 0.1
 timesEstConj <- seq(from = 0, to = tmaxEstConj, by = tstepEstConj)
@@ -379,7 +276,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
 # Resource conversion rate (milligram per cell division): NutrConv
 # Washout rate (1/h): w
 
-## To read data from csv-file
+## To read data from csv-file, uncomment this section
 # FileName <- "2021_01_25_11_38outputnosimtwocomp.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
@@ -393,8 +290,6 @@ bRSet <- c(0.738)
 Ks <- 0.004
 NISet <- c(0.14, 1.4, 14)
 NutrConvSet <- 1.4e-7
-# Washout rates corresponding to median residence times of 240, 24, and 2.4 h
-# (corresponding to mean residence times of 346, 35, and 3.5 hours).
 wSet <- c(-log(0.5)/(24*10), -log(0.5)/24, -log(0.5)/(24/10))
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 knSet <- 10^seq(from = -1, to = 3, by = 0.1)
@@ -643,9 +538,31 @@ print(filteredDf)
 
 
 ################################################################################
-BackupMyData <- MyData
 
-###### To create plots over time
+##### Create plots over time ####
+
+## To do ##
+# The functions RunOverTime and PlotOverTime in the two-compartment script are
+# more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
+# with TotalD, TotalR, TotalTrans in the pair-formation model.
+# In the two-compartment model I have not used root- and eventfunctions,
+# maybe should also delete them here, since it sometimes takes very long to
+# execute code (if populations go extinct and therefor many roots are found?)
+
+# For plots over time where I compare the pair-formation and the bulk-model,
+# plotting TotalD, TotalR, TotalTrans from the pair-formation model and
+# DBulk, RBulk, TransBulk from the bulk-model a fairer comparison. See
+# PlotOverTime in the script for the Two-compartment model for such an
+# implementation.
+
+# Use \n to print subtitle over two lines, use oma (see ?par and ?mtext) to
+# prevent text from overlapping with legend
+
+# Generating the file names with the DateTimeStamp as used above led to problems
+# because multiple plots were generated within one second. They got the same
+# name and were not all saved. I now use a more precise DateTimeStamp. For
+# alternative to get sequential numbers, see remark in ?ggsave() on use of
+# filename = "figure%03d.png".
 
 # Settings for simulations, plotting, and printing
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
@@ -654,25 +571,25 @@ mycol <- c("black", brewer.pal(7, "Set1"))
 myylim <- c(1E-7, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 plotoutput <- 1
-verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed and roots are indicated in the graphs
-smallchange <- c(1E-5)
+verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed and
+# roots are indicated in the graphs
+smallchange <- c(1E-5) # should be smaller than nutrient-concentration, because
+# nutrients are also in the root- and event-functions
 Mytmax <- c(1E4)
 Mytstep <- c(10)
 
 #### Create matrix to store data ####
-TheseRows <- c(1, nrow(MyData))
 TheseRows <- 1:nrow(MyData)
-# TheseRows <- ceiling(seq(from = nrow(MyData)/(4*4*2*2), to = nrow(MyData), length.out = 4*4*2))
 if(!exists("ColumnsToSelect")) {ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))}
 Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
 print(TotalIterations)
 CurrentIteration <- 0
 
-# Times for which output of the simulation is wanted.
-# Note that the used ode-solvers are variable-step methods, so the times in times
-# are NOT the only times at which integration is performed. See
-# help(diagnostics.deSolve()) and help(lsodar()) for details.
+# Times for which output of the simulation is wanted. The used ODE-solvers are
+# variable-step methods, so the times in times are NOT the only times at which
+# integration is performed. See help(diagnostics.deSolve()) and help(lsodar())
+# (both in the deSolve package) for details.
 times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 
 # Define root-function
@@ -702,8 +619,10 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
     print(diagnostics(out2))
     print(attributes(out2))
   }
-  PlotOverTime(plotdata = out2, parms = parms, type = "Pair", verbose = verbose, saveplot = saveplots)
-  stateBulk <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]], Trans = 0)
+  PlotOverTime(plotdata = out2, parms = parms, type = "Pair", verbose = verbose,
+               saveplot = saveplots)
+  stateBulk <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
+                 R = parms[["REq"]], Trans = 0)
   out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parms,
                 rootfun = rootfunBulk, verbose = verbose)
   EqAfterInvasionBulk <- tail(out2bulk, 1)
@@ -711,7 +630,8 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
     print(diagnostics(out2bulk))
     print(attributes(out2bulk))
   }
-  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", verbose = verbose, saveplot = saveplots)
+  PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk",
+               verbose = verbose, saveplot = saveplots)
   
   EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
   names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
@@ -719,7 +639,8 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
   return(EqAfterInvasionTotal)
 }
 
-PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose = FALSE, saveplot = saveplots, ...) {
+PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair",
+                         verbose = FALSE, saveplot = saveplots, ...) {
   maintitle <- paste(type, "model")
   subtitle <- paste0("bR=", parms[["bR"]], " NI=", parms[["NI"]],
                      " log10kp=", log10(parms[["kp"]]), " log10kn=", log10(parms[["kn"]]),
@@ -732,10 +653,8 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
                        " gtbulk=", signif(parms[["gtbulk"]], digits = 4))
   }
   if(saveplot == TRUE) {
-    # filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
-    # See remark in ?ggsave() on use of filename = "figure%03d.png" to get sequential numbers.
-    # filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), "%03d", ".png")
-    filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), "output", gsub(" ", "", maintitle), ".png") 
+    filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
+                       "output", gsub(" ", "", maintitle), ".png") 
    if(file.exists(filename)) {
      warning("File already exists, not saved again!")
    } else {
