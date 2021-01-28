@@ -10,6 +10,8 @@
 # ScaleAreaPerVol is now used to check input and written to the .csv-file, that
 # has to be replaced by VLum and VWall.
 
+# Instead of 'biomass', I should use 'density'.
+
 # Can I use the migration rates to set better states for the plasmid-free equilibrium
 
 # Using sec.axis without breaks and labels to use the axis title as point to
@@ -695,7 +697,7 @@ ctSet <- 0.09
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 kpWallSet <- kpSet
 knSet <- 10^-1
-knWallSet <- knWallSet
+knWallSet <- knSet
 gdSet <- 15
 gtSet <- gdSet
 
@@ -1232,7 +1234,8 @@ ggplot(data = MyData,
   theme(legend.position = "bottom") +
   labs(x = "Log10(attachment rate in the lumen)",
        y = "Log10(attachment rate at the wall)", tag = NULL) +
-  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
+  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes")) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
 ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomassSeriesb.png"))
 
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
