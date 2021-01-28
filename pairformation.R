@@ -18,19 +18,6 @@
 
 # Instead of 'biomass', I should use 'density'.
 
-# Does using stol = 1.25E-6 for 8 equations in SimulationPairs and stol = 2.5E-6
-# for 4 equations in SimulationBulk make sense if one wants the simulations to
-# terminate at the same densities?
-
-# For PlotOverTime, I want the plot to be always shown, and saved only if save = TRUE.
-# Change to using ggplot instead of matplot.deSolve to enable saving an object through ggsave(...)
-# Displaying graph first and then use if (save == TRUE) {dev.copy(png,'myplot.png'); dev.off()}
-# might work without having to code the creation of the plot twice ?
-# In saveplots == 1 does not work well with RunOverTime, since only the first two plots
-# are saved and then warning is issued that file already exists. Add column with
-# rownumber to dataframe to append to filename? See remark in ?ggsave() on use of 
-# filename = "figure%03d.png" to get sequential numbers.
-
 # The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
 # ect. for approximating bulk-rates can be moved inside the EstConjBulk function.
 
@@ -45,23 +32,17 @@
 # For PlotOverTime: use \n to print subtitle over two lines, use oma (see ?par and ?mtext)
 # to prevent text from overlapping with legend
 
-# If save = TRUE for plots over time, dev.off is not called?
-
 # Using CreatePlot(gradient2 = TRUE) geeft probleem dat factor(limits) gebruikt
 # wordt terwijl default limits = NULL, dus
 # scale_fill_viridis_d(limits = factor(limits)) veranderen in iets als 
 # scale_fill_viridis_d(!if(is.null(limits)) {limits = factor(limits)})
 # om dat te voorkomen?
 
-# SummaryPlot() does not use the names of the arguments for creating titles
-
 # aes_string is soft-deprecated (see help(aes_string)), use tidy evaluation idioms instead,
 # see the quasiquotation section in aes() documentation and https://www.tidyverse.org/blog/2018/07/ggplot2-tidy-evaluation/
 # See also # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
 
 # See ggplot2::expand_limits to have the same limits and colorscale for the two plots
-
-# Create function to filter on small negative and small positive state values and set them to 0
 
 # In functions use more informative name arguments instead of e.g. mydf = mydf.
 
@@ -110,12 +91,6 @@
 
 # Look for 'hardcoded', 'hard-coded' and rethink them.
 
-# Summary(...) is not reliable to PRINT range of data if range is > 7 orders
-# of magnitude?:
-# summary(c(1e-15, 1e-12, 1e-7)) prints 0.00e+00 as minimum
-# summary(c(1e-15, 1e-12, 1e-7))["Min."] prints 1e-15
-# summary(c(1e-15, 1e-12, 1e-8)) prints correct value
-
 # The functions RunOverTime and PlotOverTime in the two-compartment script are
 # more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
 # with TotalD, TotalR, TotalTrans in the pair-formation model.
@@ -125,7 +100,6 @@
 
 # Try to get different plot objects together as different panels in one figure.
 # See ggpubr:ggarrange(labels = c("A", "B"), common.legend = TRUE, legend = "bottom")
-# 
 
 # Use vectors for atol, to have different tolerances for the cell-densities (~1),
 # and nutrient concentration (~1*10^-8 ?)
@@ -759,6 +733,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", verbose 
   }
   if(saveplot == TRUE) {
     # filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
+    # See remark in ?ggsave() on use of filename = "figure%03d.png" to get sequential numbers.
     # filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), "%03d", ".png")
     filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), "output", gsub(" ", "", maintitle), ".png") 
    if(file.exists(filename)) {
