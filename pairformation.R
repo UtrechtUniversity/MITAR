@@ -40,12 +40,12 @@
 
 
 #### Loading packages ####
-library(deSolve) # Solve differential equations with results over time.
-library(ggplot2) # For plotting data
-library(RColorBrewer) # For better color schemes [NOTE: only used for plots over time]
-library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
-library(tidyr) # for 'expand.grid()' with dataframe as input
-library(dplyr) # for mutate() to create new variables in dataframe/tibble
+library(deSolve) # Solving differential equations with output over time.
+library(ggplot2) # Creating plots.
+library(RColorBrewer) # Obtaining better color schemes [NOTE: only used for plots over time]
+library(rootSolve) # Integration, obtaining Jacobian matrix.
+library(tidyr) # expand_grid() which allows for dataframe as input
+library(dplyr) # mutate() and near()
 
 #### Plotting and simulation options ####
 saveplots <- 1
@@ -57,8 +57,8 @@ plotdataapproxbulk <- 0
 #### Functions ####
 # Calculate the plasmid-free equilibrium (R*, Nutr*) using the solution to
 # dR/dt = R*(bR*Nutr / (Ks + Nutr) - w) == 0,
-# dNutr/dt = (NI - Nutr)*w - NutrConv*Nutr*R*bR / (Ks + Nutr) ==
-# 0 with R > 0 and Nutr > 0
+# dNutr/dt = (NI - Nutr)*w - NutrConv*Nutr*R*bR / (Ks + Nutr) == 0
+# with R > 0 and Nutr > 0
 CalcEqPlasmidfree <- function(MyData) {
   with(as.list(MyData), {
     NutrEq <- w*Ks / (bR - w)
@@ -437,23 +437,19 @@ CreatePlot(fillvar = "log10(NutrEq)", filltype = "continuous",
 
 # Bulk conjugation rates
 limitsbulkrates <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
-CreatePlot(dataplot = filter(MyData, cd == cdSet[1] & ct == ctSet[1]),
-           fillvar = "log10(gdbulk)", filltype = "continuous",
-           limits = limitsbulkrates,
+CreatePlot(fillvar = "log10(gdbulk)", filltype = "continuous",
            filltitle = "Log10(Donor bulkrate)",
-           facetx = "NI", facety = "w", save = FALSE)
-CreatePlot(dataplot = filter(MyData, cd == cdSet[1] & ct == ctSet[1]),
-           fillvar = "log10(gtbulk)", filltype = "continuous",
-           limits = limitsbulkrates,
-           filltitle = "Log10(Transconjugant bulkrate)",
-           facetx = "NI", facety = "w", save = FALSE)
+           facetx = "NI", facety = "w")
+CreatePlot(fillvar = "log10(gtbulk)", filltype = "continuous",
+           filltitle = "Log10(Transconjugant\nbulkrate)",
+           facetx = "NI", facety = "w")
 
 # Show percentage and counts of parameter combinations for which invasion is,
 # or is not, possible
 filteredDf <- NULL
 for(i in NISet) {
   for(j in wSet) {
-    MyDataFiltered <- filter(MyData, NI == i, w == j)
+    MyDataFiltered <- filter(MyData, near(NI, i), near(w, j))
     invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
     no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
     total_n <- invasion_n + no_invasion_n
@@ -502,13 +498,15 @@ mylabeller <- labeller(NI = labNI, w = labw, cd = labcd, ct = labct,
 ## only one value for costs, because costs do not influence the bulk-conjugation
 ## rates.
 limitsbulkrates <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
-CreatePlot(dataplot = filter(MyData, gt == 15 & cd == cdSet[1] & ct == ctSet[1]),
+CreatePlot(dataplot = filter(MyData, near(gt, 15) &
+                               near(cd, cdSet[1]) & near(ct, ctSet[1])),
            fillvar = "log10(gdbulk)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Donor bulkrate)",
            facetx = "gd", facety = "gt")
 
-CreatePlot(dataplot = filter(MyData, gd == 15 & cd == cdSet[1] & ct == ctSet[1]),
+CreatePlot(dataplot = filter(MyData, near(gd, 15) &
+                               near(cd, cdSet[1]) & near(ct, ctSet[1])),
            fillvar = "log10(gtbulk)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant bulkrate)",
@@ -519,17 +517,20 @@ for(k in cdSet) {
   for(l in gdSet) {
     for(i in ctSet) {
       for(j in gtSet) {
-        MyDataFiltered <- filter(MyData, ct == i, gt == j, cd == k, gd == l)
+        MyDataFiltered <- filter(MyData, near(ct, i), near(gt, j),
+                                 near(cd, k), near(gd, l))
         invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
         no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
         total_n <- invasion_n + no_invasion_n
         invasion_perc <- round(100*invasion_n/total_n, 0)
         no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
         filteredDf <- rbind(filteredDf,
-                            data.frame(ct = i, gt = j, invasion_perc = invasion_perc,
+                            data.frame(ct = i, gt = j,
+                                       invasion_perc = invasion_perc,
                                        no_invasion_perc = no_invasion_perc,
                                        invasion_n = invasion_n,
-                                       no_invasion_n = no_invasion_n, total_n = total_n))
+                                       no_invasion_n = no_invasion_n,
+                                       total_n = total_n))
       }
     }
   }
@@ -580,7 +581,9 @@ Mytstep <- c(10)
 
 #### Create matrix to store data ####
 TheseRows <- 1:nrow(MyData)
-if(!exists("ColumnsToSelect")) {ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))}
+if(!exists("ColumnsToSelect")) {
+  ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
+}
 Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
 print(TotalIterations)
