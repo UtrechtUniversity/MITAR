@@ -3,24 +3,14 @@
 #### To do ####
 # Also see the 'To do' section in the pair-formation script for the one-compartment model
 
-# Instead of checking if the plasmid-free equilibrium that has been found is valid,
-# I could derive the invasion-criterion of the cell-free equilibrium
-# (i.e. Nutr* = NI, D*, R*, ... = 0) to determine if cells can exist.
-
 # ScaleAreaPerVol is now used to check input and written to the .csv-file, that
 # has to be replaced by VLum and VWall.
 
 # Instead of 'biomass', I should use 'density'.
 
-# Can I use the migration rates to set better states for the plasmid-free equilibrium
-
 # Using sec.axis without breaks and labels to use the axis title as point to
 # draw arrows for the plot with differences in biomass at the wall works, but
 # leads to warnings being issued because no limits are supplied.
-
-# See Macken 1994 'The dynamics of bacteria-plasmid systems' for analytic treatment
-# and a way to get rid of the nutrient equation (but is that feasible if I want
-# to modify nutrient levels over time?)
 
 # In filtering data, using filter(MyData, kpWall == i, knWall == j) is error-prone
 # because comparing two floating-point vectors gives troubles.
@@ -29,20 +19,9 @@
 # Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
 # results as the single-compartment model.
 
-# Also use ModelEstConjBulkDonor to approximate bulk conjugation rates from the transconjugant
-# (note: than Mdr should again be added in calculation of TotalREstConjBulkTrans)
-
-# The calculations of TotalDEstConjBulkDonor, TotalREstConjBulkDonor, TotalTransEstConjBulkDonor
-# ect. for approximating bulk-rates can be moved inside the EstConjBulk function ?
-
 # In calculation of bulkrates use knLum, knWall instead of kn and knWall, then
 # use kn = knLum as function argument for lumen and kn = knWall as function argument for wall.
 # This will prevent creating 'DataWall' as separate dataframe
-
-# Saving plots in PlotOverTime() (called from RunOverTime()) fails after the
-# first plot because names are the same. Add 'Iteration' as column to data
-# and append the value from that column to the name? That would als make it
-# easier to see which plot is which iteration (so also print it in graph subtitles).
 
 # Now a loop is used to get a dataframe with percentage and counts of parameter
 # combinations for which the plasmid can, or cannot, invade. That could go into
@@ -567,7 +546,8 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
     }
   }
   if(saveplot == TRUE) {
-    filename <- paste0(DateTimeStamp, "output", gsub(" ", "", maintitle), ".png")
+    filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
+                       "output", gsub(" ", "", maintitle), ".png")
     if(file.exists(filename)) {
       warning("File already exists, not saved again!")
     } else {
