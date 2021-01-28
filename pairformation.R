@@ -16,6 +16,8 @@
 
 # Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
 
+# Instead of 'biomass', I should use 'density'.
+
 # Does using stol = 1.25E-6 for 8 equations in SimulationPairs and stol = 2.5E-6
 # for 4 equations in SimulationBulk make sense if one wants the simulations to
 # terminate at the same densities?
@@ -63,8 +65,9 @@
 
 # In functions use more informative name arguments instead of e.g. mydf = mydf.
 
-# Make better comparison to check for unstable equilibrium where invasion is not possible,
-# currently comparison ofvalues that will not be exact
+# Make better comparison to check for unstable equilibrium where invasion is not
+# possible, currently comparison of values that will not be exact. For example,
+# use dplyr::near(SignDomEigVal, 1)
 
 # Use dplyr to rename columns?
 
@@ -126,10 +129,6 @@
 
 # Use vectors for atol, to have different tolerances for the cell-densities (~1),
 # and nutrient concentration (~1*10^-8 ?)
-
-# To decrease the space in the facet lables that use multiple variables, try
-# add + theme(strip.text.x = element_text(margin = margin(2, 0, 2, 0))), see
-# http://zevross.com/blog/2019/04/02/easy-multi-panel-plots-in-r-using-facet_wrap-and-facet_grid-from-ggplot2/
 
 # To compare the pair-formation and bulk-model select rows where any of the two
 # models have instable equilibrium, i.e. which(pmax(MyData[, "SignDomEigVal"],
@@ -492,7 +491,7 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # Washout rate (1/h): w
 
 ## To read data from csv-file
-# FileName <- "2021_01_21_16_58outputnosimulation.csv"
+# FileName <- "2021_01_25_11_38outputnosimtwocomp.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
 # MyData <- as.data.frame(MyData)
