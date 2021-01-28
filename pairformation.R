@@ -181,7 +181,7 @@ tmaxsteady <- 1e8
 tmaxEstConj <- 3
 tstepEstConj <- 0.1
 timesEstConj <- seq(from = 0, to = tmaxEstConj, by = tstepEstConj)
-showdatabulkapproximation <- 0
+plotdataapproxbulk <- 0
 
 #### Functions ####
 # Calculate the plasmid-free equilibrium (R*, Nutr*) using the solution to
@@ -230,11 +230,12 @@ ModelEstConjBulkTrans <- function(t, state, parms) {
 # following Zhong's approach for the calculations.
 EstConjBulk <- function(MyData) {
   with(as.list(MyData), {
-    state <- c(D = MyData[["DInit"]], R = MyData[["REq"]], Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0)
+    state <- c(D = MyData[["DInit"]], R = MyData[["REq"]], Trans = 0,
+               Mdr = 0, Mdt = 0, Mrt = 0)
     parms <- MyData
     DataEstConjBulkDonor <- ode(t = timesEstConj, y = state,
                                 func = ModelEstConjBulkDonor, parms = parms)
-    if(showdatabulkapproximation == 1) {
+    if(plotdataapproxbulk == 1) {
       subtitle <- paste0("log10(kp,kn)=", log10(MyData[["kp"]]),
                          " ", log10(MyData[["kn"]]))
       matplot.deSolve(DataEstConjBulkDonor, ylim = c(1E-7, 1E7), log = "y",
@@ -247,7 +248,7 @@ EstConjBulk <- function(MyData) {
     state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
     DataEstConjBulkTrans <- ode(t = timesEstConj, y = state,
                                 func = ModelEstConjBulkTrans, parms = parms)
-    if(showdatabulkapproximation == 1) {
+    if(plotdataapproxbulk == 1) {
       matplot.deSolve(DataEstConjBulkTrans, ylim = c(1E-7, 1E7), log = "y",
                       col = c("purple", "green1", "hotpink", "cyan"),
                       lty = c(2, 1, 1, 1), lwd = 2,
@@ -415,68 +416,6 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
   }
 }
 
-# Summarize the output per variable, indicate the orders of magnitude difference
-# and negative values
-SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
-  print(summary(plotvar))
-  print("Range:", quote = FALSE)
-  print(range(plotvar))
-  plotdf <- data.frame(val = plotvar, sign = sign(plotvar), absval = abs(plotvar), plotcol = "black")
-  if(sortvalues == TRUE) {
-    plotdf <- plotdf[order(plotdf$sign, plotdf$absval), ]
-  }
-  valueszero <- which(plotdf[, "val"] == 0)
-  nvalueszero <- length(valueszero)
-  
-  if(nvalueszero > 0) {
-    plotdf[valueszero, "plotcol"] <- "blue"
-    
-    if(nvalueszero == length(plotvar)) {
-      print("All values are 0!", quote = FALSE)
-      minval <- 1
-      maxval <- 1
-    } else {
-      minabsval <- min(plotdf[-valueszero, "absval"])
-      maxabsval <- max(plotdf[-valueszero, "absval"])
-      print(paste("After removing the", nvalueszero, "values equal to zero:"), quote = FALSE)
-      print(summary(plotdf[-valueszero, "val"]))
-    }
-  } else {
-    minabsval <- min(plotdf[, "absval"])
-    maxabsval <- max(plotdf[, "absval"])
-  }
-  
-  valuesnegative <- which(plotdf[, "val"] < 0)
-  nvaluesnegative <- length(valuesnegative)
-  if(nvaluesnegative > 0) {
-    plotdf[valuesnegative, "plotcol"] <- "red"
-    print(paste("Summary of the", nvaluesnegative, "smaller than zero:"), quote = FALSE)
-    print(summary(plotdf[valuesnegative, "val"]))
-    print(paste("Range of the", nvaluesnegative, "smaller than zero:"), quote = FALSE)
-    print(range(plotdf[valuesnegative, "val"]))
-  }
-  
-  ordersdiff <- log10(maxabsval / minabsval)
-  
-  if(ordersdiff < 2) {
-    plot(plotdf[, "val"], ylim = ylim, pch = 19, col = plotdf[, "plotcol"])
-  } else {
-    print(paste("Using logscale because values differ over", round(ordersdiff), "orders of magnitude"), quote = FALSE)
-    if(nvalueszero > 0) {
-      print(paste("Not showing", nvalueszero, "values that are equal to 0"), quote = FALSE)
-      plot(plotdf[-valueszero, "absval"], ylim = ylim, log = "y", pch = 19, col = plotdf[-valueszero, "plotcol"])
-    } else {
-      plot(plotdf[, "absval"], ylim = ylim, log = "y", pch = 19, col = plotdf[, "plotcol"])
-    }
-    if(nvaluesnegative > 0) {
-      print(paste("Taking the absolute value of the", nvaluesnegative, "values smaller than zero"), quote = FALSE)
-    }
-  }
-  grid()
-  abline(h = 1)
-  abline(h = 0.001)
-}
-
 
 #### Parameter values ####
 
@@ -497,13 +436,6 @@ SummaryPlot <- function(plotvar = plotvar, sortvalues = FALSE, ylim = NULL) {
 # MyData <- as.data.frame(MyData)
 # DateTimeStamp <- substr(FileName, 1, 16)
 
-## Stable co-existence of recipients, transconjugants, and Mrt and Mtt pairs
-# bRSet <- 1.7; NISet <- 10; kpSet <- 10^-9.6; knSet <- 10^0.5
-# NutrConvSet <- 1E-6; wSet <- 0.04; cdSet <- 0.05; ctSet <- 0.05;
-# gdSet <- 10^1.176; gtSet <- 10^1.176; DInitSet <- 1000
-# Leads to time = 843129.4, Nutr = 0.02427729 D = 0, R = 3829217, Trans = 6142815,
-# Mdr = Mdt = 0, Mrt = 324.6586, Mtt = 1520.435, timeBulk = 728451.6,
-# NutrBulk = 0.02430818, DBulk = 0, RBulk = 3583808, TransBulk = 6391884.
 
 ## Parameterset 1: show NI and w influence stability of plasmid-free equilibrium
 DInitSet <- c(1E3)
@@ -552,25 +484,6 @@ gdSet <- 15
 gtSet <- 15
 
 
-## Testset influence of attachment and detachment on approximation of bulkrates
-DInitSet <- c(1E3)
-bRSet <- c(0.738)
-NISet <- 1.4
-Ks <- 0.004
-NutrConvSet <- 1.4e-7
-wSet <- -log(0.5)/24
-kpSet <- 10^c(-11, -9)
-knSet <- 10^seq(from = -1, to = 3, by = 1)
-cdSet <- c(0.18)
-ctSet <- c(0.09)
-gdSet <- c(15)
-gtSet <- c(15)
-
-## Using parameterset 2 with steps of 0.2 for kp and kn does not work for the
-# pair-formation model, or for the bulk-conjugation model. Lowering atol to 1e-11
-# doesn't resolve this. Maybe retry using jactype = "sparse", or use stode(s?)
-# and/or supply jacobian if integration leads to errors ?
-
 #### Main script ####
 
 CheckParms <- c(DInitSet, bRSet, NISet, Ks, NutrConvSet, wSet, kpSet, knSet, cdSet, ctSet)
@@ -589,9 +502,9 @@ Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
 MyData <- cbind(MyData, Eqplasmidfree)
 
 if(any(Eqplasmidfree[, "REq"] <= 0)) {
-  warning("The number of recipients at equilibrium is not always positive.
-  Rows with negative densities have been discarded!
-  Increase growth rate or the nutrient concentration in the inflowing liquid, or decrease the outflow rate to prevent this!")
+  warning("Some rows contain non-positive recipient densities at equilibrium.
+  They have been discarded. Increase growth rate or the nutrient concentration 
+  in the inflowing liquid, or decrease the outflow rate to prevent this.")
   MyData <- MyData[-which(MyData[, "REq"] < 0), ]
 }
 
@@ -603,13 +516,19 @@ MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInit = DInitSet,
                       kp = kpSet, kn = knSet)
 DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk))
 
-TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
-TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
-gdbulk <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
+TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] +
+  DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
+TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] +
+  DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
+gdbulk <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] /
+                   (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
 
-TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
-TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
-gtbulk <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
+TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] +
+  DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
+TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] +
+  DataEstConjBulk[, "TransMrt"]
+gtbulk <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] /
+                   (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
 
 MyData <- cbind(MyData, gdbulk = gdbulk, gtbulk = gtbulk)
 print("Bulk-conjugation rates estimated:")
@@ -650,15 +569,15 @@ mylabeller <- labeller(NI = labNI, w = labw, cd = labcd, ct = labct,
 # on stability of the plasmid-free equilibrium (Figure 2 in article).
 CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
 
-CreatePlot(fillvar = "factor(SignDomEigValBulk)",
-           filltitle = "Plasmid can invade\n(bulk model)",
-           facetx = "NI", facety = "w")
-
 # Show if the dominant eigenvalues of the pair-formation model and bulk model
 # have equal signs (Figure S1 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs",
+           facetx = "NI", facety = "w")
+
+CreatePlot(fillvar = "factor(SignDomEigValBulk)",
+           filltitle = "Plasmid can invade\n(bulk model)",
            facetx = "NI", facety = "w")
 
 # Nutrient concentration at the inflow influences recipient cell density,
@@ -683,37 +602,6 @@ CreatePlot(dataplot = filter(MyData, cd == cdSet[1] & ct == ctSet[1]),
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant bulkrate)",
            facetx = "NI", facety = "w", save = FALSE)
-
-# Different way of plotting Figure 2 above
-# Dataset splitsen naar nutr. conc. (kan waarschijnlijk sneller met dplyr)
-MyData0.14 <- filter(MyData, NI == 0.14)
-MyData1.4 <- filter(MyData, NI == 1.4)
-MyData14 <- filter(MyData, NI == 14)
-
-all(MyData0.14[, "kp"] == MyData1.4[, "kp"], MyData0.14[, "kn"] == MyData1.4[, "kn"],
-    MyData1.4[, "kp"] == MyData14[, "kp"], MyData1.4[, "kn"] == MyData14[, "kn"])
-
-DataStruct <- filter(MyData, NI == 0.14)
-DataStruct <- cbind(DataStruct, sign0.14 = MyData0.14[, "SignDomEigVal"],
-                    sign1.4 = MyData1.4[, "SignDomEigVal"],
-                    sign14 = MyData14[, "SignDomEigVal"])
-
-Invasion <- as.character(interaction(DataStruct[, "sign0.14"],
-                                    DataStruct[, "sign1.4"],
-                                    DataStruct[, "sign14"]))
-DataStruct <- cbind(DataStruct, Invasion = Invasion)
-
-ggplot(data = DataStruct, aes(x = log10(kp), y = log10(kn), fill = Invasion)) +
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(w ~ ., labeller = label_both) +
-  labs(x = "Log10(attachment rate in lumen)",
-       y = "Log10(detachment rate in lumen)") +
-  theme(legend.position = "bottom") +
-  scale_fill_viridis_d()
-ggsave(paste0(DateTimeStamp, "FacetToColors.png"))
 
 # Show percentage and counts of parameter combinations for which invasion is,
 # or is not, possible
@@ -803,168 +691,6 @@ for(k in cdSet) {
 }
 print(filteredDf)
 
-
-
-# NOTE: running for kpSet = 10^seq(from = -12, to = -8, by = 0.1) and knSet = 
-# 10^seq(from = -2, to = 3, by = 0.1) leads to problems in the integration.
-# Using by = 0.25 instead of by = 0.1 does work.
-
-
-# If invasion is possible, run simulation to see how many bacteria of each
-# population are present at equilibrium
-IndexSimulation <- which(MyData$SignDomEigVal != -1)
-print(paste(length(IndexSimulation), "simulations to run for the pair-formation model"))
-ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
-InputSimulationPairs <- MyData[IndexSimulation, ColumnsToSelect]
-OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1,
-                                 FUN = SimulationPairs))
-
-if(length(IndexSimulation) < nrow(MyData)) {
-  NoSimulationNeeded <- cbind(time = 0, steady = 1,
-                              Nutr = MyData[-IndexSimulation, "NutrEq"],
-                              D = 0, R = MyData[-IndexSimulation, "REq"],
-                              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
-  MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
-                  cbind(MyData[-IndexSimulation, ], NoSimulationNeeded))
-} else {
-  MyData <- cbind(MyData, OutputSimulationPairs)
-}
-if(any(MyData$steady == 0)) warning("Steady-state has not always been reached")
-
-print("Pair-formation model completed running:")
-print(Sys.time())
-
-write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulationpart1.csv"),
-          quote = FALSE, row.names = FALSE)
-
-IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
-print(paste(length(IndexSimulationBulk), "simulations to run for the bulk model"))
-InputSimulationBulk <- MyData[IndexSimulationBulk, ColumnsToSelect]
-OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk))
-colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
-
-if(length(IndexSimulationBulk) < nrow(MyData)) {
-  NoSimulationNeededBulk <- cbind(timeBulk = 0, steadyBulk = 1, NutrBulk = MyData[-IndexSimulationBulk, "NutrEq"],
-                                  DBulk = 0, RBulk = MyData[-IndexSimulationBulk, "REq"],
-                                  TransBulk = 0)
-  MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
-                  cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk))
-} else {
-  MyData <- cbind(MyData, OutputSimulationBulk)
-}
-if(any(MyData$steadyBulk == 0)) warning("Steady-state has not always been reached")
-
-print("Bulk-conjugation model completed running:")
-print(Sys.time())
-
-MyData <- cbind(MyData, TotalD = NA, TotalR = NA, TotalTrans = NA, TotalPlasmid = NA, TotalBio = NA,
-                TotalPlasmidBulk = NA, TotalBioBulk = NA)
-MyData[, "TotalD"] <- MyData[, "D"] + MyData[, "Mdr"] + MyData[, "Mdt"]
-MyData[, "TotalR"] <- MyData[, "R"] + MyData[, "Mdr"] + MyData[, "Mrt"]
-MyData[, "TotalTrans"] <- MyData[, "Trans"] + MyData[, "Mdt"] + MyData[, "Mrt"] + 2*MyData[, "Mtt"]
-MyData[, "TotalPlasmid"] <- MyData[, "TotalD"] + MyData[, "TotalTrans"]
-MyData[, "TotalBio"] <- MyData[, "TotalR"] + MyData[, "TotalPlasmid"]
-MyData[, "TotalPlasmidBulk"] <- MyData[, "DBulk"] + MyData[, "TransBulk"]
-MyData[, "TotalBioBulk"] <- MyData[, "RBulk"] + MyData[, "TotalPlasmidBulk"]
-
-write.csv(MyData, file = paste0(DateTimeStamp, "outputsimulation.csv"),
-          quote = FALSE, row.names = FALSE)
-
-#### Plotting summaries of the variables and of some parameters ####
-SummaryPlot(MyData$NutrEq)
-SummaryPlot(MyData$REq)
-SummaryPlot(MyData$gdbulk)
-SummaryPlot(MyData$gtbulk)
-SummaryPlot(MyData$DomEigVal)
-SummaryPlot(MyData$DomEigValBulk)
-SummaryPlot(MyData$Nutr)
-SummaryPlot(MyData$D)
-SummaryPlot(MyData$R)
-SummaryPlot(MyData$Trans)
-SummaryPlot(MyData$Mdr)
-SummaryPlot(MyData$Mdt)
-SummaryPlot(MyData$Mrt)
-SummaryPlot(MyData$Mtt)
-SummaryPlot(MyData$NutrBulk)
-SummaryPlot(MyData$DBulk)
-SummaryPlot(MyData$RBulk)
-SummaryPlot(MyData$TransBulk)
-SummaryPlot(MyData$TotalD)
-SummaryPlot(MyData$TotalR)
-SummaryPlot(MyData$TotalTrans)
-SummaryPlot(MyData$TotalPlasmid) # Plots on linear scale despite varying over many orders of magnitude ?
-SummaryPlot(MyData$TotalPlasmidBulk)
-
-### Some controls
-# Equilibrium at t=0 despite unstable plasmid-free equilibrium
-if(any(MyData$time == 0 & MyData$SignDomEigVal == 1)) {
-  A <- length(which(MyData$time == 0 & MyData$SignDomEigVal == 1))
-  warning(paste("Equilibrium at t=0 despite unstable plasmid-free equilibrium in", A, "cases!"))
-}
-
-if(any(MyData$timeBulk == 0 & MyData$SignDomEigVal == 1)) {
-  A <- length(which(MyData$timeBulk == 0 & MyData$SignDomEigVal == 1))
-  warning(paste("Equilibrium at t=0 despite unstable plasmid-free equilibrium in", A, "cases!"))
-}
-
-# Unstable equilibrium, but invasion not possible
-if(any(MyData$TotalR == MyData$TotalBio & MyData$SignDomEigVal == 1)) {
-  A <- length(which(MyData$TotalR == MyData$TotalBio & MyData$SignDomEigVal == 1))
-  warning(paste("Unstable equilibrium but invasion not possible with pair-model in", A, "cases!"))
-}
-
-if(any(MyData$RBulk == MyData$TotalBioBulk & MyData$SignDomEigValBulk == 1)) {
-  A <- length(which(MyData$RBulk == MyData$TotalBioBulk & MyData$SignDomEigValBulk == 1))
-  warning(paste("Unstable equilibrium but invasion not possible with bulk-model in", A, "cases!"))
-}
-
-# If this differs, comparisons between the 2 models should use fractions, not cell counts
-summary(MyData$TotalBio / MyData$TotalBioBulk)
-range(MyData$TotalBio / MyData$TotalBioBulk)
-
-# If the biomass is the same across simulations, one could use the number of cells instead of fractions of total biomass
-summary(MyData$TotalBio)
-max(MyData$TotalBio) / min(MyData$TotalBio)
-summary(MyData$TotalBioBulk)
-max(MyData$TotalBioBulk) / min(MyData$TotalBioBulk)
-
-# Which proportion of cells is plasmid-bearing, if it is not nearly 0 or nearly 1
-PossibleCoexistence <- MyData[which(MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] > 1e-3 &
-                                          MyData[, "TotalPlasmid"]/MyData[, "TotalBio"] < 0.999), ]
-dim(PossibleCoexistence)
-write.csv(PossibleCoexistence, file = paste0(DateTimeStamp, "possiblecoexistence.csv"),
-          quote = FALSE, row.names = FALSE)
-
-PossibleCoexistenceBulk <- MyData[which(MyData[, "TotalPlasmidBulk"]/MyData[, "TotalBioBulk"] > 1e-3 &
-                    MyData[, "TotalPlasmidBulk"]/MyData[, "TotalBioBulk"] < 0.999), ]
-dim(PossibleCoexistenceBulk)
-write.csv(PossibleCoexistenceBulk, file = paste0(DateTimeStamp, "possiblecoexistencebulk.csv"),
-          quote = FALSE, row.names = FALSE)
-
-#### Plots for parameterset 1 ####
-CreatePlot(fillvar = "TotalPlasmid / TotalBio", facetx = "w", facety = "NI")
-CreatePlot(fillvar = "TotalPlasmidBulk / TotalBioBulk", facetx = "w", facety = "NI")
-
-#### Plots for parameterset 2 ####
-
-# Compare biomass across the two models
-CreatePlot(fillvar = "TotalBio / TotalBioBulk")
-
-# Fraction plasmid-bearing cells
-CreatePlot(fillvar = "TotalPlasmid/TotalBio") # Figure S3 with parameterset 2
-CreatePlot(fillvar = "TotalPlasmidBulk/TotalBioBulk")
-
-# Fraction donors
-CreatePlot(fillvar = "TotalD/TotalBio") # Figure S2 with parameterset 2
-CreatePlot(fillvar = "DBulk/TotalBioBulk")
-
-# Fraction recipients
-CreatePlot(fillvar = "TotalR/TotalBio")
-CreatePlot(fillvar = "RBulk/TotalBioBulk")
-
-# Fraction transconjugants
-CreatePlot(fillvar = "TotalTrans/TotalBio") # Figure S1 with parameterset 2
-CreatePlot(fillvar = "TransBulk/TotalBioBulk")
 
 ################################################################################
 BackupMyData <- MyData
