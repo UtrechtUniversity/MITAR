@@ -3,8 +3,6 @@
 #### To do ####
 # Also see the 'To do' section in the pair-formation script for the one-compartment model
 
-# Instead of 'biomass', I should use 'density'.
-
 # Using sec.axis without breaks and labels to use the axis title as point to
 # draw arrows for the plot with differences in biomass at the wall works, but
 # leads to warnings being issued because no limits are supplied.
@@ -599,7 +597,6 @@ gtSet <- gdSet
 
 
 #### Main script ####
-print(Sys.time())
 CheckParms <- c(VLum = VLumSet, VWall = VWallSet,
                 NILum = NILumSet, NIWall = NIWallSet,
                 wLum = wLumSet, wWall = wWallSet, wNutrWallSet = wNutrWallSet,
@@ -666,8 +663,7 @@ if(any(Eqplasmidfree <= 0)) {
 }
 
 MyData <- cbind(MyData, Eqplasmidfree)
-print("Plasmid-free equilibrium determined:")
-print(Sys.time())
+print(paste("Plasmid-free equilibrium determined:", Sys.time()))
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 
 ## Approximate gdbulk and gtbulk in the lumen
@@ -705,20 +701,16 @@ DataEstConjBulk <- mutate(DataEstConjBulk,
                           TotalREstConjBulkTrans = TransR + TransMrt,
                           gtbulkWallpart = TransMrt / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
 gtbulkWall <- unname(MyData[, "gt"] * DataEstConjBulk[, "gtbulkWallpart"])
-
 MyData <- cbind(MyData, gdbulkWall = gdbulkWall, gtbulkWall = gtbulkWall)
 
-print("Bulk-conjugation rates estimated:")
-print(Sys.time())
+print(paste("Bulk-conjugation rates estimated:", Sys.time()))
 
 # Approximate eigenvalues for pair-formation and bulk model
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
 MyData <- cbind(MyData, MyInfoEigVal)
 
-print("Eigenvalues estimated:")
-print(Sys.time())
-
+print(paste("Eigenvalues estimated:", Sys.time()))
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
@@ -761,6 +753,8 @@ for(i in knSet) {
   }
 }
 print(filteredDf)
+write.csv(filteredDf, file = paste0(DateTimeStamp, "invperctwocomppar1.csv"),
+          quote = FALSE, row.names = FALSE)
 
 # Plot showing influence of attachment and detachment rates in the lumen and at
 # the wall on stability of the equilibrium (Figure 5 in article)
@@ -918,6 +912,9 @@ for(i in MigrLumWallSet) {
   }
 }
 print(filteredDf)
+write.csv(filteredDf, file = paste0(DateTimeStamp, "invperctwocomppar2.csv"),
+          quote = FALSE, row.names = FALSE)
+
 
 # The part below can be created more easily be using CreatePlot2(...) ?
 MyDataTwoComp1 <- filter(MyData, near(log10(kpWall), log10(kpWallSet[1])))
