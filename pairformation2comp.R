@@ -298,43 +298,6 @@ CalcEigenvalues <- function(MyData) {
   return(InfoEigVal)
 }
 
-# Simulations using the pair-formation and the bulk model. The plasmid-free
-# equilibrium (Nutr*, RLum*, RWall*) with the addition of DInitLum and DInitWall
-# donor bacteria per mL to the lumen and wall compartment, respectively is used
-# as initial state. Note that stol is based on the average of absolute rates of
-# change, not the sum.
-
-# !! NOTE: Equations (and states?) HAVE NOT YET BEEN converted to milligram
-# nutrients and number of cells by multiplication with the appropriate volumes !!
-
-SimulationPairs <- function(InputSimulationPairs) {
-  parms <- InputSimulationPairs
-  state <- c(NutrLum = parms[["NutrLumInit"]], DLum = parms[["DInitLum"]],
-             RLum = parms[["RLumInit"]], TransLum = 0, MdrLum = 0, MdtLum = 0,
-             MrtLum = 0, MttLum = 0, NutrWall = parms[["NutrWallInit"]],
-             DWall = parms[["DInitWall"]], RWall = parms[["RWallInit"]],
-             TransWall = 0, MdrWall = 0, MdtWall = 0,
-             MrtWall = 0, MttWall = 0)
-  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelPairsNutr,
-                   parms = parms, stol = 1.25e-6, atol = atol)
-  EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
-  return(EqAfterInvDonor)
-}
-
-# !! NOTE: Equations (and states?) HAVE NOT YET BEEN converted to milligram
-# nutrients and number of cells by multiplication with the appropriate volumes !!
-
-SimulationBulk <- function(InputSimulationBulk, state) {
-  parms <- InputSimulationBulk
-  state <- c(NutrLum = parms[["NutrLumInit"]], DLum = parms[["DInitLum"]],
-             RLum = parms[["RLumInit"]], TransLum = 0, NutrWall = parms[["NutrWallInit"]], 
-             DWall = parms[["DInitWall"]], RWall = parms[["RWallInit"]], TransWall = 0)
-  out <- runsteady(y = state, time = c(0, tmaxsteady), func = ModelBulkNutr,
-                   parms = parms, stol = 2.5e-6, atol = atol)
-  EqAfterInvDonor <- c(time = attr(out, "time"), steady = attr(out, "steady"), out$y)
-  return(EqAfterInvDonor)
-}
-
 # Function to create and save heatmaps
 CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)",
                        fillvar = "factor(SignDomEigVal)",
@@ -950,91 +913,6 @@ CreatePlot(dataplot = MyData,
            filltitle = "Plasmid can invade",
            facetx = ".", facety = ".", save = FALSE)
 
-
-#### Final equilibria after invasion ####
-# NOTE: running for kpLumSet = 10^seq(from = -12, to = -8, by = 0.1) and
-# knLumSet = 10^seq(from = -2, to = 3, by = 0.1) leads to problems in the
-# integration. Using by = 0.25 instead of by = 0.1 does work.
-
-# If invasion is possible, run simulation to see how many bacteria of each
-# population are present at equilibrium
-
-IndexSimulation <- which(MyData$SignDomEigVal != -1)
-print(paste(length(IndexSimulation), "simulations to run for the pair-formation model"))
-ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
-InputSimulationPairs <- MyData[IndexSimulation, ColumnsToSelect]
-OutputSimulationPairs <- t(apply(X = InputSimulationPairs, MARGIN = 1,
-                                 FUN = SimulationPairs))
-
-if(length(IndexSimulation) < nrow(MyData)) {
-  NoSimulationNeeded <- cbind(time = 0, steady = 1,
-                              NutrLum = MyData[-IndexSimulation, "NutrLumInit"],
-                              DLum = 0, RLum = MyData[-IndexSimulation, "RLumInit"],
-                              TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0,
-                              MttLum = 0,
-                              NutrWall = MyData[-IndexSimulation, "NutrWallInit"],
-                              DWall = 0, RWall = MyData[-IndexSimulation, "RWallInit"],
-                              TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0,
-                              MttWall = 0)
-  MyData <- rbind(cbind(MyData[IndexSimulation, ], OutputSimulationPairs),
-                  cbind(MyData[-IndexSimulation, ], NoSimulationNeeded))
-} else {
-  MyData <- cbind(MyData, OutputSimulationPairs)
-}
-if(any(MyData$steady == 0)) warning("Steady-state has not always been reached")
-
-print("Pair-formation model completed running:")
-print(Sys.time())
-
-write.csv(MyData, file = paste0(DateTimeStamp, "outputtwocompartmentpart1.csv"),
-          quote = FALSE, row.names = FALSE)
-
-IndexSimulationBulk <- which(MyData$SignDomEigValBulk != -1)
-print(paste(length(IndexSimulationBulk), "simulations to run for the bulk model"))
-InputSimulationBulk <- MyData[IndexSimulationBulk, ColumnsToSelect]
-OutputSimulationBulk <- t(apply(X = InputSimulationBulk, MARGIN = 1, FUN = SimulationBulk))
-colnames(OutputSimulationBulk) <- paste0(colnames(OutputSimulationBulk), "Bulk")
-
-if(length(IndexSimulationBulk) < nrow(MyData)) {
-  NoSimulationNeededBulk <- cbind(timeBulk = 0, steadyBulk = 1,
-                                  NutrLumBulk = MyData[-IndexSimulation, "NutrLumInit"],
-                                  DLumBulk = 0,
-                                  RLumBulk = MyData[-IndexSimulation, "RLumInit"],
-                                  TransLumBulk = 0,
-                                  NutrWallBulk = MyData[-IndexSimulation, "NutrWallInit"],
-                                  DWallBulk = 0,
-                                  RWallBulk = MyData[-IndexSimulation, "RWallInit"],
-                                  TransWallBulk = 0)
-  MyData <- rbind(cbind(MyData[IndexSimulationBulk, ], OutputSimulationBulk),
-                  cbind(MyData[-IndexSimulationBulk, ], NoSimulationNeededBulk))
-} else {
-  MyData <- cbind(MyData, OutputSimulationBulk)
-}
-if(any(MyData$steadyBulk == 0)) warning("Steady-state has not always been reached")
-
-print("Bulk-conjugation model completed running:")
-print(Sys.time())
-
-MyData <- cbind(MyData, TotalDLum = NA, TotalRLum = NA, TotalTransLum = NA, TotalPlasmidLum = NA, TotalBioLum = NA,
-                TotalDWall = NA, TotalRWall = NA, TotalTransWall = NA, TotalPlasmidWall = NA, TotalBioWall = NA,
-                TotalPlasmidLumBulk = NA, TotalBioLumBulk = NA, TotalPlasmidWallBulk = NA, TotalBioWallBulk = NA)
-MyData[, "TotalDLum"] <- MyData[, "DLum"] + MyData[, "MdrLum"] + MyData[, "MdtLum"]
-MyData[, "TotalRLum"] <- MyData[, "RLum"] + MyData[, "MdrLum"] + MyData[, "MrtLum"]
-MyData[, "TotalTransLum"] <- MyData[, "TransLum"] + MyData[, "MdtLum"] + MyData[, "MrtLum"] + 2*MyData[, "MttLum"]
-MyData[, "TotalPlasmidLum"] <- MyData[, "TotalDLum"] + MyData[, "TotalTransLum"]
-MyData[, "TotalBioLum"] <- MyData[, "TotalRLum"] + MyData[, "TotalPlasmidLum"]
-MyData[, "TotalDWall"] <- MyData[, "DWall"] + MyData[, "MdrWall"] + MyData[, "MdtWall"]
-MyData[, "TotalRWall"] <- MyData[, "RWall"] + MyData[, "MdrWall"] + MyData[, "MrtWall"]
-MyData[, "TotalTransWall"] <- MyData[, "TransWall"] + MyData[, "MdtWall"] + MyData[, "MrtWall"] + 2*MyData[, "MttWall"]
-MyData[, "TotalPlasmidWall"] <- MyData[, "TotalDWall"] + MyData[, "TotalTransWall"]
-MyData[, "TotalBioWall"] <- MyData[, "TotalRWall"] + MyData[, "TotalPlasmidWall"]
-MyData[, "TotalPlasmidLumBulk"] <- MyData[, "DLumBulk"] + MyData[, "TransLumBulk"]
-MyData[, "TotalBioLumBulk"] <- MyData[, "RLumBulk"] + MyData[, "TotalPlasmidLumBulk"]
-MyData[, "TotalPlasmidWallBulk"] <- MyData[, "DWallBulk"] + MyData[, "TransWallBulk"]
-MyData[, "TotalBioWallBulk"] <- MyData[, "RWallBulk"] + MyData[, "TotalPlasmidWallBulk"]
-
-write.csv(MyData, file = paste0(DateTimeStamp, "outputtwocompartment.csv"),
-          quote = FALSE, row.names = FALSE)
 
 ##### Create plots over time #####
 myltypairs <- c(lty = rep(c(3, 1, 2, 1, 1, 1, 1, 1), 2))
