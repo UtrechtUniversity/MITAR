@@ -2,8 +2,6 @@
 
 #### To do ####
 
-# Also return ComplexEigVal and ComplexEigValBulk from function CalcEigenvalues
-
 # aes_string is soft-deprecated (see help(aes_string)), use tidy evaluation idioms instead,
 # see the quasiquotation section in aes() documentation and https://www.tidyverse.org/blog/2018/07/ggplot2-tidy-evaluation/
 # See also # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
@@ -183,8 +181,7 @@ CalcEigenvalues <- function(MyData) {
   names(EigVal) <- paste0("Eigval", 1:length(EigVal))
   DomEigVal <- max(EigVal)
   SignDomEigVal <- sign(DomEigVal)
-  SignEigValEqual <- identical(rep(SignDomEigVal, length(EigVal)), sign(Re(EigVal)))
-  
+
   EqFullBulk <- c(Nutr = MyData[["NutrEq"]], D = 0, R = MyData[["REq"]], Trans = 0)
   EigValBulk <- eigen(x = jacobian.full(y = EqFullBulk, func = ModelBulkNutr, parms = parms),
                       symmetric = FALSE, only.values = TRUE)$values
@@ -193,13 +190,12 @@ CalcEigenvalues <- function(MyData) {
   names(EigValBulk) <- paste0("EigvalBulk", 1:length(EigValBulk))
   DomEigValBulk <- max(EigValBulk)
   SignDomEigValBulk <- sign(DomEigValBulk)
-  SignEigValEqualBulk <- identical(rep(sign(DomEigValBulk), length(EigValBulk)),
-                                   sign(Re(EigValBulk)))
-  InfoEigVal <- c(EigVal, DomEigVal = DomEigVal, SignDomEigVal = SignDomEigVal,
-                  SignEigValEqual = SignEigValEqual,
-                  EigValBulk, DomEigValBulk = DomEigValBulk,
-                  SignDomEigValBulk = SignDomEigValBulk,
-                  SignEigValEqualBulk = SignEigValEqualBulk)
+
+  InfoEigVal <- c(EigVal, ComplexEigVal = ComplexEigVal, DomEigVal = DomEigVal,
+                  SignDomEigVal = SignDomEigVal,
+                  EigValBulk, ComplexEigValBulk = ComplexEigValBulk,
+                  DomEigValBulk = DomEigValBulk,
+                  SignDomEigValBulk = SignDomEigValBulk)
   return(InfoEigVal)
 }
 
@@ -367,8 +363,7 @@ if(any(Eqplasmidfree <= 0)) {
           paste(RowsNegativeEq, collapse = ", "))
 }
 
-print("Plasmid-free equilibrium calculated:")
-print(Sys.time())
+print(paste("Plasmid-free equilibrium calculated:", Sys.time()))
 
 ## Add combinations with the parameters needed to approximate gdbulk and gtbulk
 MyData <- expand_grid(MyData, DInit = DInitSet, kp = kpSet, kn = knSet,
@@ -390,17 +385,20 @@ gtbulk <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] /
                    (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
 
 MyData <- cbind(MyData, gdbulk = gdbulk, gtbulk = gtbulk)
-print("Bulk-conjugation rates estimated:")
-print(Sys.time())
+print(paste("Bulk-conjugation rates estimated:", Sys.time()))
 
 # Approximate eigenvalues
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
 
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
 MyData <- cbind(MyData, MyInfoEigVal)
-print("Eigenvalues estimated:")
-print(Sys.time())
-
+if(any(MyData[, "ComplexEigVal"] != 0)) {
+  warning("Some eigenvalues of the pair-formation model have an imaginary part")
+}
+if(any(MyData[, "ComplexEigValBulk"] != 0)) {
+  warning("Some eigenvalues of the bulk-model have an imaginary part")
+}
+print(paste("Eigenvalues estimated:", Sys.time()))
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
