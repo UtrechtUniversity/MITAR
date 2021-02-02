@@ -267,14 +267,20 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
 #### Parameter values ####
 
 ## Explanation of parameters
-# Growthrates (1/h) for recipient: bR (growth rates for donor and transconjugant
-# are not explicitly defined, but calculated as (1 - cd)*bR and (1 - ct)*bR)
-# Conjugation rates (1/h) from donor and transconjugant: gd and gt
-# Mating pair attachment rate (mL * cell^-1 * h^-1): kp (k+ in Zhong's notation)
-# Mating pair detachment rate (1/h): kn (k- in Zhong's notation)
-# Nutrient concentration in the inflowing liquid (milligram * mL^-1): NI
-# Resource conversion rate (milligram per cell division): NutrConv
-# Washout rate (1/h): w
+# bR (1/h): maximum recipient growth rate
+# w (1/h): washout rate
+# Ks (mg/h): half-saturation constant for limiting nutrient 
+# NI (mg/mL): nutrient concentration in the inflowing liquid  
+# NutrConv (mg/cell): resource conversion rate
+# DInit: the number of donors present at t=0 for simulations over time.
+# kp (mL/(cell*h)): attachment rate
+# kn (1/h): detachment rate
+# gd (1/h): intrinsic conjugation rate from donor
+# gt (1/h): intrinsic conjugation rate from transconjugant
+# cd (unitless): costs in donor as fraction of recipient growth rate
+# ct (unitless): costs in transconjugant as fraction of recipient growth rate
+# gdbulk (mL/(cell*h)): bulk-conjugation rate of the donor
+# gtbulk (mL/(cell*h)): bulk-conjugation rate of the transconjugant
 
 ## To read data from csv-file, uncomment this section
 # FileName <- "2021_01_25_11_38outputnosimtwocomp.csv"
@@ -284,81 +290,89 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
 # DateTimeStamp <- substr(FileName, 1, 16)
 
 
-## Parameterset 1: show NI and w influence stability of plasmid-free equilibrium
-DInitSet <- c(1E3)
+## Parameterset 1: show influence of nutrient concentration at the inflow and
+## the washout rate on the stability of the plasmid-free equilibrium.
 bRSet <- c(0.738)
+wSet <- c(-log(0.5)/(24*10), -log(0.5)/24, -log(0.5)/(24/10))
 Ks <- 0.004
 NISet <- c(0.14, 1.4, 14)
 NutrConvSet <- 1.4e-7
-wSet <- c(-log(0.5)/(24*10), -log(0.5)/24, -log(0.5)/(24/10))
+DInitSet <- c(1E3)
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 knSet <- 10^seq(from = -1, to = 3, by = 0.1)
-cdSet <- c(0.18)
-ctSet <- c(0.09)
 gdSet <- c(15)
 gtSet <- c(15)
+cdSet <- c(0.18)
+ctSet <- c(0.09)
+
 
 ## Parameterset 2: show influence of costs, conjugation, attachment, and 
 ## detachment rates on the stability of the plasmid-free equilibrium and on
 ## bulk-conjugation rates.
-DInitSet <- c(1E3)
 bRSet <- c(0.738)
+wSet <- -log(0.5)/24
 Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
-wSet <- -log(0.5)/24
+DInitSet <- c(1E3)
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 knSet <- 10^seq(from = -1, to = 3, by = 0.1)
-cdSet <- c(0.09, 0.18)
-ctSet <- c(0.09, 0.18)
 gdSet <- c(1, 15)
 gtSet <- c(1, 15)
+cdSet <- c(0.09, 0.18)
+ctSet <- c(0.09, 0.18)
 
-## Parameterset 3: to compare bulk- and pair model over time
-DInitSet <- c(1E3)
+## Parameterset 3: compare bulk- and pair-formation model over time
 bRSet <- c(0.738)
+wSet <- -log(0.5)/24
 Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
-wSet <- -log(0.5)/24
+DInitSet <- c(1E3)
 kpSet <- 10^c(-12, -10, -8)
 knSet <- 10
-cdSet <- c(0.18)
-ctSet <- c(0.09)
 gdSet <- 15
 gtSet <- 15
-
+cdSet <- c(0.18)
+ctSet <- c(0.09)
 
 #### Main script ####
 
-CheckParms <- c(DInitSet, bRSet, NISet, Ks, NutrConvSet, wSet, kpSet, knSet, cdSet, ctSet)
-if(any(CheckParms <= 0)) warning("All parameters should have positive values.")
-if(any(c(cdSet, ctSet) >= 1)) warning("Costs should be larger than 0 and smaller than 1.")
+CheckParms <- c(bRSet, wSet, Ks, NISet, NutrConvSet, DInitSet, kpSet, knSet,
+                gdSet, gtSet, cdSet, ctSet)
+if(any(CheckParms <= 0)) {warning("All parameters should have positive values.")}
+if(any(c(cdSet, ctSet) <= 0 | c(cdSet, ctSet) >= 1)) {
+  warning("Costs should be larger than 0 and smaller than 1.")
+}
 
-TotalIterations <- length(DInitSet)*length(bRSet)*length(NISet)*length(Ks)*length(NutrConvSet)*
-  length(wSet)*length(kpSet)*length(knSet)*length(cdSet)*length(ctSet)*
-  length(gdSet)*length(gtSet)
+TotalIterations <- length(bRSet)*length(wSet)*length(Ks)*length(NISet)*
+  length(NutrConvSet)*length(DInitSet)*length(kpSet)*length(knSet)*
+  length(gdSet)*length(gtSet)*length(cdSet)*length(ctSet)
 TotalIterations
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
-MyData <- expand_grid(bR = bRSet, NI = NISet, Ks = Ks, NutrConv = NutrConvSet, w = wSet)
-
+MyData <- expand_grid(bR = bRSet, w = wSet, Ks = Ks, NI = NISet,
+                      NutrConv = NutrConvSet)
 Eqplasmidfree <- t(apply(X = MyData, MARGIN = 1, FUN = CalcEqPlasmidfree))
 MyData <- cbind(MyData, Eqplasmidfree)
 
-if(any(Eqplasmidfree[, "REq"] <= 0)) {
-  warning("Some rows contain non-positive recipient densities at equilibrium.
-  They have been discarded. Increase growth rate or the nutrient concentration 
-  in the inflowing liquid, or decrease the outflow rate to prevent this.")
-  MyData <- MyData[-which(MyData[, "REq"] < 0), ]
+if(any(Eqplasmidfree <= 0)) {
+  RowsNegativeEq <- sort(unique(which(Eqplasmidfree <= 0, arr.ind = TRUE)[, 1]))
+  ColnamesNegativeEq <- colnames(Eqplasmidfree)[unique(which(Eqplasmidfree <= 0,
+                                                             arr.ind = TRUE)[, 2])]
+  warning("Plasmid-free equilibrium contains non-positive values in columns '",
+          paste(ColnamesNegativeEq, collapse = "' and '"),
+          "'.\nThe data will be included in the calculations anyway!
+  This concerns the following rows of the dataframe: ",
+          paste(RowsNegativeEq, collapse = ", "))
 }
 
 print("Plasmid-free equilibrium calculated:")
 print(Sys.time())
 
 ## Add combinations with the parameters needed to approximate gdbulk and gtbulk
-MyData <- expand_grid(MyData, gd = gdSet, gt = gtSet, DInit = DInitSet,
-                      kp = kpSet, kn = knSet)
+MyData <- expand_grid(MyData, DInit = DInitSet, kp = kpSet, kn = knSet,
+                      gd = gdSet, gt = gtSet)
 DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulk))
 
 TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] +
@@ -391,22 +405,22 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
           quote = FALSE, row.names = FALSE)
 
-#### Create facet labels and labeller 'function' ####
-labNI <- paste(signif(NISet, 2), "mg nutrients/mL\nat inflow")
-names(labNI) <- NISet
+# Create facet labels and labeller 'function'
 labw <- paste0("Washout rate ", signif(wSet, 2), "/h")
 names(labw) <- wSet
-labcd <- paste("Donor costs", cdSet)
-names(labcd) <- cdSet
-labct <- paste("Transconjugant\ncosts", ctSet)
-names(labct) <- ctSet
+labNI <- paste(signif(NISet, 2), "mg nutrients/mL\nat inflow")
+names(labNI) <- NISet
 labgd <- paste0("Donor conjugation\nrate ", gdSet, "/h")
 names(labgd) <- gdSet
 labgt <- paste0("Transconjugant\nconjugation rate\n", gtSet, "/h")
 names(labgt) <- gtSet
+labcd <- paste("Donor costs", cdSet)
+names(labcd) <- cdSet
+labct <- paste("Transconjugant\ncosts", ctSet)
+names(labct) <- ctSet
+mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
+                       cd = labcd, ct = labct, .default = label_both)
 
-mylabeller <- labeller(NI = labNI, w = labw, cd = labcd, ct = labct,
-                       gd = labgd, gt = labgt, .default = label_both)
 
 #### Plotting output for parameterset 1 ####
 
@@ -464,34 +478,37 @@ for(i in NISet) {
   }
 }
 print(filteredDf)
+write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar1.csv"),
+          quote = FALSE, row.names = FALSE)
+
 
 #### Plotting output for parameterset 2 ####
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium (Figure 3 in article):
 CreatePlot(filltitle = "Plasmid can invade",
-           marginx = c(0,0,0,0), marginy = c(0,0,0,0))
+           marginx = c(0, 0, 0, 0), marginy = c(0, 0, 0, 0))
 
 # Stability of the equilibrium for the bulk-conjugation model
 # (plot not shown in article)
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk model)",
-           marginx = c(0,0,0,0), marginy = c(0,0,0,0))
+           marginx = c(0, 0, 0, 0), marginy = c(0, 0, 0, 0))
 
 # Show if sign of dominant eigenvalues for pair-formation and bulk model is the 
 # same (Figure S2 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
            filltitle = "Dominant eigenvalues\nhave equal signs",
-           marginx = c(0,0,0,0), marginy = c(0,0,0,0))
+           marginx = c(0, 0, 0, 0), marginy = c(0, 0, 0, 0))
 
 # Change layout of labels for next plots
 labgd <- paste0("Donor conjugation rate ", gdSet, "/h")
 names(labgd) <- gdSet
 labgt <- paste0("Transconjugant conjugation rate ", gtSet, "/h")
 names(labgt) <- gtSet
-mylabeller <- labeller(NI = labNI, w = labw, cd = labcd, ct = labct,
-                       gd = labgd, gt = labgt, .default = label_both)
+mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
+                       cd = labcd, ct = labct, .default = label_both)
 
 ## The influence of conjugation, attachment, and detachment rates on the 
 ## bulk-conjugation rates (Figure 4 in the article). Data is filtered to show
@@ -536,6 +553,8 @@ for(k in cdSet) {
   }
 }
 print(filteredDf)
+write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar2.csv"),
+          quote = FALSE, row.names = FALSE)
 
 
 ################################################################################
