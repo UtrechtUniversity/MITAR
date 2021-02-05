@@ -354,22 +354,27 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
 
 CreatePlot2 <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0,
                         dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)",
-                        facetx = "cd + gd", facety = "ct + gt", save = saveplots, ...) {
+                        facetx = "MigrWallLum", facety = "MigrLumWall",
+                        addstamp = FALSE, save = saveplots, ...) {
   CumRowIndex <- NULL
   iteration <- 1
   dataplottotal <- dataplot
-  for(kpWallsubset in unique(dataplottotal[, "kpWall"])) {
-    for(knWallsubset in unique(dataplottotal[, "knWall"])) {
-      subtitle <- paste0("kpWall= ", kpWallsubset, " knWall=", knWallsubset)
-      RowIndex <- near(dataplottotal[, "kpWall"], kpWallsubset) &
-        near(dataplottotal[, "knWall"], knWallsubset)
+  for(kpWallsubset in sort(unique(dataplottotal[, "kpWall"]))) {
+    for(knWallsubset in sort(unique(dataplottotal[, "knWall"]))) {
+      subtitle <- paste0("log10(kpWall)=", signif(log10(kpWallsubset), 3),
+                         " log10(knWall)=", signif(log10(knWallsubset), 3))
+      RowIndex <- near(log10(dataplottotal[, "kpWall"]), log10(kpWallsubset)) &
+        near(log10(dataplottotal[, "knWall"]), log10(knWallsubset))
       dataplot <- dataplottotal[RowIndex, ]
       if(exists("DateTimeStamp") == FALSE) {
         warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
         DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
       }
-      mycaption <- paste(DateTimeStamp, subtitle)
-      
+      if(addstamp == TRUE) {
+        mycaption <- paste(DateTimeStamp, subtitle)
+      } else {
+        mycaption <- subtitle
+      }
       p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar),
                   subtitle = subtitle) + 
         geom_raster() +
@@ -781,12 +786,6 @@ for(knSel in knSet) {
 
 #### Output parameterset 2 ####
 
-# Show the effect of migration rates on biomass at the wall (plot not shown).
-CreatePlot(yvar = "log10(kpWall)", fillvar = "log10(RWallInit)", filltype = "continuous",
-           laby = "Log10(attachment rate at the wall)",
-           filltitle = "Log10(Recipient\ndensity at the wall",
-           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
-
 # Original plot + sec_axis to create new axis, with expression in axis title
 # to draw an arrow (Figure 6). Note: issues warnings because (deliberately) no
 # limits have been set on the secondary axis.
@@ -808,6 +807,20 @@ ggplot(data = MyData,
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
 ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomassSeriesb.png"))
 
+
+# Are signs of the largest eigenvalues equal for bulk- and pair-formation model?
+# (Figure S5 in article).
+CreatePlot(yvar = "log10(kpWall)", fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
+           filltype = "manual", laby = "Log10(attachment rate at the wall)",
+           filltitle = "Dominant eigenvalues\nhave equal signs",
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
+
+# Show the effect of migration rates on biomass at the wall (plot not shown).
+CreatePlot(yvar = "log10(kpWall)", fillvar = "log10(RWallInit)", filltype = "continuous",
+           laby = "Log10(attachment rate at the wall)",
+           filltitle = "Log10(Recipient\ndensity at the wall",
+           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
+
 # Show the effect of migration rates on biomass in the lumen (plot not shown).
 CreatePlot(yvar = "log10(kpWall)", fillvar = "log10(RLumInit)", filltype = "continuous",
            laby = "Log10(attachment rate at the wall)",
@@ -827,13 +840,6 @@ CreatePlot(yvar = "log10(kpWall)", fillvar = "log10(RWallInit/RLumInit)", fillty
 CreatePlot(yvar = "log10(kpWall)", fillvar = "factor(SignDomEigValBulk)",
            laby = "Log10(attachment rate at the wall)",
            filltitle = "Plasmid can invade\n(bulk model)",
-           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
-
-# Are signs of the largest eigenvalues equal for bulk- and pair-formation model?
-# (Figure S5 in article).
-CreatePlot(yvar = "log10(kpWall)", fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
-           filltype = "manual", laby = "Log10(attachment rate at the wall)",
-           filltitle = "Dominant eigenvalues\nhave equal signs",
            facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 
 # show effect of migration rates on the bulk-conjugation rates
