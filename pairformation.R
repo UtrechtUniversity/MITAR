@@ -10,8 +10,6 @@
 
 # In functions use more informative name arguments instead of e.g. mydf = mydf.
 
-# Use dplyr to rename columns?
-
 # Run bulk-model for short time (same as short pair-model) and compare them
 # to see if the bulk-conjugation parameter holds (automated analysis somehow)
 
@@ -279,7 +277,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
 # gtbulk (mL/(cell*h)): bulk-conjugation rate of the transconjugant
 
 ## To read data from csv-file, uncomment this section
-# FileName <- "2021_01_25_11_38outputnosimtwocomp.csv"
+# FileName <- "2021_02_05_11_35outputnosimulation.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
 # MyData <- as.data.frame(MyData)
@@ -508,24 +506,26 @@ names(labgt) <- gtSet
 mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
                        cd = labcd, ct = labct, .default = label_both)
 
-## The influence of conjugation, attachment, and detachment rates on the 
-## bulk-conjugation rates (Figure 4 in the article). Data is filtered to show
-## only one value for costs, because costs do not influence the bulk-conjugation
-## rates.
+# The influence of conjugation, attachment, and detachment rates on the
+# bulk-conjugation rates (Figure 4 and Figure S3 in the article). Data is
+# filtered to show only one value for costs, because costs do not influence the
+# bulk-conjugation rates.
 limitsbulkrates <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
-CreatePlot(dataplot = filter(MyData, near(gt, 15) &
-                               near(cd, cdSet[1]) & near(ct, ctSet[1])),
-           fillvar = "log10(gdbulk)", filltype = "continuous",
-           limits = limitsbulkrates,
-           filltitle = "Log10(Donor bulkrate)",
-           facetx = "gd", facety = "gt")
-
 CreatePlot(dataplot = filter(MyData, near(gd, 15) &
                                near(cd, cdSet[1]) & near(ct, ctSet[1])),
            fillvar = "log10(gtbulk)", filltype = "continuous",
            limits = limitsbulkrates,
            filltitle = "Log10(Transconjugant bulkrate)",
-           facetx = "gt", facety = "gd")
+           facetx = "gt", facety = ".")
+
+CreatePlot(dataplot = filter(MyData, near(gt, 15) &
+                               near(cd, cdSet[1]) & near(ct, ctSet[1])),
+           fillvar = "log10(gdbulk)", filltype = "continuous",
+           limits = limitsbulkrates,
+           filltitle = "Log10(Donor bulkrate)",
+           facetx = "gd", facety = ".")
+
+
 
 filteredDf <- NULL
 for(k in cdSet) {
