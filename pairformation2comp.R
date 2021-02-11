@@ -1,5 +1,15 @@
 #### Two-compartment pair-formation model of conjugation ####
 
+#### References ####
+
+# Zhong 2010: Zhong X, Krol JE, Top EM, Krone SM. 2010. Accounting for mating
+# pair formation in plasmid population dynamics. Journal of Theoretical Biology
+# 262:711-719.
+
+# Imran 2005: Imran M, Jones D, Smith H. 2005. Biofilms and the plasmid
+# maintenance question. Mathematical biosciences 193:183-204.
+
+
 #### To do ####
 # Also see the 'To do' section in the pair-formation script for the one-compartment model
 
@@ -33,14 +43,6 @@
 #            filltitle = "Log10(max(Transconjugant\nbulkrate in lumen and at the wall))",
 #            facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
-#### References ####
-
-# Zhong 2010: Zhong X, Krol JE, Top EM, Krone SM. 2010. Accounting for mating
-# pair formation in plasmid population dynamics. Journal of Theoretical Biology
-# 262:711-719.
-
-# Imran 2005: Imran M, Jones D, Smith H. 2005. Biofilms and the plasmid
-# maintenance question. Mathematical biosciences 193:183-204.
 
 #### Loading packages ####
 library(deSolve) # Integrate differential equations with results over time.
