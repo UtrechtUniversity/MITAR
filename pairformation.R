@@ -321,6 +321,22 @@ gtSet <- 15
 cdSet <- c(0.18)
 ctSet <- c(0.09)
 
+## Parameterset 4: comparing one-compartment pair-formation to two-compartment
+## pair-formation model
+bRSet <- c(0.738)
+wSet <- -log(0.5)/24
+Ks <- 0.004
+NISet <- 1.4
+NutrConvSet <- 1.4e-7
+DInitSet <- c(1E3)
+kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
+knSet <- 10^seq(from = -1, to = 3, by = 0.1)
+gdSet <- 15
+gtSet <- 15
+cdSet <- c(0.18)
+ctSet <- c(0.09)
+
+
 #### Main script ####
 
 CheckParms <- c(bRSet, wSet, Ks, NISet, NutrConvSet, DInitSet, kpSet, knSet,
@@ -544,6 +560,14 @@ for(k in cdSet) {
 print(filteredDf)
 write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar2.csv"),
           quote = FALSE, row.names = FALSE)
+
+
+#### Plotting output for parameterset 4 ####
+
+# Influence of attachment rates on stability of the plasmid-free equilibrium,
+# to compare one-compartment and two-compartment models (Figure X in article).
+CreatePlot(filltitle = "Plasmid can invade", facetx = ".", facety = ".",
+           filename = paste0(DateTimeStamp, "outputfactor(SignDomEigVal)2.png"))
 
 
 ################################################################################
