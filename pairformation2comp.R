@@ -13,6 +13,8 @@
 #### To do ####
 # Also see the 'To do' section in the pair-formation script for the one-compartment model
 
+# I could use the variable 'Parameterset' to plot the appropriate plots.
+
 # Using sec.axis without breaks and labels to use the axis title as point to
 # draw arrows for the plot with differences in biomass at the wall works, but
 # leads to warnings being issued because no limits are supplied.
@@ -516,6 +518,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
 # concentrations are also equal to those in the one-compartment model.
 # This parameterset can be used to show influence of attachment and detachment
 # rates that are different in the lumen compared to at the wall.
+Parameterset <- 1
 VLumSet <- 1
 VWallSet <- 1
 NILumSet <- 1.4
@@ -542,6 +545,7 @@ gtSet <- gdSet
 # Parameterset 2 to show effect of migration rates on biomass and stability of
 # the plasmid-free equilibrium. Note that washout from the wall is excluded,
 # and the detachment rates in the lumen and at the wall are fixed to to 10^-1.
+Parameterset <- 2
 VLumSet <- 1
 VWallSet <- 1
 NILumSet <- 1.4
@@ -566,6 +570,33 @@ gdSet <- 15
 gtSet <- gdSet
 
 
+# Parameterset 3: comparing one-compartment pair-formation to two-compartment
+# pair-formation model
+Parameterset <- 3
+VLumSet <- 1
+VWallSet <- 1
+NILumSet <- 1.4
+NIWallSet <- NILumSet
+wLumSet <- -log(0.5)/24
+wWallSet <- wLumSet
+wNutrWallSet <- wLumSet
+KsSet <- 0.004
+NutrConvSet <- 1.4e-7
+bRSet <- 0.738
+MigrLumWallSet <- 0.1
+MigrWallLumSet <- MigrLumWallSet
+DInitLumSet <- 1E3
+DInitWallSet <- 0
+cdSet <- 0.18
+ctSet <- 0.09
+kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
+kpWallSet <- kpSet
+knSet <- 10^seq(from = -1, to = 3, by = 0.1)
+knWallSet <- knSet
+gdSet <- 15
+gtSet <- gdSet
+
+
 #### Main script ####
 CheckParms <- c(VLum = VLumSet, VWall = VWallSet,
                 NILum = NILumSet, NIWall = NIWallSet,
@@ -583,12 +614,20 @@ if(any(c(cdSet, ctSet) <= 0 | c(cdSet, ctSet) >= 1)) {
   warning("Costs should be larger than 0 and smaller than 1.")
 }
 
-TotalIterations <- length(VLumSet)*length(VWallSet)*length(NILumSet)*
-  length(NIWallSet)*length(wLumSet)*length(wWallSet)*length(wNutrWallSet)*
-  length(KsSet)*length(NutrConvSet)*length(bRSet)*length(MigrLumWallSet)*
-  length(MigrWallLumSet)*length(DInitLumSet)*length(DInitWallSet)*length(cdSet)*
-  length(ctSet)*length(kpSet)*length(kpWallSet)*length(knSet)*length(knWallSet)*
-  length(gdSet)*length(gtSet)
+if(Parameterset == 3) {
+  TotalIterations <- length(VLumSet)*length(VWallSet)*length(NILumSet)*
+    length(NIWallSet)*length(wLumSet)*length(wWallSet)*length(wNutrWallSet)*
+    length(KsSet)*length(NutrConvSet)*length(bRSet)*length(MigrLumWallSet)*
+    length(MigrWallLumSet)*length(DInitLumSet)*length(DInitWallSet)*length(cdSet)*
+    length(ctSet)*length(kpSet)*length(knSet)*length(gdSet)*length(gtSet)
+} else {
+  TotalIterations <- length(VLumSet)*length(VWallSet)*length(NILumSet)*
+    length(NIWallSet)*length(wLumSet)*length(wWallSet)*length(wNutrWallSet)*
+    length(KsSet)*length(NutrConvSet)*length(bRSet)*length(MigrLumWallSet)*
+    length(MigrWallLumSet)*length(DInitLumSet)*length(DInitWallSet)*length(cdSet)*
+    length(ctSet)*length(kpSet)*length(kpWallSet)*length(knSet)*length(knWallSet)*
+    length(gdSet)*length(gtSet)
+}
 TotalIterations
 
 ## Get all parameter combinations to determine plasmid-free equilibrium 
@@ -651,7 +690,15 @@ gtbulkLum <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTrans
 MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
 
 ## Approximate gdbulk and gtbulk at the wall
-MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
+if(Parameterset == 3) {
+  # For all datapoints, the attachment and detachment rates at the wall are
+  # equal to the attachment and detachment rates rate in the lumen
+  MyData <- cbind(MyData, kpWall = MyData$kp, knWall = MyData$kn)
+} else {
+  # All combinations of attachment and detachment rates at the wall and
+  # attachment and detachment rates in the lumen
+  MyData <- expand_grid(MyData, kpWall = kpWallSet, knWall = knWallSet)
+}
 
 # Replace columns kn and kn with the values in the columns kpWall and knWall in
 # new dataframe to be used to estimate bulk conjugation rates at the wall
@@ -885,6 +932,21 @@ for(i in MigrLumWallSet) {
 print(filteredDf)
 write.csv(filteredDf, file = paste0(DateTimeStamp, "invperctwocomppar2.csv"),
           quote = FALSE, row.names = FALSE)
+
+
+#### Output parameterset 3 ####
+
+ggplot(data = MyData,
+       aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate in the lumen and at the wall)",
+       y = "Log10(detachment rate in the lumen and at the wall)", tag = NULL) +
+  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
+ggsave(paste0(DateTimeStamp, "twocompkxiskxwall.png"))
 
 
 # The part below can be created more easily be using CreatePlot2(...) ?
