@@ -1,5 +1,17 @@
 #### Pair-formation model of conjugation ####
 
+#### Introduction ####
+# The pair-formation model was taken from equation (2) of Zhong (2010) and
+# expanded to to include plasmid costs, washout, and nutrients.
+
+
+#### References ####
+
+# Zhong 2010: Zhong X, Krol JE, Top EM, Krone SM. 2010. Accounting for mating
+# pair formation in plasmid population dynamics. Journal of Theoretical Biology
+# 262:711-719.
+
+
 #### To do ####
 
 # aes_string is soft-deprecated (see help(aes_string)), use tidy evaluation idioms instead,
@@ -10,51 +22,30 @@
 
 # In functions use more informative name arguments instead of e.g. mydf = mydf.
 
-# Run bulk-model for short time (same as short pair-model) and compare them
-# to see if the bulk-conjugation parameter holds (automated analysis somehow)
-
-# Try to get different plot objects together as different panels in one figure.
-# See ggpubr:ggarrange(labels = c("A", "B"), common.legend = TRUE, legend = "bottom")
-
 # Use vectors for atol, to have different tolerances for the cell-densities (~1),
 # and nutrient concentration (~1*10^-8 ?)
-
-#### Introduction ####
-# The pair-formation model was taken from equation (2) of Zhong (2010) and
-# expanded to to include costs, washout, and nutrients. See also Zhong (2012).
-
-
-#### References ####
-
-# Zhong 2010: Zhong X, Krol JE, Top EM, Krone SM. 2010. Accounting for mating
-# pair formation in plasmid population dynamics. Journal of Theoretical Biology
-# 262:711-719.
-
-# Zhong 2012: Zhong X, Droesch J, Fox R, Top EM, Krone SM. 2012. On the meaning
-# and estimation of plasmid transfer rates for surface-associated and well-mixed
-# bacterial populations. Journal of Theoretical Biology 294:144-152.
 
 
 #### Loading packages ####
 library(deSolve) # Solving differential equations with output over time.
+library(dplyr) # mutate() and near()
 library(ggplot2) # Creating plots.
 library(RColorBrewer) # Obtaining better color schemes [NOTE: only used for plots over time]
-library(rootSolve) # Integration, obtaining Jacobian matrix.
+library(rootSolve) # Integrating ODEs, obtaining Jacobian matrix.
 library(tidyr) # expand_grid() which allows for dataframe as input
-library(dplyr) # mutate() and near()
 
 #### Plotting and simulation options ####
 saveplots <- 1
+plotdataapproxbulk <- 0
 tmaxEstConj <- 3
 tstepEstConj <- 0.1
 timesEstConj <- seq(from = 0, to = tmaxEstConj, by = tstepEstConj)
-plotdataapproxbulk <- 0
 
 #### Functions ####
 # Calculate the plasmid-free equilibrium (R*, Nutr*) using the solution to
 # dR/dt = R*(bR*Nutr / (Ks + Nutr) - w) == 0,
 # dNutr/dt = (NI - Nutr)*w - NutrConv*Nutr*R*bR / (Ks + Nutr) == 0
-# with R > 0 and Nutr > 0
+# with conditions R > 0 and Nutr > 0
 CalcEqPlasmidfree <- function(MyData) {
   with(as.list(MyData), {
     NutrEq <- w*Ks / (bR - w)
@@ -540,7 +531,7 @@ for(k in cdSet) {
         invasion_perc <- round(100*invasion_n/total_n, 0)
         no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
         filteredDf <- rbind(filteredDf,
-                            data.frame(ct = i, gt = j,
+                            data.frame(cd = k, gd = l, ct = i, gt = j,
                                        invasion_perc = invasion_perc,
                                        no_invasion_perc = no_invasion_perc,
                                        invasion_n = invasion_n,
