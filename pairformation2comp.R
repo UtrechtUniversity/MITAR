@@ -539,7 +539,7 @@ cdSet <- 0.18
 ctSet <- 0.09
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 kpWallSet <- kpSet
-knSet <- 10^seq(from = -1, to = 3, length.out = 4)
+knSet <- 10^seq(from = -1, to = 3, by = 2)
 knWallSet <- knSet
 gdSet <- 15
 gtSet <- gdSet
@@ -885,9 +885,9 @@ ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk)twocomp.png"))
 
 for(knSel in knSet) {
   for(knWallSel in knWallSet) {
-    FilteredData <- filter(MyData, kn == knSel, knWall == knWallSel,
-                           kp == kpWall, SignDomEigVal == 1)
-    minkp <- min(FilteredData[, "kp"])
+    minkp <- min(filter(MyData, near(log10(kn), log10(knSel)),
+                           near(log10(knWall), log10(knWallSel)),
+                           near(log10(kp), -12), near(SignDomEigVal, 1))[, "kpWall"])
     print(paste0("log10(kn)=", signif(log10(knSel), 3)))
     print(paste0("log10(knWall)=", signif(log10(knWallSel), 3)))
     print(paste0("log10(minkp)=", log10(minkp)))
@@ -1000,35 +1000,36 @@ write.csv(filteredDf, file = paste0(DateTimeStamp, "invperctwocomppar2.csv"),
 #### Output parameterset 3 ####
 # Attachment rates in the lumen and at the wall are the same, detachment rates
 # in the lumen and at the wall are also the same, biomass in the lumen and at
-# the wall is the same (Figure XB in article).
+# the wall is the same (Figure 6B in article).
 CreatePlot(filltitle = "Plasmid can invade",
            labx = "Log10(attachment rate in the lumen and at the wall)",
            laby = "Log10(detachment rate in the lumen and at the wall)",
            facetx = ".", facety = ".", mytag = "B",
-           filename = paste0(DateTimeStamp, "FigureXB.png"))
+           filename = paste0(DateTimeStamp, "Figure6B.png"))
 
 #### Output parameterset 4 ####
 # Attachment rates in the lumen and at the wall are the same, detachment rates
 # in the lumen and at the wall are also the same, biomass at the wall is higher
-# than biomass in the lumen because washout from wall is excluded (Figure XC in
+# than biomass in the lumen because washout from wall is excluded (Figure 6C in
 # article).
 CreatePlot(filltitle = "Plasmid can invade",
            labx = "Log10(attachment rate in the lumen and at the wall)",
            laby = "Log10(detachment rate in the lumen and at the wall)",
            facetx = ".", facety = ".", mytag = "C", 
-           filename = paste0(DateTimeStamp, "FigureXC.png"))
+           filename = paste0(DateTimeStamp, "Figure6C.png"))
 
 
 #### Output parameterset 5 ####
+# Bulk-conjugation model (Figure 6D in article).
 CreatePlot(filltitle = "Plasmid can invade",
            facetx = ".", facety = ".", mytag = "D",
-           filename = paste0(DateTimeStamp, "FigureXD.png"))
+           filename = paste0(DateTimeStamp, "Figure6D.png"))
 
 # Bulk-conjugation model (Figure not shown in article).
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk model)",
            facetx = ".", facety = ".", mytag = "D",
-           filename = paste0(DateTimeStamp, "FigureXDBulk.png"))
+           filename = paste0(DateTimeStamp, "Figure6DBulk.png"))
 
 
 #### The part below can be created more easily be using CreatePlot2(...) ? ####
