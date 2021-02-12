@@ -332,8 +332,10 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
       theme(plot.caption = element_text(vjust = 20))
   }
   if(filltype == "discrete") {
-    p <- p + scale_fill_viridis_d(filltitle, limits = if(is.null(limits)) {NULL
-    } else {factor(limits)}, labels = filllabels)
+    p <- p + scale_fill_viridis_d(filltitle, limits = if(is.null(limits)) {
+      as.factor(c(-1, 1))
+    } else {
+      factor(limits)}, labels = filllabels)
   }
   if(filltype == "continuous") {
     p <- p + scale_fill_viridis_c(filltitle, limits = limits)
@@ -571,7 +573,8 @@ gtSet <- gdSet
 
 
 # Parameterset 3: comparing one-compartment pair-formation to two-compartment
-# pair-formation model
+# pair-formation model where biomass, attachment and detachment rates in the
+# lumen are equal to those at the wall.
 Parameterset <- 3
 VLumSet <- 1
 VWallSet <- 1
@@ -596,6 +599,63 @@ knWallSet <- knSet
 gdSet <- 15
 gtSet <- gdSet
 
+# Parameterset 4: comparing one-compartment pair-formation to two-compartment
+# pair-formation model where attachment and detachment rates in the lumen are
+# equal to those at the wall, and biomass at the wall is higher than the biomass
+# in the lumen because washout from the wall is excluded.
+Parameterset <- 4
+VLumSet <- 1
+VWallSet <- 1
+NILumSet <- 1.4
+NIWallSet <- NILumSet
+wLumSet <- -log(0.5)/24
+wWallSet <- 0
+wNutrWallSet <- wLumSet
+KsSet <- 0.004
+NutrConvSet <- 1.4e-7
+bRSet <- 0.738
+MigrLumWallSet <- 0.1
+MigrWallLumSet <- MigrLumWallSet
+DInitLumSet <- 1E3
+DInitWallSet <- 0
+cdSet <- 0.18
+ctSet <- 0.09
+kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
+kpWallSet <- kpSet
+knSet <- 10^seq(from = -1, to = 3, by = 0.1)
+knWallSet <- knSet
+gdSet <- 15
+gtSet <- gdSet
+
+# Parameterset 5: comparing one-compartment pair-formation to two-compartment
+# pair-formation model where biomass in the lumen of the two-compartment model 
+# is equal to the biomass at the wall, but the attachment rate at the wall is
+# fixed at a high value (10-9) and the detachment rate at the wall is fixed at a
+# low value (10-1)
+Parameterset <- 5
+VLumSet <- 1
+VWallSet <- 1
+NILumSet <- 1.4
+NIWallSet <- NILumSet
+wLumSet <- -log(0.5)/24
+wWallSet <- wLumSet
+wNutrWallSet <- wLumSet
+KsSet <- 0.004
+NutrConvSet <- 1.4e-7
+bRSet <- 0.738
+MigrLumWallSet <- 0.1
+MigrWallLumSet <- 0.1
+DInitLumSet <- 1E3
+DInitWallSet <- 0
+cdSet <- 0.18
+ctSet <- 0.09
+kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
+kpWallSet <- 10^-9
+knSet <-10^seq(from = -1, to = 3, by = 0.1)
+knWallSet <- 10^-1
+gdSet <- 15
+gtSet <- gdSet
+
 
 #### Main script ####
 CheckParms <- c(VLum = VLumSet, VWall = VWallSet,
@@ -614,7 +674,7 @@ if(any(c(cdSet, ctSet) <= 0 | c(cdSet, ctSet) >= 1)) {
   warning("Costs should be larger than 0 and smaller than 1.")
 }
 
-if(Parameterset == 3) {
+if(Parameterset == 3 | Parameterset == 4) {
   TotalIterations <- length(VLumSet)*length(VWallSet)*length(NILumSet)*
     length(NIWallSet)*length(wLumSet)*length(wWallSet)*length(wNutrWallSet)*
     length(KsSet)*length(NutrConvSet)*length(bRSet)*length(MigrLumWallSet)*
@@ -690,7 +750,7 @@ gtbulkLum <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTrans
 MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
 
 ## Approximate gdbulk and gtbulk at the wall
-if(Parameterset == 3) {
+if(Parameterset == 3 | Parameterset == 4) {
   # For all datapoints, the attachment and detachment rates at the wall are
   # equal to the attachment and detachment rates rate in the lumen
   MyData <- cbind(MyData, kpWall = MyData$kp, knWall = MyData$kn)
@@ -734,15 +794,18 @@ write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
 #### Create facet labels and labeller 'function' ####
 labkn <- paste0("Detachment rate\nin the lumen: ", signif(knSet, 3))
 names(labkn) <- knSet
+labkpWall <- paste0("Attachment rate\nat the wall: ", signif(kpWallSet, 3))
+names(labkpWall) <- kpWallSet
 labknWall <- paste0("Detachment rate\nat the wall: ", signif(knWallSet, 3))
 names(labknWall) <- knWallSet
 labmigrlumwall <- paste0("Migration rate from\nlumen to wall: ", MigrLumWallSet)
 names(labmigrlumwall) <- MigrLumWallSet
 labmigrwalllum <- paste0("Migration rate from\nwall to lumen: ", MigrWallLumSet)
 names(labmigrwalllum) <- MigrWallLumSet
-mylabeller <- labeller(kn = labkn, knWall = labknWall,
+mylabeller <- labeller(kn = labkn, kpWall = labkpWall, knWall = labknWall,
                        MigrLumWall = labmigrlumwall,
                        MigrWallLum = labmigrwalllum, .default = label_both)
+
 
 #### Output parameterset 1 ####
 
@@ -935,21 +998,40 @@ write.csv(filteredDf, file = paste0(DateTimeStamp, "invperctwocomppar2.csv"),
 
 
 #### Output parameterset 3 ####
+# Attachment rates in the lumen and at the wall are the same, detachment rates
+# in the lumen and at the wall are also the same, biomass in the lumen and at
+# the wall is the same (Figure XB in article).
+CreatePlot(filltitle = "Plasmid can invade",
+           labx = "Log10(attachment rate in the lumen and at the wall)",
+           laby = "Log10(detachment rate in the lumen and at the wall)",
+           facetx = ".", facety = ".", mytag = "B",
+           filename = paste0(DateTimeStamp, "FigureXB.png"))
 
-ggplot(data = MyData,
-       aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment rate in the lumen and at the wall)",
-       y = "Log10(detachment rate in the lumen and at the wall)", tag = NULL) +
-  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes"))
-ggsave(paste0(DateTimeStamp, "twocompkxiskxwall.png"))
+#### Output parameterset 4 ####
+# Attachment rates in the lumen and at the wall are the same, detachment rates
+# in the lumen and at the wall are also the same, biomass at the wall is higher
+# than biomass in the lumen because washout from wall is excluded (Figure XC in
+# article).
+CreatePlot(filltitle = "Plasmid can invade",
+           labx = "Log10(attachment rate in the lumen and at the wall)",
+           laby = "Log10(detachment rate in the lumen and at the wall)",
+           facetx = ".", facety = ".", mytag = "C", 
+           filename = paste0(DateTimeStamp, "FigureXC.png"))
 
 
-# The part below can be created more easily be using CreatePlot2(...) ?
+#### Output parameterset 5 ####
+CreatePlot(filltitle = "Plasmid can invade",
+           facetx = ".", facety = ".", mytag = "D",
+           filename = paste0(DateTimeStamp, "FigureXD.png"))
+
+# Bulk-conjugation model (Figure not shown in article).
+CreatePlot(fillvar = "factor(SignDomEigValBulk)",
+           filltitle = "Plasmid can invade\n(bulk model)",
+           facetx = ".", facety = ".", mytag = "D",
+           filename = paste0(DateTimeStamp, "FigureXDBulk.png"))
+
+
+#### The part below can be created more easily be using CreatePlot2(...) ? ####
 MyDataTwoComp1 <- filter(MyData, near(log10(kpWall), log10(kpWallSet[1])))
 MyDataTwoComp2 <- filter(MyData, near(log10(kpWall), log10(kpWallSet[2])))
 MyDataTwoComp3 <- filter(MyData, near(log10(kpWall), log10(kpWallSet[3])))
