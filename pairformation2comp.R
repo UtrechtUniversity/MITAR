@@ -674,6 +674,9 @@ if(any(c(cdSet, ctSet) <= 0 | c(cdSet, ctSet) >= 1)) {
   warning("Costs should be larger than 0 and smaller than 1.")
 }
 
+# For parameter sets 3 and 4, the value of kpWall is equal to the value of kp,
+# and the value of knWall is equal to the value of kn. As a consequence, those
+# parameter sets are not used in a complete factorial manner.
 if(Parameterset == 3 | Parameterset == 4) {
   TotalIterations <- length(VLumSet)*length(VWallSet)*length(NILumSet)*
     length(NIWallSet)*length(wLumSet)*length(wWallSet)*length(wNutrWallSet)*
@@ -688,7 +691,7 @@ if(Parameterset == 3 | Parameterset == 4) {
     length(ctSet)*length(kpSet)*length(kpWallSet)*length(knSet)*length(knWallSet)*
     length(gdSet)*length(gtSet)
 }
-TotalIterations
+print(paste(TotalIterations, "iterations to run."))
 
 ## Get all parameter combinations to determine plasmid-free equilibrium 
 MyData <- expand_grid(VLum = VLumSet, VWall = VWallSet,
@@ -724,7 +727,7 @@ if(any(Eqplasmidfree <= 0)) {
   RowsNegativeEq <- sort(unique(which(Eqplasmidfree <= 0, arr.ind = TRUE)[, 1]))
   ColnamesNegativeEq <- colnames(Eqplasmidfree)[unique(which(Eqplasmidfree <= 0,
                                                              arr.ind = TRUE)[, 2])]
-  warning("Plasmid-free equilibrium contains non-positive values in columns '",
+  warning("Plasmid-free equilibrium contains non-positive values in column(s) '",
           paste(ColnamesNegativeEq, collapse = "' and '"),
           "'.\nThe data will be included in the calculations anyway!
   This concerns the following rows of the dataframe: ",
@@ -740,13 +743,19 @@ MyData <- expand_grid(MyData, DInitLum = DInitLumSet, DInitWall = DInitWallSet,
                       kp = kpSet, kn = knSet, gd = gdSet, gt = gtSet)
 DataEstConjBulk <- t(apply(X = MyData, MARGIN = 1, FUN = EstConjBulkLum))
 
-TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
-TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] + DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
-gdbulkLum <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
+TotalDEstConjBulkDonor <- DataEstConjBulk[, "DonorD"] +
+  DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMdt"]
+TotalREstConjBulkDonor <- DataEstConjBulk[, "DonorR"] +
+  DataEstConjBulk[, "DonorMdr"] + DataEstConjBulk[, "DonorMrt"]
+gdbulkLum <- unname(MyData[, "gd"] * DataEstConjBulk[, "DonorMdr"] /
+                      (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
 
-TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] + DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
-TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] + DataEstConjBulk[, "TransMrt"]
-gtbulkLum <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
+TotalTransEstConjBulkTrans <- DataEstConjBulk[, "TransTrans"] +
+  DataEstConjBulk[, "TransMrt"] + 2*DataEstConjBulk[, "TransMtt"]
+TotalREstConjBulkTrans <- DataEstConjBulk[, "TransR"] +
+  DataEstConjBulk[, "TransMrt"]
+gtbulkLum <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] /
+                      (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
 MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
 
 ## Approximate gdbulk and gtbulk at the wall
@@ -768,15 +777,18 @@ DataEstConjBulk <- t(apply(X = MyDataWall, MARGIN = 1, FUN = EstConjBulkWall))
 DataEstConjBulk <- as.data.frame(DataEstConjBulk)
 
 DataEstConjBulk <- mutate(DataEstConjBulk,
-                                 TotalDEstConjBulkDonor = DonorD + DonorMdr + DonorMdt,
-                                 TotalREstConjBulkDonor = DonorR + DonorMdr + DonorMrt,
-                                 gdbulkWallpart = DonorMdr / (TotalDEstConjBulkDonor * TotalREstConjBulkDonor))
+                          TotalDEstConjBulkDonor = DonorD + DonorMdr + DonorMdt,
+                          TotalREstConjBulkDonor = DonorR + DonorMdr + DonorMrt,
+                          gdbulkWallpart = DonorMdr / (TotalDEstConjBulkDonor *
+                                                         TotalREstConjBulkDonor))
 gdbulkWall <- unname(MyData[, "gd"] * DataEstConjBulk[, "gdbulkWallpart"])
 
 DataEstConjBulk <- mutate(DataEstConjBulk,
-                          TotalTransEstConjBulkTrans = TransTrans + TransMrt + 2*TransMtt,
+                          TotalTransEstConjBulkTrans = TransTrans + TransMrt +
+                            2*TransMtt,
                           TotalREstConjBulkTrans = TransR + TransMrt,
-                          gtbulkWallpart = TransMrt / (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
+                          gtbulkWallpart = TransMrt / 
+                            (TotalTransEstConjBulkTrans * TotalREstConjBulkTrans))
 gtbulkWall <- unname(MyData[, "gt"] * DataEstConjBulk[, "gtbulkWallpart"])
 MyData <- cbind(MyData, gdbulkWall = gdbulkWall, gtbulkWall = gtbulkWall)
 
@@ -786,12 +798,17 @@ print(paste("Bulk-conjugation rates estimated:", Sys.time()))
 MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
 MyData <- cbind(MyData, MyInfoEigVal)
-
+if(any(MyData[, "ComplexEigVal"] != 0)) {
+  warning("Some eigenvalues of the pair-formation model have an imaginary part.")
+}
+if(any(MyData[, "ComplexEigValBulk"] != 0)) {
+  warning("Some eigenvalues of the bulk-model have an imaginary part.")
+}
 print(paste("Eigenvalues estimated:", Sys.time()))
 write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
-#### Create facet labels and labeller 'function' ####
+# Create facet labels and labeller 'function'
 labkn <- paste0("Detachment rate\nin the lumen: ", signif(knSet, 3))
 names(labkn) <- knSet
 labkpWall <- paste0("Attachment rate\nat the wall: ", signif(kpWallSet, 3))
