@@ -269,41 +269,42 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
 # gdbulk (mL/(cell*h)): bulk-conjugation rate of the donor
 # gtbulk (mL/(cell*h)): bulk-conjugation rate of the transconjugant
 
-## To read data from csv-file, uncomment this section
-# FileName <- "2021_02_05_11_35outputnosimulation.csv"
+## To read data from csv-file, uncomment this section and fill in the 
+# needed datetimestamp
+# FileName <- "YYYY_MM_DD_hh_mmoutputnosimulation.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
 # MyData <- as.data.frame(MyData)
 # DateTimeStamp <- substr(FileName, 1, 16)
 
 
-# Parameterset 1: show influence of nutrient concentration at the inflow and the
+## Parameter set 1: show influence of nutrient concentration at the inflow and the
 # washout rate on the stability of the plasmid-free equilibrium. The facet with
 # the default values is also saved separately to compare the one-compartment
 # pair-formation model and the two-compartment pair-formation model.
-bRSet <- c(0.738)
+bRSet <- 0.738
 wSet <- c(-log(0.5)/(24*10), -log(0.5)/24, -log(0.5)/(24/10))
 Ks <- 0.004
 NISet <- c(0.14, 1.4, 14)
 NutrConvSet <- 1.4e-7
-DInitSet <- c(1E3)
+DInitSet <- 1000
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 knSet <- 10^seq(from = -1, to = 3, by = 0.1)
-gdSet <- c(15)
-gtSet <- c(15)
-cdSet <- c(0.18)
-ctSet <- c(0.09)
+gdSet <- 15
+gtSet <- 15
+cdSet <- 0.18
+ctSet <- 0.09
 
 
-## Parameterset 2: show influence of costs, conjugation, attachment, and 
-## detachment rates on the stability of the plasmid-free equilibrium and on
-## bulk-conjugation rates.
-bRSet <- c(0.738)
+## Parameter set 2: show influence of costs, conjugation, attachment, and
+# detachment rates on the stability of the plasmid-free equilibrium and on
+# bulk-conjugation rates.
+bRSet <- 0.738
 wSet <- -log(0.5)/24
 Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
-DInitSet <- c(1E3)
+DInitSet <- 1000
 kpSet <- 10^seq(from = -12, to = -8, by = 0.1)
 knSet <- 10^seq(from = -1, to = 3, by = 0.1)
 gdSet <- c(1, 15)
@@ -311,19 +312,19 @@ gtSet <- c(1, 15)
 cdSet <- c(0.09, 0.18)
 ctSet <- c(0.09, 0.18)
 
-## Parameterset 3: compare bulk- and pair-formation model over time
-bRSet <- c(0.738)
+## Parameter set 3: compare bulk- and pair-formation model over time
+bRSet <- 0.738
 wSet <- -log(0.5)/24
 Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
-DInitSet <- c(1E3)
+DInitSet <- 1000
 kpSet <- 10^c(-12, -10, -8)
 knSet <- 10
 gdSet <- 15
 gtSet <- 15
-cdSet <- c(0.18)
-ctSet <- c(0.09)
+cdSet <- 0.18
+ctSet <- 0.09
 
 
 #### Main script ####
@@ -338,7 +339,7 @@ if(any(c(cdSet, ctSet) <= 0 | c(cdSet, ctSet) >= 1)) {
 TotalIterations <- length(bRSet)*length(wSet)*length(Ks)*length(NISet)*
   length(NutrConvSet)*length(DInitSet)*length(kpSet)*length(knSet)*
   length(gdSet)*length(gtSet)*length(cdSet)*length(ctSet)
-TotalIterations
+print(paste(TotalIterations, "iterations to run."))
 
 ## Calculate plasmid-free equilibrium for all parameter combinations
 MyData <- expand_grid(bR = bRSet, w = wSet, Ks = Ks, NI = NISet,
@@ -350,7 +351,7 @@ if(any(Eqplasmidfree <= 0)) {
   RowsNegativeEq <- sort(unique(which(Eqplasmidfree <= 0, arr.ind = TRUE)[, 1]))
   ColnamesNegativeEq <- colnames(Eqplasmidfree)[unique(which(Eqplasmidfree <= 0,
                                                              arr.ind = TRUE)[, 2])]
-  warning("Plasmid-free equilibrium contains non-positive values in columns '",
+  warning("Plasmid-free equilibrium contains non-positive values in column(s) '",
           paste(ColnamesNegativeEq, collapse = "' and '"),
           "'.\nThe data will be included in the calculations anyway!
   This concerns the following rows of the dataframe: ",
@@ -387,10 +388,10 @@ MyData <- expand_grid(MyData, cd = cdSet, ct = ctSet)
 MyInfoEigVal <- t(apply(MyData, MARGIN = 1, FUN = CalcEigenvalues))
 MyData <- cbind(MyData, MyInfoEigVal)
 if(any(MyData[, "ComplexEigVal"] != 0)) {
-  warning("Some eigenvalues of the pair-formation model have an imaginary part")
+  warning("Some eigenvalues of the pair-formation model have an imaginary part.")
 }
 if(any(MyData[, "ComplexEigValBulk"] != 0)) {
-  warning("Some eigenvalues of the bulk-model have an imaginary part")
+  warning("Some eigenvalues of the bulk-model have an imaginary part.")
 }
 print(paste("Eigenvalues estimated:", Sys.time()))
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
@@ -414,7 +415,7 @@ mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
                        cd = labcd, ct = labct, .default = label_both)
 
 
-#### Plotting output for parameterset 1 ####
+#### Plotting output for parameter set 1 ####
 
 # Influence of washout rate and nutrient concentration in the inflowing liquid
 # on stability of the plasmid-free equilibrium (Figure 2 in article).
@@ -474,14 +475,14 @@ write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar1.csv"),
           quote = FALSE, row.names = FALSE)
 
 # Create separate plot of the default facet to compare the one-compartment
-# pair-formation model and the two-compartment pair-formation model (Figure XA
+# pair-formation model and the two-compartment pair-formation model (Figure 6A
 # in article).
 CreatePlot(dataplot = filter(MyData, near(w, -log(0.5)/24), near(NI, 1.4)),
   filltitle = "Plasmid can invade", facetx = ".", facety = ".", mytag = "A",
-  filename = paste0(DateTimeStamp, "FigureXA.png"))
+  filename = paste0(DateTimeStamp, "Figure6A.png"))
 
 
-#### Plotting output for parameterset 2 ####
+#### Plotting output for parameter set 2 ####
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium (Figure 3 in article):
@@ -527,8 +528,6 @@ CreatePlot(dataplot = filter(MyData, near(gt, 15) &
            limits = limitsbulkrates,
            filltitle = "Log10(Donor bulkrate)",
            facetx = "gd", facety = ".")
-
-
 
 filteredDf <- NULL
 for(k in cdSet) {
