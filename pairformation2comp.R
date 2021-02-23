@@ -34,8 +34,6 @@
 # combinations for which the plasmid can, or cannot, invade. That could go into
 # a function. 
 
-# dev.off() is not always called when needed
- 
 # Total plasmid and biomass are not calculated when simulating over time
 
 # To plot the highest bulk-rate across lumen and wall the following worked
@@ -230,31 +228,36 @@ ModelBulkNutr <- function(t, state, parms) {
 
 ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
-    dNutrLum <- ((NILum - NutrLum)*wLum -
-      NutrConv*bR*NutrLum*(
-        (1 - cd)*(DLum + MdrLum + MdtLum) + (RLum + MdrLum + MrtLum) + (1 - ct)*(TransLum + MdtLum + MrtLum + 2*MttLum)/(Ks + NutrLum)
-      ))*VLum
-    dDLum <- ((1 - cd)*bR*NutrLum*(DLum + MdrLum + MdtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*DLum +
-      kn*(MdrLum + MdtLum))*VLum + MigrWallLum*DWall*VWall
-    dRLum <- (bR*NutrLum*(RLum + MdrLum + MrtLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*(DLum + TransLum))*RLum +
-      kn*(MdrLum + MrtLum))*VLum + MigrWallLum*RWall*VWall
-    dTransLum <- ((1 - ct)*bR*NutrLum*(TransLum + MdtLum + MrtLum + 2*MttLum)/(Ks + NutrLum) - (wLum + MigrLumWall + kp*RLum)*TransLum +
-      kn*(MdtLum + MrtLum + 2*MttLum))*VLum + MigrWallLum*TransWall*VWall
+    dNutrLum <- ((NILum - NutrLum)*wLum - 
+                   ((1 - cd)*(DLum + MdrLum + MdtLum) +
+                      RLum + MdrLum + MrtLum +
+                      (1 - ct)*(TransLum + MdtLum + MrtLum + 2*MttLum))*
+                   NutrConv*bR*NutrLum/(Ks + NutrLum))*VLum
+    dDLum <- ((1 - cd)*bR*NutrLum*(DLum + MdrLum + MdtLum)/(Ks + NutrLum) -
+                (wLum + MigrLumWall + kp*RLum)*DLum +
+                kn*(MdrLum + MdtLum))*VLum + MigrWallLum*DWall*VWall
+    dRLum <- (bR*NutrLum*(RLum + MdrLum + MrtLum)/(Ks + NutrLum) - 
+                (wLum + MigrLumWall + kp*(DLum + TransLum))*RLum +
+                kn*(MdrLum + MrtLum))*VLum + MigrWallLum*RWall*VWall
+    dTransLum <- ((1 - ct)*bR*NutrLum*(TransLum + MdtLum + MrtLum + 2*MttLum)/(Ks + NutrLum) -
+                    (wLum + MigrLumWall + kp*RLum)*TransLum +
+                    kn*(MdtLum + MrtLum + 2*MttLum))*VLum + MigrWallLum*TransWall*VWall
     dMdrLum <- (kp*DLum*RLum - (kn + gd + wLum + MigrLumWall)*MdrLum)*VLum + MigrWallLum*MdrWall*VWall
     dMdtLum <- (gd*MdrLum - (kn + wLum + MigrLumWall)*MdtLum)*VLum + MigrWallLum*MdtWall*VWall
     dMrtLum <- (kp*RLum*TransLum - (kn + gt + wLum + MigrLumWall)*MrtLum)*VLum + MigrWallLum*MrtWall*VWall
     dMttLum <- (gt*MrtLum - (kn + wLum + MigrLumWall)*MttLum)*VLum + MigrWallLum*MttWall*VWall
     
     dNutrWall <- ((NIWall - NutrWall)*wNutrWall -
-      NutrConv*bR*NutrWall*(
-        (1 - cd)*(DWall + MdrWall + MdtWall) + (RWall + MdrWall + MrtWall) + (1 - ct)*(TransWall + MdtWall + MrtWall + 2*MttWall)/(Ks + NutrWall)
-      ))*VWall
+                    ((1 - cd)*(DWall + MdrWall + MdtWall) +
+                       RWall + MdrWall + MrtWall +
+                       (1 - ct)*(TransWall + MdtWall + MrtWall + 2*MttWall))*
+                    NutrConv*bR*NutrWall/(Ks + NutrWall))*VWall
     dDWall <- ((1 - cd)*bR*NutrWall*(DWall + MdrWall + MdtWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*RWall)*DWall +
-      knWall*(MdrWall + MdtWall))*VWall + MigrLumWall*DLum*VLum
+                 knWall*(MdrWall + MdtWall))*VWall + MigrLumWall*DLum*VLum
     dRWall <- (bR*NutrWall*(RWall + MdrWall + MrtWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*(DWall + TransWall))*RWall +
-      knWall*(MdrWall + MrtWall))*VWall + MigrLumWall*RLum*VLum
+                 knWall*(MdrWall + MrtWall))*VWall + MigrLumWall*RLum*VLum
     dTransWall <- ((1 - ct)*bR*NutrWall*(TransWall + MdtWall + MrtWall + 2*MttWall)/(Ks + NutrWall) - (wWall + MigrWallLum + kpWall*RWall)*TransWall +
-      knWall*(MdtWall + MrtWall + 2*MttWall))*VWall + MigrLumWall*TransLum*VLum
+                     knWall*(MdtWall + MrtWall + 2*MttWall))*VWall + MigrLumWall*TransLum*VLum
     dMdrWall <- (kpWall*DWall*RWall - (knWall + gd + wWall + MigrWallLum)*MdrWall)*VWall + MigrLumWall*MdrLum*VLum
     dMdtWall <- (gd*MdrWall - (knWall + wWall + MigrWallLum)*MdtWall)*VWall + MigrLumWall*MdtLum*VLum
     dMrtWall <- (kpWall*RWall*TransWall - (knWall + gt + wWall + MigrWallLum)*MrtWall)*VWall + MigrLumWall*MrtLum*VLum
@@ -421,6 +424,10 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, type = "Pair", ...) {
              TransWall = 0, MdrWall = 0, MdtWall = 0, MrtWall = 0, MttWall = 0
              )
   out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms, verbose = verbose)
+  if(verbose == TRUE) {
+    print(diagnostics(out2))
+    print(attributes(out2))
+  }
   out2 <- cbind(out2, TotalDLum = NA, TotalRLum = NA, TotalTransLum = NA,
                 TotalDWall = NA, TotalRWall = NA, TotalTransWall = NA)
   out2[, "TotalDLum"] <- out2[, "DLum"] + out2[, "MdrLum"] + out2[, "MdtLum"]
@@ -429,23 +436,19 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, type = "Pair", ...) {
   out2[, "TotalDWall"] <- out2[, "DWall"] + out2[, "MdrWall"] + out2[, "MdtWall"]
   out2[, "TotalRWall"] <- out2[, "RWall"] + out2[, "MdrWall"] + out2[, "MrtWall"]
   out2[, "TotalTransWall"] <- out2[, "TransWall"] + out2[, "MdtWall"] + out2[, "MrtWall"] + 2*out2[, "MttWall"]
-  
   EqAfterInvasion <- tail(out2, 1)
-  if(verbose == TRUE) {
-    print(diagnostics(out2))
-    print(attributes(out2))
-  }
   PlotOverTime(plotdata = out2, parms = parms, type = type, verbose = verbose, saveplot = saveplots)
+  
   stateBulk <- c(NutrLum = parms[["NutrLumInit"]], DLum = parms[["DInitLum"]],
                  RLum = parms[["RLumInit"]], TransLum = 0,
                  NutrWall = parms[["NutrWallInit"]], 
                  DWall = parms[["DInitWall"]], RWall = parms[["RWallInit"]], TransWall = 0)
   out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parms, verbose = verbose)
-  EqAfterInvasionBulk <- tail(out2bulk, 1)
   if(verbose == TRUE) {
     print(diagnostics(out2bulk))
     print(attributes(out2bulk))
   }
+  EqAfterInvasionBulk <- tail(out2bulk, 1)
   PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk", verbose = verbose, saveplot = saveplots)
   EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
   names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
@@ -473,7 +476,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
     mylty <- myltypairs
     mylwd <- rep(c(2, 1), each = 8)
     plotdata <- plotdata[, c("time", "NutrLum", "DLum", "RLum", "TransLum", "MdrLum", "MdtLum", "MrtLum", "MttLum",
-                         "NutrWall", "DWall", "RWall", "TransWall", "MdrWall", "MdtWall", "MrtWall", "MttWall")]
+                             "NutrWall", "DWall", "RWall", "TransWall", "MdrWall", "MdtWall", "MrtWall", "MttWall")]
   } else {
     mycol <- mycolother
     mylty <- myltyother
@@ -481,28 +484,25 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
     if(type == "Total") {
       maintitle <- "Pair model, totals"
       plotdata <- plotdata[, c("time", "NutrLum", "TotalDLum", "TotalRLum", "TotalTransLum",
-                           "NutrWall", "TotalDWall", "TotalRWall", "TotalTransWall")]
+                               "NutrWall", "TotalDWall", "TotalRWall", "TotalTransWall")]
     } else {
       maintitle <- "Bulk model"
     }
   }
-  if(saveplot == TRUE) {
-    filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
-                       "output", gsub(" ", "", maintitle), ".png")
-    if(file.exists(filename)) {
-      warning("File already exists, not saved again!")
-    } else {
-      png(filename = filename)
-    }
+  filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
+                     "output", gsub(" ", "", maintitle), ".png")
+  if(saveplot == TRUE & file.exists(filename) == FALSE) {
+    png(filename = filename)
     matplot.deSolve(plotdata, main = maintitle,
                     sub = subtitle, ylim = myylim, log = if(yaxislog == 1) {"y"},
                     col = mycol, lty = mylty, lwd = mylwd,
                     legend = list(x = "bottomright"))
     grid()
-    if(file.exists(filename) == FALSE) {
-      dev.off()
-    }
+    dev.off()
   } else {
+    if(saveplot == TRUE) {
+      warning("File already exists, not saved again!")
+    }
     matplot.deSolve(plotdata, main = maintitle,
                     sub = subtitle, ylim = myylim, log = if(yaxislog == 1) {"y"},
                     col = mycol, lty = mylty, lwd = mylwd,
@@ -1093,7 +1093,7 @@ yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed
 Mytmax <- c(500)
 Mytstep <- c(0.1)
-TheseRows <- c(1, nrow(MyData)) # Rows to use for simulations over time
+TheseRows <- c(1:nrow(MyData)) # Rows to use for simulations over time
 
 ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
 Mydf <- MyData[TheseRows, ColumnsToSelect]
@@ -1109,11 +1109,11 @@ times <- seq(from = 0, to = Mytmax, by = Mytstep)
 # To see the dynamics of the different populations
 EqAfterInvasionPair <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Pair"))
 EqAfterInvasion <- cbind(Mydf, EqAfterInvasionPair)
-for(i in TotalIterations) {dev.off()} # Not a clean way of implementing, but it works
 
 # To compare total numbers of donors, recipients, and transconjugants in the
 # output of the pair-formation model with the bulk-formation model
 EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Total"))
+
 EqAfterInvasion <- cbind(Mydf, EqAfterInvasionTotal)
 write.csv(EqAfterInvasion, file = paste0(DateTimeStamp, "outputtwocomprunovertime.csv"),
           quote = FALSE, row.names = FALSE)
