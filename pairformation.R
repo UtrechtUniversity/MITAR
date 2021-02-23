@@ -563,20 +563,9 @@ write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar2.csv"),
 
 ## To do ##
 # The functions RunOverTime and PlotOverTime in the two-compartment script are
-# more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
-# with TotalD, TotalR, TotalTrans in the pair-formation model.
-# In the two-compartment model I have not used root- and eventfunctions,
-# maybe should also delete them here, since it sometimes takes very long to
-# execute code (if populations go extinct and therefor many roots are found?)
-
-# For plots over time where I compare the pair-formation and the bulk-model,
-# plotting TotalD, TotalR, TotalTrans from the pair-formation model and
-# DBulk, RBulk, TransBulk from the bulk-model a fairer comparison. See
-# PlotOverTime in the script for the Two-compartment model for such an
-# implementation.
-
-# Use \n to print subtitle over two lines, use oma (see ?par and ?mtext) to
-# prevent text from overlapping with legend
+# more elaborate to enable comparison of D, R, Trans in the bulk-conjugation
+# model with TotalD, TotalR, TotalTrans in the pair-formation model. That might
+# be a fairer comparison.
 
 # Generating the file names with the DateTimeStamp as used above led to problems
 # because multiple plots were generated within one second. They got the same
@@ -591,11 +580,8 @@ mycol <- c("black", brewer.pal(7, "Set1"))
 myylim <- c(1E-7, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 plotoutput <- 1
-verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed and
-# roots are indicated in the graphs
-smallchange <- c(1E-5) # should be smaller than nutrient-concentration, because
-# nutrients are also in the root- and event-functions
-Mytmax <- c(1E4)
+verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed
+Mytmax <- c(4000)
 Mytstep <- c(10)
 
 #### Create matrix to store data ####
@@ -614,19 +600,6 @@ CurrentIteration <- 0
 # (both in the deSolve package) for details.
 times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 
-# Define root-function
-# The root-argument becomes equal to 0 if the sum of absolute rates of change is
-# equal to the threshold smallchange, i.e., when equilibrium is nearly reached.
-# Then the simulation is terminated. See help(events) and help(lsodar) (both in
-# the deSolve package) for background information and examples.
-rootfun <- function(t, state, parms) {
-  sum(abs(unlist(ModelPairsNutr(t, state, parms)))) - smallchange
-}
-
-rootfunBulk <- function(t, stateBulk, parmsBulk) {
-  sum(abs(unlist(ModelBulkNutr(t, stateBulk, parmsBulk)))) - smallchange
-}
-
 # Note: the functions RunOverTime and PlotOverTime in the two-compartment script are
 # more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
 # with TotalD, TotalR, TotalTrans in the pair-formation model.
@@ -634,7 +607,7 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]],
              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms,
-           rootfun = rootfun, verbose = verbose)
+              verbose = verbose)
   EqAfterInvasion <- tail(out2, 1)
   print(EqAfterInvasion)
   if(verbose == TRUE) {
@@ -646,7 +619,7 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
   stateBulk <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
                  R = parms[["REq"]], Trans = 0)
   out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parms,
-                rootfun = rootfunBulk, verbose = verbose)
+                  verbose = verbose)
   EqAfterInvasionBulk <- tail(out2bulk, 1)
   if(verbose == TRUE) {
     print(diagnostics(out2bulk))
@@ -662,7 +635,7 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
 }
 
 PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair",
-                         verbose = FALSE, saveplot = saveplots, ...) {
+                         saveplot = saveplots, printsubtitle = FALSE, ...) {
   maintitle <- paste(type, "model")
   subtitle <- paste0("bR=", parms[["bR"]], " NI=", parms[["NI"]],
                      " log10kp=", log10(parms[["kp"]]), " log10kn=", log10(parms[["kn"]]),
@@ -674,30 +647,27 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair",
     subtitle <- paste0(subtitle, " gdbulk=",  signif(parms[["gdbulk"]], digits = 4),
                        " gtbulk=", signif(parms[["gtbulk"]], digits = 4))
   }
+  if(printsubtitle == FALSE) {
+    subtitle <- NULL
+  } 
   if(saveplot == TRUE) {
     filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
                        "output", gsub(" ", "", maintitle), ".png") 
-   if(file.exists(filename)) {
-     warning("File already exists, not saved again!")
-   } else {
+    if(file.exists(filename)) {
+      warning("File already exists, not saved again!")
+    } else {
       png(filename = filename)
-   }
+    }
     matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
                     legend = list(x = "topright"))
     grid()
-    if(verbose == TRUE) {
-      abline(v = attributes(plotdata)$troot)
-    }
     dev.off()
   } else {
     matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
                     legend = list(x = "bottomright"))
     grid()
-    if(verbose == TRUE) {
-      abline(v = attributes(plotdata)$troot)
-    }
   }
 }
 
