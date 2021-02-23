@@ -49,7 +49,6 @@
 #### Loading packages ####
 library(deSolve) # Integrate differential equations with results over time.
 library(ggplot2) # To create plots
-library(RColorBrewer) # To get better color schemes
 library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
 library(tidyr) # expand.grid() with dataframe as input
 library(dplyr) # mutate(), filter(), near()
@@ -64,7 +63,6 @@ tmaxsteady <- 1e8
 tmaxEstConj <- 3
 tstepEstConj <- 0.1
 timesEstConj <- seq(from = 0, to = tmaxEstConj, by = tstepEstConj)
-MyColorBrew <- rev(brewer.pal(11, "Spectral")) # examples: display.brewer.all()
 
 #### Functions ####
 # ODE-model containing only nutrients and recipients, to determine plasmid-free
@@ -393,7 +391,7 @@ CreatePlot2 <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0,
         p <- p + scale_fill_gradient2(low = "darkblue", high = "darkred",
                                       midpoint = midpoint, limits = limits)
       } else {
-        p <- p + scale_fill_gradientn(colours = MyColorBrew, limits = limits)
+        p <- p + scale_fill_gradientn(limits = limits)
         # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
       }
       print(p)
@@ -1087,8 +1085,9 @@ CreatePlot(dataplot = MyData,
 ##### Create plots over time #####
 myltypairs <- c(lty = rep(c(3, 1, 2, 1, 1, 1, 1, 1), 2))
 myltyother <- c(lty = rep(c(3, 1, 2, 1), 2))
-mycolpairs <- rep(c("black", "purple", "green1", "red", "yellow", "hotpink", "blue", "cyan"), 2)
-mycolother <- rep(c("black", "purple", "green1", "red"), 2)
+mycolpairs <- rep(c("black", "purple", "darkgreen", "red", "yellow", "brown",
+                    "blue", "darkorange"), 2)
+mycolother <- rep(c("black", "purple", "darkgreen", "red"), 2)
 myylim <- c(1E-6, 1E7)
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed
