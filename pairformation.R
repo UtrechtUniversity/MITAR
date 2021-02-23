@@ -30,7 +30,6 @@
 library(deSolve) # Solving differential equations with output over time.
 library(dplyr) # mutate() and near()
 library(ggplot2) # Creating plots.
-library(RColorBrewer) # Obtaining better color schemes [NOTE: only used for plots over time]
 library(rootSolve) # Integrating ODEs, obtaining Jacobian matrix.
 library(tidyr) # expand_grid() which allows for dataframe as input
 
@@ -319,7 +318,7 @@ Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
 DInitSet <- 1000
-kpSet <- 10^c(-12, -10, -8)
+kpSet <- 10^c(-10, -9)
 knSet <- 10
 gdSet <- 15
 gtSet <- 15
@@ -575,8 +574,8 @@ write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar2.csv"),
 
 # Settings for simulations, plotting, and printing
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
-# mycol <- c("black", "purple", "green1", "red", "yellow", "hotpink", "blue", "cyan")
-mycol <- c("black", brewer.pal(7, "Set1"))
+mycol <- c("black", "blue", "red", "darkgreen", "brown", "purple", "darkorange",
+           "yellow")
 myylim <- c(1E-7, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 plotoutput <- 1
