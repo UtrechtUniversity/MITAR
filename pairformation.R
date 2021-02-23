@@ -649,20 +649,19 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair",
   if(printsubtitle == FALSE) {
     subtitle <- NULL
   } 
-  if(saveplot == TRUE) {
-    filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
-                       "output", gsub(" ", "", maintitle), ".png") 
-    if(file.exists(filename)) {
-      warning("File already exists, not saved again!")
-    } else {
-      png(filename = filename)
-    }
+  filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
+                     "output", gsub(" ", "", maintitle), ".png")
+  if(saveplot == TRUE & file.exists(filename) == FALSE) {
+    png(filename = filename)
     matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
                     legend = list(x = "topright"))
     grid()
     dev.off()
   } else {
+    if(file.exists(filename)) {
+      warning("File already exists, not saved again!")
+    }
     matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
                     log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
                     legend = list(x = "bottomright"))
