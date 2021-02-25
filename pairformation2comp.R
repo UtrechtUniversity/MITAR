@@ -457,19 +457,22 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, type = "Pair", ...) {
 }
 
 PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot = saveplots, ...) {
-  subtitle <- paste0("kp=", parms[["kp"]], ", ", parms[["kpWall"]],
-                     " kn=", parms[["kn"]], ", ", parms[["knWall"]],
-                     " gd=", parms[["gd"]], " gt=", parms[["gt"]],
-                     " gdbulk=", signif(parms[["gdbulkLum"]], 3),
-                     ", ", signif(parms[["gdbulkWall"]], 3), 
-                     " gtbulk=", signif(parms[["gtbulkLum"]], 3),
-                     ", ", signif(parms[["gtbulkWall"]], 3),
-                     " cd=", parms[["cd"]], " ct=", parms[["ct"]],
-                     " bR=", parms[["bR"]], " NILum=", parms[["NILum"]],
-                     " NIWall=", parms[["NIWall"]],
-                     " NutrConv=", parms[["NutrConv"]],
-                     " wLum=", parms[["wLum"]], " wWall=", parms[["wWall"]]
-  )
+  # subtitle <- paste0("kp=", parms[["kp"]], ", ", parms[["kpWall"]],
+  #                    " kn=", parms[["kn"]], ", ", parms[["knWall"]],
+  #                    " gd=", parms[["gd"]], " gt=", parms[["gt"]],
+  #                    " gdbulk=", signif(parms[["gdbulkLum"]], 3),
+  #                    ", ", signif(parms[["gdbulkWall"]], 3), 
+  #                    " gtbulk=", signif(parms[["gtbulkLum"]], 3),
+  #                    ", ", signif(parms[["gtbulkWall"]], 3),
+  #                    " cd=", parms[["cd"]], " ct=", parms[["ct"]],
+  #                    " bR=", parms[["bR"]], " NI=", parms[["NILum"]],
+  #                    ", ", parms[["NIWall"]],
+  #                    " NutrConv=", parms[["NutrConv"]],
+  #                    " wLum=", parms[["wLum"]], " wWall=", parms[["wWall"]]
+  # )
+  subtitle <- paste0("kpLum=", parms[["kp"]], " kpWall=", parms[["kpWall"]],
+                     " knLum=", parms[["kn"]], " knWall=", parms[["knWall"]],
+                     " wWall=", round(parms[["wWall"]], 3))
   if(type == "Pair") {
     maintitle <- "Pair model"
     mycol <- mycolpairs
@@ -493,7 +496,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
                      "output", gsub(" ", "", maintitle), ".png")
   if(saveplot == TRUE & file.exists(filename) == FALSE) {
     png(filename = filename)
-    matplot.deSolve(plotdata, main = maintitle,
+    matplot.deSolve(plotdata, main = maintitle, ylab = "Density",
                     sub = subtitle, ylim = myylim, log = if(yaxislog == 1) {"y"},
                     col = mycol, lty = mylty, lwd = mylwd,
                     legend = list(x = "bottomright"))
@@ -503,7 +506,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
     if(saveplot == TRUE) {
       warning("File already exists, not saved again!")
     }
-    matplot.deSolve(plotdata, main = maintitle,
+    matplot.deSolve(plotdata, main = maintitle, ylab = "Density",
                     sub = subtitle, ylim = myylim, log = if(yaxislog == 1) {"y"},
                     col = mycol, lty = mylty, lwd = mylwd,
                     legend = list(x = "bottomright"))
@@ -654,6 +657,30 @@ knWallSet <- 10^-1
 gdSet <- 15
 gtSet <- gdSet
 
+## Parameter set 6: compare bulk- and pair-formation model over time
+Parameterset <- 6
+VLumSet <- 1
+VWallSet <- 1
+NILumSet <- 1.4
+NIWallSet <- NILumSet
+wLumSet <- -log(0.5)/24
+wWallSet <- 0
+wNutrWallSet <- wLumSet
+KsSet <- 0.004
+NutrConvSet <- 1.4e-7
+bRSet <- 0.738
+MigrLumWallSet <- 0.1
+MigrWallLumSet <- MigrLumWallSet
+DInitLumSet <- 1E3
+DInitWallSet <- 0
+cdSet <- 0.18
+ctSet <- 0.09
+kpSet <- 10^c(-11, -9)
+kpWallSet <- kpSet
+knSet <- 10
+knWallSet <- knSet
+gdSet <- 15
+gtSet <- gdSet
 
 #### Main script ####
 CheckParms <- c(VLum = VLumSet, VWall = VWallSet,
@@ -672,10 +699,10 @@ if(any(c(cdSet, ctSet) <= 0 | c(cdSet, ctSet) >= 1)) {
   warning("Costs should be larger than 0 and smaller than 1.")
 }
 
-# For parameter sets 3 and 4, the value of kpWall is equal to the value of kp,
+# For parameter sets 3, 4, and 6, the value of kpWall is equal to the value of kp,
 # and the value of knWall is equal to the value of kn. As a consequence, those
 # parameter sets are not used in a complete factorial manner.
-if(Parameterset == 3 | Parameterset == 4) {
+if(Parameterset == 3 | Parameterset == 4 | Parameterset == 6) {
   TotalIterations <- length(VLumSet)*length(VWallSet)*length(NILumSet)*
     length(NIWallSet)*length(wLumSet)*length(wWallSet)*length(wNutrWallSet)*
     length(KsSet)*length(NutrConvSet)*length(bRSet)*length(MigrLumWallSet)*
@@ -757,7 +784,7 @@ gtbulkLum <- unname(MyData[, "gt"] * DataEstConjBulk[, "TransMrt"] /
 MyData <- cbind(MyData, gdbulkLum = gdbulkLum, gtbulkLum = gtbulkLum)
 
 ## Approximate gdbulk and gtbulk at the wall
-if(Parameterset == 3 | Parameterset == 4) {
+if(Parameterset == 3 | Parameterset == 4 | Parameterset == 6) {
   # For all datapoints, the attachment and detachment rates at the wall are
   # equal to the attachment and detachment rates rate in the lumen
   MyData <- cbind(MyData, kpWall = MyData$kp, knWall = MyData$kn)
@@ -1091,8 +1118,8 @@ mycolother <- rep(c("black", "purple", "darkgreen", "red"), 2)
 myylim <- c(1E-6, 1E7)
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed
-Mytmax <- c(500)
-Mytstep <- c(0.1)
+Mytmax <- c(4000)
+Mytstep <- c(10)
 TheseRows <- c(1:nrow(MyData)) # Rows to use for simulations over time
 
 ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
@@ -1104,7 +1131,7 @@ print(TotalIterations)
 # ode-solvers are variable-step methods, so the times in times are NOT the only
 # times at which integration is performed. See help(diagnostics.deSolve()) and
 # help(lsodar()) for details.
-times <- seq(from = 0, to = Mytmax, by = Mytstep)
+times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 
 # To see the dynamics of the different populations
 EqAfterInvasionPair <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Pair"))
