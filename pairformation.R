@@ -422,7 +422,7 @@ CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
 
 # Show if the largest eigenvalues of the pair-formation model and bulk model
 # have equal signs (Figure S1 in article)
-CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
+CreatePlot(fillvar = "factor(near(SignDomEigVal, SignDomEigValBulk))",
            filltype = "manual",
            filltitle = "Largest eigenvalues\nhave equal signs",
            facetx = "NI", facety = "w")
@@ -456,8 +456,8 @@ filteredDf <- NULL
 for(i in NISet) {
   for(j in wSet) {
     MyDataFiltered <- filter(MyData, near(NI, i), near(w, j))
-    invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
-    no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+    invasion_n <- length(which(near(MyDataFiltered[, "SignDomEigVal"], 1)))
+    no_invasion_n <- length(which(near(MyDataFiltered[, "SignDomEigVal"], -1)))
     total_n <- invasion_n + no_invasion_n
     invasion_perc <- round(100*invasion_n/total_n, 0)
     no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
@@ -496,7 +496,7 @@ CreatePlot(fillvar = "factor(SignDomEigValBulk)",
 
 # Show if sign of largest eigenvalues for pair-formation and bulk model is the 
 # same (Figure S2 in article)
-CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
+CreatePlot(fillvar = "factor(near(SignDomEigVal, SignDomEigValBulk))",
            filltype = "manual",
            filltitle = "Largest eigenvalues\nhave equal signs",
            marginx = c(0, 0, 0, 0), marginy = c(0, 0, 0, 0))
@@ -535,8 +535,8 @@ for(k in cdSet) {
       for(j in gtSet) {
         MyDataFiltered <- filter(MyData, near(ct, i), near(gt, j),
                                  near(cd, k), near(gd, l))
-        invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
-        no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+        invasion_n <- length(which(near(MyDataFiltered[, "SignDomEigVal"], 1)))
+        no_invasion_n <- length(which(near(MyDataFiltered[, "SignDomEigVal"], -1)))
         total_n <- invasion_n + no_invasion_n
         invasion_perc <- round(100*invasion_n/total_n, 0)
         no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
