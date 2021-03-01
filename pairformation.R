@@ -18,10 +18,6 @@
 # see the quasiquotation section in aes() documentation and https://www.tidyverse.org/blog/2018/07/ggplot2-tidy-evaluation/
 # See also # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
 
-# See ggplot2::expand_limits to have the same limits and colorscale for the two plots
-
-# In functions use more informative name arguments instead of e.g. mydf = mydf.
-
 # Use vectors for atol, to have different tolerances for the cell-densities (~1),
 # and nutrient concentration (~1*10^-8 ?)
 
