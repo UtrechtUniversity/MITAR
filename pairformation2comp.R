@@ -46,10 +46,10 @@
 
 #### Loading packages ####
 library(deSolve) # Integrate differential equations with results over time.
+library(dplyr) # filter(), mutate(), near()
 library(ggplot2) # To create plots
-library(rootSolve) # Integration, obtaining jacobian matrix and eigenvalues.
+library(rootSolve) # Integration, obtaining Jacobian matrix and eigenvalues.
 library(tidyr) # expand.grid() with dataframe as input
-library(dplyr) # mutate(), filter(), near()
 
 #### Plotting and simulation options ####
 saveplots <- 1
@@ -905,7 +905,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
   theme(legend.position = "bottom") +
   labs(x = "Log10(attachment rate in the lumen)",
        y = "Log10(attachment rate at the wall)", tag = NULL) +
-  scale_fill_manual("Dominant eigenvalues\nhave equal signs",
+  scale_fill_manual("Largest eigenvalues\nhave equal signs",
                     values = c("TRUE" = "darkgreen", "FALSE" = "red")) +
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
 ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal==SignDomEigValBulk)twocomp.png"))
@@ -966,7 +966,7 @@ ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomassSeriesb.png"))
 # (Figure S5 in article).
 CreatePlot(yvar = "log10(kpWall)", fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual", laby = "Log10(attachment rate at the wall)",
-           filltitle = "Dominant eigenvalues\nhave equal signs",
+           filltitle = "Largest eigenvalues\nhave equal signs",
            facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
 
 # Show the effect of migration rates on biomass at the wall (plot not shown).
