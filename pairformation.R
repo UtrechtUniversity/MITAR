@@ -28,7 +28,7 @@
 
 #### Loading packages ####
 library(deSolve) # Solving differential equations with output over time.
-library(dplyr) # mutate() and near()
+library(dplyr) # filter(), near()
 library(ggplot2) # Creating plots.
 library(rootSolve) # Integrating ODEs, obtaining Jacobian matrix.
 library(tidyr) # expand_grid() which allows for dataframe as input
@@ -420,11 +420,11 @@ mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
 # on stability of the plasmid-free equilibrium (Figure 2 in article).
 CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
 
-# Show if the dominant eigenvalues of the pair-formation model and bulk model
+# Show if the largest eigenvalues of the pair-formation model and bulk model
 # have equal signs (Figure S1 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
-           filltitle = "Dominant eigenvalues\nhave equal signs",
+           filltitle = "Largest eigenvalues\nhave equal signs",
            facetx = "NI", facety = "w")
 
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
@@ -494,11 +494,11 @@ CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk model)",
            marginx = c(0, 0, 0, 0), marginy = c(0, 0, 0, 0))
 
-# Show if sign of dominant eigenvalues for pair-formation and bulk model is the 
+# Show if sign of largest eigenvalues for pair-formation and bulk model is the 
 # same (Figure S2 in article)
 CreatePlot(fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
            filltype = "manual",
-           filltitle = "Dominant eigenvalues\nhave equal signs",
+           filltitle = "Largest eigenvalues\nhave equal signs",
            marginx = c(0, 0, 0, 0), marginy = c(0, 0, 0, 0))
 
 # Change layout of labels for next plots
