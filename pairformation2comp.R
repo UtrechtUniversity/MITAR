@@ -11,7 +11,12 @@
 
 
 #### To do ####
-# Also see the 'To do' section in the pair-formation script for the one-compartment model
+# aes_string is soft-deprecated (see help(aes_string)), use tidy evaluation idioms instead,
+# see the quasiquotation section in aes() documentation and https://www.tidyverse.org/blog/2018/07/ggplot2-tidy-evaluation/
+# See also # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
+
+# Use vectors for atol, to have different tolerances for the cell-densities (~1),
+# and nutrient concentration (~1*10^-8 ?)
 
 # I could use the variable 'Parameterset' to plot the appropriate plots.
 
@@ -21,23 +26,6 @@
 
 # Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
 # results as the single-compartment model.
-
-# In calculation of bulkrates use knLum, knWall instead of kn and knWall, then
-# use kn = knLum as function argument for lumen and kn = knWall as function argument for wall.
-# This will prevent creating 'DataWall' as separate dataframe
-
-# Now a loop is used to get a dataframe with percentage and counts of parameter
-# combinations for which the plasmid can, or cannot, invade. That could go into
-# a function. 
-
-# Total plasmid and biomass are not calculated when simulating over time
-
-# To plot the highest bulk-rate across lumen and wall the following worked
-# (but not anymore with the new parametersets)
-# CreatePlot(fillvar = "log10(pmax(gtbulkLum, gtbulkWall))", filltype = "continuous",
-#            limits = NULL,
-#            filltitle = "Log10(max(Transconjugant\nbulkrate in lumen and at the wall))",
-#            facetx = "kpWall", facety = "knWall", as.table = FALSE)
 
 
 #### Loading packages ####
