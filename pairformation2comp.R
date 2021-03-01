@@ -19,10 +19,6 @@
 # draw arrows for the plot with differences in biomass at the wall works, but
 # leads to warnings being issued because no limits are supplied.
 
-# In filtering data, using filter(MyData, kpWall == i, knWall == j) is error-prone
-# because comparing two floating-point vectors gives troubles.
-# Use dplyr::near(log10(kpWall), log10(i)), or maybe base-R isTRUE(all.equal(...)).
-
 # Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
 # results as the single-compartment model.
 
@@ -860,8 +856,8 @@ filteredDf <- NULL
 for(i in knSet) {
   for(j in knWallSet) {
     MyDataFiltered <- filter(MyData, near(kn, i), near(knWall, j))
-    invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
-    no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+    invasion_n <- length(which(near(MyDataFiltered[, "SignDomEigVal"], 1)))
+    no_invasion_n <- length(which(near(MyDataFiltered[, "SignDomEigVal"], -1)))
     total_n <- invasion_n + no_invasion_n
     invasion_perc <- round(100*invasion_n/total_n, 0)
     no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
@@ -896,7 +892,7 @@ ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal)twocomp.png"))
 
 # Show if signs of bulk and pair-formation model are equal (Figure S4 in article)
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
-           fill = factor(SignDomEigVal==SignDomEigValBulk))) + 
+           fill = factor(near(SignDomEigVal, SignDomEigValBulk)))) + 
   geom_raster() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -964,7 +960,7 @@ ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomassSeriesb.png"))
 
 # Are signs of the largest eigenvalues equal for bulk- and pair-formation model?
 # (Figure S5 in article).
-CreatePlot(yvar = "log10(kpWall)", fillvar = "factor(SignDomEigVal == SignDomEigValBulk)",
+CreatePlot(yvar = "log10(kpWall)", fillvar = "factor(near(SignDomEigVal, SignDomEigValBulk))",
            filltype = "manual", laby = "Log10(attachment rate at the wall)",
            filltitle = "Largest eigenvalues\nhave equal signs",
            facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
@@ -1020,8 +1016,8 @@ filteredDf <- NULL
 for(i in MigrLumWallSet) {
   for(j in MigrWallLumSet) {
     MyDataFiltered <- filter(MyData, near(MigrLumWall, i), near(MigrWallLum, j))
-    invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == 1))
-    no_invasion_n <- length(which(MyDataFiltered[, "SignDomEigVal"] == -1))
+    invasion_n <- length(which(near(MyDataFiltered[, "SignDomEigVal"], 1)))
+    no_invasion_n <- length(which(near(MyDataFiltered[, "SignDomEigVal"], -1)))
     total_n <- invasion_n + no_invasion_n
     invasion_perc <- round(100*invasion_n/total_n, 0)
     no_invasion_perc <- round(100*no_invasion_n/total_n, 0)
@@ -1087,7 +1083,7 @@ Mytmax <- c(4000)
 Mytstep <- c(10)
 TheseRows <- c(1:nrow(MyData)) # Rows to use for simulations over time
 
-ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
+ColumnsToSelect <- c(1:(which(names(MyData) == "Eigval1") - 1))
 Mydf <- MyData[TheseRows, ColumnsToSelect]
 TotalIterations <- length(TheseRows)
 print(TotalIterations)
