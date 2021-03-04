@@ -506,7 +506,7 @@ mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
                        cd = labcd, ct = labct, .default = label_both)
 
 # The influence of conjugation, attachment, and detachment rates on the
-# bulk-conjugation rates (Figure 4 and Figure S3 in the article). Data is
+# bulk-conjugation rates (Figure 7 and Figure S1 in the article). Data is
 # filtered to show only one value for costs, because costs do not influence the
 # bulk-conjugation rates.
 limitsbulkrates <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
@@ -649,23 +649,23 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair",
                      "output", gsub(" ", "", maintitle), ".png")
   if(saveplot == TRUE & file.exists(filename) == FALSE) {
     png(filename = filename)
-    matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
-                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                    legend = list(x = "topright"))
+    matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylab = "Density",
+                    ylim = myylim, log = if(yaxislog == 1) {"y"}, col = mycol,
+                    lty = mylty, lwd = 2, legend = list(x = "topright"))
     grid()
     dev.off()
   } else {
     if(file.exists(filename)) {
       warning("File already exists, not saved again!")
     }
-    matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylim = myylim,
-                    log = if(yaxislog == 1) {"y"}, col = mycol, lty = mylty, lwd = 2,
-                    legend = list(x = "bottomright"))
+    matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylab = "Density",
+                    ylim = myylim, log = if(yaxislog == 1) {"y"}, col = mycol,
+                    lty = mylty, lwd = 2, legend = list(x = "topright"))
     grid()
   }
 }
 
-# Plots are shown in Figure S3 in the article.
+# Plots are shown in Figure S4 in the article.
 EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
 
 EqAfterInvasion <- cbind(Mydf, EqAfterInvasion)
