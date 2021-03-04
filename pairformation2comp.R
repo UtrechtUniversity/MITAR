@@ -33,7 +33,7 @@ library(deSolve) # Integrate differential equations with results over time.
 library(dplyr) # filter(), mutate(), near()
 library(ggplot2) # To create plots
 library(rootSolve) # Integration, obtaining Jacobian matrix and eigenvalues.
-library(tidyr) # expand.grid() with dataframe as input
+library(tidyr) # expand_grid() with dataframe as input
 
 #### Plotting and simulation options ####
 saveplots <- 1
@@ -209,7 +209,6 @@ ModelBulkNutr <- function(t, state, parms) {
 # and bacteria from the wall compartment. I also added costs in growth for
 # plasmid-bearing bacteria. State variables are expressed as milligram nutrients and number of
 # bacteria.
-
 ModelPairsNutr <- function(t, state, parms) {
   with(as.list(c(state, parms)), {
     dNutrLum <- ((NILum - NutrLum)*wLum - 
@@ -483,7 +482,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
     matplot.deSolve(plotdata, main = maintitle, ylab = "Density",
                     sub = subtitle, ylim = myylim, log = if(yaxislog == 1) {"y"},
                     col = mycol, lty = mylty, lwd = mylwd,
-                    legend = list(x = "bottomright"))
+                    legend = list(x = "topright"))
     grid()
     dev.off()
   } else {
@@ -493,7 +492,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
     matplot.deSolve(plotdata, main = maintitle, ylab = "Density",
                     sub = subtitle, ylim = myylim, log = if(yaxislog == 1) {"y"},
                     col = mycol, lty = mylty, lwd = mylwd,
-                    legend = list(x = "bottomright"))
+                    legend = list(x = "topright"))
     grid()
   }
 }
@@ -863,7 +862,7 @@ write.csv(filteredDf, file = paste0(DateTimeStamp, "invperctwocomppar1.csv"),
           quote = FALSE, row.names = FALSE)
 
 # Plot showing influence of attachment and detachment rates in the lumen and at
-# the wall on stability of the equilibrium (Figure 5 in article)
+# the wall on stability of the equilibrium (Figure 4 in article)
 ggplot(data = MyData,
        aes(x = log10(kp), y = log10(kpWall), fill = factor(SignDomEigVal))) + 
   geom_raster() +
@@ -878,7 +877,7 @@ ggplot(data = MyData,
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
 ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal)twocomp.png"))
 
-# Show if signs of bulk and pair-formation model are equal (Figure S4 in article)
+# Show if signs of bulk and pair-formation model are equal (Figure S5 in article)
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
            fill = factor(near(SignDomEigVal, SignDomEigValBulk)))) + 
   geom_raster() +
@@ -924,8 +923,8 @@ for(knSel in knSet) {
 
 #### Output parameterset 2 ####
 
-# Original plot + sec_axis to create new axis, with expression in axis title
-# to draw an arrow (Figure 6). Note: issues warnings because (deliberately) no
+# I use sec_axis to create a new axis, with expression in axis title
+# to draw an arrow (Figure 5). Note: issues warnings because (deliberately) no
 # limits have been set on the secondary axis.
 ggplot(data = MyData,
        aes(x = log10(kp), y = log10(kpWall), fill = factor(SignDomEigVal))) + 
@@ -943,15 +942,29 @@ ggplot(data = MyData,
        y = "Log10(attachment rate at the wall)", tag = NULL) +
   scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes")) +
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomassSeriesb.png"))
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomass.png"))
 
 
 # Are signs of the largest eigenvalues equal for bulk- and pair-formation model?
-# (Figure S5 in article).
-CreatePlot(yvar = "log10(kpWall)", fillvar = "factor(near(SignDomEigVal, SignDomEigValBulk))",
-           filltype = "manual", laby = "Log10(attachment rate at the wall)",
-           filltitle = "Largest eigenvalues\nhave equal signs",
-           facetx = "MigrLumWall", facety = "MigrWallLum", as.table = FALSE)
+# (Figure S6 in article).
+ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
+                          fill = factor(near(SignDomEigVal, SignDomEigValBulk)))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0), sec.axis = dup_axis(
+    name = expression(paste("Increasing biomass at the ", wall %->% "")),
+    breaks = NULL, labels = NULL)) +
+  scale_y_continuous(expand = c(0, 0), sec.axis = dup_axis(
+    name = expression(paste("Increasing biomass at the ", wall %->% "")),
+    breaks = NULL, labels = NULL)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_grid(MigrWallLum ~ MigrLumWall, as.table = FALSE, labeller = mylabeller) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate in the lumen)",
+       y = "Log10(attachment rate at the wall)", tag = NULL) +
+  scale_fill_manual("Largest eigenvalues\nhave equal signs",
+                    values = c("TRUE" = "darkgreen", "FALSE" = "red")) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomassSigns.png"))
 
 # Show the effect of migration rates on biomass at the wall (plot not shown).
 CreatePlot(yvar = "log10(kpWall)", fillvar = "log10(RWallInit)", filltype = "continuous",
@@ -1057,8 +1070,9 @@ CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            facetx = ".", facety = ".", mytag = "D",
            filename = paste0(DateTimeStamp, "Figure6DBulk.png"))
 
+#### Output parameterset 6 ####
 
-##### Create plots over time #####
+# Create plots to compare bulk- and pair-formation model over time
 myltypairs <- c(lty = rep(c(3, 1, 2, 1, 1, 1, 1, 1), 2))
 myltyother <- c(lty = rep(c(3, 1, 2, 1), 2))
 mycolpairs <- rep(c("black", "purple", "darkgreen", "red", "yellow", "brown",
