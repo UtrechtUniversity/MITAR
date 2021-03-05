@@ -235,7 +235,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
     if(is.null(filename)) {
       fillvarname <- gsub("/", ".", fillvar)
       fillvarname <- gsub(" ", "", fillvarname)
-      filename <- paste0(DateTimeStamp, "output", fillvarname, ".png")      
+      filename <- paste0(DateTimeStamp, fillvarname, ".png")      
     }
     if(file.exists(filename)) {
       warning("File already exists, not saved again!")
@@ -266,7 +266,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
 
 ## To read data from csv-file, uncomment this section and fill in the 
 # needed datetimestamp
-# FileName <- "YYYY_MM_DD_hh_mmoutputnosimulation.csv"
+# FileName <- "YYYY_MM_DD_hh_mm.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
 # MyData <- as.data.frame(MyData)
@@ -390,7 +390,7 @@ if(any(MyData[, "ComplexEigValBulk"] != 0)) {
 }
 print(paste("Eigenvalues estimated:", Sys.time()))
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
-write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimulation.csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, ".csv"),
           quote = FALSE, row.names = FALSE)
 
 # Create facet labels and labeller 'function'
@@ -646,7 +646,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair",
     subtitle <- NULL
   } 
   filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
-                     "output", gsub(" ", "", maintitle), ".png")
+                     "runovertime", gsub(" ", "", maintitle), ".png")
   if(saveplot == TRUE & file.exists(filename) == FALSE) {
     png(filename = filename)
     matplot.deSolve(plotdata, main = maintitle, sub = subtitle, ylab = "Density",
@@ -670,5 +670,5 @@ EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
 
 EqAfterInvasion <- cbind(Mydf, EqAfterInvasion)
 
-write.csv(EqAfterInvasion, file = paste0(DateTimeStamp, "outputrunovertimeonecomp.csv"),
+write.csv(EqAfterInvasion, file = paste0(DateTimeStamp, "runovertimeonecomp.csv"),
           quote = FALSE, row.names = FALSE)
