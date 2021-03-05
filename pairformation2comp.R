@@ -332,7 +332,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
     if(is.null(filename)) {
       fillvarname <- gsub("/", ".", fillvar)
       fillvarname <- gsub(" ", "", fillvarname)
-      filename <- paste0(DateTimeStamp, "output", fillvarname, "twocomp", ".png")      
+      filename <- paste0(DateTimeStamp, fillvarname, "twocomp", ".png")      
     }
     if(file.exists(filename)) {
       warning("File already exists, not saved again!")
@@ -384,7 +384,7 @@ CreatePlot2 <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0,
       if(save == TRUE) {
         fillvarname <- gsub("/", ".", fillvar)
         fillvarname <- gsub(" ", "", fillvarname)
-        filename <- paste0(DateTimeStamp, "output", fillvarname, iteration, ".png")
+        filename <- paste0(DateTimeStamp, fillvarname, iteration, ".png")
         if(file.exists(filename)) {
           warning("File already exists, not saved again!")
         } else {
@@ -476,7 +476,7 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
     }
   }
   filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
-                     "output", gsub(" ", "", maintitle), ".png")
+                     gsub(" ", "", maintitle), ".png")
   if(saveplot == TRUE & file.exists(filename) == FALSE) {
     png(filename = filename)
     matplot.deSolve(plotdata, main = maintitle, ylab = "Density",
@@ -813,7 +813,7 @@ if(any(MyData[, "ComplexEigValBulk"] != 0)) {
   warning("Some eigenvalues of the bulk-model have an imaginary part.")
 }
 print(paste("Eigenvalues estimated:", Sys.time()))
-write.csv(MyData, file = paste0(DateTimeStamp, "outputnosimtwocomp.csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, "twocomp.csv"),
           quote = FALSE, row.names = FALSE)
 
 # Create facet labels and labeller 'function'
@@ -875,7 +875,7 @@ ggplot(data = MyData,
        y = "Log10(attachment rate at the wall)", tag = NULL) +
   scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes")) +
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal)twocomp.png"))
+ggsave(paste0(DateTimeStamp, "factor(SignDomEigVal)twocomp.png"))
 
 # Show if signs of bulk and pair-formation model are equal (Figure S5 in article)
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
@@ -891,7 +891,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
   scale_fill_manual("Largest eigenvalues\nhave equal signs",
                     values = c("TRUE" = "darkgreen", "FALSE" = "red")) +
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigVal==SignDomEigValBulk)twocomp.png"))
+ggsave(paste0(DateTimeStamp, "factor(SignDomEigVal==SignDomEigValBulk)twocomp.png"))
 
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
            fill = factor(SignDomEigValBulk))) + 
@@ -906,7 +906,7 @@ ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
   scale_fill_viridis_d("Plasmid can invade\n(bulk-model)",
                        labels = c("No", "Yes")) +
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "outputfactor(SignDomEigValBulk)twocomp.png"))
+ggsave(paste0(DateTimeStamp, "factor(SignDomEigValBulk)twocomp.png"))
 
 for(knSel in knSet) {
   for(knWallSel in knWallSet) {
@@ -1105,5 +1105,5 @@ EqAfterInvasion <- cbind(Mydf, EqAfterInvasionPair)
 EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Total"))
 
 EqAfterInvasion <- cbind(Mydf, EqAfterInvasionTotal)
-write.csv(EqAfterInvasion, file = paste0(DateTimeStamp, "outputtwocomprunovertime.csv"),
+write.csv(EqAfterInvasion, file = paste0(DateTimeStamp, "twocomprunovertime.csv"),
           quote = FALSE, row.names = FALSE)
