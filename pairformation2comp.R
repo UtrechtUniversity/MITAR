@@ -342,60 +342,6 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
   }
 }
 
-CreatePlot2 <- function(fillvar, gradient2 = 0, limits = NULL, midpoint = 0,
-                        dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)",
-                        facetx = "MigrWallLum", facety = "MigrLumWall",
-                        addstamp = FALSE, save = saveplots, ...) {
-  CumRowIndex <- NULL
-  iteration <- 1
-  dataplottotal <- dataplot
-  for(kpWallsubset in sort(unique(dataplottotal[, "kpWall"]))) {
-    for(knWallsubset in sort(unique(dataplottotal[, "knWall"]))) {
-      subtitle <- paste0("log10(kpWall)=", signif(log10(kpWallsubset), 3),
-                         " log10(knWall)=", signif(log10(knWallsubset), 3))
-      RowIndex <- near(log10(dataplottotal[, "kpWall"]), log10(kpWallsubset)) &
-        near(log10(dataplottotal[, "knWall"]), log10(knWallsubset))
-      dataplot <- dataplottotal[RowIndex, ]
-      if(exists("DateTimeStamp") == FALSE) {
-        warning("DateTimeStamp created to include in plot but does not correspond to filename of the dataset")
-        DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
-      }
-      if(addstamp == TRUE) {
-        mycaption <- paste(DateTimeStamp, subtitle)
-      } else {
-        mycaption <- subtitle
-      }
-      p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar),
-                  subtitle = subtitle) + 
-        geom_raster() +
-        scale_x_continuous(expand = c(0, 0)) +
-        scale_y_continuous(expand = c(0, 0)) +
-        facet_grid(as.formula(paste(facetx, "~", facety)), labeller = label_both) +
-        labs(caption = mycaption) +
-        theme(legend.position = "bottom", plot.caption = element_text(vjust = 20))
-      if(gradient2 == 1) {
-        p <- p + scale_fill_gradient2(low = "darkblue", high = "darkred",
-                                      midpoint = midpoint, limits = limits)
-      } else {
-        p <- p + scale_fill_gradientn(limits = limits)
-        # p <- p + scale_fill_distiller(palette = "Spectral", direction = 1, limits = limits)
-      }
-      print(p)
-      if(save == TRUE) {
-        fillvarname <- gsub("/", ".", fillvar)
-        fillvarname <- gsub(" ", "", fillvarname)
-        filename <- paste0(DateTimeStamp, fillvarname, iteration, ".png")
-        if(file.exists(filename)) {
-          warning("File already exists, not saved again!")
-        } else {
-          ggsave(filename)
-        }
-      }
-      iteration <- iteration + 1
-    }
-  }
-}
-
 # !! NOTE: Equations (and states?) HAVE NOT YET BEEN converted to milligram
 # nutrients and number of cells by multiplication with the appropriate volumes !!
 
