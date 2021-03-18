@@ -333,6 +333,68 @@ geteqinfo <- function(abundance, intmat,
   return(eqinfo)
 }
 
+# Function to create plots
+CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmean",
+                       fillvar, filltitle, filltype = "discrete", limits = NULL, 
+                       labx = "Mean interaction coefficient",
+                       laby = "Mean selfinteraction coefficient",
+                       mytag = NULL,
+                       facetx = "modelcode", facety = "nspecies", as.table = TRUE,
+                       marginx = NULL, marginy = NULL,
+                       save = saveplots, filename = NULL, addstamp = FALSE, ...) {
+  caption <- paste(unique(dataplot$niter), "iterations")
+  if(exists("DateTimeStamp") == FALSE) {
+    DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
+    if(addstamp == TRUE) {
+      warning("DateTimeStamp created to include in plot does not correspond to filename of the dataset")
+    }
+  }
+  if(addstamp == TRUE) {
+    caption <- paste0(caption, ", ", DateTimeStamp)
+  }
+  p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar),
+              subtitle = subtitle) + 
+    geom_raster() +
+    scale_x_continuous() +
+    scale_y_continuous() +
+    coord_fixed(ratio = 1, expand = FALSE) +
+    facet_grid(as.formula(paste(facety, "~", facetx)), as.table = as.table,
+               labeller = mylabeller) +
+    theme(legend.position = "bottom") +
+    labs(x = labx, y = laby, caption = caption, tag = mytag)
+  if(!is.null(marginx)) {
+    p <- p + theme(strip.text.x = element_text(margin = margin(marginx)))
+  }
+  if(!is.null(marginy)) {
+    p <- p + theme(strip.text.y = element_text(margin = margin(marginy)))
+  }
+  if(filltype == "discrete") {
+    p <- p + scale_fill_viridis_d(filltitle, limits = if(is.null(limits)) {
+      as.factor(c(-1, 1))
+    } else {
+      factor(limits)}, labels = filllabels)
+  }
+  if(filltype == "binned") {
+    p <- p + scale_fill_viridis_b(filltitle, breaks = limits)
+  }
+  if(filltype == "continuous") {
+    p <- p + scale_fill_viridis_c(filltitle, limits = limits)
+  }
+  print(p)
+  if(save == TRUE) {
+    if(is.null(filename)) {
+      filename <- gsub("/", ".", fillvar)
+      filename <- gsub(" ", "", filename)
+      filename <- paste0(filename, filltype)
+    }
+    filename <- paste0(DateTimeStamp, filename, ".png")
+    if(file.exists(filename)) {
+      warning("File already exists, not saved again!")
+    } else {
+      ggsave(filename)
+    }
+  }
+}
 
 #### Testing functions ####
 
@@ -343,16 +405,16 @@ geteqinfo <- function(abundance, intmat,
 # abundompreempt
 # 
 # (intmat1 <- getintmat(nspecies = nspecies))
-# (growthrate1 <- getgrowthrate(abundance = abunbrokenstick, intmat = intmat1))
-# (growthrate2 <- getgrowthrate(abundance = abundompreempt, intmat = intmat1))
+# (growthratebrokenstick <- getgrowthrate(abundance = abunbrokenstick, intmat = intmat1))
+# (growthratedompreempt <- getgrowthrate(abundance = abundompreempt, intmat = intmat1))
 # checkequilibrium(abundance = abunbrokenstick, intmat = intmat1,
-#                  growthrate = growthrate1, printderivatives = TRUE, showplot = TRUE) # At equilibrium
+#                  growthrate = growthratebrokenstick, printderivatives = TRUE, showplot = TRUE) # At equilibrium
 # checkequilibrium(abundance = 0.9*abunbrokenstick, intmat = intmat1,
-#                  growthrate = growthrate1, printderivatives = TRUE, showplot = TRUE) # Not at equilibrium
+#                  growthrate = growthratebrokenstick, printderivatives = TRUE, showplot = TRUE) # Not at equilibrium
 # 
-# # geteqinfo returns eigvalRe, eigvalIm, eigvalReSign, and eigvalImSign 
-# geteqinfo(abundance = abunbrokenstick, intmat = intmat1, growthrate = growthrate1)
-# geteqinfo(abundance = abundompreempt, intmat = intmat1, growthrate = growthrate2)
+# # geteqinfo returns eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, and eigvalRep
+# geteqinfo(abundance = abunbrokenstick, intmat = intmat1, growthrate = growthratebrokenstick)
+# geteqinfo(abundance = abundompreempt, intmat = intmat1, growthrate = growthratedompreempt)
 
 
 #### Running the simulations ####
@@ -435,7 +497,7 @@ print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 
 #### Showing and saving output ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
-write.csv(plotdata, file = paste0(DateTimeStamp, ".csv"),
+write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
           quote = FALSE, row.names = FALSE)
 
 ## Labels and limits for plots ##
@@ -457,133 +519,42 @@ limitsgrowthratebinned <- sort(c(limitsgrowthrate, limitsgrowthrate/2, 0))
 
 
 ## Plot summary data for the calculated growth rates 
-ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = mingrowthrate)) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_b("Growth rate", breaks = limitsgrowthratebinned) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(title = "Minimum growth rates",
-       caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "mingrowthratebinned.png"))
-}
+CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
+           filltype = "binned", limits = limitsgrowthratebinned, 
+           facety = "nspecies", facetx = "modelcode", save = saveplots)
 
-ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = mingrowthrate)) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_c("Minimum growth rates", limits = limitsgrowthrate) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(title = "Growth rate",
-       caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "mingrowthrate.png"))
-}
+CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
+           filltype = "continuous", limits = limitsgrowthrate, 
+           facety = "nspecies", facetx = "modelcode", save = FALSE)
 
-ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = meangrowthrate)) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_b("Growth rate", breaks = limitsgrowthratebinned) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(title = "Mean growth rates",
-       caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "meangrowthratebinned.png"))
-}
+CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
+           filltype = "binned", limits = limitsgrowthratebinned, 
+           facety = "nspecies", facetx = "modelcode", save = saveplots)
 
-ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = meangrowthrate)) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_c("Growth rate", limits = limitsgrowthrate) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(title = "Mean growth rates",
-       caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "meangrowthrate.png"))
-}
+CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
+           filltype = "continuous", limits = limitsgrowthrate, 
+           facety = "nspecies", facetx = "modelcode", save = FALSE)
 
-ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = maxgrowthrate)) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_b("Growth rate", breaks = limitsgrowthratebinned) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(title = "Maximum growth rates",
-       caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "maxgrowthratebinned.png"))
-}
+CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
+           filltype = "binned", limits = limitsgrowthratebinned, 
+           facety = "nspecies", facetx = "modelcode", save = saveplots)
 
-ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = maxgrowthrate)) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_c("Growth rate", limits = limitsgrowthrate) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(title = "Maximum growth rates",
-       caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "maxgrowthrate.png"))
-}
-
+CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
+           filltype = "continuous", limits = limitsgrowthrate, 
+           facety = "nspecies", facetx = "modelcode", save = FALSE)
 
 ## Plot equilibrium characteristics
-ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(title = "Stability of the plasmid-free equilibrium: real part",
-       caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "fracstable.png"))
-}
+CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies", facetx = "modelcode", save = FALSE)
 
-ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracreal)) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_c("Fraction real eigenvalues", limits = limitsfraction) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(title = "Stability of the plasmid-free equilibrium: imaginary part",
-       caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "fracreal.png"))
-}
+CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies", facetx = "modelcode", save = FALSE)
 
-ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracrep)) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_c("Fraction repeated eigenvalues", limits = limitsfraction) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(title = "Repeated eigenvalues",
-       caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "fracrepeated.png"))
-}
+CreatePlot(fillvar = "fracreal", filltitle = "Fraction repeated eigenvalues",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies", facetx = "modelcode", save = FALSE)
 
 
 ### Show species-specific information for the last combination of intmean and
