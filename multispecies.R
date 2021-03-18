@@ -338,10 +338,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        fillvar, filltitle, filltype = "discrete", limits = NULL, 
                        labx = "Mean interaction coefficient",
                        laby = "Mean selfinteraction coefficient",
-                       mytag = NULL,
+                       mytag = NULL, addstamp = FALSE, diagional = "none",
                        facetx = "modelcode", facety = "nspecies", as.table = TRUE,
                        marginx = NULL, marginy = NULL,
-                       save = saveplots, filename = NULL, addstamp = FALSE, ...) {
+                       save = saveplots, filename = NULL, ...) {
   caption <- paste(unique(dataplot$niter), "iterations")
   if(exists("DateTimeStamp") == FALSE) {
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
@@ -379,6 +379,12 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   }
   if(filltype == "continuous") {
     p <- p + scale_fill_viridis_c(filltitle, limits = limits)
+  }
+  if(diagional == "both" | diagional == "major") {
+    p <- p + geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1)
+  }
+  if(diagional == "both" | diagional == "minor") {
+    p <- p + geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
   }
   print(p)
   if(save == TRUE) {
@@ -521,40 +527,53 @@ limitsgrowthratebinned <- sort(c(limitsgrowthrate, limitsgrowthrate/2, 0))
 ## Plot summary data for the calculated growth rates 
 CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           facety = "nspecies", facetx = "modelcode", save = saveplots)
+           facety = "nspecies", facetx = "modelcode", diagional = "minor")
 
 CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "nspecies", facetx = "modelcode", save = FALSE)
+           facety = "nspecies", facetx = "modelcode", diagional = "minor")
 
 CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           facety = "nspecies", facetx = "modelcode", save = saveplots)
+           facety = "nspecies", facetx = "modelcode", diagional = "minor")
 
 CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "nspecies", facetx = "modelcode", save = FALSE)
+           facety = "nspecies", facetx = "modelcode", diagional = "minor")
 
 CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           facety = "nspecies", facetx = "modelcode", save = saveplots)
+           facety = "nspecies", facetx = "modelcode", diagional = "minor")
 
 CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "nspecies", facetx = "modelcode", save = FALSE)
+           facety = "nspecies", facetx = "modelcode", diagional = "minor")
 
 ## Plot equilibrium characteristics
 CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies", facetx = "modelcode", save = FALSE)
+           facety = "nspecies", facetx = "modelcode", diagional = "both")
 
 CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies", facetx = "modelcode", save = FALSE)
+           facety = "nspecies", facetx = "modelcode", diagional = "both")
 
-CreatePlot(fillvar = "fracreal", filltitle = "Fraction repeated eigenvalues",
+CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies", facetx = "modelcode", save = FALSE)
+           facety = "nspecies", facetx = "modelcode", diagional = "both")
+
+### To test plots without using CreatePlot() ###
+ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
+  geom_raster() +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_fill_viridis_c(limits = limitsfraction) +
+  geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(caption = paste(niter, "iterations")) +
+  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
 
 
 ### Show species-specific information for the last combination of intmean and
