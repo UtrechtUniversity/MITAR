@@ -61,6 +61,8 @@
 # tidyr::expand_grid(), and then use (l)/(m)apply / purrr:(p)map to iterate over
 # all rows?
 
+# Using species as an integer might abolish the need to use as.factor(species)
+# when ploting.
 
 ## Checking function arguments ##
 # See also the remarks on checking function arguments in the 'Optionally to do'
@@ -595,6 +597,50 @@ lattice::xyplot(meangrowthrate ~ intmean | as.factor(modelcode),
 
 # Using intmean instead of iter for the colorscale is more informative, but is
 # not yet possible because mydata contains a single value for intmean.
+
+ggplot(data = mydata, aes(x = selfint, y = growthrate, color = eigvalRe)) +
+  geom_point() +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_color_viridis_c() +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(caption = paste(niter, "iterations")) +
+  facet_grid(nspecies ~ abunmodel, labeller = mylabeller)
+
+# Becomes interesting if some eigenvalues have imaginairy part
+ggplot(data = mydata, aes(x = eigvalRe, y = eigvalIm, color = selfint)) +
+  geom_point() +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_color_viridis_c() +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(caption = paste(niter, "iterations")) +
+  facet_grid(nspecies ~ abunmodel, labeller = mylabeller)
+
+
+# Using library(ggmulti)
+# Maybe clearer when using log10(abundance)
+ggplot(data = mydata, aes(color = as.factor(species))) + 
+  coord_serialaxes(axes.sequence = c("abundance", "selfint", "growthrate")) +
+  scale_color_viridis_d() +
+  geom_path()
+
+ggplot(mydata, mapping = aes(selfint = selfint,
+                             growthrate = growthrate,
+                             colour = factor(species))) +
+  geom_path()  + 
+  coord_serialaxes()
+
+ggplot(data = mydata, aes(x = selfint, y = growthrate, color = as.factor(species))) +
+  geom_point() +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_color_viridis_d() +
+  theme(legend.position = "bottom") +
+  labs(caption = paste(niter, "iterations")) +
+  facet_grid(nspecies ~ abunmodel, labeller = mylabeller)
 
 
 #### Comparing abundance models ####
