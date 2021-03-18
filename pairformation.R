@@ -23,6 +23,7 @@
 
 
 #### Loading packages ####
+# All packages are available from CRAN (https://cran.r-project.org/).
 library(deSolve) # Solving differential equations with output over time.
 library(dplyr) # filter(), near()
 library(ggplot2) # Creating plots.
@@ -30,8 +31,8 @@ library(rootSolve) # Integrating ODEs, obtaining Jacobian matrix.
 library(tidyr) # expand_grid() which allows for dataframe as input
 
 #### Plotting and simulation options ####
-saveplots <- 1
-plotdataapproxbulk <- 0
+saveplots <- TRUE
+plotdataapproxbulk <- FALSE
 tmaxEstConj <- 3
 tstepEstConj <- 0.1
 timesEstConj <- seq(from = 0, to = tmaxEstConj, by = tstepEstConj)
@@ -88,7 +89,7 @@ EstConjBulk <- function(MyData) {
     parms <- MyData
     DataEstConjBulkDonor <- ode(t = timesEstConj, y = state,
                                 func = ModelEstConjBulkDonor, parms = parms)
-    if(plotdataapproxbulk == 1) {
+    if(plotdataapproxbulk == TRUE) {
       subtitle <- paste0("log10(kp,kn)=", log10(MyData[["kp"]]),
                          " ", log10(MyData[["kn"]]))
       matplot.deSolve(DataEstConjBulkDonor, ylim = c(1E-7, 1E7), log = "y",
@@ -101,7 +102,7 @@ EstConjBulk <- function(MyData) {
     state <- c(R = MyData[["REq"]], Trans = MyData[["DInit"]], Mrt = 0, Mtt = 0)
     DataEstConjBulkTrans <- ode(t = timesEstConj, y = state,
                                 func = ModelEstConjBulkTrans, parms = parms)
-    if(plotdataapproxbulk == 1) {
+    if(plotdataapproxbulk == TRUE) {
       matplot.deSolve(DataEstConjBulkTrans, ylim = c(1E-7, 1E7), log = "y",
                       col = c("purple", "green1", "hotpink", "cyan"),
                       lty = c(2, 1, 1, 1), lwd = 2,
@@ -322,7 +323,7 @@ cdSet <- 0.18
 ctSet <- 0.09
 
 
-#### Main script ####
+#### Run simulations ####
 
 CheckParms <- c(bRSet, wSet, Ks, NISet, NutrConvSet, DInitSet, kpSet, knSet,
                 gdSet, gtSet, cdSet, ctSet)
