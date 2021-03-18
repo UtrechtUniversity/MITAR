@@ -29,6 +29,7 @@
 
 
 #### Loading packages ####
+# All packages are available from CRAN (https://cran.r-project.org/).
 library(deSolve) # Integrate differential equations with results over time.
 library(dplyr) # filter(), mutate(), near()
 library(ggplot2) # To create plots
@@ -36,7 +37,7 @@ library(rootSolve) # Integration, obtaining Jacobian matrix and eigenvalues.
 library(tidyr) # expand_grid() with dataframe as input
 
 #### Plotting and simulation options ####
-saveplots <- 1
+saveplots <- TRUE
 atol <- 1e-10 # lower absolute error tolerance of integrator used by runsteady()
 # to prevent 'DLSODE-  Warning..internal T (=R1) and H (=R2) are [1] 0 such that
 # in the machine, T + H = T on the next step  [1] 0 (H = step size). Solver will
@@ -611,7 +612,7 @@ knWallSet <- knSet
 gdSet <- 15
 gtSet <- gdSet
 
-#### Main script ####
+#### Run simulations ####
 CheckParms <- c(VLum = VLumSet, VWall = VWallSet,
                 NILum = NILumSet, NIWall = NIWallSet,
                 wLum = wLumSet, wWall = wWallSet, wNutrWallSet = wNutrWallSet,
