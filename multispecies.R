@@ -33,13 +33,9 @@
 # eigenvalue does not have a complex part when (some of) the other eigenvalues
 # do have a complex part. If this affects the equilibrium this should be taken
 # into account.
-# Similarly, I do not check for repeated eigenvalues, but they do frequently
-# occur (as long as selfinter  = -1 ?) and complicate stability analysis? See
-# p. 133 of Edelstein-Keshet 2005 and section 10.4.3.3 from
+# I check for repeated eigenvalues, but note that the pair a +/- bi are not
+# repeated eigenvalues. See p. 133 of Edelstein-Keshet 2005 and section 10.4.3.3 from
 # https://eng.libretexts.org/Bookshelves/Industrial_and_Systems_Engineering/Book%3A_Chemical_Process_Dynamics_and_Controls_(Woolf)
-# I could use any(duplicated(eigval)) to check for repeated eigenvalues (or
-# check if the discriminant of the matrix is 0, then there are repeated
-# eigenvalues?).
 
 
 #### Optionally to do ####
@@ -123,7 +119,7 @@ library(deSolve)   # checkequilibrium calls ode() if showplot == TRUE
 library(dplyr)     # checkequilibrium calls near()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
-
+library(ggmulti)   # plotting multidimensional data
 
 #### Settings and defining parameterspace ####
 
@@ -136,6 +132,14 @@ nspeciesset <- c(2, 4, 6)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
 selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
+
+# Settings for testing code
+niter <- 5
+saveplots <- FALSE
+nspeciesset <- c(2, 4)
+abunmodelset <- c("brokenstick", "dompreempt")
+intmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
+selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
 
 #### Functions ####
 
@@ -316,7 +320,7 @@ geteqinfo <- function(abundance, intmat,
   eigval <- eigen(x = jacobian.full(y = abundance, func = gLV,
                       parms = list(growthrate = growthrate, intmat = intmat)),
     symmetric = FALSE, only.values = TRUE)$values
-  
+  eigvalRep <- any(duplicated(eigval))
   # Using sort(eigval) to get eigenvalue with largest real part, because
   # max(eigval) does not work if eigval is complex. Complex values are sorted
   # first by the real part, then the imaginary part.
@@ -325,7 +329,7 @@ geteqinfo <- function(abundance, intmat,
   eigvalIm <- Im(eigval)
   eigvalReSign <- sign(eigvalRe)
   eigvalImSign <- sign(eigvalIm)
-  eqinfo <- c(eigvalRe, eigvalIm, eigvalReSign, eigvalImSign)
+  eqinfo <- c(eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, eigvalRep)
   return(eqinfo)
 }
 
@@ -357,11 +361,11 @@ geteqinfo <- function(abundance, intmat,
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
   length(intmeanset)*length(selfintmeanset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 10)
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 11)
 colnames(plotdata) <- c("niter", "nspecies", "modelcode",
                        "intmean", "selfintmean",
                        "mingrowthrate", "meangrowthrate", "maxgrowthrate",
-                       "fracstable", "fracreal")
+                       "fracstable", "fracreal", "fracrep")
 
 # Run simulations
 rowindexplotdata <- 1
@@ -381,7 +385,7 @@ for(nspecies in nspeciesset) {
     
     for(intmean in intmeanset) {
       for(selfintmean in selfintmeanset) {
-        mydata <- matrix(data = NA, nrow = niter * nspecies, ncol = 14)
+        mydata <- matrix(data = NA, nrow = niter * nspecies, ncol = 15)
         for(iter in 1:niter) {
           intmat <- getintmat(nspecies = nspecies,
                               intmean = intmean, selfintmean = selfintmean)
@@ -411,14 +415,16 @@ for(nspecies in nspeciesset) {
                               "intmean", "selfintmean",
                               "iter", "species", "abundance",
                               "selfint", "growthrate",
-                              "eigvalRe", "eigvalIm", "eigvalReSign", "eigvalImSign")
+                              "eigvalRe", "eigvalIm",
+                              "eigvalReSign", "eigvalImSign", "eigvalRep")
         fracstable <- length(which(mydata[, "eigvalRe"] < 0))/(nspecies*niter)
         fracreal <- length(which(mydata[, "eigvalImSign"] == 0))/(nspecies*niter)
-        
+        fracrep <- length(which(mydata[, "eigvalRep"] != 0))/(nspecies*niter)
+
         plotdata[rowindexplotdata, ] <- c(niter, nspecies, modelcode,
                                           intmean, selfintmean, min(mydata[, "growthrate"]),
                                           mean(mydata[, "growthrate"]), max(mydata[, "growthrate"]),
-                                          fracstable, fracreal)
+                                          fracstable, fracreal, fracrep)
         rowindexplotdata <- rowindexplotdata + 1
       }
     }
@@ -563,6 +569,20 @@ ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracreal)) +
   facet_grid(nspecies ~ modelcode, labeller = mylabeller)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "fracreal.png"))
+}
+
+ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracrep)) +
+  geom_raster() +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_fill_viridis_c("Fraction repeated eigenvalues", limits = limitsfraction) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(title = "Repeated eigenvalues",
+       caption = paste(niter, "iterations")) +
+  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
+if(saveplots == TRUE) {
+  ggsave(paste0(DateTimeStamp, "fracrepeated.png"))
 }
 
 
