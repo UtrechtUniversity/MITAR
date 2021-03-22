@@ -146,13 +146,34 @@ selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
 #### Functions ####
 
 # Define the generalised Lotka-Volterra model. n is a vector of species
-# abundances, growthrate is a vector of growthrates, intmat is the interaction
-# matrix. Instead of normal multiplication using n, matrix multiplication using
+# abundances, growthrate is a vector of growth rates, intmat is a matrix of
+# interaction coefficients where element mij gives the effect of species j on
+# the growth rate of species i.
+# Instead of normal multiplication using n, matrix multiplication using
 # diag(n) can be used. This results in diag(n) %*% (growthrates + intmat %*% n).
 gLV <- function(t, n, parms) {
   with(parms, {
     dn <- n*(growthrate + intmat %*% n)
     return(list(c(dn)))
+  })
+}
+
+# Define the generalised Lotka-Volterra model with conjugation. Vector n with
+# species abundances is split into vector S0 for plasmid-free bacteria and
+# vector S1 for plasmid-bearing bacteria. cost is a vector giving the absolute
+# reduction in growth rate when carrying a plasmid. conjmat is a matrix with
+# conjugation rates, where element cij gives the rate of conjugation from
+# plasmid-bearing species j to plasmid-free species i.
+gLVConj <- function(t, n, parms) {
+  with(parms, {
+  S0 <- n[1:3]
+  S1 <- n[4:6]
+  
+  dS0 <-  growthrate          * S0 * (1 - intmat %*% (S0 + S1)) - (conjmat %*% S1) * S0
+  dS1 <- (growthrate - costs) * S1 * (1 - intmat %*% (S0 + S1)) + (conjmat %*% S1) * S0
+  
+  dn <- c(dS0, dS1)
+  return(list(dn))
   })
 }
 
@@ -219,7 +240,8 @@ dompreempt <- function(nspecies, totalabun = 1, takelimit = FALSE) {
 # get fixed values for the interactions, choose the uniform distribution and
 # provide the desired value both as the minimum and maximum of the range. The
 # other arguments specify the distributions from which interaction coefficients
-# are drawn.
+# are drawn. Element mij gives the effect of species j on the growth rate of
+# species i.
 getintmat <- function(nspecies, sparsity = 0,
                       intdistr = "normal", intmean = -1, intsd = 0.1,
                       intrange = c(-1, 0),
