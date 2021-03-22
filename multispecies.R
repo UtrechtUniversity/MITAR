@@ -24,8 +24,6 @@
 
 
 #### To do ####
-## General ##
-# Add plasmid-bearing populations and conjugation to the model.
 
 ## geteqinfo() ##
 # Currently the only the sign and complex part of the largest eigenvalue is used
@@ -508,7 +506,6 @@ for(nspecies in nspeciesset) {
         for(iter in 1:niter) {
           intmat <- getintmat(nspecies = nspecies,
                               intmean = intmean, selfintmean = selfintmean)
-
           
           growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
 
@@ -520,17 +517,17 @@ for(nspecies in nspeciesset) {
                               conjmat = conjmat)
           
           mydata[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
-            niter = rep(niter, nspecies),
-            nspecies = rep(nspecies, nspecies),
-            abunmodel = rep(modelcode, nspecies),
-            intmean = rep(intmean, nspecies),
-            selfintmean = rep(selfintmean, nspecies),
-            cost = rep(cost, nspecies),
-            iter = rep(iter, nspecies),
-            species = 1:nspecies,
-            abundance = abundance,
-            selfint = diag(intmat),
-            growthrate = growthrate,
+            rep(niter, nspecies),
+            rep(nspecies, nspecies),
+            rep(modelcode, nspecies),
+            rep(intmean, nspecies),
+            rep(selfintmean, nspecies),
+            rep(cost, nspecies),
+            rep(iter, nspecies),
+            1:nspecies,
+            abundance,
+            diag(intmat),
+            growthrate,
             eqinfo = matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE)
           )
         }
