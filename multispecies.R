@@ -134,7 +134,7 @@ nspeciesset <- c(2, 4, 6)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
 selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
-cost <- 0.05
+costset <- c(0.01, 0.20)
 conjugationrate <- 0.01
 
 # Settings for testing code
@@ -144,7 +144,7 @@ nspeciesset <- c(2, 4)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
 selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
-cost <- 0.05
+costset <- c(0.01, 0.20)
 conjugationrate <- 0.01
 
 #### Functions ####
@@ -476,11 +476,11 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 
 # Create matrix to store data
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
-  length(intmeanset)*length(selfintmeanset)
+  length(intmeanset)*length(selfintmeanset)*length(costset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 14)
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 15)
 colnames(plotdata) <- c("niter", "nspecies", "modelcode",
-                       "intmean", "selfintmean",
+                       "intmean", "selfintmean", "cost",
                        "mingrowthrate", "meangrowthrate", "maxgrowthrate",
                        "fracstable", "fracreal", "fracrep",
                        "fracstableconj", "fracrealconj", "fracrepconj")
@@ -503,7 +503,8 @@ for(nspecies in nspeciesset) {
     
     for(intmean in intmeanset) {
       for(selfintmean in selfintmeanset) {
-        mydata <- matrix(data = NA, nrow = niter * nspecies, ncol = 20)
+        for(cost in costset) {
+        mydata <- matrix(data = NA, nrow = niter * nspecies, ncol = 21)
         for(iter in 1:niter) {
           intmat <- getintmat(nspecies = nspecies,
                               intmean = intmean, selfintmean = selfintmean)
@@ -524,6 +525,7 @@ for(nspecies in nspeciesset) {
             abunmodel = rep(modelcode, nspecies),
             intmean = rep(intmean, nspecies),
             selfintmean = rep(selfintmean, nspecies),
+            cost = rep(cost, nspecies),
             iter = rep(iter, nspecies),
             species = 1:nspecies,
             abundance = abundance,
@@ -534,7 +536,7 @@ for(nspecies in nspeciesset) {
         }
 
         colnames(mydata) <- c("niter", "nspecies", "abunmodel",
-                              "intmean", "selfintmean",
+                              "intmean", "selfintmean", "cost",
                               "iter", "species", "abundance",
                               "selfint", "growthrate",
                               "eigvalRe", "eigvalIm",
@@ -549,11 +551,14 @@ for(nspecies in nspeciesset) {
         fracrepconj <- length(which(mydata[, "eigvalconjRep"] != 0))/(nspecies*niter)
         
         plotdata[rowindexplotdata, ] <- c(niter, nspecies, modelcode,
-                                          intmean, selfintmean, min(mydata[, "growthrate"]),
-                                          mean(mydata[, "growthrate"]), max(mydata[, "growthrate"]),
+                                          intmean, selfintmean, cost,
+                                          min(mydata[, "growthrate"]),
+                                          mean(mydata[, "growthrate"]),
+                                          max(mydata[, "growthrate"]),
                                           fracstable, fracreal, fracrep,
                                           fracstableconj, fracrealconj, fracrepconj)
         rowindexplotdata <- rowindexplotdata + 1
+        }
       }
     }
   }
@@ -617,7 +622,7 @@ CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
 
 CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
            filltype = "continuous", limits = limitsfraction, 
@@ -626,7 +631,7 @@ CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
 CreatePlot(fillvar = "fracrealconj",
            filltitle = "Fraction real\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
 
 CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
            filltype = "continuous", limits = limitsfraction, 
@@ -635,7 +640,7 @@ CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
 CreatePlot(fillvar = "fracrepconj",
            filltitle = "Fraction repeated eigenvalues\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
 
 ### To test plots without using CreatePlot() ###
 ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
