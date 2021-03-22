@@ -134,6 +134,8 @@ nspeciesset <- c(2, 4, 6)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
 selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
+cost <- 0.05
+conjugationrate <- 0.01
 
 # Settings for testing code
 niter <- 5
@@ -142,6 +144,8 @@ nspeciesset <- c(2, 4)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
 selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
+cost <- 0.05
+conjugationrate <- 0.01
 
 #### Functions ####
 
@@ -166,11 +170,11 @@ gLV <- function(t, n, parms) {
 # plasmid-bearing species j to plasmid-free species i.
 gLVConj <- function(t, n, parms) {
   with(parms, {
-  S0 <- n[1:3]
-  S1 <- n[4:6]
+  S0 <- n[1:nspecies]
+  S1 <- n[(nspecies+1):(2*nspecies)]
   
-  dS0 <-  growthrate          * S0 * (1 - intmat %*% (S0 + S1)) - (conjmat %*% S1) * S0
-  dS1 <- (growthrate - costs) * S1 * (1 - intmat %*% (S0 + S1)) + (conjmat %*% S1) * S0
+  dS0 <-  growthrate         * S0 * (1 - intmat %*% (S0 + S1)) - (conjmat %*% S1) * S0
+  dS1 <- (growthrate - cost) * S1 * (1 - intmat %*% (S0 + S1)) + (conjmat %*% S1) * S0
   
   dn <- c(dS0, dS1)
   return(list(dn))
@@ -339,11 +343,18 @@ checkequilibrium <- function(abundance, intmat, growthrate,
   return(atequilibrium)
 }
 
+getconjmat <- function(nspecies, conjugationrate) {
+  conjmat <- matrix(rep(conjugationrate, nspecies^2),
+                    nrow = nspecies, ncol = nspecies)
+}
+
+# Get largest eigenvalues of the model without and with conjugation
 geteqinfo <- function(abundance, intmat,
-                      growthrate) {
+                      growthrate, cost, conjmat) {
+  
   eigval <- eigen(x = jacobian.full(y = abundance, func = gLV,
                       parms = list(growthrate = growthrate, intmat = intmat)),
-    symmetric = FALSE, only.values = TRUE)$values
+                  symmetric = FALSE, only.values = TRUE)$values
   eigvalRep <- any(duplicated(eigval))
   # Using sort(eigval) to get eigenvalue with largest real part, because
   # max(eigval) does not work if eigval is complex. Complex values are sorted
@@ -353,7 +364,21 @@ geteqinfo <- function(abundance, intmat,
   eigvalIm <- Im(eigval)
   eigvalReSign <- sign(eigvalRe)
   eigvalImSign <- sign(eigvalIm)
-  eqinfo <- c(eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, eigvalRep)
+  
+  eigvalconj <- eigen(x = jacobian.full(y = c(abundance, rep(0, nspecies)),
+                                        func = gLVConj,
+                                        parms = list(growthrate = growthrate, intmat = intmat,
+                                                     cost = cost, conjmat = conjmat)),
+                      symmetric = FALSE, only.values = TRUE)$values
+  eigvalconjRep <- any(duplicated(eigvalconj))
+  eigvalconj <- sort(eigvalconj, decreasing = TRUE)[1]
+  eigvalconjRe <- Re(eigvalconj)
+  eigvalconjIm <- Im(eigvalconj)
+  eigvalconjReSign <- sign(eigvalconjRe)
+  eigvalconjImSign <- sign(eigvalconjIm)
+  
+  eqinfo <- c(eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, eigvalRep,
+              eigvalconjRe, eigvalconjIm, eigvalconjReSign, eigvalconjImSign, eigvalconjRep)
   return(eqinfo)
 }
 
@@ -453,11 +478,12 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
   length(intmeanset)*length(selfintmeanset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 11)
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 14)
 colnames(plotdata) <- c("niter", "nspecies", "modelcode",
                        "intmean", "selfintmean",
                        "mingrowthrate", "meangrowthrate", "maxgrowthrate",
-                       "fracstable", "fracreal", "fracrep")
+                       "fracstable", "fracreal", "fracrep",
+                       "fracstableconj", "fracrealconj", "fracrepconj")
 
 # Run simulations
 rowindexplotdata <- 1
@@ -477,7 +503,7 @@ for(nspecies in nspeciesset) {
     
     for(intmean in intmeanset) {
       for(selfintmean in selfintmeanset) {
-        mydata <- matrix(data = NA, nrow = niter * nspecies, ncol = 15)
+        mydata <- matrix(data = NA, nrow = niter * nspecies, ncol = 20)
         for(iter in 1:niter) {
           intmat <- getintmat(nspecies = nspecies,
                               intmean = intmean, selfintmean = selfintmean)
@@ -485,8 +511,12 @@ for(nspecies in nspeciesset) {
           
           growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
 
+          conjmat <- getconjmat(nspecies = nspecies,
+                                conjugationrate = conjugationrate)
+          
           eqinfo <- geteqinfo(abundance = abundance, intmat = intmat,
-                              growthrate = growthrate)
+                              growthrate = growthrate, cost = cost,
+                              conjmat = conjmat)
           
           mydata[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
             niter = rep(niter, nspecies),
@@ -508,15 +538,21 @@ for(nspecies in nspeciesset) {
                               "iter", "species", "abundance",
                               "selfint", "growthrate",
                               "eigvalRe", "eigvalIm",
-                              "eigvalReSign", "eigvalImSign", "eigvalRep")
+                              "eigvalReSign", "eigvalImSign", "eigvalRep",
+                              "eigvalconjRe", "eigvalconjIm",
+                              "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep")
         fracstable <- length(which(mydata[, "eigvalRe"] < 0))/(nspecies*niter)
         fracreal <- length(which(mydata[, "eigvalImSign"] == 0))/(nspecies*niter)
         fracrep <- length(which(mydata[, "eigvalRep"] != 0))/(nspecies*niter)
-
+        fracstableconj <- length(which(mydata[, "eigvalconjRe"] < 0))/(nspecies*niter)
+        fracrealconj <- length(which(mydata[, "eigvalconjImSign"] == 0))/(nspecies*niter)
+        fracrepconj <- length(which(mydata[, "eigvalconjRep"] != 0))/(nspecies*niter)
+        
         plotdata[rowindexplotdata, ] <- c(niter, nspecies, modelcode,
                                           intmean, selfintmean, min(mydata[, "growthrate"]),
                                           mean(mydata[, "growthrate"]), max(mydata[, "growthrate"]),
-                                          fracstable, fracreal, fracrep)
+                                          fracstable, fracreal, fracrep,
+                                          fracstableconj, fracrealconj, fracrepconj)
         rowindexplotdata <- rowindexplotdata + 1
       }
     }
@@ -578,11 +614,26 @@ CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies", facetx = "modelcode", diagional = "both")
 
+CreatePlot(fillvar = "fracstableconj",
+           filltitle = "Fraction stable\nwith conjugation",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies", facetx = "modelcode", diagional = "both")
+
 CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies", facetx = "modelcode", diagional = "both")
 
+CreatePlot(fillvar = "fracrealconj",
+           filltitle = "Fraction real\nwith conjugation",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies", facetx = "modelcode", diagional = "both")
+
 CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies", facetx = "modelcode", diagional = "both")
+
+CreatePlot(fillvar = "fracrepconj",
+           filltitle = "Fraction repeated eigenvalues\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies", facetx = "modelcode", diagional = "both")
 
