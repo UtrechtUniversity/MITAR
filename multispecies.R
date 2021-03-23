@@ -662,7 +662,7 @@ ggplot(data = mydatatotal, aes(x = intmean, y = selfintmean, fill = after_stat(s
 ## Plot equilibrium characteristics
 CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
 
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
@@ -671,7 +671,7 @@ CreatePlot(fillvar = "fracstableconj",
 
 CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
 
 CreatePlot(fillvar = "fracrealconj",
            filltitle = "Fraction real\nwith conjugation",
@@ -680,7 +680,7 @@ CreatePlot(fillvar = "fracrealconj",
 
 CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
 
 CreatePlot(fillvar = "fracrepconj",
            filltitle = "Fraction repeated eigenvalues\nwith conjugation",
