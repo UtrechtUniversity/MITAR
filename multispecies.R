@@ -701,96 +701,30 @@ ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
   facet_grid(nspecies ~ modelcode, labeller = mylabeller)
 
 
-### Show species-specific information for the last combination of intmean and
-# selfintmean.
+### Show species-specific relation of growth rate, intmean and selfintmean.
 mydata <- as.data.frame(mydata)
-mydatatotal <- as.data.frame(mydatatotal)
 
-# Check relation between abundance and growthrate for the different species.
+# Check relation between abundance and growth rate for the different species.
 nrow <- dim(mydatatotal)[1]
-subsetmydatatotal <- mydatatotal[sample(1:nrow, round(0.01*nrow)), ]
+subsetmydatatotal <- filter(mydatatotal, near(iter, 1))
 
-ggplot(data = subsetmydatatotal, aes(x = abundance, y = growthrate)) + 
-  theme_bw() +
-  theme(legend.position = "bottom") +
-  geom_point(aes(color = species), size = 2) +
-  facet_grid(nspecies ~ abunmodel, labeller = mylabeller) +
-  scale_color_viridis_c()
-
-ggplot(data = subsetmydatatotal, aes(x = abundance, y = growthrate)) + 
-  theme_bw() +
-  theme(legend.position = "bottom") +
-  geom_point(aes(color = iter), size = 2) +
-  facet_grid(nspecies ~ abunmodel, labeller = mylabeller) +
-  scale_color_viridis_c()
-
-# Alternatively use something like
-lattice::xyplot(meangrowthrate ~ intmean | as.factor(modelcode),
-                data = plotdata, groups = selfintmean)
-
-
-
+# Larger selfintmean leads to smaller growth rate, but effect becomes smaller
+# when species are less abundant.
+# Larger intmean leads to lower growth rate, effect becomes larger when species
+# are less abundant
 ggplot(data = subsetmydatatotal, aes(x = intmean, y = growthrate)) + 
   theme_bw() +
   theme(legend.position = "bottom") +
-  geom_point(aes(color = selfintmean), size = 2) +
-  facet_grid(nspecies ~ abunmodel, labeller = mylabeller) +
+  geom_point(aes(color = selfintmean), size = 1) +
+  facet_grid(species + nspecies ~ abunmodel + cost, labeller = mylabeller) +
   scale_color_viridis_c()
 
-ggplot(data = subsetmydatatotal, aes(x = intmean, y = selfintmean)) + 
+ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) + 
   theme_bw() +
   theme(legend.position = "bottom") +
-  geom_point(aes(color = growthrate + species), size = 2) +
-  facet_grid(nspecies ~ abunmodel, labeller = mylabeller) +
+  geom_point(aes(color = intmean), size = 1) +
+  facet_grid(species + nspecies ~ abunmodel + cost, labeller = mylabeller) +
   scale_color_viridis_c()
-
-
-# Using intmean instead of iter for the colorscale is more informative, but is
-# not yet possible because mydata contains a single value for intmean.
-
-ggplot(data = mydatatotal, aes(x = selfint, y = growthrate, color = eigvalRe)) +
-  geom_point() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_color_viridis_c() +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ abunmodel, labeller = mylabeller)
-
-# Becomes interesting if some eigenvalues have imaginairy part
-ggplot(data = mydatatotal, aes(x = eigvalRe, y = eigvalIm, color = selfint)) +
-  geom_point() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_color_viridis_c() +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ abunmodel, labeller = mylabeller)
-
-
-# Using library(ggmulti)
-# Maybe clearer when using log10(abundance)
-ggplot(data = mydatatotal, aes(color = as.factor(species))) + 
-  coord_serialaxes(axes.sequence = c("abundance", "selfint", "growthrate")) +
-  scale_color_viridis_d() +
-  geom_path()
-
-ggplot(mydatatotal, mapping = aes(selfint = selfint,
-                             growthrate = growthrate,
-                             colour = factor(species))) +
-  geom_path()  + 
-  coord_serialaxes()
-
-ggplot(data = mydatatotal, aes(x = selfint, y = growthrate, color = as.factor(species))) +
-  geom_point() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_color_viridis_d() +
-  theme(legend.position = "bottom") +
-  labs(caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ abunmodel, labeller = mylabeller)
 
 
 #### Comparing abundance models ####
