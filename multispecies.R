@@ -539,7 +539,7 @@ for(nspecies in nspeciesset) {
         mydatatotal[indexmydatatotal:(indexmydatatotal + nrowmydata - 1), ] <- mydata
         indexmydatatotal <- indexmydatatotal + nrowmydata
         
-        colnames(mydata) <- c("niter", "nspecies", "abunmodel",
+        colnames(mydata) <- c("niter", "nspecies", "modelcode",
                               "intmean", "selfintmean", "cost",
                               "iter", "species", "abundance",
                               "selfint", "growthrate",
@@ -633,18 +633,18 @@ CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
 # not work
 CreatePlot(dataplot = mydatatotal, fillvar = "growthrate", filltitle = "Growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "species + nspecies", facetx = "abunmodel + cost", diagional = "minor")
+           facety = "species + nspecies", facetx = "modelcode + cost", diagional = "minor")
 
 selectmydatatotal <- filter(mydatatotal, iter == niter)
 # Is identical to previous plot, so only data of last iteration is visible
 CreatePlot(dataplot = selectmydatatotal, fillvar = "growthrate", filltitle = "Growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "species + nspecies", facetx = "abunmodel + cost", diagional = "minor")
+           facety = "species + nspecies", facetx = "modelcode + cost", diagional = "minor")
 
 # Does not work
 CreatePlot(dataplot = mydatatotal, fillvar = "mean(growthrate)", filltitle = "Growth rate",
            filltype = "continuous", limits = NULL, 
-           facety = "species + nspecies", facetx = "abunmodel + cost", diagional = "minor")
+           facety = "species + nspecies", facetx = "modelcode + cost", diagional = "minor")
 
 ggplot(data = mydatatotal, aes(x = intmean, y = selfintmean, fill = after_stat(sum(growthrate) / length(growthrate)))) +
   geom_raster() +
@@ -655,7 +655,7 @@ ggplot(data = mydatatotal, aes(x = intmean, y = selfintmean, fill = after_stat(s
   coord_fixed(ratio = 1, expand = FALSE) +
   theme(legend.position = "bottom") +
   labs(caption = paste(niter, "iterations")) +
-  facet_grid(species + nspecies ~ abunmodel + cost, labeller = mylabeller)
+  facet_grid(species + nspecies ~ modelcode + cost, labeller = mylabeller)
 
 
 
@@ -716,14 +716,14 @@ ggplot(data = subsetmydatatotal, aes(x = intmean, y = growthrate)) +
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = selfintmean), size = 1) +
-  facet_grid(species + nspecies ~ abunmodel + cost, labeller = mylabeller) +
+  facet_grid(species + nspecies ~ modelcode + cost, labeller = mylabeller) +
   scale_color_viridis_c()
 
 ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) + 
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = intmean), size = 1) +
-  facet_grid(species + nspecies ~ abunmodel + cost, labeller = mylabeller) +
+  facet_grid(species + nspecies ~ modelcode + cost, labeller = mylabeller) +
   scale_color_viridis_c()
 
 
