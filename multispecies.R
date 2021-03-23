@@ -487,6 +487,9 @@ colnames(plotdata) <- c("niter", "nspecies", "modelcode",
 rowindexplotdata <- 1
 rowindexmydata <- 1
 for(nspecies in nspeciesset) {
+  conjmat <- getconjmat(nspecies = nspecies,
+                        conjugationrate = conjugationrate)
+  
   for(abunmodel in abunmodelset) {
     print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
                  ": started at ", Sys.time()), quote = FALSE)
@@ -509,9 +512,6 @@ for(nspecies in nspeciesset) {
           
           growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
 
-          conjmat <- getconjmat(nspecies = nspecies,
-                                conjugationrate = conjugationrate)
-          
           eqinfo <- geteqinfo(abundance = abundance, intmat = intmat,
                               growthrate = growthrate, cost = cost,
                               conjmat = conjmat)
