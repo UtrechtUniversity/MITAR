@@ -48,9 +48,6 @@
 # if the variation in fraction of stable equilibria is too large, use more
 # iterations.
 
-# Create a matrix to store all data (all 'mydata'), then it becomes possible to
-# plot species-specific growth rates and abundances.
-
 # Create file to store default settings (e.g., sparsity = 0, intdistr =
 # selfintdistr = "normal", intsd = selfintsd = 0.1) and write that to a .csv
 # file with DateTimeStamp matching to other files.
@@ -483,6 +480,13 @@ colnames(plotdata) <- c("niter", "nspecies", "modelcode",
                        "fracstable", "fracreal", "fracrep",
                        "fracstableconj", "fracrealconj", "fracrepconj")
 
+mydatatotal <- matrix(data = NA,
+                      nrow = length(abunmodelset)*length(intmeanset)*
+                        length(selfintmeanset)*length(costset)*niter*
+                        sum(nspeciesset), ncol = 21)
+indexmydatatotal <- 1
+
+system.time({
 # Run simulations
 rowindexplotdata <- 1
 rowindexmydata <- 1
@@ -491,8 +495,8 @@ for(nspecies in nspeciesset) {
                         conjugationrate = conjugationrate)
   
   for(abunmodel in abunmodelset) {
-    print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
-                 ": started at ", Sys.time()), quote = FALSE)
+   print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
+              ": started at ", Sys.time()), quote = FALSE)
     if(abunmodel == "brokenstick") {
       abundance <- brokenstick(nspecies = nspecies, takelimit = TRUE)
       modelcode <- 1
@@ -505,7 +509,8 @@ for(nspecies in nspeciesset) {
     for(intmean in intmeanset) {
       for(selfintmean in selfintmeanset) {
         for(cost in costset) {
-        mydata <- matrix(data = NA, nrow = niter * nspecies, ncol = 21)
+        nrowmydata <- niter * nspecies
+        mydata <- matrix(data = NA, nrow = nrowmydata, ncol = 21)
         for(iter in 1:niter) {
           intmat <- getintmat(nspecies = nspecies,
                               intmean = intmean, selfintmean = selfintmean)
@@ -531,7 +536,9 @@ for(nspecies in nspeciesset) {
             eqinfo = matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE)
           )
         }
-
+        mydatatotal[indexmydatatotal:(indexmydatatotal + nrowmydata - 1), ] <- mydata
+        indexmydatatotal <- indexmydatatotal + nrowmydata
+        
         colnames(mydata) <- c("niter", "nspecies", "abunmodel",
                               "intmean", "selfintmean", "cost",
                               "iter", "species", "abundance",
@@ -540,12 +547,14 @@ for(nspecies in nspeciesset) {
                               "eigvalReSign", "eigvalImSign", "eigvalRep",
                               "eigvalconjRe", "eigvalconjIm",
                               "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep")
-        fracstable <- length(which(mydata[, "eigvalRe"] < 0))/(nspecies*niter)
-        fracreal <- length(which(mydata[, "eigvalImSign"] == 0))/(nspecies*niter)
-        fracrep <- length(which(mydata[, "eigvalRep"] != 0))/(nspecies*niter)
-        fracstableconj <- length(which(mydata[, "eigvalconjRe"] < 0))/(nspecies*niter)
-        fracrealconj <- length(which(mydata[, "eigvalconjImSign"] == 0))/(nspecies*niter)
-        fracrepconj <- length(which(mydata[, "eigvalconjRep"] != 0))/(nspecies*niter)
+        
+        # Get proportions of stable and non-oscillating equilibria, and repeated eigenvalues
+        fracstable <- mean(mydata[, "eigvalRe"] < 0)
+        fracreal <- mean(mydata[, "eigvalImSign"] == 0)
+        fracrep <- mean(mydata[, "eigvalRep"] != 0)
+        fracstableconj <- mean(mydata[, "eigvalconjRe"] < 0)
+        fracrealconj <- mean(mydata[, "eigvalconjImSign"] == 0)
+        fracrepconj <- mean(mydata[, "eigvalconjRep"] != 0)
         
         plotdata[rowindexplotdata, ] <- c(niter, nspecies, modelcode,
                                           intmean, selfintmean, cost,
@@ -560,7 +569,10 @@ for(nspecies in nspeciesset) {
     }
   }
 }
+})
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
+colnames(mydatatotal) <- colnames(mydata)
+
 
 
 #### Showing and saving output ####
@@ -577,6 +589,7 @@ mylabeller <- labeller(nspecies = labspecies, modelcode = labmodel,
                        .default = label_both)
 
 plotdata <- as.data.frame(plotdata)
+mydatatotal <- as.data.frame(mydatatotal)
 limitsfraction <- c(0, 1)
 limitsgrowthrate <- c(min(plotdata[, "mingrowthrate"]),
                       max(plotdata[, "maxgrowthrate"]))
@@ -610,6 +623,41 @@ CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
 CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
            facety = "nspecies", facetx = "modelcode", diagional = "minor")
+
+# Show how interactions affect the growth rates of the individual species
+# required to obtain equilibrium
+# NOTE: costs do not affect growth rate, so differences between costs reflect
+# stochastic effects
+# NOTE 2: data for all iterations is plotted on top of each other, so only
+# data for last iteration is visible. Using fillvar = "mean(growthrate)" does
+# not work
+CreatePlot(dataplot = mydatatotal, fillvar = "growthrate", filltitle = "Growth rate",
+           filltype = "continuous", limits = limitsgrowthrate, 
+           facety = "species + nspecies", facetx = "abunmodel + cost", diagional = "minor")
+
+selectmydatatotal <- filter(mydatatotal, iter == niter)
+# Is identical to previous plot, so only data of last iteration is visible
+CreatePlot(dataplot = selectmydatatotal, fillvar = "growthrate", filltitle = "Growth rate",
+           filltype = "continuous", limits = limitsgrowthrate, 
+           facety = "species + nspecies", facetx = "abunmodel + cost", diagional = "minor")
+
+# Does not work
+CreatePlot(dataplot = mydatatotal, fillvar = "mean(growthrate)", filltitle = "Growth rate",
+           filltype = "continuous", limits = NULL, 
+           facety = "species + nspecies", facetx = "abunmodel + cost", diagional = "minor")
+
+ggplot(data = mydatatotal, aes(x = intmean, y = selfintmean, fill = after_stat(sum(growthrate) / length(growthrate)))) +
+  geom_raster() +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_fill_viridis_c() +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(caption = paste(niter, "iterations")) +
+  facet_grid(species + nspecies ~ abunmodel + cost, labeller = mylabeller)
+
+
 
 ## Plot equilibrium characteristics
 CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
@@ -655,25 +703,52 @@ ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
 
 ### Show species-specific information for the last combination of intmean and
 # selfintmean.
-# NOTE: I use mydata because species-specific data is not in plotdata. As a
-# consequence, the data shown is only for the last series of values.
 mydata <- as.data.frame(mydata)
+mydatatotal <- as.data.frame(mydatatotal)
 
 # Check relation between abundance and growthrate for the different species.
-ggplot(data = mydata, aes(x = abundance, y = growthrate)) + 
+nrow <- dim(mydatatotal)[1]
+subsetmydatatotal <- mydatatotal[sample(1:nrow, round(0.01*nrow)), ]
+
+ggplot(data = subsetmydatatotal, aes(x = abundance, y = growthrate)) + 
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  geom_point(aes(color = species), size = 2) +
+  facet_grid(nspecies ~ abunmodel, labeller = mylabeller) +
+  scale_color_viridis_c()
+
+ggplot(data = subsetmydatatotal, aes(x = abundance, y = growthrate)) + 
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = iter), size = 2) +
+  facet_grid(nspecies ~ abunmodel, labeller = mylabeller) +
   scale_color_viridis_c()
 
 # Alternatively use something like
 lattice::xyplot(meangrowthrate ~ intmean | as.factor(modelcode),
                 data = plotdata, groups = selfintmean)
 
+
+
+ggplot(data = subsetmydatatotal, aes(x = intmean, y = growthrate)) + 
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  geom_point(aes(color = selfintmean), size = 2) +
+  facet_grid(nspecies ~ abunmodel, labeller = mylabeller) +
+  scale_color_viridis_c()
+
+ggplot(data = subsetmydatatotal, aes(x = intmean, y = selfintmean)) + 
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  geom_point(aes(color = growthrate + species), size = 2) +
+  facet_grid(nspecies ~ abunmodel, labeller = mylabeller) +
+  scale_color_viridis_c()
+
+
 # Using intmean instead of iter for the colorscale is more informative, but is
 # not yet possible because mydata contains a single value for intmean.
 
-ggplot(data = mydata, aes(x = selfint, y = growthrate, color = eigvalRe)) +
+ggplot(data = mydatatotal, aes(x = selfint, y = growthrate, color = eigvalRe)) +
   geom_point() +
   scale_x_continuous() +
   scale_y_continuous() +
@@ -684,7 +759,7 @@ ggplot(data = mydata, aes(x = selfint, y = growthrate, color = eigvalRe)) +
   facet_grid(nspecies ~ abunmodel, labeller = mylabeller)
 
 # Becomes interesting if some eigenvalues have imaginairy part
-ggplot(data = mydata, aes(x = eigvalRe, y = eigvalIm, color = selfint)) +
+ggplot(data = mydatatotal, aes(x = eigvalRe, y = eigvalIm, color = selfint)) +
   geom_point() +
   scale_x_continuous() +
   scale_y_continuous() +
@@ -697,18 +772,18 @@ ggplot(data = mydata, aes(x = eigvalRe, y = eigvalIm, color = selfint)) +
 
 # Using library(ggmulti)
 # Maybe clearer when using log10(abundance)
-ggplot(data = mydata, aes(color = as.factor(species))) + 
+ggplot(data = mydatatotal, aes(color = as.factor(species))) + 
   coord_serialaxes(axes.sequence = c("abundance", "selfint", "growthrate")) +
   scale_color_viridis_d() +
   geom_path()
 
-ggplot(mydata, mapping = aes(selfint = selfint,
+ggplot(mydatatotal, mapping = aes(selfint = selfint,
                              growthrate = growthrate,
                              colour = factor(species))) +
   geom_path()  + 
   coord_serialaxes()
 
-ggplot(data = mydata, aes(x = selfint, y = growthrate, color = as.factor(species))) +
+ggplot(data = mydatatotal, aes(x = selfint, y = growthrate, color = as.factor(species))) +
   geom_point() +
   scale_x_continuous() +
   scale_y_continuous() +
