@@ -322,7 +322,7 @@ checkequilibrium <- function(abundance, intmat, growthrate,
   derivatives <- abundance*(growthrate + intmat %*% abundance)
   atequilibrium <- all(near(0, derivatives))
   if(printderivatives == TRUE) {
-    print(paste("Derivatives:", paste0(round(derivatives, 4), collapse = ", ")),
+    print(paste("Derivatives:", paste0(signif(derivatives, 4), collapse = ", ")),
           quote = FALSE)
   }
   if(showplot == TRUE) {
