@@ -116,7 +116,6 @@ library(deSolve)   # checkequilibrium calls ode() if showplot == TRUE
 library(dplyr)     # checkequilibrium calls near()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
-library(ggmulti)   # plotting multidimensional data
 
 #### Settings and defining parameterspace ####
 
@@ -624,39 +623,18 @@ CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
            facety = "nspecies", facetx = "modelcode", diagional = "minor")
 
-# Show how interactions affect the growth rates of the individual species
-# required to obtain equilibrium
-# NOTE: costs do not affect growth rate, so differences between costs reflect
-# stochastic effects
-# NOTE 2: data for all iterations is plotted on top of each other, so only
-# data for last iteration is visible. Using fillvar = "mean(growthrate)" does
-# not work
-CreatePlot(dataplot = mydatatotal, fillvar = "growthrate", filltitle = "Growth rate",
-           filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "species + nspecies", facetx = "modelcode + cost", diagional = "minor")
-
 selectmydatatotal <- filter(mydatatotal, iter == niter)
-# Is identical to previous plot, so only data of last iteration is visible
-CreatePlot(dataplot = selectmydatatotal, fillvar = "growthrate", filltitle = "Growth rate",
+# Show how interactions affect the growth rates of the individual species
+# required to obtain equilibrium. NOTE: costs do not affect growth rate, so
+# differences between costs reflect stochastic effects.
+# NOTE 2: data for all iterations is plotted on top of each other, so if all
+# data is used, only the data for last iteration is visible.
+# Using fillvar = "mean(growthrate)" does not work.
+CreatePlot(dataplot = selectmydatatotal, fillvar = "growthrate",
+           filltitle = "Growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "species + nspecies", facetx = "modelcode + cost", diagional = "minor")
-
-# Does not work
-CreatePlot(dataplot = mydatatotal, fillvar = "mean(growthrate)", filltitle = "Growth rate",
-           filltype = "continuous", limits = NULL, 
-           facety = "species + nspecies", facetx = "modelcode + cost", diagional = "minor")
-
-ggplot(data = mydatatotal, aes(x = intmean, y = selfintmean, fill = after_stat(sum(growthrate) / length(growthrate)))) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_c() +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(caption = paste(niter, "iterations")) +
-  facet_grid(species + nspecies ~ modelcode + cost, labeller = mylabeller)
-
+           facety = "species + nspecies", facetx = "modelcode + cost",
+           diagional = "minor")
 
 
 ## Plot equilibrium characteristics
@@ -688,17 +666,17 @@ CreatePlot(fillvar = "fracrepconj",
            facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
 
 ### To test plots without using CreatePlot() ###
-ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
-  geom_raster() +
-  scale_x_continuous() +
-  scale_y_continuous() +
-  scale_fill_viridis_c(limits = limitsfraction) +
-  geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(caption = paste(niter, "iterations")) +
-  facet_grid(nspecies ~ modelcode, labeller = mylabeller)
+# ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
+#   geom_raster() +
+#   scale_x_continuous() +
+#   scale_y_continuous() +
+#   scale_fill_viridis_c(limits = limitsfraction) +
+#   geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1) +
+#   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1) +
+#   coord_fixed(ratio = 1, expand = FALSE) +
+#   theme(legend.position = "bottom") +
+#   labs(caption = paste(niter, "iterations")) +
+#   facet_grid(nspecies ~ modelcode, labeller = mylabeller)
 
 
 ### Show species-specific relation of growth rate, intmean and selfintmean.
