@@ -330,7 +330,8 @@ getgrowthrate <- function(abundance, intmat) {
 checkequilibrium <- function(abundance, intmat, growthrate,
                              printderivatives = FALSE,
                              showplot = FALSE, tmax = 100, tstep = 0.1) {
-  derivatives <- abundance*(growthrate + intmat %*% abundance)
+  derivatives <- unlist(gLV(t = 0, n = abundance,
+                            parms = list(growthrate = growthrate, intmat = intmat)))
   atequilibrium <- all(near(0, derivatives))
   if(printderivatives == TRUE) {
     print(paste("Derivatives:", paste0(signif(derivatives, 4), collapse = ", ")),
