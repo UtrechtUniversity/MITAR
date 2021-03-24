@@ -35,6 +35,13 @@
 # repeated eigenvalues. See p. 133 of Edelstein-Keshet 2005 and section 10.4.3.3 from
 # https://eng.libretexts.org/Bookshelves/Industrial_and_Systems_Engineering/Book%3A_Chemical_Process_Dynamics_and_Controls_(Woolf)
 
+## simulateinvasion() ##
+# Abundances frequently grow to infinity because the system does not have an
+# inherent carrying capacity, leading to fatal errors during the integration.
+# An alternative could be to use runsteady() instead of ode(), but this only
+# gives the equilibrium (which frequently is the non-interesting all 0:
+# outsteady <- runsteady(y = abunpert, func = gLVConj, parms = list(growthrate =
+# growthrate, intmat = intmat, cost = cost, conjmat = conjmat))
 
 #### Optionally to do ####
 
@@ -113,7 +120,7 @@
 
 #### Loading required libraries ####
 library(deSolve)   # checkequilibrium calls ode() if showplot == TRUE
-library(dplyr)     # checkequilibrium calls near()
+library(dplyr)     # checkequilibrium and simulateinvasion call near()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
 
@@ -130,6 +137,8 @@ intmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
 selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
 costset <- c(0.01, 0.20)
 conjugationrate <- 0.01
+mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
+           "darkorange", "green1", "yellow", "hotpink")
 
 # Settings for testing code
 niter <- 5
@@ -140,6 +149,8 @@ intmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
 selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
 costset <- c(0.01, 0.20)
 conjugationrate <- 0.01
+mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
+           "darkorange", "green1", "yellow", "hotpink")
 
 #### Functions ####
 
@@ -374,6 +385,95 @@ geteqinfo <- function(abundance, intmat,
   eqinfo <- c(eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, eigvalRep,
               eigvalconjRe, eigvalconjIm, eigvalconjReSign, eigvalconjImSign, eigvalconjRep)
   return(eqinfo)
+}
+
+# Simulate invasion by adding a small number of bacteria to an equilibrium.
+# If verbose is TRUE, abundances before and after perturbation, and their
+# differences, are printed.
+# Note: abundances frequently grow to infinity because the system does not have
+# an inherent carrying capacity, leading to fatal errors during the integration.
+# See the "To do"-section for ideas for alternative approaches.
+simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
+                             model, pertpop, pertmagn = 1e-6,
+                             tmax = 100, tstep = 0.1, showplot = TRUE, verbose = TRUE) {
+  
+  # Name abundances, set line type and colors, get derivatives of initial state
+  # in the plasmid-free model.
+  if(model == "gLV") {
+    nspecies <- length(abundance)
+    names(abundance) <- paste0(rep("R", nspecies), 1:nspecies)
+    lty <- 1
+    col <- mycol[1:nspecies]
+    derivatives <- unlist(
+      gLV(n = abundance, parms = list(growthrate = growthrate, intmat = intmat))
+    )
+  }
+  
+  if(model == "gLVConj") {
+    nspecies <- length(abundance)/2
+    names(abundance) <- c(paste0(rep("R", nspecies), 1:nspecies),
+                          paste0(rep("P", nspecies), 1:nspecies))
+    lty <- rep(c(1, 2), each = nspecies)
+    col <- rep(mycol[1:nspecies], 2)
+    if(!all(near(abundance[(nspecies + 1):(2*nspecies)], 0))) {
+      message("Initial state is NOT plasmid-free.")
+    }
+    derivatives <- unlist(
+      gLV(n = abundance[1:nspecies],
+          parms = list(growthrate = growthrate, intmat = intmat)
+      )
+    )
+  }
+  
+  # Warn if population to perturb does not exist 
+  if(!all(pertpop %in% names(abundance))) { 
+    warning("Specified population to perturb does not exist!")
+    abundance <- NA
+  }
+  
+  # Warn if initial plasmid-free state is not an equilibrium in the model
+  # without plasmids.
+  if(!all(near(derivatives, 0))) {
+    warntext <- paste("Initial (unperturbed) state is NOT an equilibrium in the
+                      plasmid-free model! Derivatives are:",
+                      paste(signif(derivatives), collapse = ", ")
+    )
+    warning(warntext)
+  }
+  
+  # Create perturbed abundances
+  abuninit <- abundance
+  abunpert <- abundance
+  abunpert[pertpop] <- abunpert[pertpop] + pertmagn
+  
+  # Simulate invasion
+  times <- seq(from = 0, to = tmax, by = tstep)
+  if(model == "gLV") {
+    out <- ode(y = abunpert, t = times, func = gLV,
+               parms = list(growthrate = growthrate, intmat = intmat))
+  }
+  if(model == "gLVConj") {
+    out <- ode(y = abunpert, t = times, func = gLVConj,
+               parms = list(growthrate = growthrate, intmat = intmat,
+                            cost = cost, conjmat = conjmat))
+  }
+  
+  if(showplot == TRUE) {
+    matplot.deSolve(out, lty = lty, col = col, ylab = "log10(Abundance)",
+                    log = "y", lwd = 2, legend = list(x = "bottomright"))
+    grid()
+    abline(h = abuninit)
+  }
+  
+  abunfinal <- tail(out, 1)[, -1]
+  if(verbose == TRUE) {
+    abschange <- abunfinal - abuninit
+    relchange <- abunfinal / abuninit
+    print("Species abundances, and their changes:", quote = FALSE)
+    print(rbind(tested = abuninit, at_perturbation = abunpert, final = abunfinal,
+                absolute_change = abschange, relative_change = relchange))
+  }
+  return(abunfinal)
 }
 
 # Function to create plots
