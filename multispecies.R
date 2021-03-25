@@ -38,6 +38,9 @@
 ## simulateinvasion() ##
 # Abundances frequently grow to infinity because the system does not have an
 # inherent carrying capacity, leading to fatal errors during the integration.
+# Could choose to continue but let the object for the output remove before
+# computation, leading to NA as final abundance, which will show up in the plot
+# accordingly.
 # An alternative could be to use runsteady() instead of ode(), but this only
 # gives the equilibrium (which frequently is the non-interesting all 0:
 # outsteady <- runsteady(y = abunpert, func = gLVConj, parms = list(growthrate =
@@ -151,6 +154,19 @@ costset <- c(0.01, 0.20)
 conjugationrate <- 0.01
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
+
+# Settings for testing simulations over time
+niter <- 1
+saveplots <- FALSE
+nspeciesset <- c(2)
+abunmodelset <- c("brokenstick")
+intmeanset <- seq(from = -1.5, to = 1.5, by = 0.75)
+selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.75)
+costset <- c(0.01)
+conjugationrate <- 0.01
+mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
+           "darkorange", "green1", "yellow", "hotpink")
+
 
 #### Functions ####
 
@@ -394,6 +410,7 @@ geteqinfo <- function(abundance, intmat,
 # Note: abundances frequently grow to infinity because the system does not have
 # an inherent carrying capacity, leading to fatal errors during the integration.
 # See the "To do"-section for ideas for alternative approaches.
+# simulateinvasion(abundance, intmat, growthrate, cost, conjmat, "gLV", "R1")
 simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
                              model, pertpop, pertmagn = 1e-6,
                              tmax = 100, tstep = 0.1, showplot = TRUE, verbose = TRUE) {
@@ -466,6 +483,7 @@ simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
     abline(h = abuninit)
   }
   
+  abunfinal <- NA # So it stays NA if integration failed
   abunfinal <- tail(out, 1)[, -1]
   if(verbose == TRUE) {
     abschange <- abunfinal - abuninit
