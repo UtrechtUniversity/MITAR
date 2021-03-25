@@ -183,12 +183,18 @@ gLV <- function(t, n, parms) {
   })
 }
 
+### CONTAINS INCONSISTENCY ###
 # Define the generalised Lotka-Volterra model with conjugation. Vector n with
 # species abundances is split into vector S0 for plasmid-free bacteria and
 # vector S1 for plasmid-bearing bacteria. cost is a vector giving the absolute
 # reduction in growth rate when carrying a plasmid. conjmat is a matrix with
 # conjugation rates, where element cij gives the rate of conjugation from
 # plasmid-bearing species j to plasmid-free species i.
+
+# Note INCONSISTENCY: growth in the gLVConj model is INCONSISTENTLY modelled.
+# The gLVConj model without plasmid-bearing species should be identical to the
+# gLV model, which is not the case. Instead, equation dS0/dt without plasmids is
+# growthrate * S0 * (1 - intmat %*% S0), instead of n*(growthrate + intmat %*% n)
 gLVConj <- function(t, n, parms) {
   with(parms, {
   S0 <- n[1:nspecies]
