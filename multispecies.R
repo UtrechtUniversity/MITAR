@@ -139,7 +139,7 @@ abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
 selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
 costset <- c(0.01, 0.20)
-conjugationrate <- 0.01
+conjrateset <- c(0.01, 0.05, 0.1)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -151,7 +151,7 @@ abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
 selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
 costset <- c(0.01, 0.20)
-conjugationrate <- 0.01
+conjrateset <- c(0.01, 0.1)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -162,8 +162,8 @@ nspeciesset <- c(2)
 abunmodelset <- c("brokenstick")
 intmeanset <- seq(from = -1.5, to = 1.5, by = 0.75)
 selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.75)
-costset <- c(0.01)
-conjugationrate <- 0.01
+costset <- c(0.20)
+conjrateset <- c(0.01, 0.1)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -365,8 +365,8 @@ checkequilibrium <- function(abundance, intmat, growthrate,
   return(atequilibrium)
 }
 
-getconjmat <- function(nspecies, conjugationrate) {
-  conjmat <- matrix(rep(conjugationrate, nspecies^2),
+getconjmat <- function(nspecies, conjrate) {
+  conjmat <- matrix(rep(conjrate, nspecies^2),
                     nrow = nspecies, ncol = nspecies)
 }
 
@@ -463,6 +463,11 @@ simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
   abuninit <- abundance
   abunpert <- abundance
   abunpert[pertpop] <- abunpert[pertpop] + pertmagn
+  
+  if(verbose == TRUE) {
+    print("abunpert =")
+    print(abunpert)
+  }
   
   # Simulate invasion
   times <- seq(from = 0, to = tmax, by = tstep)
@@ -589,19 +594,19 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 
 # Create matrix to store data
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
-  length(intmeanset)*length(selfintmeanset)*length(costset)
+  length(intmeanset)*length(selfintmeanset)*length(costset)*length(conjrateset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 15)
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 16)
 colnames(plotdata) <- c("niter", "nspecies", "modelcode",
-                       "intmean", "selfintmean", "cost",
+                       "intmean", "selfintmean", "cost", "conjrate",
                        "mingrowthrate", "meangrowthrate", "maxgrowthrate",
                        "fracstable", "fracreal", "fracrep",
                        "fracstableconj", "fracrealconj", "fracrepconj")
 
 mydatatotal <- matrix(data = NA,
                       nrow = length(abunmodelset)*length(intmeanset)*
-                        length(selfintmeanset)*length(costset)*niter*
-                        sum(nspeciesset), ncol = 21)
+                        length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
+                        sum(nspeciesset), ncol = 22)
 indexmydatatotal <- 1
 
 system.time({
@@ -609,8 +614,9 @@ system.time({
 rowindexplotdata <- 1
 rowindexmydata <- 1
 for(nspecies in nspeciesset) {
+  for(conjrate in conjrateset) {
   conjmat <- getconjmat(nspecies = nspecies,
-                        conjugationrate = conjugationrate)
+                        conjrate = conjrate)
   
   for(abunmodel in abunmodelset) {
    print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
@@ -628,7 +634,7 @@ for(nspecies in nspeciesset) {
       for(selfintmean in selfintmeanset) {
         for(cost in costset) {
         nrowmydata <- niter * nspecies
-        mydata <- matrix(data = NA, nrow = nrowmydata, ncol = 21)
+        mydata <- matrix(data = NA, nrow = nrowmydata, ncol = 22)
         for(iter in 1:niter) {
           intmat <- getintmat(nspecies = nspecies,
                               intmean = intmean, selfintmean = selfintmean)
@@ -646,6 +652,7 @@ for(nspecies in nspeciesset) {
             rep(intmean, nspecies),
             rep(selfintmean, nspecies),
             rep(cost, nspecies),
+            rep(conjrate, nspecies),
             rep(iter, nspecies),
             1:nspecies,
             abundance,
@@ -658,7 +665,7 @@ for(nspecies in nspeciesset) {
         indexmydatatotal <- indexmydatatotal + nrowmydata
         
         colnames(mydata) <- c("niter", "nspecies", "modelcode",
-                              "intmean", "selfintmean", "cost",
+                              "intmean", "selfintmean", "cost", "conjrate",
                               "iter", "species", "abundance",
                               "selfint", "growthrate",
                               "eigvalRe", "eigvalIm",
@@ -675,7 +682,7 @@ for(nspecies in nspeciesset) {
         fracrepconj <- mean(mydata[, "eigvalconjRep"] != 0)
         
         plotdata[rowindexplotdata, ] <- c(niter, nspecies, modelcode,
-                                          intmean, selfintmean, cost,
+                                          intmean, selfintmean, cost, conjrate,
                                           min(mydata[, "growthrate"]),
                                           mean(mydata[, "growthrate"]),
                                           max(mydata[, "growthrate"]),
@@ -685,6 +692,7 @@ for(nspecies in nspeciesset) {
         }
       }
     }
+  }
   }
 }
 })
@@ -720,27 +728,33 @@ limitsgrowthratebinned <- sort(c(limitsgrowthrate, limitsgrowthrate/2, 0))
 ## Plot summary data for the calculated growth rates 
 CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           facety = "nspecies", facetx = "modelcode", diagional = "minor")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "minor")
 
 CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "nspecies", facetx = "modelcode", diagional = "minor")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "minor")
 
 CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           facety = "nspecies", facetx = "modelcode", diagional = "minor")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "minor")
 
 CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "nspecies", facetx = "modelcode", diagional = "minor")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "minor")
 
 CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           facety = "nspecies", facetx = "modelcode", diagional = "minor")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "minor")
 
 CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "nspecies", facetx = "modelcode", diagional = "minor")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "minor")
 
 selectmydatatotal <- filter(mydatatotal, iter == niter)
 # Show how interactions affect the growth rates of the individual species
@@ -752,37 +766,43 @@ selectmydatatotal <- filter(mydatatotal, iter == niter)
 CreatePlot(dataplot = selectmydatatotal, fillvar = "growthrate",
            filltitle = "Growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "species + nspecies", facetx = "modelcode + cost",
+           facety = "species + nspecies", facetx = "modelcode + cost + conjrate",
            diagional = "minor")
 
 
 ## Plot equilibrium characteristics
 CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
 
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
 
 CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
 
 CreatePlot(fillvar = "fracrealconj",
            filltitle = "Fraction real\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
 
 CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
 
 CreatePlot(fillvar = "fracrepconj",
            filltitle = "Fraction repeated eigenvalues\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + cost", facetx = "modelcode", diagional = "both")
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
 
 ### To test plots without using CreatePlot() ###
 # ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
@@ -813,7 +833,7 @@ ggplot(data = subsetmydatatotal, aes(x = intmean, y = growthrate)) +
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = selfintmean), size = 1) +
-  facet_grid(species + nspecies ~ modelcode + cost, labeller = mylabeller) +
+  facet_grid(species + nspecies ~ modelcode + cost + conjrate, labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 ggsave("growthrateperspecies1.png")
@@ -822,7 +842,7 @@ ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) +
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = intmean), size = 1) +
-  facet_grid(species + nspecies ~ modelcode + cost, labeller = mylabeller) +
+  facet_grid(species + nspecies ~ modelcode + cost + conjrate, labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 ggsave("growthrateperspecies2.png")
