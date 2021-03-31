@@ -404,6 +404,10 @@ geteqinfo <- function(abundance, intmat,
   return(eqinfo)
 }
 
+# A rootfunction to terminate simulation if abundances get very large, to
+# prevent errors during integration if state gets to +Inf or stepsize to 0.
+rootfun <- function(t, state, parms) {sum(state) - 1e6/max(intmat)}
+
 # Simulate invasion by adding a small number of bacteria to an equilibrium.
 # If verbose is TRUE, abundances before and after perturbation, and their
 # differences, are printed.
@@ -473,17 +477,19 @@ simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
   times <- seq(from = 0, to = tmax, by = tstep)
   if(model == "gLV") {
     out <- ode(y = abunpert, t = times, func = gLV,
-               parms = list(growthrate = growthrate, intmat = intmat))
+               parms = list(growthrate = growthrate, intmat = intmat), rootfun = rootfun)
   }
   if(model == "gLVConj") {
     out <- ode(y = abunpert, t = times, func = gLVConj,
                parms = list(growthrate = growthrate, intmat = intmat,
-                            cost = cost, conjmat = conjmat))
+                            cost = cost, conjmat = conjmat), rootfun = rootfun)
   }
   
   if(showplot == TRUE) {
+    subtitle <- paste0(abunmodel, ", intmean=", intmean, ", selfintmean=", selfintmean, ", cost=",
+                       cost, ", conjrate=", conjrate)
     matplot.deSolve(out, lty = lty, col = col, ylab = "log10(Abundance)",
-                    log = "y", lwd = 2, legend = list(x = "bottomright"))
+                    log = "y", sub = subtitle, lwd = 2, legend = list(x = "bottomright"))
     grid()
     abline(h = abuninit)
   }
@@ -499,6 +505,11 @@ simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
   }
   return(abunfinal)
 }
+
+# Add function to simulate invasion when not abundances, intmat, ect. are
+# supplied, but instead the parameters to obtain them. Then split this in
+# calcStuff function (to be used also in main script [with (l/m)apply?]) and
+# PerturbFunction ?
 
 # Function to create plots
 CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmean",
@@ -609,7 +620,7 @@ mydatatotal <- matrix(data = NA,
                         sum(nspeciesset), ncol = 22)
 indexmydatatotal <- 1
 
-system.time({
+# system.time({
 # Run simulations
 rowindexplotdata <- 1
 rowindexmydata <- 1
@@ -689,13 +700,17 @@ for(nspecies in nspeciesset) {
                                           fracstable, fracreal, fracrep,
                                           fracstableconj, fracrealconj, fracrepconj)
         rowindexplotdata <- rowindexplotdata + 1
+        simulateinvasion(abundance, intmat, growthrate, cost, conjmat,
+                         model = "gLV", pertpop = "R1")
+        simulateinvasion(c(abundance , rep(0, nspecies)), intmat, growthrate, cost, conjmat,
+                         model = "gLVConj", pertpop = "P1")
         }
       }
     }
   }
   }
 }
-})
+# })
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 colnames(mydatatotal) <- colnames(mydata)
 
