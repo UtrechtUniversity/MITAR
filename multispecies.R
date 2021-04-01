@@ -156,14 +156,14 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
 # Settings for testing simulations over time
-niter <- 1
+niter <- 5
 saveplots <- FALSE
-nspeciesset <- c(2)
+nspeciesset <- c(4)
 abunmodelset <- c("brokenstick")
-intmeanset <- seq(from = -1.5, to = 1.5, by = 0.75)
-selfintmeanset <- seq(from = -1.5, to = 1.5, by = 0.75)
-costset <- c(0.20)
-conjrateset <- c(0.01, 0.1)
+intmeanset <- seq(from = -1, to = 1, by = 0.2)
+selfintmeanset <- seq(from = -1, to = 1, by = 0.2)
+costset <- c(0.01, 0.20)
+conjrateset <- c(0.01)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -700,10 +700,10 @@ for(nspecies in nspeciesset) {
                                           fracstable, fracreal, fracrep,
                                           fracstableconj, fracrealconj, fracrepconj)
         rowindexplotdata <- rowindexplotdata + 1
-        simulateinvasion(abundance, intmat, growthrate, cost, conjmat,
-                         model = "gLV", pertpop = "R1")
-        simulateinvasion(c(abundance , rep(0, nspecies)), intmat, growthrate, cost, conjmat,
-                         model = "gLVConj", pertpop = "P1")
+        # simulateinvasion(abundance, intmat, growthrate, cost, conjmat,
+        #                  model = "gLV", pertpop = "R1")
+        # simulateinvasion(c(abundance , rep(0, nspecies)), intmat, growthrate, cost, conjmat,
+        #                  model = "gLVConj", pertpop = "P1")
         }
       }
     }
