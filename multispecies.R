@@ -134,6 +134,7 @@ niter <- 100
 saveplots <- TRUE
 
 # Define parameter space
+totalabun <- 10^7
 nspeciesset <- c(2, 4, 6)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -1.5, to = 1.5, by = 0.1)
@@ -146,6 +147,7 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 # Settings for testing code
 niter <- 5
 saveplots <- FALSE
+totalabun <- 10^7
 nspeciesset <- c(2, 4)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -1.5, to = 1.5, by = 0.25)
@@ -158,6 +160,7 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 # Settings for testing simulations over time
 niter <- 5
 saveplots <- FALSE
+totalabun <- 10^7
 nspeciesset <- c(4)
 abunmodelset <- c("brokenstick")
 intmeanset <- seq(from = -1, to = 1, by = 0.2)
@@ -582,10 +585,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 }
 
 #### Testing functions ####
-
+# 
 # nspecies <- 4
-# abunbrokenstick <- brokenstick(nspecies = nspecies, takelimit = TRUE)
-# abundompreempt <- dompreempt(nspecies = nspecies, takelimit = TRUE)
+# abunbrokenstick <- brokenstick(nspecies = nspecies, totalabun = totalabun, takelimit = TRUE)
+# abundompreempt <- dompreempt(nspecies = nspecies, totalabun = totalabun, takelimit = TRUE)
 # abunbrokenstick
 # abundompreempt
 # 
@@ -634,11 +637,13 @@ for(nspecies in nspeciesset) {
    print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
               ": started at ", Sys.time()), quote = FALSE)
     if(abunmodel == "brokenstick") {
-      abundance <- brokenstick(nspecies = nspecies, takelimit = TRUE)
+      abundance <- brokenstick(nspecies = nspecies, totalabun = totalabun,
+                               takelimit = TRUE)
       modelcode <- 1
     }
     if(abunmodel == "dompreempt") {
-      abundance <- dompreempt(nspecies = nspecies, takelimit = TRUE)
+      abundance <- dompreempt(nspecies = nspecies, totalabun = totalabun,
+                              takelimit = TRUE)
       modelcode <- 2
     }
     
@@ -869,8 +874,10 @@ for(nspecies in nspeciesset) {
   comparingabundance <- data.frame(
     nspecies = rep(nspecies, 2*nspecies),
     species = as.factor(rep(1:nspecies, 2)),
-    abun = c(brokenstick(nspecies = nspecies, takelimit = TRUE),
-             dompreempt(nspecies = nspecies, takelimit = TRUE)),
+    abun = c(brokenstick(nspecies = nspecies, totalabun = totalabun,
+                         takelimit = TRUE),
+             dompreempt(nspecies = nspecies, totalabun = totalabun,
+                        takelimit = TRUE)),
     model = rep(c("brokenstick", "dompreempt"), each = nspecies)
   )
   
