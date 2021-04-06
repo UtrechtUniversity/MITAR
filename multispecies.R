@@ -202,10 +202,11 @@ gLVConj <- function(t, n, parms) {
   })
 }
 
-# The broken stick model (= MacArthur faction model), I follow the description
-# of Tokeshi (1990). Species abundances are proportional to the length of
-# fragments of a stick that is broken randomly at nspecies - 1 points.
-brokenstick <- function(nspecies, totalabun = 1, takelimit = FALSE) {
+# Calculate absolute species abundances from the specified total abundance if
+# species abundances are proportional to the length of fragments of a stick that
+# is broken randomly at nspecies - 1 points, following the broken stick model
+# (= MacArthur faction model) in the description of Tokeshi (1990).
+brokenstick <- function(nspecies, totalabun, takelimit = TRUE) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
            length(totalabun) == 1, totalabun > 0)
   if(takelimit == TRUE) {
@@ -225,15 +226,15 @@ brokenstick <- function(nspecies, totalabun = 1, takelimit = FALSE) {
   return(abun)
 }
 
-# The dominance preemption abundance model. The first species occupies (preempts)
-# more than half of the total niche, and each subsequent species occupies more
-# than half of the remainder. The last species is assigned all of the niche that
-# remains, to obtain the user-defined total abundance. Over many iterations,
-# each species preempts on average (0.5 + 1)/2 = 0.75 of the remainder, such
-# that the model converges to the geometric series with k = 0.75 for all but the
-# last species. This geometric model is used instead of the dominance preemption
-# model if takelimit = TRUE.
-dompreempt <- function(nspecies, totalabun = 1, takelimit = FALSE) {
+# Calculate abundances following the dominance preemption model. The first
+# species occupies (preempts) more than half of the total niche, and each
+# subsequent species occupies more than half of the remainder. The last species
+# is assigned all of the niche that remains, to obtain the user-defined total
+# abundance. Over many iterations, each species preempts on average (0.5 + 1)/2
+# = 0.75 of the remainder, such that the model converges to the geometric series
+# with k = 0.75 for all but the last species. This geometric model is used
+# instead of the dominance preemption model with the default takelimit = TRUE.
+dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
            length(totalabun) == 1, totalabun > 0)
   abun <- rep(NA, nspecies)
