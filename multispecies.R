@@ -173,10 +173,26 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 
 #### Functions ####
 
-# Define the generalised Lotka-Volterra model. n is a vector of species
-# abundances, growthrate is a vector of growth rates, intmat is a matrix of
-# interaction coefficients where element mij gives the effect of species j on
-# the growth rate of species i.
+# The generalised Lotka-Volterra model. n is a vector of species densities (cell
+# mL^-1), dn/dt is a vector of the change in these densities per time (cell
+# mL^-1 time^-1), growthrate is a vector of growth rates (h^-1), intmat is a
+# matrix of scaled interaction coefficients with units mL cell^-1 h^-1, where
+# element aij represents cij * ri / Ki in the textbook-notation given below,
+# such that elements aii on the diagonal equal ri / Ki, with Ki being the
+# carrying capacity of species i.
+
+# Textbooks (e.g., Eq. 9 in Edelstein-Keshet 2005, p. 224) explicitly include
+# the carrying capacities into gLV models:
+# dn1/dt = r1*n1*((K1 -     n1 - c12*n2)/K1) = r1*n1*(1 - (    n1 + c12*n2)/K1)
+# dn2/dt = r2*n2*((K2 - c21*n1 -     n2)/K2) = r2*n2*(1 - (c21*n1 +     n2)/K2)
+# In matrix-notation this becomes: dn/dt <- r*n*(1 - (1/K) * intmat %*% n).
+# Ki is the carrying capacity of species 1 (cells mL^-1), and the interaction
+# matrix gives dimensionless interaction coefficients where element cij gives
+# the decline (if cij is positive) or increase (if cij is negative) in the
+# growth rate of species i caused by one individual of species j. The diagonal
+# entries of intmat are the intraspecies interaction coefficients cii and should
+# be -1 to ensure that species in isolation grow to their carrying capacities K.
+
 # Instead of normal multiplication using n, matrix multiplication using
 # diag(n) can be used. This results in diag(n) %*% (growthrates + intmat %*% n).
 gLV <- function(t, n, parms) {
@@ -260,17 +276,19 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
   return(abun)
 }
 
-# Create an interaction matrix for nspecies species. The fraction of sparse
-# interspecies interactions can be set through 'sparsity', with sparsity = 0
-# leading to a fully connected matrix, and sparsity = 1 leading to all
-# off-diagonal entries equal to 0. Off-diagonal entries are interspecies
-# interaction coefficients drawn from the distribution 'intdistr'. Diagonal
-# entries are self-interactions drawn from the distribution 'selfintdistr'. To
-# get fixed values for the interactions, choose the uniform distribution and
-# provide the desired value both as the minimum and maximum of the range. The
-# other arguments specify the distributions from which interaction coefficients
-# are drawn. Element mij gives the effect of species j on the growth rate of
-# species i.
+# Create a matrix of scaled interaction coefficients for nspecies species with
+# units mL cell^-1 h^-1, where element aij represents cij * ri / Ki in the
+# textbook-notation (see comments on the generalised Lotka-Volterra model given
+# above), such that elements aii on the diagonal equal ri / Ki, with Ki being
+# the carrying capacity of species i. The fraction of sparse interspecies
+# interactions can be set through 'sparsity', with sparsity = 0 leading to a
+# fully connected matrix, and sparsity = 1 leading to all off-diagonal entries
+# equal to 0. Off-diagonal entries are interspecies interaction coefficients
+# drawn from the distribution 'intdistr'. Diagonal entries are self-interactions
+# drawn from the distribution 'selfintdistr'. To get fixed values for the
+# interactions, choose the uniform distribution and provide the desired value
+# both as the minimum and maximum of the range. The other arguments specify the
+# distributions from which interaction coefficients are drawn.
 getintmat <- function(nspecies, sparsity = 0,
                       intdistr = "normal", intmean = -1, intsd = 0.1,
                       intrange = c(-1, 0),
