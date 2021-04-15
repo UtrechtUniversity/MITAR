@@ -138,8 +138,8 @@ saveplots <- TRUE
 totalabun <- 1
 nspeciesset <- c(2, 4, 6)
 abunmodelset <- c("brokenstick", "dompreempt")
-intmeanset <- seq(from = -8, to = 8, by = 1)
-selfintmeanset <- seq(from = -8, to = -5, by = 0.25)
+intmeanset <- seq(from = -0.8, to = 0.8, by = 0.1)
+selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.025)
 costset <- c(0.01, 0.20)
 conjrateset <- c(0.01, 0.05, 0.1)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
@@ -151,23 +151,10 @@ saveplots <- FALSE
 totalabun <- 1
 nspeciesset <- c(2, 4)
 abunmodelset <- c("brokenstick", "dompreempt")
-intmeanset <- seq(from = -8, to = 8, by = 1)
-selfintmeanset <- seq(from = -8, to = -5, by = 0.25)
+intmeanset <- seq(from = -0.8, to = 0.8, by = 0.1)
+selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.025)
 costset <- c(0.01, 0.20)
 conjrateset <- c(0.01, 0.1)
-mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
-           "darkorange", "green1", "yellow", "hotpink")
-
-# Settings for testing simulations over time
-niter <- 5
-saveplots <- FALSE
-totalabun <- 1
-nspeciesset <- c(4)
-abunmodelset <- c("brokenstick")
-intmeanset <- seq(from = -1, to = 1, by = 0.2)
-selfintmeanset <- seq(from = -1, to = 1, by = 0.2)
-costset <- c(0.01, 0.20)
-conjrateset <- c(0.01)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -291,10 +278,10 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
 # both as the minimum and maximum of the range. The other arguments specify the
 # distributions from which interaction coefficients are drawn.
 getintmat <- function(nspecies, sparsity = 0,
-                      intdistr = "normal", intmean = 0, intsd = 4,
-                      intrange = c(-8, 8),
-                      selfintdistr = "normal", selfintmean = -6.5, selfintsd = 0.75,
-                      selfintrange = c(-8, -5)) {
+                      intdistr = "normal", intmean = 0, intsd = 0.4,
+                      intrange = c(-0.8, 0.8),
+                      selfintdistr = "normal", selfintmean = -0.65, selfintsd = 0.075,
+                      selfintrange = c(-0.8, -0.5)) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
            is.numeric(sparsity), length(sparsity) == 1,
            sparsity >= 0, sparsity <= 1)
