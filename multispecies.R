@@ -743,8 +743,8 @@ for(nspecies in nspeciesset) {
                                         conjmat = conjmat,
                                         model = "gLVConj", pertpop = "P",
                                         showplot = FALSE, verbose = FALSE)
-          mydataabunfinal[indexmydatatotal, (maxnspecies + 2):(maxnspecies + 1 + nspecies)] <- invasion$abunfinal
-          infgrowthconj <- invasion$infgrowth
+          mydataabunfinal[indexmydatatotal, (maxnspecies + 2):(maxnspecies + 1 + nspecies)] <- invasionconj$abunfinal
+          infgrowthconj <- invasionconj$infgrowth
           mydataabunfinal[indexmydatatotal, maxnspecies*2 + 2] <- infgrowthconj
           
           mydata[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
