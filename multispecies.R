@@ -217,9 +217,9 @@ brokenstick <- function(nspecies, totalabun, takelimit = TRUE) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
            length(totalabun) == 1, totalabun > 0)
   if(takelimit == TRUE) {
-    niter <- 1e3
-    abunmat <- matrix(data = NA, nrow = niter, ncol = nspecies)
-    for(iterindex in 1:niter) {
+    niterabun <- 1e3
+    abunmat <- matrix(data = NA, nrow = niterabun, ncol = nspecies)
+    for(iterindex in 1:niterabun) {
       # sorting to get positive differences in the next step
       breakpoints <- sort(runif(nspecies - 1, min = 0, max = totalabun))
       # sorting because otherwise taking the mean does not make sense
