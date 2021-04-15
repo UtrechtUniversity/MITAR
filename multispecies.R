@@ -16,6 +16,9 @@
 # Edelstein-Keshet L. 2005. Mathematical models in biology. Society for
 # industrial and applied mathematics.
 
+# Lischke H, Löffler TJ. 2017. Finding all multiple stable fixpoints of n-species
+# Lotka-Volterra competition models Theoretical Population Biology 115:24-34.
+
 # May RM. 2001.  Stability and complexity in model ecosystems. Princeton/Oxford:
 # Princeton University Press.
 
@@ -37,14 +40,12 @@
 
 ## simulateinvasion() ##
 # Abundances frequently grow to infinity because the system does not have an
-# inherent carrying capacity, leading to fatal errors during the integration.
-# Could choose to continue but let the object for the output remove before
-# computation, leading to NA as final abundance, which will show up in the plot
-# accordingly.
-# An alternative could be to use runsteady() instead of ode(), but this only
-# gives the equilibrium (which frequently is the non-interesting all 0:
-# outsteady <- runsteady(y = abunpert, func = gLVConj, parms = list(growthrate =
-# growthrate, intmat = intmat, cost = cost, conjmat = conjmat))
+# inherent carrying capacity. Now I prevent fatal errors during the integration
+# by terminating the simulation and indicating infinite growth occurred. Could
+# choose to let the object for the output remove before computation, leading to
+# NA as final abundance, which will show up in the plot accordingly.
+# Storing final abundancies is not yet working correctly.
+
 
 #### Optionally to do ####
 
@@ -428,15 +429,42 @@ geteqinfo <- function(abundance, intmat,
 
 # A rootfunction to terminate simulation if abundances get very large, to
 # prevent errors during integration if state gets to +Inf or stepsize to 0.
-rootfun <- function(t, state, parms) {sum(state) - 1e6/max(intmat)}
+rootfun <- function(t, state, parms) {sum(state) - 1e10*totalabun}
 
 # Simulate invasion by adding a small number of bacteria to an equilibrium.
+# Input:
+# abundance: a numeric vector of species abundances, with the plasmid-free
+#   populations at equilibrium (a warning is issued if they are not at
+#   equilibrium). If the model 'gLVConj' is selected, the plasmid-free populations
+#   should be included in the vector. If they are not 0, a warning is issued.
+# intmat, growthrate, and conjmat are supposed to be the output of getintmat(),
+#   getgrowthrate(), and getconjmat()
+# cost is a vector of plasmid costs in growth rate. 
+# model should be 'gLV' (no plasmids modelled) or 'gLVConj' (to include plasmid-
+#   bearing populations in the model).
+# pertpop is a character vector with the name(s) of the population(s) to be
+#   perturbed. Acceptable names are those of specific populations such as "R1"
+#   or "P2", and the groups of populations 'all', 'R' and 'P' to denote all, all
+#   plasmid-free, and all plasmid-bearing populations, respectively. These can
+#   be combined, for example using pertpop = c("R", "P1")
+# pertmagn gives the absolute increase in populations for the pertubation
+# tmax and tstep give the timesteps at which abundances should be calculated
+#   (since variable step-size methods are used, those are not the only times
+#   that integration occurs)
+# If showplot == TRUE, the result is plotted, which slows down computations
+#   considerably
 # If verbose is TRUE, abundances before and after perturbation, and their
-# differences, are printed.
-# Note: abundances frequently grow to infinity because the system does not have
-# an inherent carrying capacity, leading to fatal errors during the integration.
-# See the "To do"-section for ideas for alternative approaches.
-# simulateinvasion(abundance, intmat, growthrate, cost, conjmat, "gLV", "R1")
+#   differences, are printed.
+# Abundances grow to infinity when positive feedback is present, because the
+#   system does not have an inherent carrying capacity. To prevent fatal errors
+#   during the integration caused by state variables going to +Inf, or stepsizes
+#   to 0, a rootfunction is used to terminate the integration if abundances get
+#   very large. A warning is issued and the variable 'infgrowth' is set to TRUE
+#   if this occurs.
+# I could try if supplying the analytic Jacobian to the solver speeds up the
+#   integration. See Box 1 in Lischke 2017.
+#   n*(growthrate + intmat %*% n)
+# result1 <- simulateinvasion(abundance, intmat, growthrate, cost, conjmat, "gLV", "R1")
 simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
                              model, pertpop, pertmagn = 1e-6,
                              tmax = 100, tstep = 0.1, showplot = TRUE, verbose = TRUE) {
@@ -469,20 +497,33 @@ simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
     )
   }
   
-  # Warn if population to perturb does not exist 
-  if(!all(pertpop %in% names(abundance))) { 
-    warning("Specified population to perturb does not exist!")
-    abundance <- NA
-  }
-  
   # Warn if initial plasmid-free state is not an equilibrium in the model
-  # without plasmids.
+  # without plasmids
   if(!all(near(derivatives, 0))) {
     warntext <- paste("Initial (unperturbed) state is NOT an equilibrium in the
                       plasmid-free model! Derivatives are:",
                       paste(signif(derivatives), collapse = ", ")
     )
     warning(warntext)
+  }
+  
+  # Get names of populations to perturb
+  if("all" %in% pertpop) {
+    pertpop <- names(abundance)
+  }
+  if("R" %in% pertpop) {
+    pertpop <- pertpop[-which(pertpop == "R")]
+    pertpop <- unique(c(pertpop, paste0(rep("R", nspecies), 1:nspecies)))
+  }
+  if("P" %in% pertpop) {
+    pertpop <- pertpop[-which(pertpop == "P")]
+    pertpop <- unique(c(pertpop, paste0(rep("P", nspecies), 1:nspecies)))
+  }
+  
+  # Only perturb populations that exist
+  if(!all(pertpop %in% names(abundance))) { 
+    warning("Neglecting non-existent population(s) specified to perturb!")
+    pertpop <- pertpop[which(pertpop %in% names(abundance))]
   }
   
   # Create perturbed abundances
@@ -506,18 +547,32 @@ simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
                parms = list(growthrate = growthrate, intmat = intmat,
                             cost = cost, conjmat = conjmat), rootfun = rootfun)
   }
+  abunfinal <- tail(out, 1)[, -1]
+  names(abunfinal) <- names(abundance)
+  
+  # Assume infinite growth occurred if a root was triggered because abundances
+  # became very large
+  infgrowth <- FALSE
+  if(!is.null(attributes(out)$troot)) {
+    infgrowth <- TRUE
+    warning(
+      paste("Integration was terminated when the sum of abundances became larger than 1e10 times the initial total abundance,",
+            "\nsignalling apparent unbounded growth. This occured at timepoint t =",
+            round(attributes(out)$troot, 2), "with abundances\n",
+            paste(names(abunfinal), "=", abunfinal, collapse = ", ")
+      )
+    )
+  }
   
   if(showplot == TRUE) {
     subtitle <- paste0(abunmodel, ", intmean=", intmean, ", selfintmean=", selfintmean, ", cost=",
                        cost, ", conjrate=", conjrate)
-    matplot.deSolve(out, lty = lty, col = col, ylab = "log10(Abundance)",
+    matplot.deSolve(out, lty = lty, col = col, ylab = "Abundance",
                     log = "y", sub = subtitle, lwd = 2, legend = list(x = "bottomright"))
     grid()
     abline(h = abuninit)
   }
   
-  abunfinal <- NA # So it stays NA if integration failed
-  abunfinal <- tail(out, 1)[, -1]
   if(verbose == TRUE) {
     abschange <- abunfinal - abuninit
     relchange <- abunfinal / abuninit
@@ -525,7 +580,7 @@ simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
     print(rbind(tested = abuninit, at_perturbation = abunpert, final = abunfinal,
                 absolute_change = abschange, relative_change = relchange))
   }
-  return(abunfinal)
+  abunfinal <- list(abunfinal = abunfinal, infgrowth = infgrowth)
 }
 
 # Add function to simulate invasion when not abundances, intmat, ect. are
@@ -629,18 +684,24 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
   length(intmeanset)*length(selfintmeanset)*length(costset)*length(conjrateset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 16)
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 18)
 colnames(plotdata) <- c("niter", "nspecies", "modelcode",
                        "intmean", "selfintmean", "cost", "conjrate",
                        "mingrowthrate", "meangrowthrate", "maxgrowthrate",
                        "fracstable", "fracreal", "fracrep",
-                       "fracstableconj", "fracrealconj", "fracrepconj")
+                       "fracstableconj", "fracrealconj", "fracrepconj",
+                       "fracinfgrowth", "fracinfgrowthconj")
 
-mydatatotal <- matrix(data = NA,
-                      nrow = length(abunmodelset)*length(intmeanset)*
-                        length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
-                        sum(nspeciesset), ncol = 22)
+nrowdatatotal <- length(abunmodelset)*length(intmeanset)*
+  length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
+  sum(nspeciesset)
+
+mydatatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 24)
 indexmydatatotal <- 1
+maxnspecies <- max(nspeciesset)
+
+mydataabunfinal <- matrix(data = NA, nrow = nrowdatatotal,
+                          ncol = 2*maxnspecies + 2)
 
 # system.time({
 # Run simulations
@@ -669,7 +730,7 @@ for(nspecies in nspeciesset) {
       for(selfintmean in selfintmeanset) {
         for(cost in costset) {
         nrowmydata <- niter * nspecies
-        mydata <- matrix(data = NA, nrow = nrowmydata, ncol = 22)
+        mydata <- matrix(data = NA, nrow = nrowmydata, ncol = 24)
         for(iter in 1:niter) {
           intmat <- getintmat(nspecies = nspecies,
                               intmean = intmean, selfintmean = selfintmean)
@@ -679,6 +740,25 @@ for(nspecies in nspeciesset) {
           eqinfo <- geteqinfo(abundance = abundance, intmat = intmat,
                               growthrate = growthrate, cost = cost,
                               conjmat = conjmat)
+          
+          invasion <- simulateinvasion(abundance = abundance, intmat = intmat,
+                                        growthrate = growthrate, cost = cost,
+                                        conjmat = conjmat,
+                                        model = "gLV", pertpop = "all",
+                                        showplot = FALSE, verbose = FALSE)
+          mydataabunfinal[indexmydatatotal, 1:nspecies] <- invasion$abunfinal
+          infgrowth <- invasion$infgrowth
+          mydataabunfinal[indexmydatatotal, maxnspecies + 1] <- infgrowth
+          
+          invasionconj <- simulateinvasion(abundance = c(abundance, rep(0, nspecies)),
+                                        intmat = intmat,
+                                        growthrate = growthrate, cost = cost,
+                                        conjmat = conjmat,
+                                        model = "gLVConj", pertpop = "P",
+                                        showplot = FALSE, verbose = FALSE)
+          mydataabunfinal[indexmydatatotal, (maxnspecies + 2):(maxnspecies + 1 + nspecies)] <- invasion$abunfinal
+          infgrowthconj <- invasion$infgrowth
+          mydataabunfinal[indexmydatatotal, maxnspecies*2 + 2] <- infgrowthconj
           
           mydata[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
             rep(niter, nspecies),
@@ -693,7 +773,9 @@ for(nspecies in nspeciesset) {
             abundance,
             diag(intmat),
             growthrate,
-            eqinfo = matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE)
+            eqinfo = matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
+            infgrowth = rep(infgrowth, nspecies),
+            infgrowthconj = rep(infgrowthconj, nspecies)
           )
         }
         mydatatotal[indexmydatatotal:(indexmydatatotal + nrowmydata - 1), ] <- mydata
@@ -706,7 +788,8 @@ for(nspecies in nspeciesset) {
                               "eigvalRe", "eigvalIm",
                               "eigvalReSign", "eigvalImSign", "eigvalRep",
                               "eigvalconjRe", "eigvalconjIm",
-                              "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep")
+                              "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
+                              "infgrowth", "infgrowthconj")
         
         # Get proportions of stable and non-oscillating equilibria, and repeated eigenvalues
         fracstable <- mean(mydata[, "eigvalRe"] < 0)
@@ -715,6 +798,8 @@ for(nspecies in nspeciesset) {
         fracstableconj <- mean(mydata[, "eigvalconjRe"] < 0)
         fracrealconj <- mean(mydata[, "eigvalconjImSign"] == 0)
         fracrepconj <- mean(mydata[, "eigvalconjRep"] != 0)
+        fracinfgrowth <- mean(mydata[, "infgrowth"] != 0)
+        fracinfgrowthconj <- mean(mydata[, "infgrowthconj"] != 0)
         
         plotdata[rowindexplotdata, ] <- c(niter, nspecies, modelcode,
                                           intmean, selfintmean, cost, conjrate,
@@ -722,12 +807,9 @@ for(nspecies in nspeciesset) {
                                           mean(mydata[, "growthrate"]),
                                           max(mydata[, "growthrate"]),
                                           fracstable, fracreal, fracrep,
-                                          fracstableconj, fracrealconj, fracrepconj)
+                                          fracstableconj, fracrealconj, fracrepconj,
+                                          fracinfgrowth, fracinfgrowthconj)
         rowindexplotdata <- rowindexplotdata + 1
-        # simulateinvasion(abundance, intmat, growthrate, cost, conjmat,
-        #                  model = "gLV", pertpop = "R1")
-        # simulateinvasion(c(abundance , rep(0, nspecies)), intmat, growthrate, cost, conjmat,
-        #                  model = "gLVConj", pertpop = "P1")
         }
       }
     }
@@ -738,7 +820,7 @@ for(nspecies in nspeciesset) {
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 colnames(mydatatotal) <- colnames(mydata)
 
-
+mydataabunfinal2 <- mydataabunfinal[c(seq(from = 1, to = 29, by = 4), seq(from = 33, to = 96, by = 8)),] # i nspecies = c(2, 4) en niter = 2
 
 #### Showing and saving output ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
@@ -814,9 +896,18 @@ CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
+CreatePlot(fillvar = "fracinfgrowth", filltitle = "Fraction infinite\ngrowth",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
 
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+CreatePlot(fillvar = "fracinfgrowthconj",
+           filltitle = "Fraction infinite growth\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
@@ -875,7 +966,7 @@ ggplot(data = subsetmydatatotal, aes(x = intmean, y = growthrate)) +
   facet_grid(species + nspecies ~ modelcode + cost + conjrate, labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
-ggsave("growthrateperspecies1.png")
+ggsave("growthrate1perspecies.png")
 
 ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) + 
   theme_bw() +
@@ -884,7 +975,7 @@ ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) +
   facet_grid(species + nspecies ~ modelcode + cost + conjrate, labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
-ggsave("growthrateperspecies2.png")
+ggsave("growthrate2perspecies.png")
 
 
 #### Comparing abundance models ####
