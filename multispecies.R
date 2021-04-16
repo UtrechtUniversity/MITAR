@@ -467,7 +467,7 @@ rootfun <- function(t, state, parms) {sum(state) - 1e10*totalabun}
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                              model, pertpop, pertmagn = 1e-6,
                              tmax = 100, tstep = 0.1, showplot = TRUE,
-                             verbose = TRUE) {
+                             verbose = TRUE, suppresswarninfgrowth = FALSE) {
   
   # Name abundances, set line type and colors, get derivatives of initial state
   # in the plasmid-free model.
@@ -555,13 +555,15 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   infgrowth <- 0
   if(!is.null(attributes(out)$troot)) {
     infgrowth <- 1
-    warning(
-      paste("Integration was terminated when the sum of abundances became larger than 1e10 times the initial total abundance,",
-            "\nsignalling apparent unbounded growth. This occured at timepoint t =",
-            round(attributes(out)$troot, 2), "with abundances\n",
-            paste(names(abunfinal), "=", abunfinal, collapse = ", ")
+    if(suppresswarninfgrowth != TRUE) {
+      warning(
+        paste("Integration was terminated when the sum of abundances became larger than 1e10 times the initial total abundance,",
+              "\nsignalling apparent unbounded growth. This occured at timepoint t =",
+              round(attributes(out)$troot, 2), "with abundances\n",
+              paste(names(abunfinal), "=", abunfinal, collapse = ", ")
+        )
       )
-    )
+    }
   }
   
   if(showplot == TRUE) {
@@ -718,8 +720,9 @@ for(nspecies in nspeciesset) {
                         conjrate = conjrate)
   
   for(abunmodel in abunmodelset) {
-   print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
-              ": started at ", Sys.time()), quote = FALSE)
+    print(paste0("nspecies = ", nspecies, ", conjrate = ", conjrate,
+                 ", abundance model = ", abunmodel,
+                 ": started at ", Sys.time()), quote = FALSE)
     if(abunmodel == "brokenstick") {
       abundance <- brokenstick(nspecies = nspecies, totalabun = totalabun,
                                takelimit = TRUE)
