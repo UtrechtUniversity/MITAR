@@ -38,7 +38,7 @@
 # repeated eigenvalues. See p. 133 of Edelstein-Keshet 2005 and section 10.4.3.3 from
 # https://eng.libretexts.org/Bookshelves/Industrial_and_Systems_Engineering/Book%3A_Chemical_Process_Dynamics_and_Controls_(Woolf)
 
-## simulateinvasion() ##
+## perturbequilibrium() ##
 # Abundances frequently grow to infinity because the system does not have an
 # inherent carrying capacity. Now I prevent fatal errors during the integration
 # by terminating the simulation and indicating infinite growth occurred. Could
@@ -121,10 +121,20 @@
 # Determining the sign of the real and complex parts can be done vectorised
 # outside the loop
 
+## perturbequilibrium() ##
+# I could try if supplying the analytic Jacobian to the solver speeds up the
+# integration. See Box 1 in Lischke 2017.
+   
+# Add function to perturb equilibrium when abundances, intmat, ect. are not
+# supplied, but instead the parameters to obtain them. Then split this in
+# calcStuff function (to be used also in main script [with (l/m)apply?]) and
+# PerturbFunction ?
+
+
 
 #### Loading required libraries ####
 library(deSolve)   # checkequilibrium calls ode() if showplot == TRUE
-library(dplyr)     # checkequilibrium and simulateinvasion call near()
+library(dplyr)     # checkequilibrium and perturbequilibrium call near()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
 
@@ -146,13 +156,13 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
 # Settings for testing code
-niter <- 5
-saveplots <- FALSE
+niter <- 2
+saveplots <- TRUE
 totalabun <- 1
 nspeciesset <- c(2, 4)
 abunmodelset <- c("brokenstick", "dompreempt")
-intmeanset <- seq(from = -0.8, to = 0.8, by = 0.1)
-selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.025)
+intmeanset <- seq(from = -0.8, to = 0.8, by = 0.8)
+selfintmeanset <- seq(from = -0.8, to = 0.8, by = 0.8)
 costset <- c(0.01, 0.20)
 conjrateset <- c(0.01, 0.1)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
@@ -416,14 +426,15 @@ geteqinfo <- function(abundance, intmat,
 
 # A rootfunction to terminate simulation if abundances get very large, to
 # prevent errors during integration if state gets to +Inf or stepsize to 0.
+# See ?events in the deSolve package for info and background.
 rootfun <- function(t, state, parms) {sum(state) - 1e10*totalabun}
 
-# Simulate invasion by adding a small number of bacteria to an equilibrium.
+# Perturb equilibrium by adding a small number of bacteria to an equilibrium.
 # Input:
-# abundance: a numeric vector of species abundances, with the plasmid-free
-#   populations at equilibrium (a warning is issued if they are not at
-#   equilibrium). If the model 'gLVConj' is selected, the plasmid-free populations
-#   should be included in the vector. If they are not 0, a warning is issued.
+# abundance: a numeric vector of species abundances at equilibrium (a warning is
+#   issued if they are not at equilibrium). If the model 'gLVConj' is selected,
+#   the abundances of the plasmid-bearing populations should be included in the
+#   vector. If they are not 0, a warning is issued.
 # intmat, growthrate, and conjmat are supposed to be the output of getintmat(),
 #   getgrowthrate(), and getconjmat()
 # cost is a vector of plasmid costs in growth rate. 
@@ -438,23 +449,25 @@ rootfun <- function(t, state, parms) {sum(state) - 1e10*totalabun}
 # tmax and tstep give the timesteps at which abundances should be calculated
 #   (since variable step-size methods are used, those are not the only times
 #   that integration occurs)
-# If showplot == TRUE, the result is plotted, which slows down computations
-#   considerably
+# If showplot == TRUE, the result is plotted, which is slow
 # If verbose is TRUE, abundances before and after perturbation, and their
 #   differences, are printed.
 # Abundances grow to infinity when positive feedback is present, because the
 #   system does not have an inherent carrying capacity. To prevent fatal errors
 #   during the integration caused by state variables going to +Inf, or stepsizes
 #   to 0, a rootfunction is used to terminate the integration if abundances get
-#   very large. A warning is issued and the variable 'infgrowth' is set to TRUE
-#   if this occurs.
-# I could try if supplying the analytic Jacobian to the solver speeds up the
-#   integration. See Box 1 in Lischke 2017.
-#   n*(growthrate + intmat %*% n)
-# result1 <- simulateinvasion(abundance, intmat, growthrate, cost, conjmat, "gLV", "R1")
-simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
+#   very large. A warning is issued and the variable 'infgrowth' is set to 1 if
+#   this occurs.
+# Returns abunfinal, a list containing:
+#   - abunfinalR with abundances for plasmid-free species,
+#   - abunfinalP with abundances for plasmid-bearing species (if model ==
+#     "gLVConj"), or NULL (if model == "gLV")
+#   - infgrowth indicating if infinite growth was detected
+# result1 <- perturbequilibrium(abundance, intmat, growthrate, cost, conjmat, "gLV", "R1")
+perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                              model, pertpop, pertmagn = 1e-6,
-                             tmax = 100, tstep = 0.1, showplot = TRUE, verbose = TRUE) {
+                             tmax = 100, tstep = 0.1, showplot = TRUE,
+                             verbose = TRUE) {
   
   # Name abundances, set line type and colors, get derivatives of initial state
   # in the plasmid-free model.
@@ -523,7 +536,7 @@ simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
     print(abunpert)
   }
   
-  # Simulate invasion
+  # Perturb equilibrium
   times <- seq(from = 0, to = tmax, by = tstep)
   if(model == "gLV") {
     out <- ode(y = abunpert, t = times, func = gLV,
@@ -539,9 +552,9 @@ simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
   
   # Assume infinite growth occurred if a root was triggered because abundances
   # became very large
-  infgrowth <- FALSE
+  infgrowth <- 0
   if(!is.null(attributes(out)$troot)) {
-    infgrowth <- TRUE
+    infgrowth <- 1
     warning(
       paste("Integration was terminated when the sum of abundances became larger than 1e10 times the initial total abundance,",
             "\nsignalling apparent unbounded growth. This occured at timepoint t =",
@@ -567,13 +580,17 @@ simulateinvasion <- function(abundance, intmat, growthrate, cost, conjmat,
     print(rbind(tested = abuninit, at_perturbation = abunpert, final = abunfinal,
                 absolute_change = abschange, relative_change = relchange))
   }
-  abunfinal <- list(abunfinal = abunfinal, infgrowth = infgrowth)
+  
+  if(model == "gLV") {
+    abunfinal <- list(abunfinalR = abunfinal, abunfinalP = NULL,
+                      infgrowth = infgrowth)
+  } else {
+    abunfinal <- list(abunfinalR = abunfinal[1:nspecies],
+                      abunfinalP = abunfinal[(nspecies + 1):(2*nspecies)],
+                      infgrowth = infgrowth)
+  }
+  return(abunfinal)
 }
-
-# Add function to simulate invasion when not abundances, intmat, ect. are
-# supplied, but instead the parameters to obtain them. Then split this in
-# calcStuff function (to be used also in main script [with (l/m)apply?]) and
-# PerturbFunction ?
 
 # Function to create plots
 CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmean",
@@ -644,6 +661,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   }
 }
 
+
 #### Testing functions ####
 # 
 # nspecies <- 4
@@ -671,24 +689,24 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
   length(intmeanset)*length(selfintmeanset)*length(costset)*length(conjrateset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 18)
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 30)
 colnames(plotdata) <- c("niter", "nspecies", "modelcode",
                        "intmean", "selfintmean", "cost", "conjrate",
                        "mingrowthrate", "meangrowthrate", "maxgrowthrate",
                        "fracstable", "fracreal", "fracrep",
                        "fracstableconj", "fracrealconj", "fracrepconj",
-                       "fracinfgrowth", "fracinfgrowthconj")
+                       "fracinfgrowth", "fracinfgrowthconj",
+                       "minR", "meanR", "medianR", "maxR",
+                       "minRconj", "meanRconj", "medianRconj", "maxRconj",
+                       "minPconj", "meanPconj", "medianPconj", "maxPconj")
 
 nrowdatatotal <- length(abunmodelset)*length(intmeanset)*
   length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
   sum(nspeciesset)
 
-mydatatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 24)
+mydatatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 27)
 indexmydatatotal <- 1
 maxnspecies <- max(nspeciesset)
-
-mydataabunfinal <- matrix(data = NA, nrow = nrowdatatotal,
-                          ncol = 2*maxnspecies + 2)
 
 # system.time({
 # Run simulations
@@ -717,7 +735,7 @@ for(nspecies in nspeciesset) {
       for(selfintmean in selfintmeanset) {
         for(cost in costset) {
         nrowmydata <- niter * nspecies
-        mydata <- matrix(data = NA, nrow = nrowmydata, ncol = 24)
+        mydata <- matrix(data = NA, nrow = nrowmydata, ncol = 27)
         for(iter in 1:niter) {
           intmat <- getintmat(nspecies = nspecies,
                               intmean = intmean, selfintmean = selfintmean)
@@ -728,25 +746,40 @@ for(nspecies in nspeciesset) {
                               growthrate = growthrate, cost = cost,
                               conjmat = conjmat)
           
-          invasion <- simulateinvasion(abundance = abundance, intmat = intmat,
+          abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
                                         growthrate = growthrate, cost = cost,
                                         conjmat = conjmat,
                                         model = "gLV", pertpop = "all",
                                         showplot = FALSE, verbose = FALSE)
-          mydataabunfinal[indexmydatatotal, 1:nspecies] <- invasion$abunfinal
-          infgrowth <- invasion$infgrowth
-          mydataabunfinal[indexmydatatotal, maxnspecies + 1] <- infgrowth
+          infgrowth <- abunfinal$infgrowth
           
-          invasionconj <- simulateinvasion(abundance = c(abundance, rep(0, nspecies)),
-                                        intmat = intmat,
-                                        growthrate = growthrate, cost = cost,
-                                        conjmat = conjmat,
-                                        model = "gLVConj", pertpop = "P",
-                                        showplot = FALSE, verbose = FALSE)
-          mydataabunfinal[indexmydatatotal, (maxnspecies + 2):(maxnspecies + 1 + nspecies)] <- invasionconj$abunfinal
-          infgrowthconj <- invasionconj$infgrowth
-          mydataabunfinal[indexmydatatotal, maxnspecies*2 + 2] <- infgrowthconj
+          if(infgrowth == 0) {
+            abunR <- sum(abunfinal$abunfinalR)
+          } else {
+            abunR <- NA
+          }
           
+          # To simulate invasion of the plasmid-free equilibrium with plasmids,
+          # the abundances of the plasmid-free populations have to be appended
+          # to the abundances of the plasmid-bearing populations
+          abunfinalconj <- perturbequilibrium(
+            abundance = c(abundance, rep(0, nspecies)),
+            intmat = intmat,
+            growthrate = growthrate, cost = cost,
+            conjmat = conjmat,
+            model = "gLVConj", pertpop = "P",
+            showplot = FALSE, verbose = FALSE)
+          infgrowthconj <- abunfinalconj$infgrowth
+          
+          # It does not make sense to store abundances for infinite growth, so
+          # record those as NA
+          if(infgrowthconj == 0) {
+            abunRconj <- sum(abunfinalconj$abunfinalR)
+            abunPconj <- sum(abunfinalconj$abunfinalP)
+          } else {
+            abunRconj <- NA
+            abunPconj <- NA
+          }
           mydata[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
             rep(niter, nspecies),
             rep(nspecies, nspecies),
@@ -760,9 +793,12 @@ for(nspecies in nspeciesset) {
             abundance,
             diag(intmat),
             growthrate,
-            eqinfo = matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
-            infgrowth = rep(infgrowth, nspecies),
-            infgrowthconj = rep(infgrowthconj, nspecies)
+            matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
+            rep(infgrowth, nspecies),
+            rep(infgrowthconj, nspecies),
+            rep(abunR, nspecies),
+            rep(abunRconj, nspecies),
+            rep(abunPconj, nspecies)
           )
         }
         mydatatotal[indexmydatatotal:(indexmydatatotal + nrowmydata - 1), ] <- mydata
@@ -776,7 +812,8 @@ for(nspecies in nspeciesset) {
                               "eigvalReSign", "eigvalImSign", "eigvalRep",
                               "eigvalconjRe", "eigvalconjIm",
                               "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
-                              "infgrowth", "infgrowthconj")
+                              "infgrowth", "infgrowthconj", "abunR", "abunRconj",
+                              "abunPconj")
         
         # Get proportions of stable and non-oscillating equilibria, and repeated eigenvalues
         fracstable <- mean(mydata[, "eigvalRe"] < 0)
@@ -788,6 +825,10 @@ for(nspecies in nspeciesset) {
         fracinfgrowth <- mean(mydata[, "infgrowth"] != 0)
         fracinfgrowthconj <- mean(mydata[, "infgrowthconj"] != 0)
         
+        summaryabunR <- summary(mydata[, "abunR"])[c("Min.", "Median", "Mean", "Max.")]
+        summaryabunRconj <- summary(mydata[, "abunRconj"])[c("Min.", "Median", "Mean", "Max.")]
+        summaryabunPconj <- summary(mydata[, "abunPconj"])[c("Min.", "Median", "Mean", "Max.")]
+        
         plotdata[rowindexplotdata, ] <- c(niter, nspecies, modelcode,
                                           intmean, selfintmean, cost, conjrate,
                                           min(mydata[, "growthrate"]),
@@ -795,7 +836,9 @@ for(nspecies in nspeciesset) {
                                           max(mydata[, "growthrate"]),
                                           fracstable, fracreal, fracrep,
                                           fracstableconj, fracrealconj, fracrepconj,
-                                          fracinfgrowth, fracinfgrowthconj)
+                                          fracinfgrowth, fracinfgrowthconj,
+                                          summaryabunR, summaryabunRconj,
+                                          summaryabunPconj)
         rowindexplotdata <- rowindexplotdata + 1
         }
       }
@@ -807,7 +850,6 @@ for(nspecies in nspeciesset) {
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 colnames(mydatatotal) <- colnames(mydata)
 
-mydataabunfinal2 <- mydataabunfinal[c(seq(from = 1, to = 29, by = 4), seq(from = 33, to = 96, by = 8)),] # i nspecies = c(2, 4) en niter = 2
 
 #### Showing and saving output ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
@@ -878,7 +920,7 @@ CreatePlot(dataplot = selectmydatatotal, fillvar = "growthrate",
            diagional = "minor")
 
 
-## Plot equilibrium characteristics
+## Plot equilibrium characteristics for model without plasmids
 CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
@@ -888,6 +930,31 @@ CreatePlot(fillvar = "fracinfgrowth", filltitle = "Fraction infinite\ngrowth",
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 
+## Plot total abundances of plasmid-free populations after perturbations for
+# models without plasmids. Only abundances where perturbation did NOT lead to
+# infinite growth are considered.
+filltitle <- "Minimum total abundance of\nplasmid-free bacteria\nafter perturbation"
+CreatePlot(fillvar = "minR", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+filltitle <- "Mean total abundance of\nplasmid-free bacteria\nafter perturbation"
+CreatePlot(fillvar = "meanR", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+filltitle <- "Median total abundance of\nplasmid-free bacteria\nafter perturbation"
+CreatePlot(fillvar = "medianR", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+filltitle <- "Maximum total abundance of\nplasmid-free bacteria\nafter perturbation"
+CreatePlot(fillvar = "maxR", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+
+## Plot equilibrium characteristics for model with plasmids
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
@@ -899,6 +966,56 @@ CreatePlot(fillvar = "fracinfgrowthconj",
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 
+## Plot total abundances of plasmid-free populations after perturbations for
+# models with plasmids. Only abundances where perturbation did NOT lead to
+# infinite growth are considered.
+filltitle <- "Minimum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
+CreatePlot(fillvar = "minRconj", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+filltitle <- "Mean total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
+CreatePlot(fillvar = "meanRconj", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+filltitle <- "Median total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
+CreatePlot(fillvar = "medianRconj", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+filltitle <- "Maximum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
+CreatePlot(fillvar = "maxRconj", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+
+
+## Plot total abundances of plasmid-bearing populations after perturbations for
+# models with plasmids. Only abundances where perturbation did NOT lead to
+# infinite growth are considered.
+filltitle <- "Minimum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
+CreatePlot(fillvar = "minPconj", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+filltitle <- "Mean total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
+CreatePlot(fillvar = "meanPconj", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+filltitle <- "Median total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
+CreatePlot(fillvar = "medianPconj", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+filltitle <- "Maximum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
+CreatePlot(fillvar = "maxPconj", filltitle = filltitle,
+           filltype = "continuous", limits = NULL, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+
+## Plot other equilibrium characteristics for models with and without plasmids
 CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
