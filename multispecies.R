@@ -853,6 +853,16 @@ for(nspecies in nspeciesset) {
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 colnames(mydatatotal) <- colnames(mydata)
 
+#### Reading previously saved data from a .csv-file ####
+## To read data from csv-file, uncomment this section and fill in the 
+# needed datetimestamp
+# filename <- "2021_04_16_17_13multispecies.csv"
+# plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
+#                   dec = ".", stringsAsFactors = FALSE)
+# plotdata <- as.data.frame(plotdata)
+# DateTimeStamp <- substr(filename, 1, 16)
+nspeciesset <- sort(unique(plotdata[, "nspecies"]))
+
 
 #### Showing and saving output ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
@@ -946,11 +956,21 @@ CreatePlot(fillvar = "meanR", filltitle = filltitle,
            filltype = "continuous", limits = NULL, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
+lengthx <- length(which(!is.na(plotdata[, "meanR"])))
+plot(x = 1:lengthx, y = sort(log10(plotdata[, "meanR"])), type = "p", lwd = 2); grid()
+
+ggplot(plotdata, aes(log10(meanR))) +
+  geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
+  facet_grid(nspecies ~ modelcode)
+
 filltitle <- "Median total abundance of\nplasmid-free bacteria\nafter perturbation"
 CreatePlot(fillvar = "medianR", filltitle = filltitle,
            filltype = "continuous", limits = NULL, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
+lengthx <- length(which(!is.na(plotdata[, "medianR"])))
+plot(x = 1:lengthx, y = sort(log10(plotdata[, "medianR"]))); grid()
+
 filltitle <- "Maximum total abundance of\nplasmid-free bacteria\nafter perturbation"
 CreatePlot(fillvar = "maxR", filltitle = filltitle,
            filltype = "continuous", limits = NULL, 
@@ -982,6 +1002,11 @@ CreatePlot(fillvar = "meanRconj", filltitle = filltitle,
            filltype = "continuous", limits = NULL, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
+
+ggplot(plotdata, aes(log10(meanRconj))) +
+  geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
+  facet_grid(nspecies + conjrate ~ modelcode + cost)
+
 filltitle <- "Median total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
 CreatePlot(fillvar = "medianRconj", filltitle = filltitle,
            filltype = "continuous", limits = NULL, 
@@ -1086,18 +1111,20 @@ ggsave("growthrate2perspecies.png")
 
 
 #### Comparing abundance models ####
+comparingabuntotal <- NULL
+
 for(nspecies in nspeciesset) {
-  comparingabundance <- data.frame(
+  comparingabun <- data.frame(
     nspecies = rep(nspecies, 2*nspecies),
     species = as.factor(rep(1:nspecies, 2)),
     abun = c(brokenstick(nspecies = nspecies, totalabun = totalabun,
                          takelimit = TRUE),
              dompreempt(nspecies = nspecies, totalabun = totalabun,
                         takelimit = TRUE)),
-    model = rep(c("brokenstick", "dompreempt"), each = nspecies)
-  )
+    model = rep(c("brokenstick", "dompreempt"), each = nspecies))
+  comparingabuntotal <- rbind(comparingabuntotal, comparingabun)
   
-  plot1 <- ggplot(data = comparingabundance, aes(x = species, y = abun, color = model)) +
+  plotabun <- ggplot(data = comparingabun, aes(x = species, y = abun, color = model)) +
     theme_bw() +
     scale_x_discrete(limits = factor(1:max(nspeciesset))) +
     scale_y_continuous(limits = c(0, 1)) +
@@ -1106,24 +1133,57 @@ for(nspecies in nspeciesset) {
          x = "Species rank", y = "Species abundance") +
     geom_line(aes(group = model), size = 1.25) +
     geom_point(size = 2)
-  print(plot1)
+  print(plotabun)
   if(saveplots == TRUE) {
     filename <- paste0(DateTimeStamp, "compareabun", nspecies, "species.png")
     ggsave(filename)
   }
   
-  plot2 <- ggplot(data = comparingabundance, aes(x = species, y = abun, color = model)) +
+  plotabunlog <- ggplot(data = comparingabun, aes(x = species, y = abun, color = model)) +
     theme_bw() +
     scale_x_discrete(limits = factor(1:max(nspeciesset))) +
     scale_y_continuous(limits = c(NA, 1), trans = "log10") +
     theme(legend.position = "bottom") +
     labs(title = "Comparing abundance models: logarithmic scale",
-         x = "Species rank", y = "Log10(species abundance") +
+         x = "Species rank", y = "Species abundance") +
     geom_line(aes(group = model), size = 1.25) +
     geom_point(size = 2)
-  print(plot2)
+  print(plotabunlog)
   if(saveplots == TRUE) {
     filename <- paste0(DateTimeStamp, "compareabun", nspecies, "specieslog.png")
     ggsave(filename)
   }
+}
+comparingabuntotal <- comparingabuntotal
+comparingabuntotal[, "group"] <- paste0(comparingabuntotal[, "nspecies"],
+                                             " species, ", comparingabuntotal[, "model"])
+
+plotabun <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = factor(nspecies), lty = model)) +
+  theme_bw() +
+  scale_x_discrete(limits = factor(1:max(nspeciesset))) +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme(legend.position = "bottom") +
+  labs(title = "Comparing abundance models: linear scale",
+       x = "Species rank", y = "Species abundance") +
+  geom_line(aes(group = group), size = 1.25) +
+  geom_point(size = 2)
+print(plotabun)
+if(saveplots == TRUE) {
+  filename <- paste0(DateTimeStamp, "compareabuntotal.png")
+  ggsave(filename)
+}
+
+plotabunlog <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = factor(nspecies), lty = model)) +
+  theme_bw() +
+  scale_x_discrete(limits = factor(1:max(nspeciesset))) +
+  scale_y_continuous(limits = c(NA, 1), trans = "log10") +
+  theme(legend.position = "bottom") +
+  labs(title = "Comparing abundance models: logarithmic scale",
+       x = "Species rank", y = "Species abundance") +
+  geom_line(aes(group = group), size = 1.25) +
+  geom_point(size = 2)
+print(plotabunlog)
+if(saveplots == TRUE) {
+  filename <- paste0(DateTimeStamp, "compareabuntotallog.png")
+  ggsave(filename)
 }
