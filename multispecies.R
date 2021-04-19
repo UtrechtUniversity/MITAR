@@ -601,7 +601,8 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        laby = "Mean selfinteraction coefficient",
                        mytag = NULL, addstamp = FALSE, diagional = "none",
                        facetx = "modelcode", facety = "nspecies", as.table = TRUE,
-                       marginx = NULL, marginy = NULL,
+                       marginx = NULL, marginy = NULL, base_size = 11,
+                       rotate_legend = FALSE,
                        save = saveplots, filename = NULL, ...) {
   caption <- paste(unique(dataplot$niter), "iterations")
   if(exists("DateTimeStamp") == FALSE) {
@@ -615,6 +616,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   }
   p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar),
               subtitle = subtitle) + 
+    theme_bw(base_size = base_size) +
     geom_raster() +
     scale_x_continuous() +
     scale_y_continuous() +
@@ -640,6 +642,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   }
   if(filltype == "continuous") {
     p <- p + scale_fill_viridis_c(filltitle, limits = limits)
+  }
+  if(rotate_legend == TRUE) {
+    p <- p + guides(fill = guide_colourbar(label.hjust = 0.4, label.vjust = 0.5,
+                                           label.theme = element_text(angle = 90)))
   }
   if(diagional == "both" | diagional == "major") {
     p <- p + geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1)
@@ -861,7 +867,7 @@ colnames(mydatatotal) <- colnames(mydata)
 #                   dec = ".", stringsAsFactors = FALSE)
 # plotdata <- as.data.frame(plotdata)
 # DateTimeStamp <- substr(filename, 1, 16)
-nspeciesset <- sort(unique(plotdata[, "nspecies"]))
+# nspeciesset <- sort(unique(plotdata[, "nspecies"]))
 
 
 #### Showing and saving output ####
@@ -1069,14 +1075,17 @@ CreatePlot(fillvar = "fracrepconj",
 ### To test plots without using CreatePlot() ###
 # ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
 #   geom_raster() +
+#   theme_bw(base_size = 15) +
 #   scale_x_continuous() +
 #   scale_y_continuous() +
-#   scale_fill_viridis_c(limits = limitsfraction) +
+#   scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
 #   geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1) +
 #   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1) +
 #   coord_fixed(ratio = 1, expand = FALSE) +
 #   theme(legend.position = "bottom") +
-#   labs(caption = paste(niter, "iterations")) +
+#   labs(x = "Mean interaction coefficient",
+#        y = "Mean selfinteraction coefficient",
+#        caption = paste(niter, "iterations")) +
 #   facet_grid(nspecies ~ modelcode, labeller = mylabeller)
 
 
