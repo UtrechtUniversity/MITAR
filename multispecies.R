@@ -1124,7 +1124,7 @@ comparingabuntotal <- NULL
 
 for(nspecies in nspeciesset) {
   comparingabun <- data.frame(
-    nspecies = rep(nspecies, 2*nspecies),
+    nspecies = as.factor(rep(nspecies, 2*nspecies)),
     species = as.factor(rep(1:nspecies, 2)),
     abun = c(brokenstick(nspecies = nspecies, totalabun = totalabun,
                          takelimit = TRUE),
@@ -1167,8 +1167,8 @@ comparingabuntotal <- comparingabuntotal
 comparingabuntotal[, "group"] <- paste0(comparingabuntotal[, "nspecies"],
                                              " species, ", comparingabuntotal[, "model"])
 
-plotabun <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = factor(nspecies), lty = model)) +
-  theme_bw() +
+plotabun <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = nspecies, lty = model)) +
+  theme_bw(base_size = 14) +
   scale_x_discrete(limits = factor(1:max(nspeciesset))) +
   scale_y_continuous(limits = c(0, 1)) +
   theme(legend.position = "bottom") +
@@ -1182,8 +1182,8 @@ if(saveplots == TRUE) {
   ggsave(filename)
 }
 
-plotabunlog <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = factor(nspecies), lty = model)) +
-  theme_bw() +
+plotabunlog <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = nspecies, lty = model)) +
+  theme_bw(base_size = 14) +
   scale_x_discrete(limits = factor(1:max(nspeciesset))) +
   scale_y_continuous(limits = c(NA, 1), trans = "log10") +
   theme(legend.position = "bottom") +
