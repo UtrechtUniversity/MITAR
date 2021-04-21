@@ -565,6 +565,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   # Assume infinite growth occurred if a root was triggered because abundances
   # became very large
   infgrowth <- 0
+  eqreached <- 0
   if(!is.null(attributes(out)$troot)) {
     # A root found
     if(attributes(out)$iroot[2] != 0) {
@@ -582,10 +583,15 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     
     if(attributes(out)$iroot[1] != 0) {
       eqreached <- 1  
+    } else {
+      eqreached <- 0
     }
     
   } else {
     eqreached <- 0
+  }
+  
+  if(eqreached == 0) {
     warning("Equilibrium has not been reached. Final abundances were\n",
             paste(names(abunfinal), "=", abunfinal, collapse = ", "),
             "Increase tmax to prevent this?")
@@ -759,9 +765,7 @@ for(nspecies in nspeciesset) {
                         conjrate = conjrate)
   
   for(abunmodel in abunmodelset) {
-    print(paste0("nspecies = ", nspecies, ", conjrate = ", conjrate,
-                 ", abundance model = ", abunmodel,
-                 ": started at ", Sys.time()), quote = FALSE)
+
     if(abunmodel == "brokenstick") {
       abundance <- brokenstick(nspecies = nspecies, totalabun = totalabun,
                                takelimit = TRUE)
@@ -774,6 +778,9 @@ for(nspecies in nspeciesset) {
     }
     
     for(intmean in intmeanset) {
+      print(paste0("nspecies = ", nspecies, ", conjrate = ", conjrate,
+                   ", abundance model = ", abunmodel, ", intmean = ", intmean,
+                   ": started at ", Sys.time()), quote = FALSE)
       for(selfintmean in selfintmeanset) {
         for(cost in costset) {
         nrowmydata <- niter * nspecies
