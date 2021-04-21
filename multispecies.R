@@ -1164,7 +1164,7 @@ ggplot(data = subsetmydatatotal, aes(x = intmean, y = growthrate)) +
   facet_grid(species + nspecies ~ modelcode + cost + conjrate, labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
-ggsave("growthrate1perspecies.png")
+ggsave(paste0(DateTimeStamp, "growthrate1perspecies.png"))
 
 ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) + 
   theme_bw() +
@@ -1173,7 +1173,7 @@ ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) +
   facet_grid(species + nspecies ~ modelcode + cost + conjrate, labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
-ggsave("growthrate2perspecies.png")
+ggsave(paste0(DateTimeStamp, "growthrate2perspecies.png"))
 
 
 #### Comparing abundance models ####
