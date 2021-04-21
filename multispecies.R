@@ -922,6 +922,8 @@ colnames(mydatatotal) <- colnames(mydata)
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
           quote = FALSE, row.names = FALSE)
+write.csv(mydatatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
+          quote = FALSE, row.names = FALSE)
 
 ## Labels and limits for plots ##
 labspecies <- paste(nspeciesset, "species")
