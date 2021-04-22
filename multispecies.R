@@ -112,10 +112,6 @@
 # Add logistic interaction in addition the the linear interaction currently
 # implemented (see https://github.com/EgilFischer/FlockMicrobiome for code).
 
-# Use truncated distributions to obtain negative self-interactions? Vectorised
-# version TruncatedNormal::rtnorm(n = 10, mu = selfintmeanset, sd = selfintsd,
-# lb = rep(-Inf, length(selfintmeanset)), ub = rep(1, length(selfintmeanset)),
-# method = "fast") or non-vectorised versions in truncdist::rtrunc or truncnorm::rtruncnorm
 
 ## checkequilibrium() ##
 # Instead of a user-defined tmax if showplot = TRUE, I could use a rootfunction
@@ -142,7 +138,8 @@ library(deSolve)   # checkequilibrium calls ode() if showplot == TRUE
 library(dplyr)     # checkequilibrium and perturbequilibrium call near()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
-library(TruncatedNormal) # generate random variates from truncated distribution
+library(TruncatedNormal) # getintmat calls rtnorm()
+
 
 #### Settings and defining parameterspace ####
 
@@ -291,10 +288,11 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
 # fully connected matrix, and sparsity = 1 leading to all off-diagonal entries
 # equal to 0. Off-diagonal entries are interspecies interaction coefficients
 # drawn from the distribution 'intdistr'. Diagonal entries are self-interactions
-# drawn from the distribution 'selfintdistr'. To get fixed values for the
-# interactions, choose the uniform distribution and provide the desired value
-# both as the minimum and maximum of the range. The other arguments specify the
-# distributions from which interaction coefficients are drawn.
+# drawn from the distribution 'selfintdistr', which is truncated to obtain
+# negative self-interactions. To get fixed values for the interactions, choose
+# the uniform distribution and provide the desired value both as the minimum and
+# maximum of the range. The other arguments specify the distributions from which
+# interaction coefficients are drawn.
 getintmat <- function(nspecies, sparsity = 0,
                       intdistr = "normal", intmean = 0, intsd = 0.4,
                       intrange = c(-0.8, 0.8),
@@ -325,9 +323,15 @@ getintmat <- function(nspecies, sparsity = 0,
            stopifnot(length(selfintmean) == 1, length(selfintsd) == 1,
                      selfintsd > 0)
            diag(intmat) <- rnorm(n = nspecies, mean = selfintmean, sd = selfintsd)
-         },
+           # Draw variates from a truncated normal distribution to ensure
+           # negative self-interactions without having to redraw for positive
+           # deviates, using rtnorm() from the package TruncatedNormal.
+           rtnorm(n = nspecies, mu = selfintmean, sd = selfintsd,
+                  lb = -Inf, ub = 0, method = "invtransfo")
+           },
          uniform = {
-           stopifnot(length(selfintrange) == 2, selfintrange[1] <= selfintrange[2])
+           stopifnot(length(selfintrange) == 2, selfintrange[1] <= selfintrange[2],
+                     selfintrange[2] < 0)
            diag(intmat) <- runif(n = nspecies,
                                  min = selfintrange[1], max = selfintrange[2])
          },
@@ -337,20 +341,22 @@ getintmat <- function(nspecies, sparsity = 0,
          }
   )
   
-  nsparseint <- round(sparsity*(nspecies^2 - nspecies))
-  # Create indexmatrix with column- and row indices
-  indexmat <- matrix(c(rep(1:nspecies, nspecies),
-                       rep(1:nspecies, each = nspecies)),
-                     ncol = 2, dimnames = list(NULL, c("row", "column")))
-  # Only keep rows of indexmat specifying off-diagonal entries of intmat, to
-  # ensure that self-interaction coefficients never become sparse.
-  indexmat <- indexmat[indexmat[, "row"] != indexmat[, "column"], ]
-  # Sample rows of indexmat to get index of matrix entries that become sparse
-  sparse.index <- sample(1:(dim(indexmat)[1]), nsparseint)
-  # Only keep rows of indexmat that were drawn from the sample
-  indexmat <- indexmat[sparse.index, ]
-  # Set entries of the interaction matrix indicated by indexmat to zero.
-  intmat[indexmat] <- 0
+  if(sparsity > 0) {
+    nsparseint <- round(sparsity*(nspecies^2 - nspecies))
+    # Create indexmatrix with column- and row indices
+    indexmat <- matrix(c(rep(1:nspecies, nspecies),
+                         rep(1:nspecies, each = nspecies)),
+                       ncol = 2, dimnames = list(NULL, c("row", "column")))
+    # Only keep rows of indexmat specifying off-diagonal entries of intmat, to
+    # ensure that self-interaction coefficients never become sparse.
+    indexmat <- indexmat[indexmat[, "row"] != indexmat[, "column"], ]
+    # Sample rows of indexmat to get index of matrix entries that become sparse
+    sparse.index <- sample(1:(dim(indexmat)[1]), nsparseint)
+    # Only keep rows of indexmat that were drawn from the sample
+    indexmat <- indexmat[sparse.index, ]
+    # Set entries of the interaction matrix indicated by indexmat to zero.
+    intmat[indexmat] <- 0
+  }
   return(intmat)
 }
 
