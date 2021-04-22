@@ -59,8 +59,10 @@
 # iterations.
 
 # Create file to store default settings (e.g., sparsity = 0, intdistr =
-# selfintdistr = "normal", intsd = selfintsd = 0.1) and write that to a .csv
-# file with DateTimeStamp matching to other files.
+# selfintdistr = "normal", intsd = selfintsd = 0.1) and write that to a .txt
+# file with DateTimeStamp matching to other files, e.g.,
+# write.table(x, paste0(DateTimeStamp, "settings"), append = FALSE,
+# sep = ",", dec = ".", row.names = TRUE, col.names = TRUE).
 
 # Now I use nested loops, instead I could first create a tibble using
 # tidyr::expand_grid(), and then use (l)/(m)apply / purrr:(p)map to iterate over
@@ -110,6 +112,10 @@
 # Add logistic interaction in addition the the linear interaction currently
 # implemented (see https://github.com/EgilFischer/FlockMicrobiome for code).
 
+# Use truncated distributions to obtain negative self-interactions? Vectorised
+# version TruncatedNormal::rtnorm(n = 10, mu = selfintmeanset, sd = selfintsd,
+# lb = rep(-Inf, length(selfintmeanset)), ub = rep(1, length(selfintmeanset)),
+# method = "fast") or non-vectorised versions in truncdist::rtrunc or truncnorm::rtruncnorm
 
 ## checkequilibrium() ##
 # Instead of a user-defined tmax if showplot = TRUE, I could use a rootfunction
@@ -136,6 +142,7 @@ library(deSolve)   # checkequilibrium calls ode() if showplot == TRUE
 library(dplyr)     # checkequilibrium and perturbequilibrium call near()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
+library(TruncatedNormal) # generate random variates from truncated distribution
 
 #### Settings and defining parameterspace ####
 
