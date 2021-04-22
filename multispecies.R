@@ -730,6 +730,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 
 
 #### Running the simulations ####
+set.seed(seed = 314, kind = "default", normal.kind = "default", sample.kind = "default")
 
 # Create matrix to store data
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
