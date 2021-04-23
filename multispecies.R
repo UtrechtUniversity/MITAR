@@ -146,6 +146,7 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 # Simulation settings
 niter <- 100
 saveplots <- TRUE
+smallstate <- 1e-20 # States are set to 0 if they become smaller than smallstate
 smallchange <- 1e-10 # If the sum of absolute rates of change is equal to
 # smallchange, equilibrium is assumed to be reached and integration is terminated
 
@@ -438,17 +439,38 @@ geteqinfo <- function(abundance, intmat,
   return(eqinfo)
 }
 
-# Root-functions to trigger a root if (1) the sum of absolute rates of change is
-# equal to the threshold smallchange, i.e., when equilibrium is nearly reached,
-# or (2) if abundances get very large, to prevent errors during integration if
-# state gets to +Inf or stepsize to 0. If a root occurs, the simulation is
-# terminated. See help(events) and help(lsodar) (both in the deSolve package)
-# for background information and examples.
+# Root-functions and event-functions
+# A value returned by the rootfunction becomes zero ('a root is found') in three
+# situations: (1) if the sum of absolute rates of change is equal to threshold
+# smallchange (indicating that equilibrium has been reached), (2) if abundances
+# get very large (indicating unrestricted growth, which would eventually lead to
+# errors during integration), (3) if any of the state variables gets smaller
+# than smallstate.
+# When a root is found, the event-function is called to set any state variables
+# smaller than smallstate to 0.
+# In the first two cases, the simulation should terminate (in the first case
+# because equilibrium has been reached, in the second case to prevent errors
+# during integration because states get to +Inf or stepsize gets to 0). This is
+# achieved by specifying terminalroot = c(1, 2) within ode(...). See
+# help(events) and help(lsodar) (both in the deSolve package) for background
+# information and examples.
+# COULD replace state[state <= smallstate] in eventfun with state[state <= smallstate]
+# to prevent constantly re-copying the zeros ?
 rootfun <- function(t, state, p) {
-  c(sum(abs(unlist(gLV(t, state, p)))) - smallchange, sum(state) - 1e10*totalabun)
+  c(sum(abs(unlist(gLV(t, state, p)))) - smallchange,
+    sum(state) - 1e10*totalabun,
+    state - smallstate)
 }
+
 rootfunconj <- function(t, state, p) {
-  c(sum(abs(unlist(gLVConj(t, state, p)))) - smallchange, sum(state) - 1e10*totalabun)
+  c(sum(abs(unlist(gLVConj(t, state, p)))) - smallchange,
+    sum(state) - 1e10*totalabun,
+    state - smallstate)
+}
+
+eventfun <- function(t, state, p) {
+  state[state <= smallstate] <- 0
+  return(state)
 }
 
 # Perturb equilibrium by adding a small number of bacteria to an equilibrium.
@@ -564,13 +586,15 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   if(model == "gLV") {
     out <- ode(y = abunpert, t = times, func = gLV,
                parms = list(growthrate = growthrate, intmat = intmat),
-               rootfun = rootfun)
+               rootfun = rootfun,
+               events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
   }
   if(model == "gLVConj") {
     out <- ode(y = abunpert, t = times, func = gLVConj,
                parms = list(growthrate = growthrate, intmat = intmat,
                             cost = cost, conjmat = conjmat),
-               rootfun = rootfunconj)
+               rootfun = rootfunconj,
+               events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
   }
   abunfinal <- tail(out, 1)[, -1]
   names(abunfinal) <- names(abundance)
@@ -580,28 +604,25 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   infgrowth <- 0
   eqreached <- 0
   if(!is.null(attributes(out)$troot)) {
-    # A root found
-    if(attributes(out)$iroot[2] != 0) {
+    # One or more roots found
+    
+    if(any(attributes(out)$indroot == 1)) {
+      eqreached <- 1  
+    }
+    
+    if(any(attributes(out)$indroot == 2)) {
       infgrowth <- 1
       if(suppresswarninfgrowth != TRUE) {
         warning(
-          paste("Integration was terminated when the sum of abundances became larger than 1e10 times the initial total abundance,",
-                "\nsignalling apparent unbounded growth. This occured at timepoint t =",
-                round(attributes(out)$troot, 2), "with abundances\n",
-                paste(names(abunfinal), "=", abunfinal, collapse = ", ")
-          )
+          paste0("Integration was terminated at time = ",
+                round(attributes(out)$troot[which(attributes(out)$indroot == 2)], 2),
+                ", when the sum of abundances became",
+                "\nlarger than 1e10 times the initial total abundance, indicating unbounded growth.",
+                "\nAbundances then were ",
+                paste(names(abunfinal), "=", signif(abunfinal), collapse = ", "))
         )
       }
     }
-    
-    if(attributes(out)$iroot[1] != 0) {
-      eqreached <- 1  
-    } else {
-      eqreached <- 0
-    }
-    
-  } else {
-    eqreached <- 0
   }
   
   if(eqreached == 0) {
@@ -622,7 +643,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   if(verbose == TRUE) {
     print(paste("troot=", attributes(out)$troot))
     print("iroot=")
-    print(attributes(out)$iroot)
+    print(attributes(out)$indroot)
     print(paste("infgrowth=", infgrowth))
     print(paste("eqreached=", eqreached))
     
