@@ -168,7 +168,7 @@ totalabun <- 1
 nspeciesset <- c(2, 4)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -0.8, to = 0.8, by = 0.8)
-selfintmeanset <- seq(from = -0.8, to = 0.8, by = 0.8)
+selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.025)
 costset <- c(0.01, 0.20)
 conjrateset <- c(0.01, 0.1)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
