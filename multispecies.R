@@ -39,11 +39,10 @@
 # https://eng.libretexts.org/Bookshelves/Industrial_and_Systems_Engineering/Book%3A_Chemical_Process_Dynamics_and_Controls_(Woolf)
 
 ## perturbequilibrium() ##
-# Abundances frequently grow to infinity because the system does not have an
-# inherent carrying capacity. Now I prevent fatal errors during the integration
-# by terminating the simulation and indicating infinite growth occurred. Could
-# choose to let the object for the output remove before computation, leading to
-# NA as final abundance, which will show up in the plot accordingly.
+# Test if using larger timesteps speeds up simulations without affecting the
+# result, since variable time-step method is used and most large changes occur
+# early. For example, tstep <- 1;
+# times <- c(0:300, seq(from = 300 + tstep, to = tmax, by = tstep))
 
 
 #### Optionally to do ####
@@ -68,8 +67,6 @@
 # tidyr::expand_grid(), and then use (l)/(m)apply / purrr:(p)map to iterate over
 # all rows?
 
-# Using species as an integer might abolish the need to use as.factor(species)
-# when ploting.
 
 ## Checking function arguments ##
 # See also the remarks on checking function arguments in the 'Optionally to do'
@@ -111,12 +108,6 @@
 
 # Add logistic interaction in addition the the linear interaction currently
 # implemented (see https://github.com/EgilFischer/FlockMicrobiome for code).
-
-
-## checkequilibrium() ##
-# Instead of a user-defined tmax if showplot = TRUE, I could use a rootfunction
-# to stop simulation when the new equilibrium is reached. See ?deSolve::roots
-
 
 ## geteqinfo() ##
 # Determining the sign of the real and complex parts can be done vectorised
@@ -380,6 +371,8 @@ getgrowthrate <- function(abundance, intmat) {
 # Check if the analytically identified equilibrium is indeed an equilibrium, by
 # checking if the derivative at the presumed equilibrium is zero. If showplot =
 # TRUE, a time course starting from the presumed equilibrium is shown.
+# The roots should terminate the simulation when equilibrium is reached, but if
+# one starts in an equilibrium, this will not happen.
 checkequilibrium <- function(abundance, intmat, growthrate,
                              printderivatives = FALSE,
                              showplot = FALSE, tmax = 100, tstep = 0.1) {
@@ -393,7 +386,9 @@ checkequilibrium <- function(abundance, intmat, growthrate,
   if(showplot == TRUE) {
     times <- seq(from = 0, to = tmax, by = tstep)
     out <- ode(y = abundance, t = times, func = gLV,
-               parms = list(growthrate = growthrate, intmat = intmat))
+               parms = list(growthrate = growthrate, intmat = intmat),
+               rootfun = rootfun,
+               events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
     ylim <- c(0, 1.1*max(out[, -1]))
     matplot.deSolve(out, ylim = ylim, lwd = 2,
                     lty = 1, ylab = "Abundance")
