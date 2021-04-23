@@ -164,11 +164,13 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 # Settings for testing code
 niter <- 2
 saveplots <- TRUE
+smallstate <- 1e-20
+smallchange <- 1e-10
 totalabun <- 1
 nspeciesset <- c(2, 4)
-abunmodelset <- c("brokenstick", "dompreempt")
+abunmodelset <- c("brokenstick")
 intmeanset <- seq(from = -0.8, to = 0.8, by = 0.8)
-selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.025)
+selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.3)
 costset <- c(0.01, 0.20)
 conjrateset <- c(0.01, 0.1)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
