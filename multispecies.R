@@ -125,7 +125,8 @@
 
 
 #### Loading required libraries ####
-library(deSolve)   # checkequilibrium calls ode() if showplot == TRUE
+library(deSolve)   # checkequilibrium and perturbequilibrium call ode() if
+# showplot == TRUE and simulateinvasion == TRUE, respectively
 library(dplyr)     # checkequilibrium and perturbequilibrium call near()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
