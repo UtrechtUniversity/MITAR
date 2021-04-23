@@ -511,8 +511,8 @@ eventfun <- function(t, state, p) {
 # result1 <- perturbequilibrium(abundance, intmat, growthrate, cost, conjmat, "gLV", "R1")
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                              model, pertpop, pertmagn = 1e-6,
-                             tmax = 100, tstep = 0.1, showplot = TRUE,
-                             verbose = TRUE, suppresswarninfgrowth = FALSE) {
+                             tmax = 1e4, tstep = 0.1, showplot = TRUE,
+                             verbose = FALSE, suppresswarninfgrowth = FALSE) {
   
   # Name abundances, set line type and colors, get derivatives of initial state
   # in the plasmid-free model.
@@ -833,8 +833,9 @@ for(nspecies in nspeciesset) {
           abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
                                         growthrate = growthrate, cost = cost,
                                         conjmat = conjmat,
-                                        model = "gLV", pertpop = "all", tmax = 1e3,
-                                        showplot = FALSE, verbose = FALSE)
+                                        model = "gLV", pertpop = "all", tmax = 1e4,
+                                        showplot = FALSE, verbose = FALSE,
+                                        suppresswarninfgrowth = TRUE)
           infgrowth <- abunfinal$infgrowth
           eqreached <- abunfinal$eqreached
           
@@ -852,8 +853,9 @@ for(nspecies in nspeciesset) {
             intmat = intmat,
             growthrate = growthrate, cost = cost,
             conjmat = conjmat,
-            model = "gLVConj", pertpop = "P", tmax = 1e3,
-            showplot = FALSE, verbose = FALSE)
+            model = "gLVConj", pertpop = "P", tmax = 1e4,
+            showplot = FALSE, verbose = FALSE,
+            suppresswarninfgrowth = TRUE)
           infgrowthconj <- abunfinalconj$infgrowth
           eqreachedconj <- abunfinalconj$eqreached
           
