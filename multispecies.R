@@ -136,6 +136,7 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 # Simulation settings
 niter <- 100
+simulateinvasion <- TRUE # If TRUE, simulations over time are performed
 saveplots <- TRUE
 smallstate <- 1e-20 # States are set to 0 if they become smaller than smallstate
 smallchange <- 1e-10 # If the sum of absolute rates of change is equal to
@@ -154,6 +155,7 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 
 # Settings for testing code
 niter <- 2
+simulateinvasion <- TRUE # If TRUE, simulations over time are performed
 saveplots <- TRUE
 smallstate <- 1e-20
 smallchange <- 1e-10
@@ -826,6 +828,7 @@ for(nspecies in nspeciesset) {
                               growthrate = growthrate, cost = cost,
                               conjmat = conjmat)
           
+          if(simulateinvasion == TRUE) {
           abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
                                         growthrate = growthrate, cost = cost,
                                         conjmat = conjmat,
@@ -864,6 +867,18 @@ for(nspecies in nspeciesset) {
             abunRconj <- NA
             abunPconj <- NA
           }
+          
+          } else {
+            # No simulations over time performed, so set values to NA
+            infgrowth <- NA
+            eqreached <- NA
+            abunR <- NA
+            infgrowthconj <- NA
+            eqreachedconj <- NA
+            abunRconj <- NA
+            abunPconj <- NA
+          }
+          
           mydata[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
             rep(niter, nspecies),
             rep(nspecies, nspecies),
