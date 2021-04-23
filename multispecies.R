@@ -627,10 +627,9 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     }
   }
   
-  if(eqreached == 0) {
-    warning("Equilibrium has not been reached. Final abundances were\n",
-            paste(names(abunfinal), "=", abunfinal, collapse = ", "),
-            "Increase tmax to prevent this?")
+  if(eqreached == 0 & infgrowth != 1) {
+    warning("Equilibrium not reached. Increase tmax to prevent this? Final abundances were\n",
+            paste(names(abunfinal), "=", signif(abunfinal), collapse = ", "))
   }
   
   if(showplot == TRUE) {
