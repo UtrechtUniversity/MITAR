@@ -522,7 +522,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     lty <- 1
     col <- mycol[1:nspecies]
     derivatives <- unlist(
-      gLV(n = abundance, parms = list(growthrate = growthrate, intmat = intmat))
+      gLV(t = 0, n = abundance, parms = list(growthrate = growthrate, intmat = intmat))
     )
   }
   
@@ -536,7 +536,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
       message("Initial state is NOT plasmid-free.")
     }
     derivatives <- unlist(
-      gLV(n = abundance[1:nspecies],
+      gLV(t = 0, n = abundance[1:nspecies],
           parms = list(growthrate = growthrate, intmat = intmat)
       )
     )
