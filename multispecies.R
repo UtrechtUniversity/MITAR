@@ -595,8 +595,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                rootfun = rootfunconj,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
   }
-  abunfinal <- tail(out, 1)[, -1]
-  names(abunfinal) <- names(abundance)
+  abunfinaltemp <- tail(out, 1)[, -1]
+  names(abunfinaltemp) <- names(abundance)
   
   # Assume infinite growth occurred if a root was triggered because abundances
   # became very large
@@ -618,7 +618,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                 ", when the sum of abundances became",
                 "\nlarger than 1e10 times the initial total abundance, indicating unbounded growth.",
                 "\nAbundances then were ",
-                paste(names(abunfinal), "=", signif(abunfinal), collapse = ", "))
+                paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
         )
       }
     }
@@ -626,7 +626,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   
   if(eqreached == 0 & infgrowth != 1) {
     warning("Equilibrium not reached. Increase tmax to prevent this? Final abundances were\n",
-            paste(names(abunfinal), "=", signif(abunfinal), collapse = ", "))
+            paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
   }
   
   if(showplot == TRUE) {
@@ -645,20 +645,20 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     print(paste("infgrowth=", infgrowth))
     print(paste("eqreached=", eqreached))
     
-    abschange <- abunfinal - abuninit
-    relchange <- abunfinal / abuninit
+    abschange <- abunfinaltemp - abuninit
+    relchange <- abunfinaltemp / abuninit
     print("Species abundances, and their changes:", quote = FALSE)
-    print(rbind(tested = abuninit, at_perturbation = abunpert, final = abunfinal,
+    print(rbind(tested = abuninit, at_perturbation = abunpert, final = abunfinaltemp,
                 absolute_change = abschange, relative_change = relchange))
   }
   
   if(model == "gLV") {
-    abunfinal <- list(abunfinalR = abunfinal,
+    abunfinal <- list(abunfinalR = abunfinaltemp,
                       abunfinalP = NULL,
                       infgrowth = infgrowth, eqreached = eqreached)
   } else {
-    abunfinal <- list(abunfinalR = abunfinal[1:nspecies],
-                      abunfinalP = abunfinal[(nspecies + 1):(2*nspecies)],
+    abunfinal <- list(abunfinalR = abunfinaltemp[1:nspecies],
+                      abunfinalP = abunfinaltemp[(nspecies + 1):(2*nspecies)],
                       infgrowth = infgrowth, eqreached = eqreached)
   }
   return(abunfinal)
