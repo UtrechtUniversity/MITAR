@@ -671,7 +671,9 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        labx = "Mean interaction coefficient",
                        laby = "Mean selfinteraction coefficient",
                        mytag = NULL, addstamp = FALSE, diagional = "none",
-                       facetx = "modelcode", facety = "nspecies", as.table = TRUE,
+                       facetx = "abunmodelcode + cost",
+                       facety = "nspecies + conjrate",
+                       as.table = TRUE,
                        marginx = NULL, marginy = NULL, base_size = 11,
                        rotate_legend = FALSE,
                        save = saveplots, filename = NULL, ...) {
@@ -770,7 +772,7 @@ nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
   length(intmeanset)*length(selfintmeanset)*length(costset)*length(conjrateset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 36)
-colnames(plotdata) <- c("niter", "nspecies", "modelcode",
+colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
                        "intmean", "selfintmean", "cost", "conjrate",
                        "mingrowthrate", "meangrowthrate", "maxgrowthrate",
                        "miniterintmat", "meaniterintmat", "medianiterintmat", "maxiterintmat",
@@ -804,12 +806,14 @@ for(nspecies in nspeciesset) {
     if(abunmodel == "brokenstick") {
       abundance <- brokenstick(nspecies = nspecies, totalabun = totalabun,
                                takelimit = TRUE)
-      modelcode <- 1
+      # Using a number instead of a name, to prevent type-conversion when
+      # storing it in matrices.
+      abunmodelcode <- 1
     }
     if(abunmodel == "dompreempt") {
       abundance <- dompreempt(nspecies = nspecies, totalabun = totalabun,
                               takelimit = TRUE)
-      modelcode <- 2
+      abunmodelcode <- 2
     }
     
     for(intmean in intmeanset) {
@@ -897,7 +901,7 @@ for(nspecies in nspeciesset) {
           data[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
             rep(niter, nspecies),
             rep(nspecies, nspecies),
-            rep(modelcode, nspecies),
+            rep(abunmodelcode, nspecies),
             rep(intmean, nspecies),
             rep(selfintmean, nspecies),
             rep(cost, nspecies),
@@ -921,7 +925,7 @@ for(nspecies in nspeciesset) {
         datatotal[indexdatatotal:(indexdatatotal + nrowdata - 1), ] <- data
         indexdatatotal <- indexdatatotal + nrowdata
         
-        colnames(data) <- c("niter", "nspecies", "modelcode",
+        colnames(data) <- c("niter", "nspecies", "abunmodelcode",
                               "intmean", "selfintmean", "cost", "conjrate",
                               "iter", "species", "abundance",
                               "selfint", "growthrate",
@@ -951,7 +955,7 @@ for(nspecies in nspeciesset) {
         summaryabunRconj <- summary(data[, "abunRconj"])[c("Min.", "Median", "Mean", "Max.")]
         summaryabunPconj <- summary(data[, "abunPconj"])[c("Min.", "Median", "Mean", "Max.")]
         
-        plotdata[rowindexplotdata, ] <- c(niter, nspecies, modelcode,
+        plotdata[rowindexplotdata, ] <- c(niter, nspecies, abunmodelcode,
                                           intmean, selfintmean, cost, conjrate,
                                           min(data[, "growthrate"]),
                                           mean(data[, "growthrate"]),
@@ -997,7 +1001,7 @@ labspecies <- paste(nspeciesset, "species")
 names(labspecies) <- nspeciesset
 labmodel <- c("Broken stick model", "Dominance preemption model")
 names(labmodel) <- c(1, 2)
-mylabeller <- labeller(nspecies = labspecies, modelcode = labmodel,
+mylabeller <- labeller(nspecies = labspecies, abunmodelcode = labmodel,
                        .default = label_both)
 
 plotdata <- as.data.frame(plotdata)
@@ -1016,81 +1020,65 @@ limitsgrowthratebinned <- sort(c(limitsgrowthrate, limitsgrowthrate/2, 0))
 # equilibrium after perturbation is also plotted.
 CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "fracinfgrowth", filltitle = "Fraction infinite\ngrowth",
              filltype = "continuous", limits = limitsfraction, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   CreatePlot(fillvar = "fraceqreached", filltitle = "Fraction equilibrium\nreached",
              filltype = "continuous", limits = limitsfraction, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   CreatePlot(fillvar = "fracinfgrowthconj",
              filltitle = "Fraction infinite growth\nwith conjugation",
              filltype = "continuous", limits = limitsfraction, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   CreatePlot(fillvar = "fraceqreachedconj",
              filltitle = "Fraction equilibrium\nreached with\nconjugation",
              filltype = "continuous", limits = limitsfraction, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
 }
 CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 CreatePlot(fillvar = "fracrealconj",
            filltitle = "Fraction real\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 CreatePlot(fillvar = "fracrepconj",
            filltitle = "Fraction repeated eigenvalues\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 
 ## Plot summary data for the calculated growth rates 
 CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "minor")
 
 CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "minor")
 
 CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "minor")
 
 CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "minor")
 
 CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "minor")
 
 CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "minor")
 
 # Show how interactions affect the growth rates of the individual species
@@ -1104,7 +1092,7 @@ datatotalfiltercostconj <- filter(datatotal,
 CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate",
            filltitle = "Growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "species + nspecies", facetx = "modelcode",
+           facety = "species + nspecies", facetx = "abunmodelcode",
            diagional = "minor")
 
 ## Plot summary data on the number of iterations in creating intmat needed to
@@ -1112,22 +1100,18 @@ CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate",
 CreatePlot(fillvar = "miniterintmat", filltitle = 
              paste("Minimum number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat), 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 CreatePlot(fillvar = "meaniterintmat", filltitle = 
              paste("Mean number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat), 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 CreatePlot(fillvar = "medianiterintmat", filltitle = 
              paste("Median number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat), 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 CreatePlot(fillvar = "maxiterintmat", filltitle = 
              paste("Maximum number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat), 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 
 ## Plot total abundances of plasmid-free populations after perturbations for
@@ -1137,24 +1121,21 @@ if(simulateinvasion == TRUE) {
   filltitle <- "Minimum total abundance of\nplasmid-free bacteria\nafter perturbation"
   CreatePlot(fillvar = "minR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   filltitle <- "Mean total abundance of\nplasmid-free bacteria\nafter perturbation"
   CreatePlot(fillvar = "meanR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   lengthx <- length(which(!is.na(plotdata[, "meanR"])))
   plot(x = 1:lengthx, y = sort(log10(plotdata[, "meanR"])), type = "p", lwd = 2); grid()
   
   ggplot(plotdata, aes(log10(meanR))) +
     geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
-    facet_grid(nspecies ~ modelcode)
+    facet_grid(nspecies ~ abunmodelcode)
   
   filltitle <- "Median total abundance of\nplasmid-free bacteria\nafter perturbation"
   CreatePlot(fillvar = "medianR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   lengthx <- length(which(!is.na(plotdata[, "medianR"])))
   plot(x = 1:lengthx, y = sort(log10(plotdata[, "medianR"]))); grid()
@@ -1162,7 +1143,6 @@ if(simulateinvasion == TRUE) {
   filltitle <- "Maximum total abundance of\nplasmid-free bacteria\nafter perturbation"
   CreatePlot(fillvar = "maxR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   
   ## Plot total abundances of plasmid-free populations after perturbations for
@@ -1171,27 +1151,23 @@ if(simulateinvasion == TRUE) {
   filltitle <- "Minimum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "minRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   filltitle <- "Mean total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "meanRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   
   ggplot(plotdata, aes(log10(meanRconj))) +
     geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
-    facet_grid(nspecies + conjrate ~ modelcode + cost)
+    facet_grid(nspecies + conjrate ~ abunmodelcode + cost)
   
   filltitle <- "Median total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "medianRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   filltitle <- "Maximum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "maxRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   
   ## Plot total abundances of plasmid-bearing populations after perturbations for
@@ -1200,22 +1176,18 @@ if(simulateinvasion == TRUE) {
   filltitle <- "Minimum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "minPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   filltitle <- "Mean total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "meanPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   filltitle <- "Median total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "medianPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
   filltitle <- "Maximum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "maxPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             facety = "nspecies + conjrate", facetx = "modelcode + cost",
              diagional = "both")
 }
 
@@ -1233,7 +1205,7 @@ if(simulateinvasion == TRUE) {
 #   labs(x = "Mean interaction coefficient",
 #        y = "Mean selfinteraction coefficient",
 #        caption = paste(niter, "iterations")) +
-#   facet_grid(nspecies ~ modelcode, labeller = mylabeller)
+#   facet_grid(nspecies ~ abunmodelcode, labeller = mylabeller)
 
 
 ### Show species-specific relation of growth rate, intmean and selfintmean.
@@ -1247,7 +1219,7 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = selfintmean), size = 1) +
-  facet_grid(species + nspecies ~ modelcode, labeller = mylabeller) +
+  facet_grid(species + nspecies ~ abunmodelcode, labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
@@ -1258,7 +1230,7 @@ ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) +
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = intmean), size = 1) +
-  facet_grid(species + nspecies ~ modelcode, labeller = mylabeller) +
+  facet_grid(species + nspecies ~ abunmodelcode, labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
