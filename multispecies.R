@@ -1011,6 +1011,57 @@ limitsgrowthrate <- sign(limitsgrowthrate)*ceiling(abs(limitsgrowthrate)*10)/10
 limitsgrowthratebinned <- sort(c(limitsgrowthrate, limitsgrowthrate/2, 0))
 
 
+## Compare equilibrium characteristics for the models without and with plasmids.
+# If invasion has been simulated, data on infinite growth and reaching
+# equilibrium after perturbation is also plotted.
+CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+CreatePlot(fillvar = "fracstableconj",
+           filltitle = "Fraction stable\nwith conjugation",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+if(simulateinvasion == TRUE) {
+  CreatePlot(fillvar = "fracinfgrowth", filltitle = "Fraction infinite\ngrowth",
+             filltype = "continuous", limits = limitsfraction, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  CreatePlot(fillvar = "fraceqreached", filltitle = "Fraction equilibrium\nreached",
+             filltype = "continuous", limits = limitsfraction, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  CreatePlot(fillvar = "fracinfgrowthconj",
+             filltitle = "Fraction infinite growth\nwith conjugation",
+             filltype = "continuous", limits = limitsfraction, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  CreatePlot(fillvar = "fraceqreachedconj",
+             filltitle = "Fraction equilibrium\nreached with\nconjugation",
+             filltype = "continuous", limits = limitsfraction, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+}
+CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+CreatePlot(fillvar = "fracrealconj",
+           filltitle = "Fraction real\nwith conjugation",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+CreatePlot(fillvar = "fracrepconj",
+           filltitle = "Fraction repeated eigenvalues\nwith conjugation",
+           filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+
 ## Plot summary data for the calculated growth rates 
 CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
@@ -1056,12 +1107,8 @@ CreatePlot(dataplot = mydatatotalfiltercostconj, fillvar = "growthrate",
            facety = "species + nspecies", facetx = "modelcode",
            diagional = "minor")
 
-
-## Plot equilibrium characteristics for model without plasmids
-CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
-           filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
+## Plot summary data on the number of iterations in creating intmat needed to
+# find a stable equilibrium with the model without plasmids
 CreatePlot(fillvar = "miniterintmat", filltitle = 
              paste("Minimum number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat), 
@@ -1083,150 +1130,94 @@ CreatePlot(fillvar = "maxiterintmat", filltitle =
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 
-if(simulateinvasion == TRUE) {
-CreatePlot(fillvar = "fracinfgrowth", filltitle = "Fraction infinite\ngrowth",
-           filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-CreatePlot(fillvar = "fraceqreached", filltitle = "Fraction equilibrium\nreached",
-           filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-}
-
 ## Plot total abundances of plasmid-free populations after perturbations for
 # models without plasmids. Only abundances where perturbation did NOT lead to
 # infinite growth are considered.
 if(simulateinvasion == TRUE) {
-filltitle <- "Minimum total abundance of\nplasmid-free bacteria\nafter perturbation"
-CreatePlot(fillvar = "minR", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-filltitle <- "Mean total abundance of\nplasmid-free bacteria\nafter perturbation"
-CreatePlot(fillvar = "meanR", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-lengthx <- length(which(!is.na(plotdata[, "meanR"])))
-plot(x = 1:lengthx, y = sort(log10(plotdata[, "meanR"])), type = "p", lwd = 2); grid()
-
-ggplot(plotdata, aes(log10(meanR))) +
-  geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
-  facet_grid(nspecies ~ modelcode)
-
-filltitle <- "Median total abundance of\nplasmid-free bacteria\nafter perturbation"
-CreatePlot(fillvar = "medianR", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-lengthx <- length(which(!is.na(plotdata[, "medianR"])))
-plot(x = 1:lengthx, y = sort(log10(plotdata[, "medianR"]))); grid()
-
-filltitle <- "Maximum total abundance of\nplasmid-free bacteria\nafter perturbation"
-CreatePlot(fillvar = "maxR", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
+  filltitle <- "Minimum total abundance of\nplasmid-free bacteria\nafter perturbation"
+  CreatePlot(fillvar = "minR", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  filltitle <- "Mean total abundance of\nplasmid-free bacteria\nafter perturbation"
+  CreatePlot(fillvar = "meanR", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  lengthx <- length(which(!is.na(plotdata[, "meanR"])))
+  plot(x = 1:lengthx, y = sort(log10(plotdata[, "meanR"])), type = "p", lwd = 2); grid()
+  
+  ggplot(plotdata, aes(log10(meanR))) +
+    geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
+    facet_grid(nspecies ~ modelcode)
+  
+  filltitle <- "Median total abundance of\nplasmid-free bacteria\nafter perturbation"
+  CreatePlot(fillvar = "medianR", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  lengthx <- length(which(!is.na(plotdata[, "medianR"])))
+  plot(x = 1:lengthx, y = sort(log10(plotdata[, "medianR"]))); grid()
+  
+  filltitle <- "Maximum total abundance of\nplasmid-free bacteria\nafter perturbation"
+  CreatePlot(fillvar = "maxR", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  
+  ## Plot total abundances of plasmid-free populations after perturbations for
+  # models with plasmids. Only abundances where perturbation did NOT lead to
+  # infinite growth are considered.
+  filltitle <- "Minimum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
+  CreatePlot(fillvar = "minRconj", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  filltitle <- "Mean total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
+  CreatePlot(fillvar = "meanRconj", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  
+  ggplot(plotdata, aes(log10(meanRconj))) +
+    geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
+    facet_grid(nspecies + conjrate ~ modelcode + cost)
+  
+  filltitle <- "Median total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
+  CreatePlot(fillvar = "medianRconj", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  filltitle <- "Maximum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
+  CreatePlot(fillvar = "maxRconj", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  
+  ## Plot total abundances of plasmid-bearing populations after perturbations for
+  # models with plasmids. Only abundances where perturbation did NOT lead to
+  # infinite growth are considered.
+  filltitle <- "Minimum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
+  CreatePlot(fillvar = "minPconj", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  filltitle <- "Mean total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
+  CreatePlot(fillvar = "meanPconj", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  filltitle <- "Median total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
+  CreatePlot(fillvar = "medianPconj", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
+  filltitle <- "Maximum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
+  CreatePlot(fillvar = "maxPconj", filltitle = filltitle,
+             filltype = "continuous", limits = NULL, 
+             facety = "nspecies + conjrate", facetx = "modelcode + cost",
+             diagional = "both")
 }
-
-## Plot equilibrium characteristics for model with plasmids
-CreatePlot(fillvar = "fracstableconj",
-           filltitle = "Fraction stable\nwith conjugation",
-           filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-if(simulateinvasion == TRUE) {
-CreatePlot(fillvar = "fracinfgrowthconj",
-           filltitle = "Fraction infinite growth\nwith conjugation",
-           filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-CreatePlot(fillvar = "fraceqreachedconj",
-           filltitle = "Fraction equilibrium\nreached with\nconjugation",
-           filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-}
-
-## Plot total abundances of plasmid-free populations after perturbations for
-# models with plasmids. Only abundances where perturbation did NOT lead to
-# infinite growth are considered.
-if(simulateinvasion == TRUE) {
-filltitle <- "Minimum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
-CreatePlot(fillvar = "minRconj", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-filltitle <- "Mean total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
-CreatePlot(fillvar = "meanRconj", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-
-ggplot(plotdata, aes(log10(meanRconj))) +
-  geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
-  facet_grid(nspecies + conjrate ~ modelcode + cost)
-
-filltitle <- "Median total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
-CreatePlot(fillvar = "medianRconj", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-filltitle <- "Maximum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
-CreatePlot(fillvar = "maxRconj", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-
-
-## Plot total abundances of plasmid-bearing populations after perturbations for
-# models with plasmids. Only abundances where perturbation did NOT lead to
-# infinite growth are considered.
-filltitle <- "Minimum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
-CreatePlot(fillvar = "minPconj", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-filltitle <- "Mean total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
-CreatePlot(fillvar = "meanPconj", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-filltitle <- "Median total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
-CreatePlot(fillvar = "medianPconj", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-filltitle <- "Maximum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
-CreatePlot(fillvar = "maxPconj", filltitle = filltitle,
-           filltype = "continuous", limits = NULL, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-}
-
-## Plot other equilibrium characteristics for models with and without plasmids
-CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
-           filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-
-CreatePlot(fillvar = "fracrealconj",
-           filltitle = "Fraction real\nwith conjugation",
-           filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-
-CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
-           filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
-
-CreatePlot(fillvar = "fracrepconj",
-           filltitle = "Fraction repeated eigenvalues\nwith conjugation",
-           filltype = "continuous", limits = limitsfraction, 
-           facety = "nspecies + conjrate", facetx = "modelcode + cost",
-           diagional = "both")
 
 ### To test plots without using CreatePlot() ###
 # ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
@@ -1246,8 +1237,6 @@ CreatePlot(fillvar = "fracrepconj",
 
 
 ### Show species-specific relation of growth rate, intmean and selfintmean.
-mydata <- as.data.frame(mydata)
-
 # Check relation between abundance and growth rate for the different species.
 nrow <- dim(mydatatotal)[1]
 subsetmydatatotal <- filter(mydatatotal, near(iter, 1))
@@ -1264,7 +1253,7 @@ ggplot(data = subsetmydatatotal, aes(x = intmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
-ggsave(paste0(DateTimeStamp, "growthrate1perspecies.png"))
+  ggsave(paste0(DateTimeStamp, "growthrate1perspecies.png"))
 }
 
 ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) + 
@@ -1275,7 +1264,7 @@ ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
-ggsave(paste0(DateTimeStamp, "growthrate2perspecies.png"))
+  ggsave(paste0(DateTimeStamp, "growthrate2perspecies.png"))
 }
 
 #### Comparing abundance models ####
