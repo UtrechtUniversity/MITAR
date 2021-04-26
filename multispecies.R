@@ -625,7 +625,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     }
   }
   
-  if(eqreached == 0 & infgrowth != 1) {
+  if(eqreached == 0 && infgrowth != 1) {
     warning("Equilibrium not reached. Increase tmax to prevent this? Final abundances were\n",
             paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
   }
@@ -720,10 +720,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     p <- p + guides(fill = guide_colourbar(label.hjust = 0.4, label.vjust = 0.5,
                                            label.theme = element_text(angle = 90)))
   }
-  if(diagional == "both" | diagional == "major") {
+  if(diagional == "both" || diagional == "major") {
     p <- p + geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1)
   }
-  if(diagional == "both" | diagional == "minor") {
+  if(diagional == "both" || diagional == "minor") {
     p <- p + geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
   }
   print(p)
@@ -829,7 +829,7 @@ for(nspecies in nspeciesset) {
           stableeq <- FALSE
           niterintmat <- 100
           iterintmat <- 0
-          while(stableeq == FALSE & iterintmat < niterintmat) {
+          while(stableeq == FALSE && iterintmat < niterintmat) {
             # Create a combination of interaction matrix and growth rate that
             # results in a stable plasmid-free equilibrium
             intmat <- getintmat(nspecies = nspecies,
