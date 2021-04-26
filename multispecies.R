@@ -786,14 +786,14 @@ nrowdatatotal <- length(abunmodelset)*length(intmeanset)*
   length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
   sum(nspeciesset)
 
-mydatatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 30)
-indexmydatatotal <- 1
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 30)
+indexdatatotal <- 1
 maxnspecies <- max(nspeciesset)
 
 # system.time({
 # Run simulations
 rowindexplotdata <- 1
-rowindexmydata <- 1
+rowindexdata <- 1
 for(nspecies in nspeciesset) {
   for(conjrate in conjrateset) {
   conjmat <- getconjmat(nspecies = nspecies,
@@ -818,8 +818,8 @@ for(nspecies in nspeciesset) {
                    ": started at ", Sys.time()), quote = FALSE)
       for(selfintmean in selfintmeanset) {
         for(cost in costset) {
-        nrowmydata <- niter * nspecies
-        mydata <- matrix(data = NA, nrow = nrowmydata, ncol = 30)
+        nrowdata <- niter * nspecies
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
         for(iter in 1:niter) {
           
           stableeq <- FALSE
@@ -894,7 +894,7 @@ for(nspecies in nspeciesset) {
             abunPconj <- NA
           }
           
-          mydata[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
+          data[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
             rep(niter, nspecies),
             rep(nspecies, nspecies),
             rep(modelcode, nspecies),
@@ -918,10 +918,10 @@ for(nspecies in nspeciesset) {
             rep(abunPconj, nspecies)
           )
         }
-        mydatatotal[indexmydatatotal:(indexmydatatotal + nrowmydata - 1), ] <- mydata
-        indexmydatatotal <- indexmydatatotal + nrowmydata
+        datatotal[indexdatatotal:(indexdatatotal + nrowdata - 1), ] <- data
+        indexdatatotal <- indexdatatotal + nrowdata
         
-        colnames(mydata) <- c("niter", "nspecies", "modelcode",
+        colnames(data) <- c("niter", "nspecies", "modelcode",
                               "intmean", "selfintmean", "cost", "conjrate",
                               "iter", "species", "abundance",
                               "selfint", "growthrate",
@@ -935,27 +935,27 @@ for(nspecies in nspeciesset) {
                               "abunR", "abunRconj", "abunPconj")
         
         # Get proportions of stable and non-oscillating equilibria, and repeated eigenvalues
-        fracstable <- mean(mydata[, "eigvalRe"] < 0)
-        fracreal <- mean(mydata[, "eigvalImSign"] == 0)
-        fracrep <- mean(mydata[, "eigvalRep"] != 0)
-        fracstableconj <- mean(mydata[, "eigvalconjRe"] < 0)
-        fracrealconj <- mean(mydata[, "eigvalconjImSign"] == 0)
-        fracrepconj <- mean(mydata[, "eigvalconjRep"] != 0)
-        fracinfgrowth <- mean(mydata[, "infgrowth"] != 0)
-        fracinfgrowthconj <- mean(mydata[, "infgrowthconj"] != 0)
-        fraceqreached <- mean(mydata[, "eqreached"] != 0)
-        fraceqreachedconj <- mean(mydata[, "eqreachedconj"] != 0)
+        fracstable <- mean(data[, "eigvalRe"] < 0)
+        fracreal <- mean(data[, "eigvalImSign"] == 0)
+        fracrep <- mean(data[, "eigvalRep"] != 0)
+        fracstableconj <- mean(data[, "eigvalconjRe"] < 0)
+        fracrealconj <- mean(data[, "eigvalconjImSign"] == 0)
+        fracrepconj <- mean(data[, "eigvalconjRep"] != 0)
+        fracinfgrowth <- mean(data[, "infgrowth"] != 0)
+        fracinfgrowthconj <- mean(data[, "infgrowthconj"] != 0)
+        fraceqreached <- mean(data[, "eqreached"] != 0)
+        fraceqreachedconj <- mean(data[, "eqreachedconj"] != 0)
         
-        summaryiterintmat <- summary(mydata[, "iterintmat"])[c("Min.", "Median", "Mean", "Max.")]
-        summaryabunR <- summary(mydata[, "abunR"])[c("Min.", "Median", "Mean", "Max.")]
-        summaryabunRconj <- summary(mydata[, "abunRconj"])[c("Min.", "Median", "Mean", "Max.")]
-        summaryabunPconj <- summary(mydata[, "abunPconj"])[c("Min.", "Median", "Mean", "Max.")]
+        summaryiterintmat <- summary(data[, "iterintmat"])[c("Min.", "Median", "Mean", "Max.")]
+        summaryabunR <- summary(data[, "abunR"])[c("Min.", "Median", "Mean", "Max.")]
+        summaryabunRconj <- summary(data[, "abunRconj"])[c("Min.", "Median", "Mean", "Max.")]
+        summaryabunPconj <- summary(data[, "abunPconj"])[c("Min.", "Median", "Mean", "Max.")]
         
         plotdata[rowindexplotdata, ] <- c(niter, nspecies, modelcode,
                                           intmean, selfintmean, cost, conjrate,
-                                          min(mydata[, "growthrate"]),
-                                          mean(mydata[, "growthrate"]),
-                                          max(mydata[, "growthrate"]),
+                                          min(data[, "growthrate"]),
+                                          mean(data[, "growthrate"]),
+                                          max(data[, "growthrate"]),
                                           summaryiterintmat,
                                           fracstable, fracreal, fracrep,
                                           fracstableconj, fracrealconj, fracrepconj,
@@ -972,7 +972,7 @@ for(nspecies in nspeciesset) {
 }
 # })
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
-colnames(mydatatotal) <- colnames(mydata)
+colnames(datatotal) <- colnames(data)
 
 #### Reading previously saved data from a .csv-file ####
 ## To read data from csv-file, uncomment this section and fill in the 
@@ -989,7 +989,7 @@ colnames(mydatatotal) <- colnames(mydata)
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
           quote = FALSE, row.names = FALSE)
-write.csv(mydatatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
+write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
           quote = FALSE, row.names = FALSE)
 
 ## Labels and limits for plots ##
@@ -1001,7 +1001,7 @@ mylabeller <- labeller(nspecies = labspecies, modelcode = labmodel,
                        .default = label_both)
 
 plotdata <- as.data.frame(plotdata)
-mydatatotal <- as.data.frame(mydatatotal)
+datatotal <- as.data.frame(datatotal)
 limitsfraction <- c(0, 1)
 limitsgrowthrate <- c(min(plotdata[, "mingrowthrate"]),
                       max(plotdata[, "maxgrowthrate"]))
@@ -1099,9 +1099,9 @@ CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
 # for all iterations would be plotted on top of each other, so only the data for
 # last iteration would be visible. Instead, filtered data to show only the first
 # iteration
-mydatatotalfiltercostconj <- filter(mydatatotal,
+datatotalfiltercostconj <- filter(datatotal,
                        near(cost, costset[1]), near(conjrate, conjrate[1]))
-CreatePlot(dataplot = mydatatotalfiltercostconj, fillvar = "growthrate",
+CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate",
            filltitle = "Growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
            facety = "species + nspecies", facetx = "modelcode",
@@ -1243,7 +1243,7 @@ if(simulateinvasion == TRUE) {
 # when species are less abundant.
 # Larger intmean leads to lower growth rate, effect becomes larger when species
 # are less abundant
-ggplot(data = mydatatotalfiltercostconj, aes(x = intmean, y = growthrate)) + 
+ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) + 
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = selfintmean), size = 1) +
@@ -1254,7 +1254,7 @@ if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthrate1perspecies.png"))
 }
 
-ggplot(data = mydatatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
+ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = intmean), size = 1) +
