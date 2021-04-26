@@ -769,10 +769,11 @@ set.seed(seed = 314, kind = "default", normal.kind = "default", sample.kind = "d
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
   length(intmeanset)*length(selfintmeanset)*length(costset)*length(conjrateset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 32)
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 36)
 colnames(plotdata) <- c("niter", "nspecies", "modelcode",
                        "intmean", "selfintmean", "cost", "conjrate",
                        "mingrowthrate", "meangrowthrate", "maxgrowthrate",
+                       "miniterintmat", "meaniterintmat", "medianiterintmat", "maxiterintmat",
                        "fracstable", "fracreal", "fracrep",
                        "fracstableconj", "fracrealconj", "fracrepconj",
                        "fracinfgrowth", "fracinfgrowthconj",
@@ -785,7 +786,7 @@ nrowdatatotal <- length(abunmodelset)*length(intmeanset)*
   length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
   sum(nspeciesset)
 
-mydatatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 29)
+mydatatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 30)
 indexmydatatotal <- 1
 maxnspecies <- max(nspeciesset)
 
@@ -818,16 +819,29 @@ for(nspecies in nspeciesset) {
       for(selfintmean in selfintmeanset) {
         for(cost in costset) {
         nrowmydata <- niter * nspecies
-        mydata <- matrix(data = NA, nrow = nrowmydata, ncol = 29)
+        mydata <- matrix(data = NA, nrow = nrowmydata, ncol = 30)
         for(iter in 1:niter) {
-          intmat <- getintmat(nspecies = nspecies,
-                              intmean = intmean, selfintmean = selfintmean)
           
-          growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
-
-          eqinfo <- geteqinfo(abundance = abundance, intmat = intmat,
-                              growthrate = growthrate, cost = cost,
-                              conjmat = conjmat)
+          stableeq <- FALSE
+          niterintmat <- 100
+          iterintmat <- 0
+          while(stableeq == FALSE & iterintmat < niterintmat) {
+            # Create a combination of interaction matrix and growth rate that
+            # results in a stable plasmid-free equilibrium
+            intmat <- getintmat(nspecies = nspecies,
+                                intmean = intmean, selfintmean = selfintmean)
+            growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
+            eqinfo <- geteqinfo(abundance = abundance, intmat = intmat,
+                                growthrate = growthrate, cost = cost,
+                                conjmat = conjmat)
+            if(eqinfo[1] < 0) {
+              stableeq <- TRUE
+            }
+            iterintmat <- iterintmat + 1
+          }
+          if(stableeq == FALSE) {
+            warning(paste("No stable equilibrium has been found in", niterintmat, "attempts."))
+          }
           
           if(simulateinvasion == TRUE) {
           abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
@@ -893,6 +907,7 @@ for(nspecies in nspeciesset) {
             abundance,
             diag(intmat),
             growthrate,
+            rep(iterintmat, nspecies),
             matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
             rep(infgrowth, nspecies),
             rep(infgrowthconj, nspecies),
@@ -910,6 +925,7 @@ for(nspecies in nspeciesset) {
                               "intmean", "selfintmean", "cost", "conjrate",
                               "iter", "species", "abundance",
                               "selfint", "growthrate",
+                              "iterintmat",
                               "eigvalRe", "eigvalIm",
                               "eigvalReSign", "eigvalImSign", "eigvalRep",
                               "eigvalconjRe", "eigvalconjIm",
@@ -930,6 +946,7 @@ for(nspecies in nspeciesset) {
         fraceqreached <- mean(mydata[, "eqreached"] != 0)
         fraceqreachedconj <- mean(mydata[, "eqreachedconj"] != 0)
         
+        summaryiterintmat <- summary(mydata[, "iterintmat"])[c("Min.", "Median", "Mean", "Max.")]
         summaryabunR <- summary(mydata[, "abunR"])[c("Min.", "Median", "Mean", "Max.")]
         summaryabunRconj <- summary(mydata[, "abunRconj"])[c("Min.", "Median", "Mean", "Max.")]
         summaryabunPconj <- summary(mydata[, "abunPconj"])[c("Min.", "Median", "Mean", "Max.")]
@@ -939,6 +956,7 @@ for(nspecies in nspeciesset) {
                                           min(mydata[, "growthrate"]),
                                           mean(mydata[, "growthrate"]),
                                           max(mydata[, "growthrate"]),
+                                          summaryiterintmat,
                                           fracstable, fracreal, fracrep,
                                           fracstableconj, fracrealconj, fracrepconj,
                                           fracinfgrowth, fracinfgrowthconj,
@@ -1041,6 +1059,26 @@ CreatePlot(dataplot = selectmydatatotal, fillvar = "growthrate",
 ## Plot equilibrium characteristics for model without plasmids
 CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction, 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+CreatePlot(fillvar = "miniterintmat", filltitle = 
+             paste("Minimum number of\niterations to reach\nstable equilibrium"),
+           filltype = "continuous", limits = c(0, niterintmat), 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+CreatePlot(fillvar = "meaniterintmat", filltitle = 
+             paste("Mean number of\niterations to reach\nstable equilibrium"),
+           filltype = "continuous", limits = c(0, niterintmat), 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+CreatePlot(fillvar = "medianiterintmat", filltitle = 
+             paste("Median number of\niterations to reach\nstable equilibrium"),
+           filltype = "continuous", limits = c(0, niterintmat), 
+           facety = "nspecies + conjrate", facetx = "modelcode + cost",
+           diagional = "both")
+CreatePlot(fillvar = "maxiterintmat", filltitle = 
+             paste("Maximum number of\niterations to reach\nstable equilibrium"),
+           filltype = "continuous", limits = c(0, niterintmat), 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
 CreatePlot(fillvar = "fracinfgrowth", filltitle = "Fraction infinite\ngrowth",
