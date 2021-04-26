@@ -407,13 +407,22 @@ getconjmat <- function(nspecies, conjrate) {
                     nrow = nspecies, ncol = nspecies)
 }
 
-# Get largest eigenvalues of the model without and with conjugation
-geteqinfo <- function(abundance, intmat,
-                      growthrate, cost, conjmat) {
-  
-  eigval <- eigen(x = jacobian.full(y = abundance, func = gLV,
-                      parms = list(growthrate = growthrate, intmat = intmat)),
-                  symmetric = FALSE, only.values = TRUE)$values
+# Get equilibrium characteristics
+geteqinfo <- function(model, abundance, intmat, growthrate,
+                      cost = NULL, conjmat = NULL) {
+  if(model == "gLV") {
+    eigval <- eigen(
+      x = jacobian.full(y = abundance, func = gLV,
+                        parms = list(growthrate = growthrate, intmat = intmat)),
+      symmetric = FALSE, only.values = TRUE)$values
+  } else {
+    eigval <- eigen(
+      x = jacobian.full(y = abundance, func = gLVConj,
+                        parms = list(growthrate = growthrate, intmat = intmat,
+                                     cost = cost, conjmat = conjmat)),
+      symmetric = FALSE, only.values = TRUE)$values
+  }
+
   eigvalRep <- any(duplicated(eigval))
   # Using sort(eigval) to get eigenvalue with largest real part, because
   # max(eigval) does not work if eigval is complex. Complex values are sorted
@@ -423,21 +432,7 @@ geteqinfo <- function(abundance, intmat,
   eigvalIm <- Im(eigval)
   eigvalReSign <- sign(eigvalRe)
   eigvalImSign <- sign(eigvalIm)
-  
-  eigvalconj <- eigen(x = jacobian.full(y = c(abundance, rep(0, nspecies)),
-                                        func = gLVConj,
-                                        parms = list(growthrate = growthrate, intmat = intmat,
-                                                     cost = cost, conjmat = conjmat)),
-                      symmetric = FALSE, only.values = TRUE)$values
-  eigvalconjRep <- any(duplicated(eigvalconj))
-  eigvalconj <- sort(eigvalconj, decreasing = TRUE)[1]
-  eigvalconjRe <- Re(eigvalconj)
-  eigvalconjIm <- Im(eigvalconj)
-  eigvalconjReSign <- sign(eigvalconjRe)
-  eigvalconjImSign <- sign(eigvalconjIm)
-  
-  eqinfo <- c(eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, eigvalRep,
-              eigvalconjRe, eigvalconjIm, eigvalconjReSign, eigvalconjImSign, eigvalconjRep)
+  eqinfo <- c(eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, eigvalRep)
   return(eqinfo)
 }
 
@@ -762,8 +757,8 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 #                  growthrate = growthratebrokenstick, printderivatives = TRUE, showplot = TRUE) # Not at equilibrium
 # 
 # # geteqinfo returns eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, and eigvalRep
-# geteqinfo(abundance = abunbrokenstick, intmat = intmat1, growthrate = growthratebrokenstick)
-# geteqinfo(abundance = abundompreempt, intmat = intmat1, growthrate = growthratedompreempt)
+# geteqinfo(model = "gLV", abundance = abunbrokenstick, intmat = intmat1, growthrate = growthratebrokenstick)
+# geteqinfo(model = "gLV", abundance = abundompreempt, intmat = intmat1, growthrate = growthratedompreempt)
 
 
 #### Running the simulations ####
@@ -837,9 +832,8 @@ for(nspecies in nspeciesset) {
             intmat <- getintmat(nspecies = nspecies,
                                 intmean = intmean, selfintmean = selfintmean)
             growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
-            eqinfo <- geteqinfo(abundance = abundance, intmat = intmat,
-                                growthrate = growthrate, cost = cost,
-                                conjmat = conjmat)
+            eqinfo <- geteqinfo(model = "gLV", abundance = abundance,
+                                intmat = intmat, growthrate = growthrate)
             if(eqinfo[1] < 0) {
               stableeq <- TRUE
             }
@@ -848,6 +842,11 @@ for(nspecies in nspeciesset) {
           if(stableeq == FALSE) {
             warning(paste("No stable equilibrium has been found in", niterintmat, "attempts."))
           }
+          # Get equilibrium characteristics for plasmid-free equilibrium
+          eqinfoconj <- geteqinfo(model = "gLVconj",
+                                  abundance = c(abundance, rep(0, nspecies)),
+                                  intmat = intmat, growthrate = growthrate,
+                                  cost = cost, conjmat = conjmat)
           
           if(simulateinvasion == TRUE) {
           abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
@@ -915,6 +914,7 @@ for(nspecies in nspeciesset) {
             growthrate,
             rep(iterintmat, nspecies),
             matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
+            matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
             rep(infgrowth, nspecies),
             rep(infgrowthconj, nspecies),
             rep(eqreached, nspecies),
