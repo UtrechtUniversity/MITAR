@@ -1042,17 +1042,18 @@ CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "minor")
 
-selectmydatatotal <- filter(mydatatotal, iter == niter)
 # Show how interactions affect the growth rates of the individual species
-# required to obtain equilibrium. NOTE: costs do not affect growth rate, so
-# differences between costs reflect stochastic effects.
-# NOTE 2: data for all iterations is plotted on top of each other, so if all
-# data is used, only the data for last iteration is visible.
-# Using fillvar = "mean(growthrate)" does not work.
-CreatePlot(dataplot = selectmydatatotal, fillvar = "growthrate",
+# required to obtain equilibrium. NOTE: costs and conjugation rate do not affect
+# growth rate, so data has been filtered to have only one value for them. Data
+# for all iterations would be plotted on top of each other, so only the data for
+# last iteration would be visible. Instead, filtered data to show only the first
+# iteration
+mydatatotalfiltercostconj <- filter(mydatatotal,
+                       near(cost, costset[1]), near(conjrate, conjrate[1]))
+CreatePlot(dataplot = mydatatotalfiltercostconj, fillvar = "growthrate",
            filltitle = "Growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           facety = "species + nspecies", facetx = "modelcode + cost + conjrate",
+           facety = "species + nspecies", facetx = "modelcode",
            diagional = "minor")
 
 
@@ -1081,6 +1082,8 @@ CreatePlot(fillvar = "maxiterintmat", filltitle =
            filltype = "continuous", limits = c(0, niterintmat), 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
+
+if(simulateinvasion == TRUE) {
 CreatePlot(fillvar = "fracinfgrowth", filltitle = "Fraction infinite\ngrowth",
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
@@ -1089,10 +1092,12 @@ CreatePlot(fillvar = "fraceqreached", filltitle = "Fraction equilibrium\nreached
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
+}
 
 ## Plot total abundances of plasmid-free populations after perturbations for
 # models without plasmids. Only abundances where perturbation did NOT lead to
 # infinite growth are considered.
+if(simulateinvasion == TRUE) {
 filltitle <- "Minimum total abundance of\nplasmid-free bacteria\nafter perturbation"
 CreatePlot(fillvar = "minR", filltitle = filltitle,
            filltype = "continuous", limits = NULL, 
@@ -1123,6 +1128,7 @@ CreatePlot(fillvar = "maxR", filltitle = filltitle,
            filltype = "continuous", limits = NULL, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
+}
 
 ## Plot equilibrium characteristics for model with plasmids
 CreatePlot(fillvar = "fracstableconj",
@@ -1130,6 +1136,7 @@ CreatePlot(fillvar = "fracstableconj",
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
+if(simulateinvasion == TRUE) {
 CreatePlot(fillvar = "fracinfgrowthconj",
            filltitle = "Fraction infinite growth\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
@@ -1140,10 +1147,12 @@ CreatePlot(fillvar = "fraceqreachedconj",
            filltype = "continuous", limits = limitsfraction, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
+}
 
 ## Plot total abundances of plasmid-free populations after perturbations for
 # models with plasmids. Only abundances where perturbation did NOT lead to
 # infinite growth are considered.
+if(simulateinvasion == TRUE) {
 filltitle <- "Minimum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
 CreatePlot(fillvar = "minRconj", filltitle = filltitle,
            filltype = "continuous", limits = NULL, 
@@ -1194,6 +1203,7 @@ CreatePlot(fillvar = "maxPconj", filltitle = filltitle,
            filltype = "continuous", limits = NULL, 
            facety = "nspecies + conjrate", facetx = "modelcode + cost",
            diagional = "both")
+}
 
 ## Plot other equilibrium characteristics for models with and without plasmids
 CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
@@ -1263,7 +1273,6 @@ ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 ggsave(paste0(DateTimeStamp, "growthrate2perspecies.png"))
-
 
 #### Comparing abundance models ####
 comparingabuntotal <- NULL
