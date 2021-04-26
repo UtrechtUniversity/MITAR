@@ -122,6 +122,8 @@
 # calcStuff function (to be used also in main script [with (l/m)apply?]) and
 # PerturbFunction ?
 
+## createplot() ##
+# The diagonals are not displayed correctly if the plotting area is non-square
 
 
 #### Loading required libraries ####
@@ -670,7 +672,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        fillvar, filltitle, filltype = "discrete", limits = NULL, 
                        labx = "Mean interaction coefficient",
                        laby = "Mean selfinteraction coefficient",
-                       mytag = NULL, addstamp = FALSE, diagional = "none",
+                       mytag = NULL, addstamp = FALSE, diagonal = "none",
                        facetx = "abunmodelcode + cost",
                        facety = "nspecies + conjrate",
                        as.table = TRUE,
@@ -720,10 +722,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     p <- p + guides(fill = guide_colourbar(label.hjust = 0.4, label.vjust = 0.5,
                                            label.theme = element_text(angle = 90)))
   }
-  if(diagional == "both" || diagional == "major") {
+  if(diagonal == "both" || diagonal == "major") {
     p <- p + geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1)
   }
-  if(diagional == "both" || diagional == "minor") {
+  if(diagonal == "both" || diagonal == "minor") {
     p <- p + geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
   }
   print(p)
@@ -1020,66 +1022,66 @@ limitsgrowthratebinned <- sort(c(limitsgrowthrate, limitsgrowthrate/2, 0))
 # equilibrium after perturbation is also plotted.
 CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction, 
-           diagional = "both")
+           diagonal = "both")
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           diagional = "both")
+           diagonal = "both")
 if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "fracinfgrowth", filltitle = "Fraction infinite\ngrowth",
              filltype = "continuous", limits = limitsfraction, 
-             diagional = "both")
+             diagonal = "both")
   CreatePlot(fillvar = "fraceqreached", filltitle = "Fraction equilibrium\nreached",
              filltype = "continuous", limits = limitsfraction, 
-             diagional = "both")
+             diagonal = "both")
   CreatePlot(fillvar = "fracinfgrowthconj",
              filltitle = "Fraction infinite growth\nwith conjugation",
              filltype = "continuous", limits = limitsfraction, 
-             diagional = "both")
+             diagonal = "both")
   CreatePlot(fillvar = "fraceqreachedconj",
              filltitle = "Fraction equilibrium\nreached with\nconjugation",
              filltype = "continuous", limits = limitsfraction, 
-             diagional = "both")
+             diagonal = "both")
 }
 CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
            filltype = "continuous", limits = limitsfraction, 
-           diagional = "both")
+           diagonal = "both")
 CreatePlot(fillvar = "fracrealconj",
            filltitle = "Fraction real\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           diagional = "both")
+           diagonal = "both")
 CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
            filltype = "continuous", limits = limitsfraction, 
-           diagional = "both")
+           diagonal = "both")
 CreatePlot(fillvar = "fracrepconj",
            filltitle = "Fraction repeated eigenvalues\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
-           diagional = "both")
+           diagonal = "both")
 
 ## Plot summary data for the calculated growth rates 
 CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           diagional = "minor")
+           diagonal = "minor")
 
 CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           diagional = "minor")
+           diagonal = "minor")
 
 CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           diagional = "minor")
+           diagonal = "minor")
 
 CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           diagional = "minor")
+           diagonal = "minor")
 
 CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            filltype = "binned", limits = limitsgrowthratebinned, 
-           diagional = "minor")
+           diagonal = "minor")
 
 CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
-           diagional = "minor")
+           diagonal = "minor")
 
 # Show how interactions affect the growth rates of the individual species
 # required to obtain equilibrium. NOTE: costs and conjugation rate do not affect
@@ -1093,26 +1095,26 @@ CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate",
            filltitle = "Growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
            facety = "species + nspecies", facetx = "abunmodelcode",
-           diagional = "minor")
+           diagonal = "minor")
 
 ## Plot summary data on the number of iterations in creating intmat needed to
 # find a stable equilibrium with the model without plasmids
 CreatePlot(fillvar = "miniterintmat", filltitle = 
              paste("Minimum number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat), 
-           diagional = "both")
+           diagonal = "both")
 CreatePlot(fillvar = "meaniterintmat", filltitle = 
              paste("Mean number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat), 
-           diagional = "both")
+           diagonal = "both")
 CreatePlot(fillvar = "medianiterintmat", filltitle = 
              paste("Median number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat), 
-           diagional = "both")
+           diagonal = "both")
 CreatePlot(fillvar = "maxiterintmat", filltitle = 
              paste("Maximum number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat), 
-           diagional = "both")
+           diagonal = "both")
 
 ## Plot total abundances of plasmid-free populations after perturbations for
 # models without plasmids. Only abundances where perturbation did NOT lead to
@@ -1121,11 +1123,11 @@ if(simulateinvasion == TRUE) {
   filltitle <- "Minimum total abundance of\nplasmid-free bacteria\nafter perturbation"
   CreatePlot(fillvar = "minR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   filltitle <- "Mean total abundance of\nplasmid-free bacteria\nafter perturbation"
   CreatePlot(fillvar = "meanR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   lengthx <- length(which(!is.na(plotdata[, "meanR"])))
   plot(x = 1:lengthx, y = sort(log10(plotdata[, "meanR"])), type = "p", lwd = 2); grid()
   
@@ -1136,14 +1138,14 @@ if(simulateinvasion == TRUE) {
   filltitle <- "Median total abundance of\nplasmid-free bacteria\nafter perturbation"
   CreatePlot(fillvar = "medianR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   lengthx <- length(which(!is.na(plotdata[, "medianR"])))
   plot(x = 1:lengthx, y = sort(log10(plotdata[, "medianR"]))); grid()
   
   filltitle <- "Maximum total abundance of\nplasmid-free bacteria\nafter perturbation"
   CreatePlot(fillvar = "maxR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   
   ## Plot total abundances of plasmid-free populations after perturbations for
   # models with plasmids. Only abundances where perturbation did NOT lead to
@@ -1151,11 +1153,11 @@ if(simulateinvasion == TRUE) {
   filltitle <- "Minimum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "minRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   filltitle <- "Mean total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "meanRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   
   ggplot(plotdata, aes(log10(meanRconj))) +
     geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
@@ -1164,11 +1166,11 @@ if(simulateinvasion == TRUE) {
   filltitle <- "Median total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "medianRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   filltitle <- "Maximum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "maxRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   
   ## Plot total abundances of plasmid-bearing populations after perturbations for
   # models with plasmids. Only abundances where perturbation did NOT lead to
@@ -1176,19 +1178,19 @@ if(simulateinvasion == TRUE) {
   filltitle <- "Minimum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "minPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   filltitle <- "Mean total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "meanPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   filltitle <- "Median total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "medianPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
   filltitle <- "Maximum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
   CreatePlot(fillvar = "maxPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
-             diagional = "both")
+             diagonal = "both")
 }
 
 ### To test plots without using CreatePlot() ###
