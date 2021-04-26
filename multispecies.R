@@ -1238,29 +1238,27 @@ if(simulateinvasion == TRUE) {
 
 ### Show species-specific relation of growth rate, intmean and selfintmean.
 # Check relation between abundance and growth rate for the different species.
-nrow <- dim(mydatatotal)[1]
-subsetmydatatotal <- filter(mydatatotal, near(iter, 1))
 
 # Larger selfintmean leads to smaller growth rate, but effect becomes smaller
 # when species are less abundant.
 # Larger intmean leads to lower growth rate, effect becomes larger when species
 # are less abundant
-ggplot(data = subsetmydatatotal, aes(x = intmean, y = growthrate)) + 
+ggplot(data = mydatatotalfiltercostconj, aes(x = intmean, y = growthrate)) + 
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = selfintmean), size = 1) +
-  facet_grid(species + nspecies ~ modelcode + cost + conjrate, labeller = mylabeller) +
+  facet_grid(species + nspecies ~ modelcode, labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthrate1perspecies.png"))
 }
 
-ggplot(data = subsetmydatatotal, aes(x = selfintmean, y = growthrate)) + 
+ggplot(data = mydatatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = intmean), size = 1) +
-  facet_grid(species + nspecies ~ modelcode + cost + conjrate, labeller = mylabeller) +
+  facet_grid(species + nspecies ~ modelcode, labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
