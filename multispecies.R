@@ -781,6 +781,9 @@ colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
                        "minRconj", "meanRconj", "medianRconj", "maxRconj",
                        "minPconj", "meanPconj", "medianPconj", "maxPconj")
 
+# Could be shorter using something like
+# nrowdata <- prod(lengths(list(abunmodelset, nspeciesset,
+# intmeanset, selfintmeanset), use.names = FALSE))
 nrowdatatotal <- length(abunmodelset)*length(intmeanset)*
   length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
   sum(nspeciesset)
@@ -794,12 +797,8 @@ maxnspecies <- max(nspeciesset)
 rowindexplotdata <- 1
 rowindexdata <- 1
 for(nspecies in nspeciesset) {
-  for(conjrate in conjrateset) {
-  conjmat <- getconjmat(nspecies = nspecies,
-                        conjrate = conjrate)
   
   for(abunmodel in abunmodelset) {
-
     if(abunmodel == "brokenstick") {
       abundance <- brokenstick(nspecies = nspecies, totalabun = totalabun,
                                takelimit = TRUE)
@@ -817,18 +816,20 @@ for(nspecies in nspeciesset) {
       print(paste0("nspecies = ", nspecies, ", conjrate = ", conjrate,
                    ", abundance model = ", abunmodel, ", intmean = ", intmean,
                    ": started at ", Sys.time()), quote = FALSE)
+      
       for(selfintmean in selfintmeanset) {
-        for(cost in costset) {
         nrowdata <- niter * nspecies
         data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
+        
         for(iter in 1:niter) {
-          
           stableeq <- FALSE
           niterintmat <- 100
           iterintmat <- 0
+          
           while(stableeq == FALSE && iterintmat < niterintmat) {
-            # Create a combination of interaction matrix and growth rate that
-            # results in a stable plasmid-free equilibrium
+            # Try to find a combination of interaction matrix and growth rate
+            # that results in a stable plasmid-free equilibrium in the model
+            # without conjugation
             intmat <- getintmat(nspecies = nspecies,
                                 intmean = intmean, selfintmean = selfintmean)
             growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
@@ -839,106 +840,122 @@ for(nspecies in nspeciesset) {
             }
             iterintmat <- iterintmat + 1
           }
+          
           if(stableeq == FALSE) {
             warning(paste("No stable equilibrium has been found in", niterintmat, "attempts."))
           }
-          # Get equilibrium characteristics for plasmid-free equilibrium
-          eqinfoconj <- geteqinfo(model = "gLVconj",
-                                  abundance = c(abundance, rep(0, nspecies)),
-                                  intmat = intmat, growthrate = growthrate,
-                                  cost = cost, conjmat = conjmat)
-          
           if(simulateinvasion == TRUE) {
-          abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
-                                        growthrate = growthrate, cost = cost,
-                                        conjmat = conjmat,
-                                        model = "gLV", pertpop = "all", tmax = 1e4,
-                                        showplot = FALSE, verbose = FALSE,
-                                        suppresswarninfgrowth = TRUE)
-          infgrowth <- abunfinal$infgrowth
-          eqreached <- abunfinal$eqreached
-          
-          if(infgrowth == 0) {
-            abunR <- sum(abunfinal$abunfinalR)
-          } else {
-            abunR <- NA
-          }
-          
-          # To simulate invasion of the plasmid-free equilibrium with plasmids,
-          # the abundances of the plasmid-free populations have to be appended
-          # to the abundances of the plasmid-bearing populations
-          abunfinalconj <- perturbequilibrium(
-            abundance = c(abundance, rep(0, nspecies)),
-            intmat = intmat,
-            growthrate = growthrate, cost = cost,
-            conjmat = conjmat,
-            model = "gLVConj", pertpop = "P", tmax = 1e4,
-            showplot = FALSE, verbose = FALSE,
-            suppresswarninfgrowth = TRUE)
-          infgrowthconj <- abunfinalconj$infgrowth
-          eqreachedconj <- abunfinalconj$eqreached
-          
-          # It does not make sense to store abundances for infinite growth, so
-          # record those as NA
-          if(infgrowthconj == 0) {
-            abunRconj <- sum(abunfinalconj$abunfinalR)
-            abunPconj <- sum(abunfinalconj$abunfinalP)
-          } else {
-            abunRconj <- NA
-            abunPconj <- NA
-          }
-          
+            # Simulate invasion of the plasmid-free equilibrium with
+            # plasmid-free bacteria (i.e., check internal stability).
+            abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
+                                            growthrate = growthrate,
+                                            model = "gLV", pertpop = "all", tmax = 1e4,
+                                            showplot = FALSE, verbose = FALSE,
+                                            suppresswarninfgrowth = TRUE)
+            infgrowth <- abunfinal$infgrowth
+            eqreached <- abunfinal$eqreached
+            
+            # It does not make sense to store last recorded abundances in case
+            # of infinite growth, so record those as NA
+            if(infgrowth == 0) {
+              abunR <- sum(abunfinal$abunfinalR)
+            } else {
+              abunR <- NA
+            }
+            
           } else {
             # No simulations over time performed, so set values to NA
             infgrowth <- NA
             eqreached <- NA
             abunR <- NA
-            infgrowthconj <- NA
-            eqreachedconj <- NA
-            abunRconj <- NA
-            abunPconj <- NA
           }
           
-          data[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
-            rep(niter, nspecies),
-            rep(nspecies, nspecies),
-            rep(abunmodelcode, nspecies),
-            rep(intmean, nspecies),
-            rep(selfintmean, nspecies),
-            rep(cost, nspecies),
-            rep(conjrate, nspecies),
-            rep(iter, nspecies),
-            1:nspecies,
-            abundance,
-            diag(intmat),
-            growthrate,
-            rep(iterintmat, nspecies),
-            matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
-            matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
-            rep(infgrowth, nspecies),
-            rep(infgrowthconj, nspecies),
-            rep(eqreached, nspecies),
-            rep(eqreachedconj, nspecies),
-            rep(abunR, nspecies),
-            rep(abunRconj, nspecies),
-            rep(abunPconj, nspecies)
-          )
+          for(conjrate in conjrateset) {
+            conjmat <- getconjmat(nspecies = nspecies,
+                                  conjrate = conjrate)
+            
+            for(cost in costset) {
+              # Get equilibrium characteristics for plasmid-free equilibrium in
+              # the model with conjugation
+              eqinfoconj <- geteqinfo(model = "gLVconj",
+                                      abundance = c(abundance, rep(0, nspecies)),
+                                      intmat = intmat, growthrate = growthrate,
+                                      cost = cost, conjmat = conjmat)
+              if(simulateinvasion == TRUE) {
+                # To simulate invasion of the plasmid-free equilibrium with plasmids,
+                # the abundances of the plasmid-free populations have to be appended
+                # to the abundances of the plasmid-bearing populations
+                abunfinalconj <- perturbequilibrium(
+                  abundance = c(abundance, rep(0, nspecies)),
+                  intmat = intmat,
+                  growthrate = growthrate, cost = cost,
+                  conjmat = conjmat,
+                  model = "gLVConj", pertpop = "P", tmax = 1e4,
+                  showplot = FALSE, verbose = FALSE,
+                  suppresswarninfgrowth = TRUE)
+                infgrowthconj <- abunfinalconj$infgrowth
+                eqreachedconj <- abunfinalconj$eqreached
+                
+                # It does not make sense to store abundances for infinite growth,
+                # so record those as NA
+                if(infgrowthconj == 0) {
+                  abunRconj <- sum(abunfinalconj$abunfinalR)
+                  abunPconj <- sum(abunfinalconj$abunfinalP)
+                } else {
+                  abunRconj <- NA
+                  abunPconj <- NA
+                }
+                
+              } else {
+                # No simulations over time performed, so set values to NA
+                infgrowthconj <- NA
+                eqreachedconj <- NA
+                abunRconj <- NA
+                abunPconj <- NA
+              }
+              
+              data[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
+                rep(niter, nspecies),
+                rep(nspecies, nspecies),
+                rep(abunmodelcode, nspecies),
+                rep(intmean, nspecies),
+                rep(selfintmean, nspecies),
+                rep(cost, nspecies),
+                rep(conjrate, nspecies),
+                rep(iter, nspecies),
+                1:nspecies,
+                abundance,
+                diag(intmat),
+                growthrate,
+                rep(iterintmat, nspecies),
+                matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
+                rep(infgrowth, nspecies),
+                rep(infgrowthconj, nspecies),
+                rep(eqreached, nspecies),
+                rep(eqreachedconj, nspecies),
+                rep(abunR, nspecies),
+                rep(abunRconj, nspecies),
+                rep(abunPconj, nspecies)
+              )
+            }
+          }
         }
         datatotal[indexdatatotal:(indexdatatotal + nrowdata - 1), ] <- data
         indexdatatotal <- indexdatatotal + nrowdata
         
         colnames(data) <- c("niter", "nspecies", "abunmodelcode",
-                              "intmean", "selfintmean", "cost", "conjrate",
-                              "iter", "species", "abundance",
-                              "selfint", "growthrate",
-                              "iterintmat",
-                              "eigvalRe", "eigvalIm",
-                              "eigvalReSign", "eigvalImSign", "eigvalRep",
-                              "eigvalconjRe", "eigvalconjIm",
-                              "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
-                              "infgrowth", "infgrowthconj",
-                              "eqreached", "eqreachedconj",
-                              "abunR", "abunRconj", "abunPconj")
+                            "intmean", "selfintmean", "cost", "conjrate",
+                            "iter", "species", "abundance",
+                            "selfint", "growthrate",
+                            "iterintmat",
+                            "eigvalRe", "eigvalIm",
+                            "eigvalReSign", "eigvalImSign", "eigvalRep",
+                            "eigvalconjRe", "eigvalconjIm",
+                            "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
+                            "infgrowth", "infgrowthconj",
+                            "eqreached", "eqreachedconj",
+                            "abunR", "abunRconj", "abunPconj")
         
         # Get proportions of stable and non-oscillating equilibria, and repeated eigenvalues
         fracstable <- mean(data[, "eigvalRe"] < 0)
@@ -970,10 +987,8 @@ for(nspecies in nspeciesset) {
                                           summaryabunR, summaryabunRconj,
                                           summaryabunPconj)
         rowindexplotdata <- rowindexplotdata + 1
-        }
       }
     }
-  }
   }
 }
 # })
