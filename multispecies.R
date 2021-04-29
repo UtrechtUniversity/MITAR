@@ -139,6 +139,7 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 # Simulation settings
 niter <- 100
+niterintmat <- 1000
 simulateinvasion <- TRUE # If TRUE, simulations over time are performed
 saveplots <- TRUE
 smallstate <- 1e-20 # States are set to 0 if they become smaller than smallstate
@@ -158,13 +159,14 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 
 # Settings for testing code
 niter <- 2
+niterintmat <- 1000
 simulateinvasion <- TRUE # If TRUE, simulations over time are performed
 saveplots <- TRUE
 smallstate <- 1e-20
 smallchange <- 1e-10
 totalabun <- 1
 nspeciesset <- c(2, 4)
-abunmodelset <- c("brokenstick")
+abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -0.8, to = 0.8, by = 0.8)
 selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.3)
 costset <- c(0.01, 0.20)
@@ -822,7 +824,6 @@ for(nspecies in nspeciesset) {
             data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
             for(iter in 1:niter) {
               stableeq <- FALSE
-              niterintmat <- 100
               iterintmat <- 0
               
               # Create a combination of interaction matrix and growth rate that
@@ -879,14 +880,12 @@ for(nspecies in nspeciesset) {
               # the abundances of the plasmid-free populations have to be appended
               # to the abundances of the plasmid-bearing populations
               if(simulateinvasion == TRUE) {
-                abunfinalconj <- perturbequilibrium(
-                  abundance = c(abundance, rep(0, nspecies)),
-                  intmat = intmat,
-                  growthrate = growthrate, cost = cost,
-                  conjmat = conjmat,
-                  model = "gLVConj", pertpop = "P", tmax = 1e4,
-                  showplot = FALSE, verbose = FALSE,
-                  suppresswarninfgrowth = TRUE)
+                abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
+                                                    intmat = intmat, growthrate = growthrate,
+                                                    cost = cost, conjmat = conjmat,
+                                                    model = "gLVConj", pertpop = "P", tmax = 1e4,
+                                                    showplot = FALSE, verbose = FALSE,
+                                                    suppresswarninfgrowth = TRUE)
                 infgrowthconj <- abunfinalconj$infgrowth
                 eqreachedconj <- abunfinalconj$eqreached
                 
