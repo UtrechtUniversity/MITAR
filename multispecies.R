@@ -116,7 +116,7 @@
 ## perturbequilibrium() ##
 # I could try if supplying the analytic Jacobian to the solver speeds up the
 # integration. See Box 1 in Lischke 2017.
-   
+
 # Add function to perturb equilibrium when abundances, intmat, ect. are not
 # supplied, but instead the parameters to obtain them. Then split this in
 # calcStuff function (to be used also in main script [with (l/m)apply?]) and
@@ -229,7 +229,7 @@ gLVConj <- function(t, n, parms) {
 # (= MacArthur faction model) in the description of Tokeshi (1990).
 brokenstick <- function(nspecies, totalabun, takelimit = TRUE) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
-           length(totalabun) == 1, totalabun > 0)
+            length(totalabun) == 1, totalabun > 0)
   if(takelimit == TRUE) {
     niterabun <- 1e3
     abunmat <- matrix(data = NA, nrow = niterabun, ncol = nspecies)
@@ -257,7 +257,7 @@ brokenstick <- function(nspecies, totalabun, takelimit = TRUE) {
 # instead of the dominance preemption model with the default takelimit = TRUE.
 dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
-           length(totalabun) == 1, totalabun > 0)
+            length(totalabun) == 1, totalabun > 0)
   abun <- rep(NA, nspecies)
   remainingabun <- totalabun  
   if(takelimit == TRUE) {
@@ -298,8 +298,8 @@ getintmat <- function(nspecies, sparsity = 0,
                       selfintdistr = "normal", selfintmean = -0.65, selfintsd = 0.075,
                       selfintrange = c(-0.8, -0.5)) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
-           is.numeric(sparsity), length(sparsity) == 1,
-           sparsity >= 0, sparsity <= 1)
+            is.numeric(sparsity), length(sparsity) == 1,
+            sparsity >= 0, sparsity <= 1)
   switch(intdistr,
          normal = {
            stopifnot(length(intmean) == 1, length(intsd) == 1, intsd > 0)
@@ -327,7 +327,7 @@ getintmat <- function(nspecies, sparsity = 0,
            # deviates, using rtnorm() from the package TruncatedNormal.
            rtnorm(n = nspecies, mu = selfintmean, sd = selfintsd,
                   lb = -Inf, ub = 0, method = "invtransfo")
-           },
+         },
          uniform = {
            stopifnot(length(selfintrange) == 2, selfintrange[1] <= selfintrange[2],
                      selfintrange[2] < 0)
@@ -422,7 +422,7 @@ geteqinfo <- function(model, abundance, intmat, growthrate,
                                      cost = cost, conjmat = conjmat)),
       symmetric = FALSE, only.values = TRUE)$values
   }
-
+  
   eigvalRep <- any(duplicated(eigval))
   # Using sort(eigval) to get eigenvalue with largest real part, because
   # max(eigval) does not work if eigval is complex. Complex values are sorted
@@ -507,9 +507,9 @@ eventfun <- function(t, state, p) {
 #   - infgrowth indicating if infinite growth was detected
 # result1 <- perturbequilibrium(abundance, intmat, growthrate, cost, conjmat, "gLV", "R1")
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
-                             model, pertpop, pertmagn = 1e-6,
-                             tmax = 1e4, tstep = 0.1, showplot = TRUE,
-                             verbose = FALSE, suppresswarninfgrowth = FALSE) {
+                               model, pertpop, pertmagn = 1e-6,
+                               tmax = 1e4, tstep = 0.1, showplot = TRUE,
+                               verbose = FALSE, suppresswarninfgrowth = FALSE) {
   
   # Name abundances, set line type and colors, get derivatives of initial state
   # in the plasmid-free model.
@@ -612,11 +612,11 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
       if(suppresswarninfgrowth != TRUE) {
         warning(
           paste0("Integration was terminated at time = ",
-                round(attributes(out)$troot[which(attributes(out)$indroot == 2)], 2),
-                ", when the sum of abundances became",
-                "\nlarger than 1e10 times the initial total abundance, indicating unbounded growth.",
-                "\nAbundances then were ",
-                paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
+                 round(attributes(out)$troot[which(attributes(out)$indroot == 2)], 2),
+                 ", when the sum of abundances became",
+                 "\nlarger than 1e10 times the initial total abundance, indicating unbounded growth.",
+                 "\nAbundances then were ",
+                 paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
         )
       }
     }
@@ -770,20 +770,17 @@ nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 36)
 colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
-                       "intmean", "selfintmean", "cost", "conjrate",
-                       "mingrowthrate", "meangrowthrate", "maxgrowthrate",
-                       "miniterintmat", "meaniterintmat", "medianiterintmat", "maxiterintmat",
-                       "fracstable", "fracreal", "fracrep",
-                       "fracstableconj", "fracrealconj", "fracrepconj",
-                       "fracinfgrowth", "fracinfgrowthconj",
-                       "fraceqreached", "fraceqreachedconj",
-                       "minR", "meanR", "medianR", "maxR",
-                       "minRconj", "meanRconj", "medianRconj", "maxRconj",
-                       "minPconj", "meanPconj", "medianPconj", "maxPconj")
+                        "intmean", "selfintmean", "cost", "conjrate",
+                        "mingrowthrate", "meangrowthrate", "maxgrowthrate",
+                        "miniterintmat", "meaniterintmat", "medianiterintmat", "maxiterintmat",
+                        "fracstable", "fracreal", "fracrep",
+                        "fracstableconj", "fracrealconj", "fracrepconj",
+                        "fracinfgrowth", "fracinfgrowthconj",
+                        "fraceqreached", "fraceqreachedconj",
+                        "minR", "meanR", "medianR", "maxR",
+                        "minRconj", "meanRconj", "medianRconj", "maxRconj",
+                        "minPconj", "meanPconj", "medianPconj", "maxPconj")
 
-# Could be shorter using something like
-# nrowdata <- prod(lengths(list(abunmodelset, nspeciesset,
-# intmeanset, selfintmeanset), use.names = FALSE))
 nrowdatatotal <- length(abunmodelset)*length(intmeanset)*
   length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
   sum(nspeciesset)
@@ -797,91 +794,79 @@ maxnspecies <- max(nspeciesset)
 rowindexplotdata <- 1
 rowindexdata <- 1
 for(nspecies in nspeciesset) {
-  
-  for(abunmodel in abunmodelset) {
-    if(abunmodel == "brokenstick") {
-      abundance <- brokenstick(nspecies = nspecies, totalabun = totalabun,
-                               takelimit = TRUE)
-      # Using a number instead of a name, to prevent type-conversion when
-      # storing it in matrices.
-      abunmodelcode <- 1
-    }
-    if(abunmodel == "dompreempt") {
-      abundance <- dompreempt(nspecies = nspecies, totalabun = totalabun,
-                              takelimit = TRUE)
-      abunmodelcode <- 2
-    }
+  for(conjrate in conjrateset) {
+    conjmat <- getconjmat(nspecies = nspecies, conjrate = conjrate)
     
-    for(intmean in intmeanset) {
-      print(paste0("nspecies = ", nspecies, ", conjrate = ", conjrate,
-                   ", abundance model = ", abunmodel, ", intmean = ", intmean,
-                   ": started at ", Sys.time()), quote = FALSE)
+    for(abunmodel in abunmodelset) {
       
-      for(selfintmean in selfintmeanset) {
-        nrowdata <- niter * nspecies
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
-        
-        for(iter in 1:niter) {
-          stableeq <- FALSE
-          niterintmat <- 100
-          iterintmat <- 0
-          
-          while(stableeq == FALSE && iterintmat < niterintmat) {
-            # Try to find a combination of interaction matrix and growth rate
-            # that results in a stable plasmid-free equilibrium in the model
-            # without conjugation
-            intmat <- getintmat(nspecies = nspecies,
-                                intmean = intmean, selfintmean = selfintmean)
-            growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
-            eqinfo <- geteqinfo(model = "gLV", abundance = abundance,
-                                intmat = intmat, growthrate = growthrate)
-            if(eqinfo[1] < 0) {
-              stableeq <- TRUE
-            }
-            iterintmat <- iterintmat + 1
-          }
-          
-          if(stableeq == FALSE) {
-            warning(paste("No stable equilibrium has been found in", niterintmat, "attempts."))
-          }
-          if(simulateinvasion == TRUE) {
-            # Simulate invasion of the plasmid-free equilibrium with
-            # plasmid-free bacteria (i.e., check internal stability).
-            abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
-                                            growthrate = growthrate,
-                                            model = "gLV", pertpop = "all", tmax = 1e4,
-                                            showplot = FALSE, verbose = FALSE,
-                                            suppresswarninfgrowth = TRUE)
-            infgrowth <- abunfinal$infgrowth
-            eqreached <- abunfinal$eqreached
-            
-            # It does not make sense to store last recorded abundances in case
-            # of infinite growth, so record those as NA
-            if(infgrowth == 0) {
-              abunR <- sum(abunfinal$abunfinalR)
-            } else {
-              abunR <- NA
-            }
-            
-          } else {
-            # No simulations over time performed, so set values to NA
-            infgrowth <- NA
-            eqreached <- NA
-            abunR <- NA
-          }
-          
-          for(conjrate in conjrateset) {
-            conjmat <- getconjmat(nspecies = nspecies,
-                                  conjrate = conjrate)
-            
-            for(cost in costset) {
-              # Get equilibrium characteristics for plasmid-free equilibrium in
-              # the model with conjugation
+      if(abunmodel == "brokenstick") {
+        abundance <- brokenstick(nspecies = nspecies, totalabun = totalabun,
+                                 takelimit = TRUE)
+        # Using a number instead of a name, to prevent type-conversion when
+        # storing it in matrices.
+        abunmodelcode <- 1
+      }
+      if(abunmodel == "dompreempt") {
+        abundance <- dompreempt(nspecies = nspecies, totalabun = totalabun,
+                                takelimit = TRUE)
+        abunmodelcode <- 2
+      }
+      
+      for(intmean in intmeanset) {
+        print(paste0("nspecies = ", nspecies, ", conjrate = ", conjrate,
+                     ", abundance model = ", abunmodel, ", intmean = ", intmean,
+                     ": started at ", Sys.time()), quote = FALSE)
+        for(selfintmean in selfintmeanset) {
+          for(cost in costset) {
+            nrowdata <- niter * nspecies
+            data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
+            for(iter in 1:niter) {
+              
+              stableeq <- FALSE
+              niterintmat <- 100
+              iterintmat <- 0
+              
+              while(stableeq == FALSE && iterintmat < niterintmat) {
+                # Create a combination of interaction matrix and growth rate that
+                # results in a stable plasmid-free equilibrium
+                intmat <- getintmat(nspecies = nspecies,
+                                    intmean = intmean, selfintmean = selfintmean)
+                growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
+                eqinfo <- geteqinfo(model = "gLV", abundance = abundance,
+                                    intmat = intmat, growthrate = growthrate)
+                if(eqinfo[1] < 0) {
+                  stableeq <- TRUE
+                }
+                iterintmat <- iterintmat + 1
+              }
+              print("Got plasmid-free equilibrium")
+
+              if(stableeq == FALSE) {
+                warning(paste("No stable equilibrium has been found in", niterintmat, "attempts."))
+              }
+              # Get equilibrium characteristics for plasmid-free equilibrium
               eqinfoconj <- geteqinfo(model = "gLVconj",
                                       abundance = c(abundance, rep(0, nspecies)),
                                       intmat = intmat, growthrate = growthrate,
                                       cost = cost, conjmat = conjmat)
+              
+              
               if(simulateinvasion == TRUE) {
+                abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
+                                                growthrate = growthrate, cost = cost,
+                                                conjmat = conjmat,
+                                                model = "gLV", pertpop = "all", tmax = 1e4,
+                                                showplot = FALSE, verbose = FALSE,
+                                                suppresswarninfgrowth = TRUE)
+                infgrowth <- abunfinal$infgrowth
+                eqreached <- abunfinal$eqreached
+                
+                if(infgrowth == 0) {
+                  abunR <- sum(abunfinal$abunfinalR)
+                } else {
+                  abunR <- NA
+                }
+                
                 # To simulate invasion of the plasmid-free equilibrium with plasmids,
                 # the abundances of the plasmid-free populations have to be appended
                 # to the abundances of the plasmid-bearing populations
@@ -896,8 +881,8 @@ for(nspecies in nspeciesset) {
                 infgrowthconj <- abunfinalconj$infgrowth
                 eqreachedconj <- abunfinalconj$eqreached
                 
-                # It does not make sense to store abundances for infinite growth,
-                # so record those as NA
+                # It does not make sense to store abundances for infinite growth, so
+                # record those as NA
                 if(infgrowthconj == 0) {
                   abunRconj <- sum(abunfinalconj$abunfinalR)
                   abunPconj <- sum(abunfinalconj$abunfinalP)
@@ -908,6 +893,9 @@ for(nspecies in nspeciesset) {
                 
               } else {
                 # No simulations over time performed, so set values to NA
+                infgrowth <- NA
+                eqreached <- NA
+                abunR <- NA
                 infgrowthconj <- NA
                 eqreachedconj <- NA
                 abunRconj <- NA
@@ -939,54 +927,54 @@ for(nspecies in nspeciesset) {
                 rep(abunPconj, nspecies)
               )
             }
+            datatotal[indexdatatotal:(indexdatatotal + nrowdata - 1), ] <- data
+            indexdatatotal <- indexdatatotal + nrowdata
+            
+            colnames(data) <- c("niter", "nspecies", "abunmodelcode",
+                                "intmean", "selfintmean", "cost", "conjrate",
+                                "iter", "species", "abundance",
+                                "selfint", "growthrate",
+                                "iterintmat",
+                                "eigvalRe", "eigvalIm",
+                                "eigvalReSign", "eigvalImSign", "eigvalRep",
+                                "eigvalconjRe", "eigvalconjIm",
+                                "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
+                                "infgrowth", "infgrowthconj",
+                                "eqreached", "eqreachedconj",
+                                "abunR", "abunRconj", "abunPconj")
+            
+            # Get proportions of stable and non-oscillating equilibria, and repeated eigenvalues
+            fracstable <- mean(data[, "eigvalRe"] < 0)
+            fracreal <- mean(data[, "eigvalImSign"] == 0)
+            fracrep <- mean(data[, "eigvalRep"] != 0)
+            fracstableconj <- mean(data[, "eigvalconjRe"] < 0)
+            fracrealconj <- mean(data[, "eigvalconjImSign"] == 0)
+            fracrepconj <- mean(data[, "eigvalconjRep"] != 0)
+            fracinfgrowth <- mean(data[, "infgrowth"] != 0)
+            fracinfgrowthconj <- mean(data[, "infgrowthconj"] != 0)
+            fraceqreached <- mean(data[, "eqreached"] != 0)
+            fraceqreachedconj <- mean(data[, "eqreachedconj"] != 0)
+            
+            summaryiterintmat <- summary(data[, "iterintmat"])[c("Min.", "Median", "Mean", "Max.")]
+            summaryabunR <- summary(data[, "abunR"])[c("Min.", "Median", "Mean", "Max.")]
+            summaryabunRconj <- summary(data[, "abunRconj"])[c("Min.", "Median", "Mean", "Max.")]
+            summaryabunPconj <- summary(data[, "abunPconj"])[c("Min.", "Median", "Mean", "Max.")]
+            
+            plotdata[rowindexplotdata, ] <- c(niter, nspecies, abunmodelcode,
+                                              intmean, selfintmean, cost, conjrate,
+                                              min(data[, "growthrate"]),
+                                              mean(data[, "growthrate"]),
+                                              max(data[, "growthrate"]),
+                                              summaryiterintmat,
+                                              fracstable, fracreal, fracrep,
+                                              fracstableconj, fracrealconj, fracrepconj,
+                                              fracinfgrowth, fracinfgrowthconj,
+                                              fraceqreached, fraceqreachedconj,
+                                              summaryabunR, summaryabunRconj,
+                                              summaryabunPconj)
+            rowindexplotdata <- rowindexplotdata + 1
           }
         }
-        datatotal[indexdatatotal:(indexdatatotal + nrowdata - 1), ] <- data
-        indexdatatotal <- indexdatatotal + nrowdata
-        
-        colnames(data) <- c("niter", "nspecies", "abunmodelcode",
-                            "intmean", "selfintmean", "cost", "conjrate",
-                            "iter", "species", "abundance",
-                            "selfint", "growthrate",
-                            "iterintmat",
-                            "eigvalRe", "eigvalIm",
-                            "eigvalReSign", "eigvalImSign", "eigvalRep",
-                            "eigvalconjRe", "eigvalconjIm",
-                            "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
-                            "infgrowth", "infgrowthconj",
-                            "eqreached", "eqreachedconj",
-                            "abunR", "abunRconj", "abunPconj")
-        
-        # Get proportions of stable and non-oscillating equilibria, and repeated eigenvalues
-        fracstable <- mean(data[, "eigvalRe"] < 0)
-        fracreal <- mean(data[, "eigvalImSign"] == 0)
-        fracrep <- mean(data[, "eigvalRep"] != 0)
-        fracstableconj <- mean(data[, "eigvalconjRe"] < 0)
-        fracrealconj <- mean(data[, "eigvalconjImSign"] == 0)
-        fracrepconj <- mean(data[, "eigvalconjRep"] != 0)
-        fracinfgrowth <- mean(data[, "infgrowth"] != 0)
-        fracinfgrowthconj <- mean(data[, "infgrowthconj"] != 0)
-        fraceqreached <- mean(data[, "eqreached"] != 0)
-        fraceqreachedconj <- mean(data[, "eqreachedconj"] != 0)
-        
-        summaryiterintmat <- summary(data[, "iterintmat"])[c("Min.", "Median", "Mean", "Max.")]
-        summaryabunR <- summary(data[, "abunR"])[c("Min.", "Median", "Mean", "Max.")]
-        summaryabunRconj <- summary(data[, "abunRconj"])[c("Min.", "Median", "Mean", "Max.")]
-        summaryabunPconj <- summary(data[, "abunPconj"])[c("Min.", "Median", "Mean", "Max.")]
-        
-        plotdata[rowindexplotdata, ] <- c(niter, nspecies, abunmodelcode,
-                                          intmean, selfintmean, cost, conjrate,
-                                          min(data[, "growthrate"]),
-                                          mean(data[, "growthrate"]),
-                                          max(data[, "growthrate"]),
-                                          summaryiterintmat,
-                                          fracstable, fracreal, fracrep,
-                                          fracstableconj, fracrealconj, fracrepconj,
-                                          fracinfgrowth, fracinfgrowthconj,
-                                          fraceqreached, fraceqreachedconj,
-                                          summaryabunR, summaryabunRconj,
-                                          summaryabunPconj)
-        rowindexplotdata <- rowindexplotdata + 1
       }
     }
   }
@@ -1105,7 +1093,7 @@ CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
 # last iteration would be visible. Instead, filtered data to show only the first
 # iteration
 datatotalfiltercostconj <- filter(datatotal,
-                       near(cost, costset[1]), near(conjrate, conjrate[1]))
+                                  near(cost, costset[1]), near(conjrate, conjrate[1]))
 CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate",
            filltitle = "Growth rate",
            filltype = "continuous", limits = limitsgrowthrate, 
@@ -1300,7 +1288,7 @@ for(nspecies in nspeciesset) {
 }
 comparingabuntotal <- comparingabuntotal
 comparingabuntotal[, "group"] <- paste0(comparingabuntotal[, "nspecies"],
-                                             " species, ", comparingabuntotal[, "model"])
+                                        " species, ", comparingabuntotal[, "model"])
 
 plotabun <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
