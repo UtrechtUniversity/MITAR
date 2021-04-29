@@ -821,14 +821,14 @@ for(nspecies in nspeciesset) {
             nrowdata <- niter * nspecies
             data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
             for(iter in 1:niter) {
-              
               stableeq <- FALSE
               niterintmat <- 100
               iterintmat <- 0
               
+              # Create a combination of interaction matrix and growth rate that
+              # results in a stable plasmid-free equilibrium in the model
+              # without conjugation
               while(stableeq == FALSE && iterintmat < niterintmat) {
-                # Create a combination of interaction matrix and growth rate that
-                # results in a stable plasmid-free equilibrium
                 intmat <- getintmat(nspecies = nspecies,
                                     intmean = intmean, selfintmean = selfintmean)
                 growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
@@ -839,18 +839,13 @@ for(nspecies in nspeciesset) {
                 }
                 iterintmat <- iterintmat + 1
               }
-              print("Got plasmid-free equilibrium")
-
               if(stableeq == FALSE) {
                 warning(paste("No stable equilibrium has been found in", niterintmat, "attempts."))
               }
-              # Get equilibrium characteristics for plasmid-free equilibrium
-              eqinfoconj <- geteqinfo(model = "gLVconj",
-                                      abundance = c(abundance, rep(0, nspecies)),
-                                      intmat = intmat, growthrate = growthrate,
-                                      cost = cost, conjmat = conjmat)
               
-              
+              # Simulate invasion with plasmid-free bacteria of plasmid-free
+              # equilibrium in model without conjugation (i.e., test internal
+              # stability)
               if(simulateinvasion == TRUE) {
                 abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
                                                 growthrate = growthrate, cost = cost,
@@ -866,10 +861,24 @@ for(nspecies in nspeciesset) {
                 } else {
                   abunR <- NA
                 }
-                
-                # To simulate invasion of the plasmid-free equilibrium with plasmids,
-                # the abundances of the plasmid-free populations have to be appended
-                # to the abundances of the plasmid-bearing populations
+              } else {
+                # No simulations over time performed, so set values to NA
+                infgrowth <- NA
+                eqreached <- NA
+                abunR <- NA
+              }
+              
+              # Get equilibrium characteristics for plasmid-free equilibrium in
+              # the model with conjugation
+              eqinfoconj <- geteqinfo(model = "gLVconj",
+                                      abundance = c(abundance, rep(0, nspecies)),
+                                      intmat = intmat, growthrate = growthrate,
+                                      cost = cost, conjmat = conjmat)
+              
+              # To simulate invasion of the plasmid-free equilibrium with plasmids,
+              # the abundances of the plasmid-free populations have to be appended
+              # to the abundances of the plasmid-bearing populations
+              if(simulateinvasion == TRUE) {
                 abunfinalconj <- perturbequilibrium(
                   abundance = c(abundance, rep(0, nspecies)),
                   intmat = intmat,
@@ -893,9 +902,6 @@ for(nspecies in nspeciesset) {
                 
               } else {
                 # No simulations over time performed, so set values to NA
-                infgrowth <- NA
-                eqreached <- NA
-                abunR <- NA
                 infgrowthconj <- NA
                 eqreachedconj <- NA
                 abunRconj <- NA
