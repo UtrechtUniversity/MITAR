@@ -796,9 +796,6 @@ maxnspecies <- max(nspeciesset)
 rowindexplotdata <- 1
 rowindexdata <- 1
 for(nspecies in nspeciesset) {
-  for(conjrate in conjrateset) {
-    conjmat <- getconjmat(nspecies = nspecies, conjrate = conjrate)
-    
     for(abunmodel in abunmodelset) {
       
       if(abunmodel == "brokenstick") {
@@ -815,13 +812,16 @@ for(nspecies in nspeciesset) {
       }
       
       for(intmean in intmeanset) {
-        print(paste0("nspecies = ", nspecies, ", conjrate = ", conjrate,
+        print(paste0("nspecies = ", nspecies,
                      ", abundance model = ", abunmodel, ", intmean = ", intmean,
                      ": started at ", Sys.time()), quote = FALSE)
         for(selfintmean in selfintmeanset) {
-          for(cost in costset) {
-            nrowdata <- niter * nspecies
-            data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
+          nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
+          data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
+          indexdata <- 1
+          
+        
+        
             for(iter in 1:niter) {
               stableeq <- FALSE
               iterintmat <- 0
@@ -869,6 +869,13 @@ for(nspecies in nspeciesset) {
                 abunR <- NA
               }
               
+          for(cost in costset) {
+            print(paste("cost =", cost))
+            
+            for(conjrate in conjrateset) {
+              print(paste("conjrate =", conjrate))
+              conjmat <- getconjmat(nspecies = nspecies, conjrate = conjrate) 
+              
               # Get equilibrium characteristics for plasmid-free equilibrium in
               # the model with conjugation
               eqinfoconj <- geteqinfo(model = "gLVconj",
@@ -906,8 +913,9 @@ for(nspecies in nspeciesset) {
                 abunRconj <- NA
                 abunPconj <- NA
               }
+              indexdatanew <- indexdata + nspecies
               
-              data[(1 + nspecies*(iter - 1)):(nspecies*iter), ] <- cbind(
+              data[indexdata:(indexdatanew - 1), ] <- cbind(
                 rep(niter, nspecies),
                 rep(nspecies, nspecies),
                 rep(abunmodelcode, nspecies),
@@ -931,7 +939,10 @@ for(nspecies in nspeciesset) {
                 rep(abunRconj, nspecies),
                 rep(abunPconj, nspecies)
               )
+              indexdata <- indexdatanew
             }
+          }
+        }
             datatotal[indexdatatotal:(indexdatatotal + nrowdata - 1), ] <- data
             indexdatatotal <- indexdatatotal + nrowdata
             
@@ -949,6 +960,8 @@ for(nspecies in nspeciesset) {
                                 "abunR", "abunRconj", "abunPconj")
             
             # Get proportions of stable and non-oscillating equilibria, and repeated eigenvalues
+            # ERROR: this should be done for each combination of cost and conjugation rate, but
+            # is now done over all combinations together.
             fracstable <- mean(data[, "eigvalRe"] < 0)
             fracreal <- mean(data[, "eigvalImSign"] == 0)
             fracrep <- mean(data[, "eigvalRep"] != 0)
@@ -978,8 +991,6 @@ for(nspecies in nspeciesset) {
                                               summaryabunR, summaryabunRconj,
                                               summaryabunPconj)
             rowindexplotdata <- rowindexplotdata + 1
-          }
-        }
       }
     }
   }
