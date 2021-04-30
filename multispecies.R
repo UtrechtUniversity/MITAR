@@ -67,6 +67,20 @@
 # tidyr::expand_grid(), and then use (l)/(m)apply / purrr:(p)map to iterate over
 # all rows?
 
+# The .groups argument in dplyr::summarise is experimental, so maybe should be
+# dropped. However, excluding it leads to messages every time it is called.
+
+# Check if using tibbles instead of matrices for 'data' makes it easier to fill
+# parts without  
+
+# The matrix 'data' is converted to a tibble to efficiently get summary
+# statistics. The tibble with summary statistics is then converted to a matrix
+# to fill in part of the matrix plotdata. Using a tibble for 'data' from the
+# start prevents some of this type-conversion, might make naming columns on
+# assignment clearer, and enable use of the more efficient dplyr::bind_cols()
+# instead of base::cbind(). However, originally using a data.frame instead of
+# matrix to store data made progress really slow, so I should check how timing
+# is affected when 'data', 'plotdata' or both are tibbles from the start.
 
 ## Checking function arguments ##
 # See also the remarks on checking function arguments in the 'Optionally to do'
@@ -129,10 +143,11 @@
 #### Loading required libraries ####
 library(deSolve)   # checkequilibrium and perturbequilibrium call ode() if
 # showplot == TRUE and simulateinvasion == TRUE, respectively
-library(dplyr)     # checkequilibrium and perturbequilibrium call near()
+library(dplyr)     # across(), group_by(), near(), summarise()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
 library(TruncatedNormal) # getintmat calls rtnorm()
+# On the pipe operator (%>%), see ?'%>%' and https://r4ds.had.co.nz/pipes.html
 
 
 #### Settings and defining parameterspace ####
@@ -664,6 +679,18 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   return(abunfinal)
 }
 
+# 'Functions' to get summary statistics for the input data.
+# Actually not functions, but lists of functions. They are called with 
+# dplyr::summarise. I set na.rm = TRUE to get sensible values if not all values
+# are NA, otherwise Inf, NaN, NA, and -Inf are returned.
+getsummary4 <- list(
+  min = ~min(.x, na.rm = TRUE),
+  mean = ~mean(.x, na.rm = TRUE),
+  median = ~median(.x, na.rm = TRUE),
+  max = ~max(.x, na.rm = TRUE)
+)
+getfracnotzero <- list(frac = ~mean(.x != 0))
+
 # Function to create plots
 CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmean",
                        fillvar, filltitle, filltype = "discrete", limits = NULL, 
@@ -770,18 +797,7 @@ set.seed(seed = 314, kind = "default", normal.kind = "default", sample.kind = "d
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
   length(intmeanset)*length(selfintmeanset)*length(costset)*length(conjrateset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 36)
-colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
-                        "intmean", "selfintmean", "cost", "conjrate",
-                        "mingrowthrate", "meangrowthrate", "maxgrowthrate",
-                        "miniterintmat", "meaniterintmat", "medianiterintmat", "maxiterintmat",
-                        "fracstable", "fracreal", "fracrep",
-                        "fracstableconj", "fracrealconj", "fracrepconj",
-                        "fracinfgrowth", "fracinfgrowthconj",
-                        "fraceqreached", "fraceqreachedconj",
-                        "minR", "meanR", "medianR", "maxR",
-                        "minRconj", "meanRconj", "medianRconj", "maxRconj",
-                        "minPconj", "meanPconj", "medianPconj", "maxPconj")
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 41)
 
 nrowdatatotal <- length(abunmodelset)*length(intmeanset)*
   length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
@@ -812,16 +828,14 @@ for(nspecies in nspeciesset) {
     }
     
     for(intmean in intmeanset) {
-      print(paste0("nspecies = ", nspecies,
-                   ", abundance model = ", abunmodel, ", intmean = ", intmean,
-                   ": started at ", Sys.time()), quote = FALSE)
       
       for(selfintmean in selfintmeanset) {
+        print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
+                     ", intmean = ", intmean, ", selfintmean = ", selfintmean,
+                     ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
         data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
         indexdata <- 1
-        
-        
         
         for(iter in 1:niter) {
           stableeq <- FALSE
@@ -871,10 +885,8 @@ for(nspecies in nspeciesset) {
           }
           
           for(cost in costset) {
-            print(paste("cost =", cost))
             
             for(conjrate in conjrateset) {
-              print(paste("conjrate =", conjrate))
               conjmat <- getconjmat(nspecies = nspecies, conjrate = conjrate) 
               
               # Get equilibrium characteristics for plasmid-free equilibrium in
@@ -959,44 +971,34 @@ for(nspecies in nspeciesset) {
                             "eqreached", "eqreachedconj",
                             "abunR", "abunRconj", "abunPconj")
         
-        # Get proportions of stable and non-oscillating equilibria, and repeated eigenvalues
-        # ERROR: this should be done for each combination of cost and conjugation rate, but
-        # is now done over all combinations together.
-        fracstable <- mean(data[, "eigvalRe"] < 0)
-        fracreal <- mean(data[, "eigvalImSign"] == 0)
-        fracrep <- mean(data[, "eigvalRep"] != 0)
-        fracstableconj <- mean(data[, "eigvalconjRe"] < 0)
-        fracrealconj <- mean(data[, "eigvalconjImSign"] == 0)
-        fracrepconj <- mean(data[, "eigvalconjRep"] != 0)
-        fracinfgrowth <- mean(data[, "infgrowth"] != 0)
-        fracinfgrowthconj <- mean(data[, "infgrowthconj"] != 0)
-        fraceqreached <- mean(data[, "eqreached"] != 0)
-        fraceqreachedconj <- mean(data[, "eqreachedconj"] != 0)
+        # Get proportions of stable and non-oscillating equilibria, and repeated
+        # eigenvalues for all combinations of costs and conjugation rates
+        mytibble <- as_tibble(data) %>%
+          group_by(cost, conjrate) %>%
+          summarise(
+            across(c(selfint, growthrate, iterintmat,
+                     abunR, abunRconj, abunPconj),
+                   getsummary4, .names = "{.fn}{.col}"),
+            fracstable = mean(eigvalRe < 0),
+            fracstableconj = mean(eigvalconjRe < 0),
+            fracreal = mean(eigvalIm == 0),
+            fracrealconj = mean(eigvalconjIm == 0),
+            across(c(eigvalRep, eigvalconjRep, infgrowth, infgrowthconj,
+                     eqreached, eqreachedconj), getfracnotzero, .names = "{.fn}{.col}"),
+            .groups = "drop"
+          )
         
-        summaryiterintmat <- summary(data[, "iterintmat"])[c("Min.", "Median", "Mean", "Max.")]
-        summaryabunR <- summary(data[, "abunR"])[c("Min.", "Median", "Mean", "Max.")]
-        summaryabunRconj <- summary(data[, "abunRconj"])[c("Min.", "Median", "Mean", "Max.")]
-        summaryabunPconj <- summary(data[, "abunPconj"])[c("Min.", "Median", "Mean", "Max.")]
-        
-        plotdata[rowindexplotdata, ] <- c(niter, nspecies, abunmodelcode,
-                                          intmean, selfintmean, cost, conjrate,
-                                          min(data[, "growthrate"]),
-                                          mean(data[, "growthrate"]),
-                                          max(data[, "growthrate"]),
-                                          summaryiterintmat,
-                                          fracstable, fracreal, fracrep,
-                                          fracstableconj, fracrealconj, fracrepconj,
-                                          fracinfgrowth, fracinfgrowthconj,
-                                          fraceqreached, fraceqreachedconj,
-                                          summaryabunR, summaryabunRconj,
-                                          summaryabunPconj)
-        rowindexplotdata <- rowindexplotdata + 1
+        rowindexplotdatanew <- rowindexplotdata + length(costset) * length(conjrateset)
+        plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
+          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean, mytibble))
+        rowindexplotdata <- rowindexplotdatanew
       }
     }
   }
 }
 # })
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
+colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode", "intmean", "selfintmean", colnames(mytibble))
 colnames(datatotal) <- colnames(data)
 
 #### Reading previously saved data from a .csv-file ####
@@ -1069,10 +1071,10 @@ CreatePlot(fillvar = "fracrealconj",
            filltitle = "Fraction real\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
            diagonal = "both")
-CreatePlot(fillvar = "fracrep", filltitle = "Fraction repeated eigenvalues",
+CreatePlot(fillvar = "fraceigvalRep", filltitle = "Fraction repeated eigenvalues",
            filltype = "continuous", limits = limitsfraction, 
            diagonal = "both")
-CreatePlot(fillvar = "fracrepconj",
+CreatePlot(fillvar = "fraceigvalconjRep",
            filltitle = "Fraction repeated eigenvalues\nwith conjugation",
            filltype = "continuous", limits = limitsfraction, 
            diagonal = "both")
@@ -1140,29 +1142,29 @@ CreatePlot(fillvar = "maxiterintmat", filltitle =
 # infinite growth are considered.
 if(simulateinvasion == TRUE) {
   filltitle <- "Minimum total abundance of\nplasmid-free bacteria\nafter perturbation"
-  CreatePlot(fillvar = "minR", filltitle = filltitle,
+  CreatePlot(fillvar = "minabunR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
   filltitle <- "Mean total abundance of\nplasmid-free bacteria\nafter perturbation"
-  CreatePlot(fillvar = "meanR", filltitle = filltitle,
+  CreatePlot(fillvar = "meanabunR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
-  lengthx <- length(which(!is.na(plotdata[, "meanR"])))
-  plot(x = 1:lengthx, y = sort(log10(plotdata[, "meanR"])), type = "p", lwd = 2); grid()
+  lengthx <- length(which(!is.na(plotdata[, "meanabunR"])))
+  plot(x = 1:lengthx, y = sort(log10(plotdata[, "meanabunR"])), type = "p", lwd = 2); grid()
   
-  ggplot(plotdata, aes(log10(meanR))) +
+  ggplot(plotdata, aes(log10(meanabunR))) +
     geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
     facet_grid(nspecies ~ abunmodelcode)
   
   filltitle <- "Median total abundance of\nplasmid-free bacteria\nafter perturbation"
-  CreatePlot(fillvar = "medianR", filltitle = filltitle,
+  CreatePlot(fillvar = "medianabunR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
-  lengthx <- length(which(!is.na(plotdata[, "medianR"])))
-  plot(x = 1:lengthx, y = sort(log10(plotdata[, "medianR"]))); grid()
+  lengthx <- length(which(!is.na(plotdata[, "medianabunR"])))
+  plot(x = 1:lengthx, y = sort(log10(plotdata[, "medianabunR"]))); grid()
   
   filltitle <- "Maximum total abundance of\nplasmid-free bacteria\nafter perturbation"
-  CreatePlot(fillvar = "maxR", filltitle = filltitle,
+  CreatePlot(fillvar = "maxabunR", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
   
@@ -1170,24 +1172,24 @@ if(simulateinvasion == TRUE) {
   # models with plasmids. Only abundances where perturbation did NOT lead to
   # infinite growth are considered.
   filltitle <- "Minimum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
-  CreatePlot(fillvar = "minRconj", filltitle = filltitle,
+  CreatePlot(fillvar = "minabunRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
   filltitle <- "Mean total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
-  CreatePlot(fillvar = "meanRconj", filltitle = filltitle,
+  CreatePlot(fillvar = "meanabunRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
   
-  ggplot(plotdata, aes(log10(meanRconj))) +
+  ggplot(plotdata, aes(log10(meanabunRconj))) +
     geom_density(aes(fill = factor(nspecies)), show.legend = TRUE) +
     facet_grid(nspecies + conjrate ~ abunmodelcode + cost)
   
   filltitle <- "Median total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
-  CreatePlot(fillvar = "medianRconj", filltitle = filltitle,
+  CreatePlot(fillvar = "medianabunRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
   filltitle <- "Maximum total abundance of\nplasmid-free bacteria after\nperturbation with plasmids"
-  CreatePlot(fillvar = "maxRconj", filltitle = filltitle,
+  CreatePlot(fillvar = "maxabunRconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
   
@@ -1195,19 +1197,19 @@ if(simulateinvasion == TRUE) {
   # models with plasmids. Only abundances where perturbation did NOT lead to
   # infinite growth are considered.
   filltitle <- "Minimum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
-  CreatePlot(fillvar = "minPconj", filltitle = filltitle,
+  CreatePlot(fillvar = "minabunPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
   filltitle <- "Mean total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
-  CreatePlot(fillvar = "meanPconj", filltitle = filltitle,
+  CreatePlot(fillvar = "meanabunPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
   filltitle <- "Median total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
-  CreatePlot(fillvar = "medianPconj", filltitle = filltitle,
+  CreatePlot(fillvar = "medianabunPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
   filltitle <- "Maximum total abundance of\nplasmid-bearing bacteria after\nperturbation with plasmids"
-  CreatePlot(fillvar = "maxPconj", filltitle = filltitle,
+  CreatePlot(fillvar = "maxabunPconj", filltitle = filltitle,
              filltype = "continuous", limits = NULL, 
              diagonal = "both")
 }
