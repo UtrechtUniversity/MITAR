@@ -812,7 +812,6 @@ datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 30)
 indexdatatotal <- 1
 maxnspecies <- max(nspeciesset)
 
-# system.time({
 # Run simulations
 rowindexplotdata <- 1
 rowindexdata <- 1
@@ -880,7 +879,9 @@ for(nspecies in nspeciesset) {
             infgrowth <- abunfinal$infgrowth
             eqreached <- abunfinal$eqreached
             
-            if(infgrowth == 0) {
+            # It does not make sense to store abundances in case of infinite
+            # growth or if equilibrium is not reached, so record those as NA
+            if(eqreached == 1) {
               abunR <- sum(abunfinal$abunfinalR)
             } else {
               abunR <- NA
@@ -917,9 +918,9 @@ for(nspecies in nspeciesset) {
                 infgrowthconj <- abunfinalconj$infgrowth
                 eqreachedconj <- abunfinalconj$eqreached
                 
-                # It does not make sense to store abundances for infinite growth, so
-                # record those as NA
-                if(infgrowthconj == 0) {
+                # It does not make sense to store abundances in case of infinite
+                # growth or if equilibrium is not reached, so record those as NA
+                if(eqreachedconj == 1) {
                   abunRconj <- sum(abunfinalconj$abunfinalR)
                   abunPconj <- sum(abunfinalconj$abunfinalP)
                 } else {
@@ -989,7 +990,6 @@ for(nspecies in nspeciesset) {
     }
   }
 }
-# })
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode", "intmean", "selfintmean", colnames(mytibble))
 colnames(datatotal) <- colnames(data)
