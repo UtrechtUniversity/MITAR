@@ -828,11 +828,14 @@ for(nspecies in nspeciesset) {
     }
     
     for(intmean in intmeanset) {
+      print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
+                   ", intmean = ", intmean,
+                   ": started at ", Sys.time()), quote = FALSE)
       
       for(selfintmean in selfintmeanset) {
-        print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
-                     ", intmean = ", intmean, ", selfintmean = ", selfintmean,
-                     ": started at ", Sys.time()), quote = FALSE)
+        # print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
+        #              ", intmean = ", intmean, ", selfintmean = ", selfintmean,
+        #              ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
         data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
         indexdata <- 1
@@ -928,28 +931,13 @@ for(nspecies in nspeciesset) {
               indexdatanew <- indexdata + nspecies
               
               data[indexdata:(indexdatanew - 1), ] <- cbind(
-                rep(niter, nspecies),
-                rep(nspecies, nspecies),
-                rep(abunmodelcode, nspecies),
-                rep(intmean, nspecies),
-                rep(selfintmean, nspecies),
-                rep(cost, nspecies),
-                rep(conjrate, nspecies),
-                rep(iter, nspecies),
-                1:nspecies,
-                abundance,
-                diag(intmat),
-                growthrate,
-                rep(iterintmat, nspecies),
+                niter, nspecies, abunmodelcode, intmean, selfintmean,
+                cost, conjrate, iter, 1:nspecies, abundance,
+                diag(intmat), c(growthrate), iterintmat,
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
-                rep(infgrowth, nspecies),
-                rep(infgrowthconj, nspecies),
-                rep(eqreached, nspecies),
-                rep(eqreachedconj, nspecies),
-                rep(abunR, nspecies),
-                rep(abunRconj, nspecies),
-                rep(abunPconj, nspecies)
+                infgrowth, infgrowthconj, eqreached, eqreachedconj,
+                abunR, abunRconj, abunPconj
               )
               indexdata <- indexdatanew
             }
