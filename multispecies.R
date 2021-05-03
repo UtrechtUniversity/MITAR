@@ -1040,11 +1040,10 @@ mylabeller <- labeller(nspecies = labspecies, abunmodelcode = labmodel,
 plotdata <- as.data.frame(plotdata)
 datatotal <- as.data.frame(datatotal)
 limitsfraction <- c(0, 1)
-limitsgrowthrate <- c(min(plotdata[, "mingrowthrate"]),
-                      max(plotdata[, "maxgrowthrate"]))
 # Round the limits to one decimal place, while ensuring that all the data is
 # within the rounded limits. 
-limitsgrowthrate <- sign(limitsgrowthrate)*ceiling(abs(limitsgrowthrate)*10)/10
+limitsgrowthrate <- c(floor(min(plotdata[, "mingrowthrate"])*10)/10,
+                      ceiling(max(plotdata[, "maxgrowthrate"])*10)/10)
 
 
 ## Compare equilibrium characteristics for the models without and with plasmids.
