@@ -614,7 +614,9 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                rootfun = rootfunconj,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
   }
-  abunfinaltemp <- tail(out, 1)[, -1]
+  final <- tail(out, 1)
+  timefinal <- final[, 1]
+  abunfinaltemp <- final[, -1]
   names(abunfinaltemp) <- names(abundance)
   
   # Assume infinite growth occurred if a root was triggered because abundances
@@ -674,11 +676,13 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   if(model == "gLV") {
     abunfinal <- list(abunfinalR = abunfinaltemp,
                       abunfinalP = NULL,
-                      infgrowth = infgrowth, eqreached = eqreached)
+                      infgrowth = infgrowth, eqreached = eqreached,
+                      timefinal = timefinal)
   } else {
     abunfinal <- list(abunfinalR = abunfinaltemp[1:nspecies],
                       abunfinalP = abunfinaltemp[(nspecies + 1):(2*nspecies)],
-                      infgrowth = infgrowth, eqreached = eqreached)
+                      infgrowth = infgrowth, eqreached = eqreached,
+                      timefinal = timefinal)
   }
   return(abunfinal)
 }
@@ -802,13 +806,13 @@ set.seed(seed = 314, kind = "default", normal.kind = "default", sample.kind = "d
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
   length(intmeanset)*length(selfintmeanset)*length(costset)*length(conjrateset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 41)
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 43)
 
 nrowdatatotal <- length(abunmodelset)*length(intmeanset)*
   length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
   sum(nspeciesset)
 
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 30)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 32)
 indexdatatotal <- 1
 maxnspecies <- max(nspeciesset)
 
@@ -841,7 +845,7 @@ for(nspecies in nspeciesset) {
         #              ", intmean = ", intmean, ", selfintmean = ", selfintmean,
         #              ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 30)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 32)
         indexdata <- 1
         
         for(iter in 1:niter) {
@@ -878,6 +882,7 @@ for(nspecies in nspeciesset) {
                                             suppresswarninfgrowth = TRUE)
             infgrowth <- abunfinal$infgrowth
             eqreached <- abunfinal$eqreached
+            timefinal <- abunfinal$timefinal
             
             # It does not make sense to store abundances in case of infinite
             # growth or if equilibrium is not reached, so record those as NA
@@ -890,6 +895,7 @@ for(nspecies in nspeciesset) {
             # No simulations over time performed, so set values to NA
             infgrowth <- NA
             eqreached <- NA
+            timefinal <- NA
             abunR <- NA
           }
           
@@ -917,6 +923,7 @@ for(nspecies in nspeciesset) {
                                                     suppresswarninfgrowth = TRUE)
                 infgrowthconj <- abunfinalconj$infgrowth
                 eqreachedconj <- abunfinalconj$eqreached
+                timefinalconj <- abunfinalconj$timefinal
                 
                 # It does not make sense to store abundances in case of infinite
                 # growth or if equilibrium is not reached, so record those as NA
@@ -931,6 +938,7 @@ for(nspecies in nspeciesset) {
                 # No simulations over time performed, so set values to NA
                 infgrowthconj <- NA
                 eqreachedconj <- NA
+                timefinalconj <- NA
                 abunRconj <- NA
                 abunPconj <- NA
               }
@@ -943,7 +951,7 @@ for(nspecies in nspeciesset) {
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
                 infgrowth, infgrowthconj, eqreached, eqreachedconj,
-                abunR, abunRconj, abunPconj
+                timefinal, timefinalconj, abunR, abunRconj, abunPconj
               )
               indexdata <- indexdatanew
             }
@@ -963,6 +971,7 @@ for(nspecies in nspeciesset) {
                             "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
                             "infgrowth", "infgrowthconj",
                             "eqreached", "eqreachedconj",
+                            "timefinal", "timefinalconj",
                             "abunR", "abunRconj", "abunPconj")
         
         # Get proportions of stable and non-oscillating equilibria, and repeated
@@ -979,6 +988,7 @@ for(nspecies in nspeciesset) {
             fracrealconj = mean(eigvalconjIm == 0),
             across(c(eigvalRep, eigvalconjRep, infgrowth, infgrowthconj,
                      eqreached, eqreachedconj), getfracnotzero, .names = "{.fn}{.col}"),
+            mediantimefinal = median(timefinal), mediantimefinalconj = median(timefinalconj),
             .groups = "drop"
           )
         
@@ -991,7 +1001,8 @@ for(nspecies in nspeciesset) {
   }
 }
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
-colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode", "intmean", "selfintmean", colnames(mytibble))
+colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
+                        "intmean", "selfintmean", colnames(mytibble))
 colnames(datatotal) <- colnames(data)
 
 #### Showing and saving output ####
@@ -1134,6 +1145,13 @@ CreatePlot(fillvar = "maxiterintmat", filltitle =
            filltype = "continuous", limits = c(0, niterintmat))
 
 if(simulateinvasion == TRUE) {
+  CreatePlot(fillvar = "mediantimefinal", filltitle = "Median time",
+             filltype = "continuous", title = "Time after perturbation",
+             subtitle = "Perturbation with plasmid-free bacteria")
+  CreatePlot(fillvar = "mediantimefinalconj", filltitle = "Median time",
+             filltype = "continuous", title = "Time after perturbation",
+             subtitle = "Perturbation with plasmid-bearing bacteria")
+  
   ## Plot of total abundances of plasmid-free populations after perturbations in
   # models without plasmids. Only abundances where equilibrium was reached are
   # considered. Although costs and conjugation rates do not influence the
