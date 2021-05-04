@@ -157,7 +157,7 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 #### Settings and defining parameterspace ####
 
 # Simulation settings
-niter <- 100
+niter <- 10
 niterintmat <- 1000
 simulateinvasion <- TRUE # If TRUE, simulations over time are performed
 saveplots <- TRUE
@@ -169,8 +169,8 @@ smallchange <- 1e-10 # If the sum of absolute rates of change is equal to
 totalabun <- 1
 nspeciesset <- c(2, 4, 6)
 abunmodelset <- c("brokenstick", "dompreempt")
-intmeanset <- seq(from = -0.8, to = 0.8, by = 0.1)
-selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.025)
+intmeanset <- seq(from = -0.8, to = 0.6, by = 0.1)
+selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.1)
 costset <- c(0.01, 0.20)
 conjrateset <- c(0.01, 0.05, 0.1)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
@@ -184,9 +184,9 @@ saveplots <- TRUE
 smallstate <- 1e-20
 smallchange <- 1e-10
 totalabun <- 1
-nspeciesset <- c(2, 4)
+nspeciesset <- c(2, 4, 6)
 abunmodelset <- c("brokenstick", "dompreempt")
-intmeanset <- seq(from = -0.8, to = 0.8, by = 0.8)
+intmeanset <- seq(from = -0.6, to = 0.6, by = 0.6)
 selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.3)
 costset <- c(0.01, 0.20)
 conjrateset <- c(0.01, 0.1)
@@ -1000,6 +1000,7 @@ write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
           quote = FALSE, row.names = FALSE)
 write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
           quote = FALSE, row.names = FALSE)
+
 
 #### Reading previously saved data from a .csv-file ####
 ## To read data from csv-file, uncomment this section and fill in the 
