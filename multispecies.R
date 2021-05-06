@@ -1005,7 +1005,7 @@ colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
                         "intmean", "selfintmean", colnames(mytibble))
 colnames(datatotal) <- colnames(data)
 
-#### Showing and saving output ####
+#### Saving output to .csv files ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
           quote = FALSE, row.names = FALSE)
@@ -1016,7 +1016,7 @@ write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
 #### Reading previously saved data from a .csv-file ####
 ## To read data from csv-file, uncomment this section and fill in the 
 # needed datetimestamp
-# filename <- "2021_04_16_17_13multispecies.csv"
+# filename <- "2021_05_04_17_44multispecies.csv"
 # plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
 # plotdata <- as.data.frame(plotdata)
@@ -1024,24 +1024,7 @@ write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
 # nspeciesset <- sort(unique(plotdata[, "nspecies"]))
 
 
-### To test plots without using CreatePlot() ###
-# ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
-#   geom_raster() +
-#   theme_bw(base_size = 15) +
-#   scale_x_continuous() +
-#   scale_y_continuous() +
-#   scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
-#   geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1) +
-#   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1) +
-#   coord_fixed(ratio = 1, expand = FALSE) +
-#   theme(legend.position = "bottom") +
-#   labs(x = "Mean interaction coefficient",
-#        y = "Mean selfinteraction coefficient",
-#        caption = paste(niter, "iterations")) +
-#   facet_grid(nspecies ~ abunmodelcode, labeller = mylabeller)
-
-
-## Labels and limits for plots ##
+#### Labels and limits for plots ####
 labspecies <- paste(nspeciesset, "species")
 names(labspecies) <- nspeciesset
 labmodel <- c("Broken stick model", "Dominance preemption model")
@@ -1057,6 +1040,24 @@ limitsfraction <- c(0, 1)
 limitsgrowthrate <- c(floor(min(plotdata[, "mingrowthrate"])*10)/10,
                       ceiling(max(plotdata[, "maxgrowthrate"])*10)/10)
 
+
+#### To test plots without using CreatePlot() ####
+# ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
+#   geom_raster() +
+#   theme_bw(base_size = 15) +
+#   scale_x_continuous() +
+#   scale_y_continuous() +
+#   scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
+#   geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1) +
+#   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1) +
+#   coord_fixed(ratio = 1, expand = FALSE) +
+#   theme(legend.position = "bottom") +
+#   labs(x = "Mean interaction coefficient",
+#        y = "Mean selfinteraction coefficient",
+#        caption = paste(niter, "iterations")) +
+#   facet_grid(nspecies ~ abunmodelcode, labeller = mylabeller)
+
+#### Plot output ####
 
 ## Compare equilibrium characteristics for the models without and with plasmids.
 # If invasion has been simulated, data on infinite growth and reaching
@@ -1218,8 +1219,7 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", title = title, subtitle = subtitle)
 }
 
-
-#### Comparing abundance models ####
+## Compare abundance models ##
 comparingabuntotal <- NULL
 
 for(nspecies in nspeciesset) {
