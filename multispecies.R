@@ -1067,6 +1067,61 @@ CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
+
+# Show dominant eigenvalues
+datatotalfilteredspecies <- filter(datatotal, near(species, 1))
+datatotalfilteredspeciesiter <- filter(datatotalfilteredspecies, near(iter, 1))
+limitseigvalRe <- range(c(datatotalfilteredspeciesiter[, "eigvalRe"],
+                       datatotalfilteredspeciesiter[, "eigvalconjRe"]))
+limitseigvalIm <- range(c(datatotalfilteredspeciesiter[, "eigvalIm"],
+                          datatotalfilteredspeciesiter[, "eigvalconjIm"]))
+CreatePlot(dataplot = datatotalfilteredspeciesiter,
+           fillvar = "eigvalRe",
+           filltitle = "Real part of\ndominant eigenvalue",
+           filltype = "continuous", limits = limitseigvalRe)
+CreatePlot(dataplot = datatotalfilteredspeciesiter,
+           fillvar = "eigvalconjRe",
+           filltitle = "Real part of\ndominant eigenvalue\nwith conjugation",
+           filltype = "continuous", limits = limitseigvalRe)
+
+limitseigvalRe <- range(c(datatotalfilteredspecies[, "eigvalRe"],
+                          datatotalfilteredspecies[, "eigvalconjRe"]))
+limitseigvalIm <- range(c(datatotalfilteredspecies[, "eigvalIm"],
+                          datatotalfilteredspecies[, "eigvalconjIm"]))
+ggplot(data = datatotalfilteredspecies,
+       aes(x = eigvalRe, y = eigvalIm,
+           color = as.factor(eigvalReSign))) +
+  scale_x_continuous(limits = limitseigvalRe) +
+  scale_y_continuous(limits = limitseigvalIm) +
+  geom_point() +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(x = "Real part dominant eigenvalue",
+       y = "Imaginary part dominant eigenvalue",
+       caption = paste(niter, "iterations")) +
+  facet_grid(rows = vars(nspecies), cols = vars(abunmodelcode),
+             labeller = mylabeller)
+if(saveplots == TRUE) {
+  ggsave(paste0(DateTimeStamp, "eigenvaluesdistr.png"))
+}
+
+ggplot(data = datatotalfilteredspecies,
+       aes(x = eigvalconjRe, y = eigvalconjIm,
+           color = as.factor(eigvalconjReSign))) +
+  scale_x_continuous(limits = limitseigvalRe) +
+  scale_y_continuous(limits = limitseigvalIm) +
+  geom_point() +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(x = "Real part dominant eigenvalue (with conjugation)",
+       y = "Imaginary part dominant eigenvalue (with conj.)",
+       caption = paste(niter, "iterations")) +
+  facet_grid(rows = vars(nspecies), cols = vars(abunmodelcode),
+             labeller = mylabeller)
+if(saveplots == TRUE) {
+  ggsave(paste0(DateTimeStamp, "eigenvaluesdistrconj.png"))
+}
+
 if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "fracinfgrowth", filltitle = "Fraction infinite\ngrowth",
              filltype = "continuous", limits = limitsfraction)
