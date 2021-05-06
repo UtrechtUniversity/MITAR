@@ -424,6 +424,14 @@ getconjmat <- function(nspecies, conjrate) {
                     nrow = nspecies, ncol = nspecies)
 }
 
+# getconjmat <- function(nspecies, conjrate) {
+#   conjmat <- matrix(rep(conjrate/1000, nspecies^2),
+#                     nrow = nspecies, ncol = nspecies)
+#   diag(conjmat) <- conjrate
+#   return(conjmat)
+# }
+
+
 # Get equilibrium characteristics
 geteqinfo <- function(model, abundance, intmat, growthrate,
                       cost = NULL, conjmat = NULL) {
@@ -914,8 +922,8 @@ for(nspecies in nspeciesset) {
                 abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
                                                     intmat = intmat, growthrate = growthrate,
                                                     cost = cost, conjmat = conjmat,
-                                                    model = "gLVConj", pertpop = "P", tmax = 1e4,
-                                                    showplot = FALSE, verbose = FALSE,
+                                                    model = "gLVConj", pertpop = "P1", tmax = 1e4,
+                                                    showplot = TRUE, verbose = FALSE,
                                                     suppresswarninfgrowth = TRUE)
                 infgrowthconj <- abunfinalconj$infgrowth
                 eqreachedconj <- abunfinalconj$eqreached
