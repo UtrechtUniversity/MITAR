@@ -44,10 +44,6 @@
 # early. For example, tstep <- 1;
 # times <- c(0:300, seq(from = 300 + tstep, to = tmax, by = tstep))
 
-## Fraction plasmid-bearing bacteria
-# Instead of divinding mean values over all iterations to get the data, use
-# data[, "abunPconj"] / (data[, "abunPconj"] + data[, "abunRconj"]) and add a
-# summary of this over all iterations to plotdata.
 
 #### Optionally to do ####
 
@@ -806,13 +802,13 @@ set.seed(seed = 314, kind = "default", normal.kind = "default", sample.kind = "d
 nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
   length(intmeanset)*length(selfintmeanset)*length(costset)*length(conjrateset)
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 43)
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 47)
 
 nrowdatatotal <- length(abunmodelset)*length(intmeanset)*
   length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
   sum(nspeciesset)
 
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 32)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 33)
 indexdatatotal <- 1
 maxnspecies <- max(nspeciesset)
 
@@ -845,7 +841,7 @@ for(nspecies in nspeciesset) {
         #              ", intmean = ", intmean, ", selfintmean = ", selfintmean,
         #              ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 32)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 33)
         indexdata <- 1
         
         for(iter in 1:niter) {
@@ -951,7 +947,8 @@ for(nspecies in nspeciesset) {
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
                 infgrowth, infgrowthconj, eqreached, eqreachedconj,
-                timefinal, timefinalconj, abunR, abunRconj, abunPconj
+                timefinal, timefinalconj, abunR, abunRconj, abunPconj,
+                abunRconj/(abunRconj + abunPconj)
               )
               indexdata <- indexdatanew
             }
@@ -972,7 +969,7 @@ for(nspecies in nspeciesset) {
                             "infgrowth", "infgrowthconj",
                             "eqreached", "eqreachedconj",
                             "timefinal", "timefinalconj",
-                            "abunR", "abunRconj", "abunPconj")
+                            "abunR", "abunRconj", "abunPconj", "fracRconj")
         
         # Get proportions of stable and non-oscillating equilibria, and repeated
         # eigenvalues for all combinations of costs and conjugation rates
@@ -980,7 +977,7 @@ for(nspecies in nspeciesset) {
           group_by(cost, conjrate) %>%
           summarise(
             across(c(selfint, growthrate, iterintmat,
-                     abunR, abunRconj, abunPconj),
+                     abunR, abunRconj, abunPconj, fracRconj),
                    getsummary4, .names = "{.fn}{.col}"),
             fracstable = mean(eigvalRe < 0),
             fracstableconj = mean(eigvalconjRe < 0),
@@ -1252,24 +1249,21 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "maxabunPconj", filltitle = "Maximum of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
 
-  ## Plot fraction of plasmid-bearing bacteria after perturbations for
+  ## Plot fraction of plasmid-free bacteria after perturbations for
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  # NOTE: NOw I am divinding means to get the data. A much better approach would
-  # be to do this in the original data (i.e., add a summary of
-  # data[, "abunPconj"] / (data[, "abunPconj"] + data[, "abunRconj"]) to plotdata.
   title <- "Fraction plasmid-bearing bacteria after perturbation"
   subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "minabunPconj/(minabunRconj + minabunPconj)",
+  CreatePlot(fillvar = "minfracRconj",
              filltitle = "Minimum fraction of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "meanabunPconj/(meanabunRconj + meanabunPconj)",
+  CreatePlot(fillvar = "meanfracRconj",
              filltitle = "Mean fraction of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "medianabunPconj/(medianabunRconj + medianabunPconj)",
+  CreatePlot(fillvar = "medianfracRconj",
              filltitle = "Median fraction of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "maxabunPconj/(maxabunRconj + maxabunPconj)",
+  CreatePlot(fillvar = "maxfracRconj",
              filltitle = "Maximum fraction of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
 }
