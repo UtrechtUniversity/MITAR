@@ -168,7 +168,8 @@ abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -0.8, to = 0.6, by = 0.1)
 selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.1)
 costset <- c(0.01, 0.20)
-conjrateset <- c(0.01, 0.05, 0.1)
+conjrateset <- list(rep(0.01, 6), rep(0.05, 6), rep(0.1, 6))
+conjmattype <- "diffTax"  # NOTE: use of multiple values is NOT supported (yet)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -185,9 +186,24 @@ abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -0.6, to = 0.6, by = 0.6)
 selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.3)
 costset <- c(0.01, 0.20)
-conjrateset <- c(0.01, 0.1)
+conjrateset <- list(rep(0.01, 6), rep(0.1, 6))
+conjmattype <- "diffTax"  # NOTE: use of multiple values is NOT supported (yet)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
+
+# Matrix based on E. coli, Klebsiella, Erwinia, Erwinia, Xanthomonas, Xanthomonas
+# Only the submatrices taxmat[1:nspecies, 1:nspecies] are used for the 2 and 4
+# species model.
+taxmat <- matrix(c("SameSpecies", "SameFamily",  "SameOrder",   "SameOrder",   "SameClass",   "SameClass",
+                   "SameFamily",  "SameSpecies", "SameOrder",   "SameOrder",   "SameClass",   "SameClass",
+                   "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies", "SameClass",   "SameClass",
+                   "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies", "SameClass",   "SameClass",
+                   "SameClass",   "SameClass",   "SameClass",   "SameClass",   "SameSpecies", "SameSpecies",
+                   "SameClass",   "SameClass",   "SameClass",   "SameClass",   "SameSpecies", "SameSpecies"),
+                  nrow = 6, ncol = 6, byrow = TRUE)
+taxmat <- matrix(rep("SameSpecies", max(nspeciesset)^2),
+                 nrow = max(nspeciesset), ncol = max(nspeciesset),
+                 byrow = TRUE)
 
 
 #### Functions ####
@@ -419,18 +435,75 @@ checkequilibrium <- function(abundance, intmat, growthrate,
   return(atequilibrium)
 }
 
-getconjmat <- function(nspecies, conjrate) {
-  conjmat <- matrix(rep(conjrate, nspecies^2),
-                    nrow = nspecies, ncol = nspecies)
+# Get a matrix with conjugation rates, for different scenarios.
+# Input:
+#   - nspecies: integer indicating the number of species
+#   - type: character vector determining if and how different conjugation rates
+#     should be generated. Should be one of (1) 'diffDiag' to set all
+#     intraspecies conjugation rates equal to the first element in conjrate, and
+#     all off-diagonal elements equal to the second element in conjrate, or (2)
+#     'diffTax' to set conjugation rates are based on taxonomic relatedness as
+#     specified in taxmat.
+#   - conjrate: numeric vector of length 2 giving intraspecies and interspecies
+#     conjugation rates (if type = 'diffDiag'), or of length nspecies giving
+#     the intraspecies conjugation rates for each species (if type = 'diffTax').
+#   - taxmat: matrix where element in column n and row r gives taxonomic
+#     relatedness between species n and r, as a character string (possible are
+#     "SameSpecies", "SameFamily", "SameOrder", "SameClass", and "OtherClass").
+#     This matrix is used to calculate the interspecies conjugation rates based
+#     on the intraspecies conjugation rates provided in conjrate, and the
+#     taxonomic relatedness as provided in taxmat. By default R fills matrices
+#     by column, so byrow = TRUE should be used to obtain the same matrix as
+#     the 'folded' vector. For example for 2 species:
+#     taxmat <- matrix(c("SameSpecies", "SameFamily",
+#                          "SameFamily", "SameSpecies"),
+#                        nrow = nspecies, ncol = nspecies, byrow = TRUE)
+# Return:
+#   - conjmat: matrix where the element in column n and row r gives the
+#     conjugation rate from species n to species r.
+# Notes:
+# - To obtain a matrix where all values are identical (i.e., where conjugation
+#   is not dependent on relatedness), use type = 'diffDiag' with two identical
+#   values for conjrate.
+getconjmat <- function(nspecies, type, conjrate, taxmat = NULL) {
+  switch(type,
+         diffDiag = {
+           stopifnot(near(length(conjrate), 2))
+           # Fill matrix with interspecies conjugation rates
+           conjmat <- matrix(rep(conjrate[2], nspecies^2),
+                             nrow = nspecies, ncol = nspecies)
+           # Put intraspecies conjugation rates on the diagonal
+           diag(conjmat) <- conjrate[1]
+         },
+         diffTax = {
+           stopifnot(near(length(conjrate), nspecies),
+                     !is.null(taxmat), dim(taxmat)[1] == nspecies,
+                     all(diag(taxmat) == "SameSpecies"),
+                     isSymmetric.matrix(unname(taxmat)))
+           # To obtain interspecies conjugation rates for the different levels
+           # of taxonomic relatedness between donor and recipients, the
+           # intraspecies conjugation rates are multiplied with the following
+           # conversion factors.
+           rateconv <- c(SameSpecies = 1, SameFamily = 2.7, SameOrder = 0.1,
+                         SameClass = 0.05, OtherClass = 0.001)
+           convmat <- matrix(NA, nrow = nspecies, ncol = nspecies)
+           for(taxlevel in names(rateconv)) {
+             convmat[which(taxmat == taxlevel)] <- rateconv[taxlevel]
+           }
+           # Multiply column n of convmat giving the conversion factors for
+           # conjugation from donor species n to the different recipient species,
+           # with element n of conjrate. Using t(t(convmat) * conjrate) is
+           # faster for nspecies > 15
+           conjmat <- convmat %*% diag(conjrate)
+           conjmat
+         },
+         {
+           warning("'type' should be 'diffDiag' or 'diffTax'.")
+           conjmat <- NULL
+         }
+  )
+  return(conjmat)
 }
-
-# getconjmat <- function(nspecies, conjrate) {
-#   conjmat <- matrix(rep(conjrate/1000, nspecies^2),
-#                     nrow = nspecies, ncol = nspecies)
-#   diag(conjmat) <- conjrate
-#   return(conjmat)
-# }
-
 
 # Get equilibrium characteristics
 geteqinfo <- function(model, abundance, intmat, growthrate,
@@ -656,7 +729,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   
   if(showplot == TRUE) {
     subtitle <- paste0(abunmodel, ", intmean=", intmean, ", selfintmean=", selfintmean, ", cost=",
-                       cost, ", conjrate=", conjrate)
+                       cost, ", conjratecode=", conjratecode)
     matplot.deSolve(out, lty = lty, col = col, ylab = "Abundance",
                     log = "y", sub = subtitle, lwd = 2, legend = list(x = "bottomright"))
     grid()
@@ -711,7 +784,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        laby = "Mean selfinteraction coefficient",
                        tag = NULL, addstamp = FALSE, diagonal = "none",
                        facetx = "abunmodelcode + cost",
-                       facety = "nspecies + conjrate",
+                       facety = "nspecies + conjratecode",
                        as.table = TRUE,
                        marginx = NULL, marginy = NULL, base_size = 11,
                        rotate_legend = FALSE,
@@ -904,10 +977,15 @@ for(nspecies in nspeciesset) {
           }
           
           for(cost in costset) {
+            conjratecode <- 0
             
             for(conjrate in conjrateset) {
-              conjmat <- getconjmat(nspecies = nspecies, conjrate = conjrate) 
-              
+              conjratecode <- conjratecode + 1
+              conjratensp <- conjrate[1:nspecies]
+              taxmatnsp <- taxmat[1:nspecies, 1:nspecies]
+              conjmat <- getconjmat(nspecies = nspecies, type = conjmattype,
+                                    conjrate = conjratensp,
+                                    taxmat = taxmatnsp)
               # Get equilibrium characteristics for plasmid-free equilibrium in
               # the model with conjugation
               eqinfoconj <- geteqinfo(model = "gLVconj",
@@ -923,7 +1001,7 @@ for(nspecies in nspeciesset) {
                                                     intmat = intmat, growthrate = growthrate,
                                                     cost = cost, conjmat = conjmat,
                                                     model = "gLVConj", pertpop = "P1", tmax = 1e4,
-                                                    showplot = TRUE, verbose = FALSE,
+                                                    showplot = FALSE, verbose = FALSE,
                                                     suppresswarninfgrowth = TRUE)
                 infgrowthconj <- abunfinalconj$infgrowth
                 eqreachedconj <- abunfinalconj$eqreached
@@ -950,7 +1028,7 @@ for(nspecies in nspeciesset) {
               
               data[indexdata:(indexdatanew - 1), ] <- cbind(
                 niter, nspecies, abunmodelcode, intmean, selfintmean,
-                cost, conjrate, iter, 1:nspecies, abundance,
+                cost, conjratecode, iter, 1:nspecies, abundance,
                 diag(intmat), c(growthrate), iterintmat,
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
@@ -966,7 +1044,7 @@ for(nspecies in nspeciesset) {
         indexdatatotal <- indexdatatotal + nrowdata
         
         colnames(data) <- c("niter", "nspecies", "abunmodelcode",
-                            "intmean", "selfintmean", "cost", "conjrate",
+                            "intmean", "selfintmean", "cost", "conjratecode",
                             "iter", "species", "abundance",
                             "selfint", "growthrate",
                             "iterintmat",
@@ -982,7 +1060,7 @@ for(nspecies in nspeciesset) {
         # Get proportions of stable and non-oscillating equilibria, and repeated
         # eigenvalues for all combinations of costs and conjugation rates
         mytibble <- as_tibble(data) %>%
-          group_by(cost, conjrate) %>%
+          group_by(cost, conjratecode) %>%
           summarise(
             across(c(selfint, growthrate, iterintmat,
                      abunR, abunRconj, abunPconj, fracRconj),
@@ -1163,7 +1241,7 @@ CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
 # obtain an equilibrium. Costs and conjugation rate do not affect growth rate,
 # so data has been filtered to have only one value for them.
 datatotalfiltercostconj <- filter(datatotal, near(cost, costset[1]),
-                                  near(conjrate, conjrateset[1]))
+                                  near(conjratecode, 1))
 
 # Larger intmean leads to lower growth rate, effect becomes larger when species
 # are less abundant
