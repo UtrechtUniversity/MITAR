@@ -48,6 +48,15 @@
 #### Optionally to do ####
 
 ## General ##
+# Formatting of text in messages, warnings, and graphs can be coded nicer using
+# the stringr package.
+
+# Some variables are named x -> xconj (maxabunR, maxabunRconj), others are named
+# fraceigvalRep -> fraceigvalconjRep. That could be made more consistent.
+
+# If simulateinvasion == FALSE, no summaries on abundances and fracinfgrowth ect.
+# are needed. Now they return -Inf, Inf, NA. Instead, let them all be NA
+
 # I could move the 'niter' argument to the top functions, such that for 1000
 # iterations, rnorm is called only once to generate 1000*nspecies growthrates,
 # instead of being called 1000 times to generate nspecies growthrates.
@@ -876,15 +885,14 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 set.seed(seed = 314, kind = "default", normal.kind = "default", sample.kind = "default")
 
 # Create matrix to store data
-nrowplotdata <- length(nspeciesset)*length(abunmodelset)*
-  length(intmeanset)*length(selfintmeanset)*length(costset)*length(conjrateset)
+nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
+                                  selfintmeanset, costset, conjrateset),
+                             use.names = FALSE))
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 47)
 
-nrowdatatotal <- length(abunmodelset)*length(intmeanset)*
-  length(selfintmeanset)*length(costset)*length(conjrateset)*niter*
-  sum(nspeciesset)
-
+nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
+                                   costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
 datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 33)
 indexdatatotal <- 1
 maxnspecies <- max(nspeciesset)
@@ -1333,19 +1341,19 @@ if(simulateinvasion == TRUE) {
   ## Plot fraction of plasmid-free bacteria after perturbations for
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  title <- "Fraction plasmid-bearing bacteria after perturbation"
+  title <- "Fraction plasmid-free bacteria after perturbation"
   subtitle <- "Perturbation with plasmid-bearing bacteria"
   CreatePlot(fillvar = "minfracRconj",
-             filltitle = "Minimum fraction of plasmid-\nbearing bacteria",
+             filltitle = "Minimum fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
   CreatePlot(fillvar = "meanfracRconj",
-             filltitle = "Mean fraction of plasmid-\nbearing bacteria",
+             filltitle = "Mean fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
   CreatePlot(fillvar = "medianfracRconj",
-             filltitle = "Median fraction of plasmid-\nbearing bacteria",
+             filltitle = "Median fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
   CreatePlot(fillvar = "maxfracRconj",
-             filltitle = "Maximum fraction of plasmid-\nbearing bacteria",
+             filltitle = "Maximum fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
 }
 
