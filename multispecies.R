@@ -70,9 +70,6 @@
 # The .groups argument in dplyr::summarise is experimental, so maybe should be
 # dropped. However, excluding it leads to messages every time it is called.
 
-# Check if using tibbles instead of matrices for 'data' makes it easier to fill
-# parts without  
-
 # The matrix 'data' is converted to a tibble to efficiently get summary
 # statistics. The tibble with summary statistics is then converted to a matrix
 # to fill in part of the matrix plotdata. Using a tibble for 'data' from the
@@ -116,7 +113,6 @@
 
 
 ## getintmat() ##
-# I could use the same interaction matrix for both abundance models.
 # See May 2005 on other options for intraspecies interactions (all < 0, all -1, ...).
 # Search literature for abundance models applied to a microbiome.
 
@@ -1034,8 +1030,7 @@ for(nspecies in nspeciesset) {
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
                 infgrowth, infgrowthconj, eqreached, eqreachedconj,
                 timefinal, timefinalconj, abunR, abunRconj, abunPconj,
-                abunRconj/(abunRconj + abunPconj)
-              )
+                abunRconj/(abunRconj + abunPconj))
               indexdata <- indexdatanew
             }
           }
