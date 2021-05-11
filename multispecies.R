@@ -1116,6 +1116,24 @@ write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
 write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
           quote = FALSE, row.names = FALSE)
 
+# Saving settings
+names(conjrateset) <- paste0("conjrateset", 1:length(conjrateset))
+rownames(taxmat) <- paste0("recipientsp", 1:dim(taxmat)[1])
+colnames(taxmat) <- paste0("donorsp", 1:dim(taxmat)[1])
+settings <- c(list(niter = niter, niterintmat = niterintmat,
+                   simulateinvasion = simulateinvasion,
+                   smallstate = smallstate, smallchange = smallchange,
+                   saveplots = saveplots, nspeciesset = nspeciesset,
+                   abunmodelset = abunmodelset, totalabun = totalabun,
+                   intmeanset = intmeanset, selfintmeanset = selfintmeanset,
+                   costset = costset), conjrateset,
+              list(conjmattype = conjmattype, taxmat = taxmat))
+for(index in 1:length(settings)) {
+  write.table(t(as.data.frame(settings[index])), 
+              paste0(DateTimeStamp, "settings.csv"), append = TRUE,
+              quote = FALSE, sep = ",", col.names = FALSE)
+}
+
 
 #### Reading previously saved data from a .csv-file ####
 ## To read data from csv-file, uncomment this section and fill in the 
