@@ -889,8 +889,8 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset),
                              use.names = FALSE))
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 47)
-
+plotdata <- matrix(data = NA, nrow = nrowplotdata,
+                   ncol = if(simulateinvasion == TRUE) {47} else {25})
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
 datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 33)
@@ -1060,27 +1060,44 @@ for(nspecies in nspeciesset) {
                             "timefinal", "timefinalconj",
                             "abunR", "abunRconj", "abunPconj", "fracRconj")
         
-        # Get proportions of stable and non-oscillating equilibria, and repeated
-        # eigenvalues for all combinations of costs and conjugation rates
-        mytibble <- as_tibble(data) %>%
+        # Get summary data which do not depend on simulated invasion for all
+        # combinations of costs and conjugation rates
+        summarydata <- as_tibble(data) %>%
           group_by(cost, conjratecode) %>%
           summarise(
-            across(c(selfint, growthrate, iterintmat,
-                     abunR, abunRconj, abunPconj, fracRconj),
+            across(c(selfint, growthrate, iterintmat),
                    getsummary4, .names = "{.fn}{.col}"),
             fracstable = mean(eigvalRe < 0),
             fracstableconj = mean(eigvalconjRe < 0),
             fracreal = mean(eigvalIm == 0),
             fracrealconj = mean(eigvalconjIm == 0),
-            across(c(eigvalRep, eigvalconjRep, infgrowth, infgrowthconj,
-                     eqreached, eqreachedconj), getfracnotzero, .names = "{.fn}{.col}"),
-            mediantimefinal = median(timefinal), mediantimefinalconj = median(timefinalconj),
+            across(c(eigvalRep, eigvalconjRep), getfracnotzero,
+                   .names = "{.fn}{.col}"),
             .groups = "drop"
           )
         
+        if(simulateinvasion == TRUE) {
+          # If invasion was simulated, get summary of generated data for all
+          # combinations of costs and conjugation rates
+          summarydatasimulation <- as_tibble(data) %>%
+            group_by(cost, conjratecode) %>%
+            summarise(
+              across(c(abunR, abunRconj, abunPconj, fracRconj),
+                     getsummary4, .names = "{.fn}{.col}"),
+              across(c(infgrowth, infgrowthconj,
+                       eqreached, eqreachedconj), getfracnotzero,
+                     .names = "{.fn}{.col}"),
+              mediantimefinal = median(timefinal),
+              mediantimefinalconj = median(timefinalconj),
+              .groups = "drop"
+            )
+          summarydata <- full_join(summarydata, summarydatasimulation,
+                                by = c("cost", "conjratecode"))
+        }
+        
         rowindexplotdatanew <- rowindexplotdata + length(costset) * length(conjrateset)
         plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
-          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean, mytibble))
+          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean, summarydata))
         rowindexplotdata <- rowindexplotdatanew
       }
     }
@@ -1088,7 +1105,7 @@ for(nspecies in nspeciesset) {
 }
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
-                        "intmean", "selfintmean", colnames(mytibble))
+                        "intmean", "selfintmean", colnames(summarydata))
 colnames(datatotal) <- colnames(data)
 
 #### Saving output to .csv files ####
