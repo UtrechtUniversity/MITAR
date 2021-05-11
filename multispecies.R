@@ -199,9 +199,11 @@ conjmattype <- "diffTax"  # NOTE: use of multiple values is NOT supported (yet)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
-# Matrix based on E. coli, Klebsiella, Erwinia, Erwinia, Xanthomonas, Xanthomonas
-# Only the submatrices taxmat[1:nspecies, 1:nspecies] are used for the 2 and 4
-# species model.
+# A matrix giving the taxonomic relatedness between the donor species (columns)
+# and recipient species (rows). Although the matrix is symmetric, this ordering
+# is needed to calculate the conjugation rates correctly. Only the submatrices
+# taxmat[1:nspecies, 1:nspecies] are used if nspecies < max(nspeciesset).
+# An example with E. coli, Klebsiella, two Erwinia species, and two Xanthomonas species:
 taxmat <- matrix(c("SameSpecies", "SameFamily",  "SameOrder",   "SameOrder",   "SameClass",   "SameClass",
                    "SameFamily",  "SameSpecies", "SameOrder",   "SameOrder",   "SameClass",   "SameClass",
                    "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies", "SameClass",   "SameClass",
