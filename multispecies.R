@@ -54,9 +54,6 @@
 # Some variables are named x -> xconj (maxabunR, maxabunRconj), others are named
 # fraceigvalRep -> fraceigvalconjRep. That could be made more consistent.
 
-# If simulateinvasion == FALSE, no summaries on abundances and fracinfgrowth ect.
-# are needed. Now they return -Inf, Inf, NA. Instead, let them all be NA
-
 # I could move the 'niter' argument to the top functions, such that for 1000
 # iterations, rnorm is called only once to generate 1000*nspecies growthrates,
 # instead of being called 1000 times to generate nspecies growthrates.
@@ -65,12 +62,6 @@
 # To check if enough iterations are used: run several times for niter iterations,
 # if the variation in fraction of stable equilibria is too large, use more
 # iterations.
-
-# Create file to store default settings (e.g., sparsity = 0, intdistr =
-# selfintdistr = "normal", intsd = selfintsd = 0.1) and write that to a .txt
-# file with DateTimeStamp matching to other files, e.g.,
-# write.table(x, paste0(DateTimeStamp, "settings"), append = FALSE,
-# sep = ",", dec = ".", row.names = TRUE, col.names = TRUE).
 
 # Now I use nested loops, instead I could first create a tibble using
 # tidyr::expand_grid(), and then use (l)/(m)apply / purrr:(p)map to iterate over
