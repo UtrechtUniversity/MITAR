@@ -169,11 +169,13 @@ smallchange <- 1e-10 # If the sum of absolute rates of change is equal to
 # Define parameter space
 totalabun <- 1
 nspeciesset <- c(2, 4, 6)
+maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -0.8, to = 0.6, by = 0.1)
 selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.1)
 costset <- c(0.01, 0.20)
-conjrateset <- list(rep(0.01, 6), rep(0.05, 6), rep(0.1, 6))
+conjrateset <- list(rep(0.01, maxnspecies), rep(0.05, maxnspecies),
+                    rep(0.1, maxnspecies))
 conjmattype <- "diffTax"  # NOTE: use of multiple values is NOT supported (yet)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
@@ -187,11 +189,12 @@ smallstate <- 1e-20
 smallchange <- 1e-10
 totalabun <- 1
 nspeciesset <- c(2, 4, 6)
+maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -0.6, to = 0.6, by = 0.6)
 selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.3)
 costset <- c(0.01, 0.20)
-conjrateset <- list(rep(0.01, 6), rep(0.1, 6))
+conjrateset <- list(rep(0.01, maxnspecies), rep(0.1, maxnspecies))
 conjmattype <- "diffTax"  # NOTE: use of multiple values is NOT supported (yet)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
@@ -206,9 +209,8 @@ taxmat <- matrix(c("SameSpecies", "SameFamily",  "SameOrder",   "SameOrder",   "
                    "SameClass",   "SameClass",   "SameClass",   "SameClass",   "SameSpecies", "SameSpecies",
                    "SameClass",   "SameClass",   "SameClass",   "SameClass",   "SameSpecies", "SameSpecies"),
                   nrow = 6, ncol = 6, byrow = TRUE)
-taxmat <- matrix(rep("SameSpecies", max(nspeciesset)^2),
-                 nrow = max(nspeciesset), ncol = max(nspeciesset),
-                 byrow = TRUE)
+taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
+                 nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
 
 
 #### Functions ####
@@ -895,7 +897,6 @@ nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
 datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 33)
 indexdatatotal <- 1
-maxnspecies <- max(nspeciesset)
 
 # Run simulations
 rowindexplotdata <- 1
@@ -1390,7 +1391,7 @@ for(nspecies in nspeciesset) {
   
   plotabun <- ggplot(data = comparingabun, aes(x = species, y = abun, color = model)) +
     theme_bw() +
-    scale_x_discrete(limits = factor(1:max(nspeciesset))) +
+    scale_x_discrete(limits = factor(1:maxnspecies)) +
     scale_y_continuous(limits = c(0, 1)) +
     theme(legend.position = "bottom") +
     labs(title = "Comparing abundance models: linear scale",
@@ -1405,7 +1406,7 @@ for(nspecies in nspeciesset) {
   
   plotabunlog <- ggplot(data = comparingabun, aes(x = species, y = abun, color = model)) +
     theme_bw() +
-    scale_x_discrete(limits = factor(1:max(nspeciesset))) +
+    scale_x_discrete(limits = factor(1:maxnspecies)) +
     scale_y_continuous(limits = c(NA, 1), trans = "log10") +
     theme(legend.position = "bottom") +
     labs(title = "Comparing abundance models: logarithmic scale",
@@ -1424,7 +1425,7 @@ comparingabuntotal[, "group"] <- paste0(comparingabuntotal[, "nspecies"],
 
 plotabun <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
-  scale_x_discrete(limits = factor(1:max(nspeciesset))) +
+  scale_x_discrete(limits = factor(1:maxnspecies)) +
   scale_y_continuous(limits = c(0, 1)) +
   theme(legend.position = "bottom") +
   labs(title = "Comparing abundance models: linear scale",
@@ -1439,7 +1440,7 @@ if(saveplots == TRUE) {
 
 plotabunlog <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
-  scale_x_discrete(limits = factor(1:max(nspeciesset))) +
+  scale_x_discrete(limits = factor(1:maxnspecies)) +
   scale_y_continuous(limits = c(NA, 1), trans = "log10") +
   theme(legend.position = "bottom") +
   labs(title = "Comparing abundance models: logarithmic scale",
