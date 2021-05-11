@@ -888,7 +888,7 @@ plotdata <- matrix(data = NA, nrow = nrowplotdata,
                    ncol = if(simulateinvasion == TRUE) {47} else {25})
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 33)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 36)
 indexdatatotal <- 1
 
 # Run simulations
@@ -920,7 +920,7 @@ for(nspecies in nspeciesset) {
         #              ", intmean = ", intmean, ", selfintmean = ", selfintmean,
         #              ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 33)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 36)
         indexdata <- 1
         
         for(iter in 1:niter) {
@@ -962,9 +962,9 @@ for(nspecies in nspeciesset) {
             # It does not make sense to store abundances in case of infinite
             # growth or if equilibrium is not reached, so record those as NA
             if(eqreached == 1) {
-              abunR <- sum(abunfinal$abunfinalR)
+              abunRtotal <- sum(abunfinal$abunfinalR)
             } else {
-              abunR <- NA
+              abunRtotal <- NA
             }
           } else {
             # No simulations over time performed, so set values to NA
@@ -1008,19 +1008,19 @@ for(nspecies in nspeciesset) {
                 # It does not make sense to store abundances in case of infinite
                 # growth or if equilibrium is not reached, so record those as NA
                 if(eqreachedconj == 1) {
-                  abunRconj <- sum(abunfinalconj$abunfinalR)
-                  abunPconj <- sum(abunfinalconj$abunfinalP)
+                  abunRtotalconj <- sum(abunfinalconj$abunfinalR)
+                  abunPtotalconj <- sum(abunfinalconj$abunfinalP)
                 } else {
-                  abunRconj <- NA
-                  abunPconj <- NA
+                  abunRtotalconj <- NA
+                  abunPtotalconj <- NA
                 }
               } else {
                 # No simulations over time performed, so set values to NA
                 infgrowthconj <- NA
                 eqreachedconj <- NA
                 timefinalconj <- NA
-                abunRconj <- NA
-                abunPconj <- NA
+                abunRtotalconj <- NA
+                abunPtotalconj <- NA
               }
               indexdatanew <- indexdata + nspecies
               
@@ -1031,8 +1031,11 @@ for(nspecies in nspeciesset) {
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
                 infgrowth, infgrowthconj, eqreached, eqreachedconj,
-                timefinal, timefinalconj, abunR, abunRconj, abunPconj,
-                abunRconj/(abunRconj + abunPconj))
+                timefinal, timefinalconj, abunRtotal, abunRtotalconj, abunPtotalconj,
+                abunRtotalconj/(abunRtotalconj + abunPtotalconj),
+                abunfinal$abunfinalR,
+                abunfinalconj$abunfinalR,
+                abunfinalconj$abunfinalP)
               indexdata <- indexdatanew
             }
           }
@@ -1052,7 +1055,9 @@ for(nspecies in nspeciesset) {
                             "infgrowth", "infgrowthconj",
                             "eqreached", "eqreachedconj",
                             "timefinal", "timefinalconj",
-                            "abunR", "abunRconj", "abunPconj", "fracRconj")
+                            "abunRtotal", "abunRtotalconj", "abunPtotalconj",
+                            "fracRtotalconj",
+                            "abunR", "abunRconj", "abunPconj")
         
         # Get summary data which do not depend on simulated invasion for all
         # combinations of costs and conjugation rates
@@ -1076,7 +1081,7 @@ for(nspecies in nspeciesset) {
           summarydatasimulation <- as_tibble(data) %>%
             group_by(cost, conjratecode) %>%
             summarise(
-              across(c(abunR, abunRconj, abunPconj, fracRconj),
+              across(c(abunRtotal, abunRtotalconj, abunPtotalconj, fracRtotalconj),
                      getsummary4, .names = "{.fn}{.col}"),
               across(c(infgrowth, infgrowthconj,
                        eqreached, eqreachedconj), getfracnotzero,
@@ -1330,13 +1335,13 @@ if(simulateinvasion == TRUE) {
   # abundances after perturbation with plasmid-bearing bacteria.
   title <- "Total abundances after perturbation"
   subtitle <- "Perturbation with plasmid-free bacteria"
-  CreatePlot(fillvar = "minabunR", filltitle = "Minimum of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "minabunRtotal", filltitle = "Minimum of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "meanabunR", filltitle = "Mean of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "meanabunRtotal", filltitle = "Mean of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "medianabunR", filltitle = "Median of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "medianabunRtotal", filltitle = "Median of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "maxabunR", filltitle = "Maximum of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "maxabunRtotal", filltitle = "Maximum of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
 
   ## Plot total abundances of plasmid-free populations after perturbations in
@@ -1344,13 +1349,13 @@ if(simulateinvasion == TRUE) {
   # considered.
   title <- "Total abundances after perturbation"
   subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "minabunRconj", filltitle = "Minimum of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "minabunRtotalconj", filltitle = "Minimum of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "meanabunRconj", filltitle = "Mean of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "meanabunRtotalconj", filltitle = "Mean of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "medianabunRconj", filltitle = "Median of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "medianabunRtotalconj", filltitle = "Median of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "maxabunRconj", filltitle = "Maximum of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "maxabunRtotalconj", filltitle = "Maximum of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)  
   
   ## Plot total abundances of plasmid-bearing populations after perturbations for
@@ -1358,13 +1363,13 @@ if(simulateinvasion == TRUE) {
   # considered.
   title <- "Total abundances after perturbation"
   subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "minabunPconj", filltitle = "Minimum of plasmid-\nbearing bacteria",
+  CreatePlot(fillvar = "minabunPtotalconj", filltitle = "Minimum of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "meanabunPconj", filltitle = "Mean of plasmid-\nbearing bacteria",
+  CreatePlot(fillvar = "meanabunPtotalconj", filltitle = "Mean of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "medianabunPconj", filltitle = "Median of plasmid-\nbearing bacteria",
+  CreatePlot(fillvar = "medianabunPtotalconj", filltitle = "Median of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "maxabunPconj", filltitle = "Maximum of plasmid-\nbearing bacteria",
+  CreatePlot(fillvar = "maxabunPtotalconj", filltitle = "Maximum of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
 
   ## Plot fraction of plasmid-free bacteria after perturbations for
@@ -1372,16 +1377,16 @@ if(simulateinvasion == TRUE) {
   # considered.
   title <- "Fraction plasmid-free bacteria after perturbation"
   subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "minfracRconj",
+  CreatePlot(fillvar = "minfracRtotalconj",
              filltitle = "Minimum fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "meanfracRconj",
+  CreatePlot(fillvar = "meanfracRtotalconj",
              filltitle = "Mean fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "medianfracRconj",
+  CreatePlot(fillvar = "medianfracRtotalconj",
              filltitle = "Median fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "maxfracRconj",
+  CreatePlot(fillvar = "maxfracRtotalconj",
              filltitle = "Maximum fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
 }
