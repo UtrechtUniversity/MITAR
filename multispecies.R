@@ -885,10 +885,10 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                              use.names = FALSE))
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata,
-                   ncol = if(simulateinvasion == TRUE) {47} else {25})
+                   ncol = if(simulateinvasion == TRUE) {35 + 12*maxnspecies} else {25})
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 36)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 33 + 3*maxnspecies)
 indexdatatotal <- 1
 
 # Run simulations
@@ -920,8 +920,11 @@ for(nspecies in nspeciesset) {
         #              ", intmean = ", intmean, ", selfintmean = ", selfintmean,
         #              ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 36)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 33 + 3*maxnspecies)
         indexdata <- 1
+        abunR <- rep(NA, maxnspecies)
+        abunRconj <- rep(NA, maxnspecies)
+        abunPconj <- rep(NA, maxnspecies)
         
         for(iter in 1:niter) {
           stableeq <- FALSE
@@ -962,8 +965,10 @@ for(nspecies in nspeciesset) {
             # It does not make sense to store abundances in case of infinite
             # growth or if equilibrium is not reached, so record those as NA
             if(eqreached == 1) {
+              abunR[1:nspecies] <- abunfinal$abunfinalR
               abunRtotal <- sum(abunfinal$abunfinalR)
             } else {
+              abunR[1:nspecies] <- NA
               abunRtotal <- NA
             }
           } else {
@@ -971,7 +976,8 @@ for(nspecies in nspeciesset) {
             infgrowth <- NA
             eqreached <- NA
             timefinal <- NA
-            abunR <- NA
+            abunR[1:nspecies] <- NA
+            abunRtotal <- NA
           }
           
           for(cost in costset) {
@@ -1008,9 +1014,13 @@ for(nspecies in nspeciesset) {
                 # It does not make sense to store abundances in case of infinite
                 # growth or if equilibrium is not reached, so record those as NA
                 if(eqreachedconj == 1) {
+                  abunRconj[1:nspecies] <- abunfinalconj$abunfinalR
+                  abunPconj[1:nspecies] <- abunfinalconj$abunfinalP
                   abunRtotalconj <- sum(abunfinalconj$abunfinalR)
                   abunPtotalconj <- sum(abunfinalconj$abunfinalP)
                 } else {
+                  abunRconj[1:nspecies] <- NA
+                  abunPconj[1:nspecies] <- NA
                   abunRtotalconj <- NA
                   abunPtotalconj <- NA
                 }
@@ -1019,6 +1029,8 @@ for(nspecies in nspeciesset) {
                 infgrowthconj <- NA
                 eqreachedconj <- NA
                 timefinalconj <- NA
+                abunRconj[1:nspecies] <- NA
+                abunPconj[1:nspecies] <- NA
                 abunRtotalconj <- NA
                 abunPtotalconj <- NA
               }
@@ -1033,9 +1045,9 @@ for(nspecies in nspeciesset) {
                 infgrowth, infgrowthconj, eqreached, eqreachedconj,
                 timefinal, timefinalconj, abunRtotal, abunRtotalconj, abunPtotalconj,
                 abunRtotalconj/(abunRtotalconj + abunPtotalconj),
-                abunfinal$abunfinalR,
-                abunfinalconj$abunfinalR,
-                abunfinalconj$abunfinalP)
+                matrix(rep(abunR, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(abunRconj, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(abunPconj, nspecies), nrow = nspecies, byrow = TRUE))
               indexdata <- indexdatanew
             }
           }
@@ -1057,7 +1069,9 @@ for(nspecies in nspeciesset) {
                             "timefinal", "timefinalconj",
                             "abunRtotal", "abunRtotalconj", "abunPtotalconj",
                             "fracRtotalconj",
-                            "abunR", "abunRconj", "abunPconj")
+                            paste0("abunRsp", 1:maxnspecies),
+                            paste0("abunRconjsp", 1:maxnspecies),
+                            paste0("abunPconjsp", 1:maxnspecies))
         
         # Get summary data which do not depend on simulated invasion for all
         # combinations of costs and conjugation rates
@@ -1081,11 +1095,10 @@ for(nspecies in nspeciesset) {
           summarydatasimulation <- as_tibble(data) %>%
             group_by(cost, conjratecode) %>%
             summarise(
-              across(c(abunRtotal, abunRtotalconj, abunPtotalconj, fracRtotalconj),
+              across(c(starts_with("abunR"), starts_with("abunP"), fracRtotalconj),
                      getsummary4, .names = "{.fn}{.col}"),
-              across(c(infgrowth, infgrowthconj,
-                       eqreached, eqreachedconj), getfracnotzero,
-                     .names = "{.fn}{.col}"),
+              across(c(infgrowth, infgrowthconj, eqreached, eqreachedconj),
+                     getfracnotzero, .names = "{.fn}{.col}"),
               mediantimefinal = median(timefinal),
               mediantimefinalconj = median(timefinalconj),
               .groups = "drop"
