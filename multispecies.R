@@ -885,7 +885,7 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                              use.names = FALSE))
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata,
-                   ncol = if(simulateinvasion == TRUE) {35 + 12*maxnspecies} else {25})
+                   ncol = if(simulateinvasion == TRUE) {47 + 12*maxnspecies} else {25})
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
 datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 33 + 3*maxnspecies)
