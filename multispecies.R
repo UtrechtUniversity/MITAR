@@ -150,7 +150,7 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 # Simulation settings
 niter <- 10
-niterintmat <- 1000
+niterintmat <- 1
 simulateinvasion <- TRUE # If TRUE, simulations over time are performed
 saveplots <- TRUE
 smallstate <- 1e-20 # States are set to 0 if they become smaller than smallstate
@@ -173,7 +173,7 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 
 # Settings for testing code
 niter <- 2
-niterintmat <- 1000
+niterintmat <- 1
 simulateinvasion <- TRUE # If TRUE, simulations over time are performed
 saveplots <- TRUE
 smallstate <- 1e-20
