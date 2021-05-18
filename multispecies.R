@@ -1099,8 +1099,8 @@ for(nspecies in nspeciesset) {
                      getsummary4, .names = "{.col}{.fn}"),
               across(c(infgrowth, infgrowthconj, eqreached, eqreachedconj),
                      getfracnotzero, .names = "{.col}{.fn}"),
-              mediantimefinal = median(timefinal),
-              mediantimefinalconj = median(timefinalconj),
+              timefinalmedian = median(timefinal),
+              timefinalconjmedian = median(timefinalconj),
               .groups = "drop"
             )
           summarydata <- full_join(summarydata, summarydatasimulation,
@@ -1256,14 +1256,14 @@ if(saveplots == TRUE) {
 }
 
 if(simulateinvasion == TRUE) {
-  CreatePlot(fillvar = "fracinfgrowth", filltitle = "Fraction infinite\ngrowth",
+  CreatePlot(fillvar = "infgrowthfrac", filltitle = "Fraction infinite\ngrowth",
              filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "fraceqreached", filltitle = "Fraction equilibrium\nreached",
+  CreatePlot(fillvar = "eqreachedfrac", filltitle = "Fraction equilibrium\nreached",
              filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "fracinfgrowthconj",
+  CreatePlot(fillvar = "infgrowthconjfrac",
              filltitle = "Fraction infinite growth\nwith conjugation",
              filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "fraceqreachedconj",
+  CreatePlot(fillvar = "eqreachedconjfrac",
              filltitle = "Fraction equilibrium\nreached with\nconjugation",
              filltype = "continuous", limits = limitsfraction)
 }
@@ -1283,6 +1283,8 @@ CreatePlot(fillvar = "fraceigvalconjRep",
 CreatePlot(fillvar = "growthratemin", filltitle = "Minimum growth rate",
            filltype = "continuous", limits = limitsgrowthrate)
 CreatePlot(fillvar = "growthratemean", filltitle = "Mean growth rate",
+           filltype = "continuous", limits = limitsgrowthrate)
+CreatePlot(fillvar = "growthratemedian", filltitle = "Median growth rate",
            filltype = "continuous", limits = limitsgrowthrate)
 CreatePlot(fillvar = "growthratemax", filltitle = "Max growth rate",
            filltype = "continuous", limits = limitsgrowthrate)
