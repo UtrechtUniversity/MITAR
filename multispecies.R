@@ -1152,6 +1152,12 @@ for(index in 1:length(settings)) {
 # filename <- "2021_05_04_17_44multispecies.csv"
 # plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
+# If plotdata has only one column, probably a semicolon instead of a comma is
+# used as separator in .csv-files. So read the file again.
+# if(dim(plotdata)[2] == 1) {
+#   plotdata <- read.csv(filename, header = TRUE, sep = ";", quote = "\"",
+#                        dec = ".", stringsAsFactors = FALSE)
+# }
 # plotdata <- as.data.frame(plotdata)
 # DateTimeStamp <- substr(filename, 1, 16)
 # nspeciesset <- sort(unique(plotdata[, "nspecies"]))
