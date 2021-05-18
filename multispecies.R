@@ -1018,7 +1018,7 @@ for(nspecies in nspeciesset) {
                                                       suppresswarninfgrowth = TRUE)
                 } else {
                   # No need for simulations if equilibrium is stable
-                  abunfinal <- list(abunfinalR = abundance,
+                  abunfinalconj <- list(abunfinalR = abundance,
                                     abunfinalP = rep(0, nspecies),
                                     infgrowth = 0, eqreached = 1,
                                     timefinal = 1)
