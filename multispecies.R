@@ -1058,7 +1058,7 @@ for(nspecies in nspeciesset) {
         colnames(data) <- c("niter", "nspecies", "abunmodelcode",
                             "intmean", "selfintmean", "cost", "conjratecode",
                             "iter", "species", "abundance",
-                            "selfint", "growthrate",
+                            "selfintdata", "growthrate",
                             "iterintmat",
                             "eigvalRe", "eigvalIm",
                             "eigvalReSign", "eigvalImSign", "eigvalRep",
@@ -1078,8 +1078,8 @@ for(nspecies in nspeciesset) {
         summarydata <- as_tibble(data) %>%
           group_by(cost, conjratecode) %>%
           summarise(
-            across(c(selfint, growthrate, iterintmat),
-                   getsummary4, .names = "{.fn}{.col}"),
+            across(c(selfintdata, growthrate, iterintmat),
+                   getsummary4, .names = "{.col}{.fn}"),
             fracstable = mean(eigvalRe < 0),
             fracstableconj = mean(eigvalconjRe < 0),
             fracreal = mean(eigvalIm == 0),
@@ -1096,9 +1096,9 @@ for(nspecies in nspeciesset) {
             group_by(cost, conjratecode) %>%
             summarise(
               across(c(starts_with("abunR"), starts_with("abunP"), fracRtotalconj),
-                     getsummary4, .names = "{.fn}{.col}"),
+                     getsummary4, .names = "{.col}{.fn}"),
               across(c(infgrowth, infgrowthconj, eqreached, eqreachedconj),
-                     getfracnotzero, .names = "{.fn}{.col}"),
+                     getfracnotzero, .names = "{.col}{.fn}"),
               mediantimefinal = median(timefinal),
               mediantimefinalconj = median(timefinalconj),
               .groups = "drop"
@@ -1170,8 +1170,8 @@ datatotal <- as.data.frame(datatotal)
 limitsfraction <- c(0, 1)
 # Round the limits to one decimal place, while ensuring that all the data is
 # within the rounded limits. 
-limitsgrowthrate <- c(floor(min(plotdata[, "mingrowthrate"])*10)/10,
-                      ceiling(max(plotdata[, "maxgrowthrate"])*10)/10)
+limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
+                      ceiling(max(plotdata[, "growthratemax"])*10)/10)
 
 
 #### To test plots without using CreatePlot() ####
@@ -1280,11 +1280,11 @@ CreatePlot(fillvar = "fraceigvalconjRep",
 
 ## Growth rates
 # Plot summary data for the calculated growth rates 
-CreatePlot(fillvar = "mingrowthrate", filltitle = "Minimum growth rate",
+CreatePlot(fillvar = "growthratemin", filltitle = "Minimum growth rate",
            filltype = "continuous", limits = limitsgrowthrate)
-CreatePlot(fillvar = "meangrowthrate", filltitle = "Mean growth rate",
+CreatePlot(fillvar = "growthratemean", filltitle = "Mean growth rate",
            filltype = "continuous", limits = limitsgrowthrate)
-CreatePlot(fillvar = "maxgrowthrate", filltitle = "Max growth rate",
+CreatePlot(fillvar = "growthratemax", filltitle = "Max growth rate",
            filltype = "continuous", limits = limitsgrowthrate)
 
 # Show the relation of interactions and species-specific growth rate required to
@@ -1320,24 +1320,24 @@ if(saveplots == TRUE) {
 
 ## Plot summary data on the number of iterations in creating intmat needed to
 # find a stable equilibrium with the model without plasmids
-CreatePlot(fillvar = "miniterintmat", filltitle =
+CreatePlot(fillvar = "iterintmatmin", filltitle =
              paste("Minimum number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat))
-CreatePlot(fillvar = "meaniterintmat", filltitle = 
+CreatePlot(fillvar = "iterintmatmean", filltitle = 
              paste("Mean number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat))
-CreatePlot(fillvar = "medianiterintmat", filltitle = 
+CreatePlot(fillvar = "iterintmatmedian", filltitle = 
              paste("Median number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat))
-CreatePlot(fillvar = "maxiterintmat", filltitle = 
+CreatePlot(fillvar = "iterintmatmax", filltitle = 
              paste("Maximum number of\niterations to reach\nstable equilibrium"),
            filltype = "continuous", limits = c(0, niterintmat))
 
 if(simulateinvasion == TRUE) {
-  CreatePlot(fillvar = "mediantimefinal", filltitle = "Median time",
+  CreatePlot(fillvar = "timefinalmedian", filltitle = "Median time",
              filltype = "continuous", title = "Time after perturbation",
              subtitle = "Perturbation with plasmid-free bacteria")
-  CreatePlot(fillvar = "mediantimefinalconj", filltitle = "Median time",
+  CreatePlot(fillvar = "timefinalconjmedian", filltitle = "Median time",
              filltype = "continuous", title = "Time after perturbation",
              subtitle = "Perturbation with plasmid-bearing bacteria")
   
@@ -1348,13 +1348,13 @@ if(simulateinvasion == TRUE) {
   # abundances after perturbation with plasmid-bearing bacteria.
   title <- "Total abundances after perturbation"
   subtitle <- "Perturbation with plasmid-free bacteria"
-  CreatePlot(fillvar = "minabunRtotal", filltitle = "Minimum of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "abunRtotalmin", filltitle = "Minimum of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "meanabunRtotal", filltitle = "Mean of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "abunRtotalmean", filltitle = "Mean of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "medianabunRtotal", filltitle = "Median of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "abunRtotalmedian", filltitle = "Median of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "maxabunRtotal", filltitle = "Maximum of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "abunRtotalmax", filltitle = "Maximum of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
 
   ## Plot total abundances of plasmid-free populations after perturbations in
@@ -1362,13 +1362,13 @@ if(simulateinvasion == TRUE) {
   # considered.
   title <- "Total abundances after perturbation"
   subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "minabunRtotalconj", filltitle = "Minimum of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "abunRtotalconjmin", filltitle = "Minimum of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "meanabunRtotalconj", filltitle = "Mean of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "abunRtotalconjmean", filltitle = "Mean of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "medianabunRtotalconj", filltitle = "Median of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "abunRtotalconjmedian", filltitle = "Median of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "maxabunRtotalconj", filltitle = "Maximum of plasmid-\nfree bacteria",
+  CreatePlot(fillvar = "abunRtotalconjmax", filltitle = "Maximum of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)  
   
   ## Plot total abundances of plasmid-bearing populations after perturbations for
@@ -1376,13 +1376,13 @@ if(simulateinvasion == TRUE) {
   # considered.
   title <- "Total abundances after perturbation"
   subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "minabunPtotalconj", filltitle = "Minimum of plasmid-\nbearing bacteria",
+  CreatePlot(fillvar = "abunPtotalconjmin", filltitle = "Minimum of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "meanabunPtotalconj", filltitle = "Mean of plasmid-\nbearing bacteria",
+  CreatePlot(fillvar = "abunPtotalconjmean", filltitle = "Mean of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "medianabunPtotalconj", filltitle = "Median of plasmid-\nbearing bacteria",
+  CreatePlot(fillvar = "abunPtotalconjmedian", filltitle = "Median of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "maxabunPtotalconj", filltitle = "Maximum of plasmid-\nbearing bacteria",
+  CreatePlot(fillvar = "abunPtotalconjmax", filltitle = "Maximum of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
 
   ## Plot fraction of plasmid-free bacteria after perturbations for
@@ -1390,16 +1390,16 @@ if(simulateinvasion == TRUE) {
   # considered.
   title <- "Fraction plasmid-free bacteria after perturbation"
   subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "minfracRtotalconj",
+  CreatePlot(fillvar = "fracRtotalconjmin",
              filltitle = "Minimum fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "meanfracRtotalconj",
+  CreatePlot(fillvar = "fracRtotalconjmean",
              filltitle = "Mean fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "medianfracRtotalconj",
+  CreatePlot(fillvar = "fracRtotalconjmedian",
              filltitle = "Median fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "maxfracRtotalconj",
+  CreatePlot(fillvar = "fracRtotalconjmax",
              filltitle = "Maximum fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
 }
