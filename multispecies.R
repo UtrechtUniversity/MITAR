@@ -952,12 +952,20 @@ for(nspecies in nspeciesset) {
           # equilibrium in model without conjugation (i.e., test internal
           # stability)
           if(simulateinvasion == TRUE) {
-            abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
-                                            growthrate = growthrate, cost = cost,
-                                            conjmat = conjmat,
-                                            model = "gLV", pertpop = "all", tmax = 1e4,
-                                            showplot = FALSE, verbose = FALSE,
-                                            suppresswarninfgrowth = TRUE)
+            if(stableeq == FALSE) {
+              abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
+                                              growthrate = growthrate, cost = cost,
+                                              conjmat = conjmat,
+                                              model = "gLV", pertpop = "all", tmax = 1e4,
+                                              showplot = FALSE, verbose = FALSE,
+                                              suppresswarninfgrowth = TRUE)
+            } else {
+              # No need for simulations if equilibrium is stable
+              abunfinal <- list(abunfinalR = abundance,
+                                abunfinalP = NULL,
+                                infgrowth = 0, eqreached = 1,
+                                timefinal = 1)
+            }
             infgrowth <- abunfinal$infgrowth
             eqreached <- abunfinal$eqreached
             timefinal <- abunfinal$timefinal
@@ -1001,12 +1009,20 @@ for(nspecies in nspeciesset) {
               # the abundances of the plasmid-free populations have to be appended
               # to the abundances of the plasmid-bearing populations
               if(simulateinvasion == TRUE) {
-                abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
-                                                    intmat = intmat, growthrate = growthrate,
-                                                    cost = cost, conjmat = conjmat,
-                                                    model = "gLVConj", pertpop = "P1", tmax = 1e4,
-                                                    showplot = FALSE, verbose = FALSE,
-                                                    suppresswarninfgrowth = TRUE)
+                if(eqinfoconj[1] >= 0) {
+                  abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
+                                                      intmat = intmat, growthrate = growthrate,
+                                                      cost = cost, conjmat = conjmat,
+                                                      model = "gLVConj", pertpop = "P1", tmax = 1e4,
+                                                      showplot = FALSE, verbose = FALSE,
+                                                      suppresswarninfgrowth = TRUE)
+                } else {
+                  # No need for simulations if equilibrium is stable
+                  abunfinal <- list(abunfinalR = abundance,
+                                    abunfinalP = rep(0, nspecies),
+                                    infgrowth = 0, eqreached = 1,
+                                    timefinal = 1)
+                }
                 infgrowthconj <- abunfinalconj$infgrowth
                 eqreachedconj <- abunfinalconj$eqreached
                 timefinalconj <- abunfinalconj$timefinal
