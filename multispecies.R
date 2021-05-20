@@ -207,7 +207,6 @@ taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
 
 
 #### Functions ####
-
 # The generalised Lotka-Volterra model. n is a vector of species densities (cell
 # mL^-1), dn/dt is a vector of the change in these densities per time (cell
 # mL^-1 time^-1), growthrate is a vector of growth rates (h^-1), intmat is a
@@ -597,13 +596,14 @@ eventfun <- function(t, state, p) {
 #   to 0, a rootfunction is used to terminate the integration if abundances get
 #   very large. A warning is issued and the variable 'infgrowth' is set to 1 if
 #   this occurs.
-# 
+# Output:
 # Returns abunfinal, a list containing:
-#   - abunfinalR with abundances for plasmid-free species,
-#   - abunfinalP with abundances for plasmid-bearing species (if model ==
-#     "gLVConj"), or NULL (if model == "gLV")
+#   - R with abundances of plasmid-free populations for each species,
+#   - P with abundances of plasmid-bearing population for each species (or NULL
+#     if model == "gLV")
 #   - infgrowth indicating if infinite growth was detected
-# result1 <- perturbequilibrium(abundance, intmat, growthrate, cost, conjmat, "gLV", "R1")
+#   - eqreached indicating if equilibrium has been reached
+#   - timefinal indicating the last recorded time
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                                model, pertpop, pertmagn = 1e-6,
                                tmax = 1e4, tstep = 0.1, showplot = TRUE,
@@ -751,13 +751,12 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   }
   
   if(model == "gLV") {
-    abunfinal <- list(abunfinalR = abunfinaltemp,
-                      abunfinalP = NULL,
+    abunfinal <- list(R = abunfinaltemp, P = NULL,
                       infgrowth = infgrowth, eqreached = eqreached,
                       timefinal = timefinal)
   } else {
-    abunfinal <- list(abunfinalR = abunfinaltemp[1:nspecies],
-                      abunfinalP = abunfinaltemp[(nspecies + 1):(2*nspecies)],
+    abunfinal <- list(R = abunfinaltemp[1:nspecies],
+                      P = abunfinaltemp[(nspecies + 1):(2*nspecies)],
                       infgrowth = infgrowth, eqreached = eqreached,
                       timefinal = timefinal)
   }
@@ -883,12 +882,17 @@ set.seed(seed = 314, kind = "default", normal.kind = "default", sample.kind = "d
 nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset),
                              use.names = FALSE))
+ncolplotdata <- if(simulateinvasion == TRUE) {
+  8*4 + 4*4*maxnspecies + 19
+} else {
+  3*4 + 8 + 5
+}
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata,
-                   ncol = if(simulateinvasion == TRUE) {47 + 12*maxnspecies} else {25})
+                   ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 33 + 3*maxnspecies)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 34 + 4*maxnspecies)
 indexdatatotal <- 1
 
 # Run simulations
@@ -920,11 +924,12 @@ for(nspecies in nspeciesset) {
         #              ", intmean = ", intmean, ", selfintmean = ", selfintmean,
         #              ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 33 + 3*maxnspecies)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 34 + 4*maxnspecies)
         indexdata <- 1
         abunR <- rep(NA, maxnspecies)
         abunRconj <- rep(NA, maxnspecies)
         abunPconj <- rep(NA, maxnspecies)
+        abunconj <- rep(NA, maxnspecies)
         
         for(iter in 1:niter) {
           stableeq <- FALSE
@@ -961,8 +966,7 @@ for(nspecies in nspeciesset) {
                                               suppresswarninfgrowth = TRUE)
             } else {
               # No need for simulations if equilibrium is stable
-              abunfinal <- list(abunfinalR = abundance,
-                                abunfinalP = NULL,
+              abunfinal <- list(R = abundance, P = NULL,
                                 infgrowth = 0, eqreached = 1,
                                 timefinal = 1)
             }
@@ -973,8 +977,8 @@ for(nspecies in nspeciesset) {
             # It does not make sense to store abundances in case of infinite
             # growth or if equilibrium is not reached, so record those as NA
             if(eqreached == 1) {
-              abunR[1:nspecies] <- abunfinal$abunfinalR
-              abunRtotal <- sum(abunfinal$abunfinalR)
+              abunRtotal <- sum(abunfinal$R)
+              abunR[1:nspecies] <- abunfinal$R / abunRtotal
             } else {
               abunR[1:nspecies] <- NA
               abunRtotal <- NA
@@ -1018,8 +1022,7 @@ for(nspecies in nspeciesset) {
                                                       suppresswarninfgrowth = TRUE)
                 } else {
                   # No need for simulations if equilibrium is stable
-                  abunfinalconj <- list(abunfinalR = abundance,
-                                    abunfinalP = rep(0, nspecies),
+                  abunfinalconj <- list(R = abundance, P = rep(0, nspecies),
                                     infgrowth = 0, eqreached = 1,
                                     timefinal = 1)
                 }
@@ -1027,28 +1030,34 @@ for(nspecies in nspeciesset) {
                 eqreachedconj <- abunfinalconj$eqreached
                 timefinalconj <- abunfinalconj$timefinal
                 
-                # It does not make sense to store abundances in case of infinite
-                # growth or if equilibrium is not reached, so record those as NA
                 if(eqreachedconj == 1) {
-                  abunRconj[1:nspecies] <- abunfinalconj$abunfinalR
-                  abunPconj[1:nspecies] <- abunfinalconj$abunfinalP
-                  abunRtotalconj <- sum(abunfinalconj$abunfinalR)
-                  abunPtotalconj <- sum(abunfinalconj$abunfinalP)
+                  abunRtotalconj <- sum(abunfinalconj$R)
+                  abunPtotalconj <- sum(abunfinalconj$P)
+                  abuntotalconj <- abunRtotalconj + abunPtotalconj
+                  abunRconj[1:nspecies] <- abunfinalconj$R / abuntotalconj
+                  abunPconj[1:nspecies] <- abunfinalconj$P / abuntotalconj
+                  abunconj <- abunRconj + abunPconj
                 } else {
-                  abunRconj[1:nspecies] <- NA
-                  abunPconj[1:nspecies] <- NA
+                  # It does not make sense to store abundances in case of infinite
+                  # growth or if equilibrium is not reached, so record those as NA
                   abunRtotalconj <- NA
                   abunPtotalconj <- NA
+                  abuntotalconj <- NA
+                  abunRconj[1:nspecies] <- NA
+                  abunPconj[1:nspecies] <- NA
+                  abunconj[1:nspecies] <- NA
                 }
               } else {
                 # No simulations over time performed, so set values to NA
                 infgrowthconj <- NA
                 eqreachedconj <- NA
                 timefinalconj <- NA
-                abunRconj[1:nspecies] <- NA
-                abunPconj[1:nspecies] <- NA
                 abunRtotalconj <- NA
                 abunPtotalconj <- NA
+                abuntotalconj <- NA
+                abunRconj[1:nspecies] <- NA
+                abunPconj[1:nspecies] <- NA
+                abunconj[1:nspecies] <- NA
               }
               indexdatanew <- indexdata + nspecies
               
@@ -1060,10 +1069,12 @@ for(nspecies in nspeciesset) {
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
                 infgrowth, infgrowthconj, eqreached, eqreachedconj,
                 timefinal, timefinalconj, abunRtotal, abunRtotalconj, abunPtotalconj,
-                abunRtotalconj/(abunRtotalconj + abunPtotalconj),
+                abuntotalconj, abunRtotalconj/abuntotalconj,
                 matrix(rep(abunR, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(abunRconj, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(abunPconj, nspecies), nrow = nspecies, byrow = TRUE))
+                matrix(rep(abunPconj, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(abunconj, nspecies), nrow = nspecies, byrow = TRUE)
+                )
               indexdata <- indexdatanew
             }
           }
@@ -1084,10 +1095,11 @@ for(nspecies in nspeciesset) {
                             "eqreached", "eqreachedconj",
                             "timefinal", "timefinalconj",
                             "abunRtotal", "abunRtotalconj", "abunPtotalconj",
-                            "fracRtotalconj",
+                            "abuntotalconj", "fracRtotalconj",
                             paste0("abunRsp", 1:maxnspecies),
                             paste0("abunRconjsp", 1:maxnspecies),
-                            paste0("abunPconjsp", 1:maxnspecies))
+                            paste0("abunPconjsp", 1:maxnspecies),
+                            paste0("abunconjsp", 1:maxnspecies))
         
         # Get summary data which do not depend on simulated invasion for all
         # combinations of costs and conjugation rates
@@ -1111,12 +1123,13 @@ for(nspecies in nspeciesset) {
           summarydatasimulation <- as_tibble(data) %>%
             group_by(cost, conjratecode) %>%
             summarise(
-              across(c(starts_with("abunR"), starts_with("abunP"), fracRtotalconj),
-                     getsummary4, .names = "{.col}{.fn}"),
               across(c(infgrowth, infgrowthconj, eqreached, eqreachedconj),
                      getfracnotzero, .names = "{.col}{.fn}"),
               timefinalmedian = median(timefinal),
               timefinalconjmedian = median(timefinalconj),
+              across(c(starts_with("abunR"), starts_with("abunP"),
+                       abuntotalconj, fracRtotalconj, starts_with("abunconjsp")),
+                     getsummary4, .names = "{.col}{.fn}"),
               .groups = "drop"
             )
           summarydata <- full_join(summarydata, summarydatasimulation,
@@ -1427,6 +1440,7 @@ if(simulateinvasion == TRUE) {
              filltitle = "Maximum fraction of plasmid-\nfree bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
 }
+
 
 ## Compare abundance models ##
 comparingabuntotal <- NULL
