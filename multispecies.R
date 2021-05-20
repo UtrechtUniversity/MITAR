@@ -949,9 +949,12 @@ for(nspecies in nspeciesset) {
             }
             iterintmat <- iterintmat + 1
           }
-          if(stableeq == FALSE) {
-            warning(paste("No stable equilibrium has been found in", niterintmat, "attempts."))
-          }
+          # To get a warning if the plasmid-free equilibrium is not stable,
+          # uncomment next lines.
+          # if(stableeq == FALSE) {
+          # warning(paste("No stable equilibrium has been found in",
+          #               niterintmat, "attempts."))
+          # }
           
           # Simulate invasion with plasmid-free bacteria of plasmid-free
           # equilibrium in model without conjugation (i.e., test internal
