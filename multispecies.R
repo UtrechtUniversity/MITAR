@@ -1349,24 +1349,27 @@ if(saveplots == TRUE) {
 # find a stable equilibrium with the model without plasmids
 CreatePlot(fillvar = "iterintmatmin", filltitle =
              paste("Minimum number of\niterations to reach\nstable equilibrium"),
-           filltype = "continuous", limits = c(0, niterintmat))
+           filltype = "continuous", limits = c(1, niterintmat))
 CreatePlot(fillvar = "iterintmatmean", filltitle = 
              paste("Mean number of\niterations to reach\nstable equilibrium"),
-           filltype = "continuous", limits = c(0, niterintmat))
+           filltype = "continuous", limits = c(1, niterintmat))
 CreatePlot(fillvar = "iterintmatmedian", filltitle = 
              paste("Median number of\niterations to reach\nstable equilibrium"),
-           filltype = "continuous", limits = c(0, niterintmat))
+           filltype = "continuous", limits = c(1, niterintmat))
 CreatePlot(fillvar = "iterintmatmax", filltitle = 
              paste("Maximum number of\niterations to reach\nstable equilibrium"),
-           filltype = "continuous", limits = c(0, niterintmat))
+           filltype = "continuous", limits = c(1, niterintmat))
 
 if(simulateinvasion == TRUE) {
+  title <- "Time to reach equilibrium after perturbation"
   CreatePlot(fillvar = "timefinalmedian", filltitle = "Median time",
-             filltype = "continuous", title = "Time after perturbation",
-             subtitle = "Perturbation with plasmid-free bacteria")
+             filltype = "continuous", title = title,
+             subtitle = "Perturbation with plasmid-free bacteria",
+             rotate_legend = TRUE)
   CreatePlot(fillvar = "timefinalconjmedian", filltitle = "Median time",
-             filltype = "continuous", title = "Time after perturbation",
-             subtitle = "Perturbation with plasmid-bearing bacteria")
+             filltype = "continuous", title = title,
+             subtitle = "Perturbation with plasmid-bearing bacteria",
+             rotate_legend = TRUE)
   
   ## Plot of total abundances of plasmid-free populations after perturbations in
   # models without plasmids. Only abundances where equilibrium was reached are
