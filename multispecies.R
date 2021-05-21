@@ -437,15 +437,8 @@ checkequilibrium <- function(abundance, intmat, growthrate,
 # Get a matrix with conjugation rates, for different scenarios.
 # Input:
 #   - nspecies: integer indicating the number of species
-#   - type: character vector determining if and how different conjugation rates
-#     should be generated. Should be one of (1) 'diffDiag' to set all
-#     intraspecies conjugation rates equal to the first element in conjrate, and
-#     all off-diagonal elements equal to the second element in conjrate, or (2)
-#     'diffTax' to set conjugation rates are based on taxonomic relatedness as
-#     specified in taxmat.
-#   - conjrate: numeric vector of length 2 giving intraspecies and interspecies
-#     conjugation rates (if type = 'diffDiag'), or of length nspecies giving
-#     the intraspecies conjugation rates for each species (if type = 'diffTax').
+#   - conjrate: numeric vector of length nspecies giving the intraspecies
+#     conjugation rates for each species.
 #   - taxmat: matrix where element in column n and row r gives taxonomic
 #     relatedness between species n and r, as a character string (possible are
 #     "SameSpecies", "SameFamily", "SameOrder", "SameClass", and "OtherClass").
@@ -462,45 +455,28 @@ checkequilibrium <- function(abundance, intmat, growthrate,
 #     conjugation rate from species n to species r.
 # Notes:
 # - To obtain a matrix where all values are identical (i.e., where conjugation
-#   is not dependent on relatedness), use type = 'diffDiag' with two identical
-#   values for conjrate.
-getconjmat <- function(nspecies, type, conjrate, taxmat = NULL) {
-  switch(type,
-         diffDiag = {
-           stopifnot(near(length(conjrate), 2))
-           # Fill matrix with interspecies conjugation rates
-           conjmat <- matrix(rep(conjrate[2], nspecies^2),
-                             nrow = nspecies, ncol = nspecies)
-           # Put intraspecies conjugation rates on the diagonal
-           diag(conjmat) <- conjrate[1]
-         },
-         diffTax = {
-           stopifnot(near(length(conjrate), nspecies),
-                     !is.null(taxmat), dim(taxmat)[1] == nspecies,
-                     all(diag(taxmat) == "SameSpecies"),
-                     isSymmetric.matrix(unname(taxmat)))
-           # To obtain interspecies conjugation rates for the different levels
-           # of taxonomic relatedness between donor and recipients, the
-           # intraspecies conjugation rates are multiplied with the following
-           # conversion factors.
-           rateconv <- c(SameSpecies = 1, SameFamily = 2.7, SameOrder = 0.1,
-                         SameClass = 0.05, OtherClass = 0.001)
-           convmat <- matrix(NA, nrow = nspecies, ncol = nspecies)
-           for(taxlevel in names(rateconv)) {
-             convmat[which(taxmat == taxlevel)] <- rateconv[taxlevel]
-           }
-           # Multiply column n of convmat giving the conversion factors for
-           # conjugation from donor species n to the different recipient species,
-           # with element n of conjrate. Using t(t(convmat) * conjrate) is
-           # faster for nspecies > 15
-           conjmat <- convmat %*% diag(conjrate)
-           conjmat
-         },
-         {
-           warning("'type' should be 'diffDiag' or 'diffTax'.")
-           conjmat <- NULL
-         }
-  )
+#   is not dependent on relatedness), fill taxmat with all values "SameSpecies"
+#   and use all identical values for conjrate.
+getconjmat <- function(nspecies, conjrate, taxmat) {
+  stopifnot(all(diag(taxmat) == "SameSpecies"),
+            isSymmetric.matrix(unname(taxmat)))
+  conjratensp <- conjrate[1:nspecies]
+  taxmatnsp <- taxmat[1:nspecies, 1:nspecies]
+  # To obtain interspecies conjugation rates for the different levels
+  # of taxonomic relatedness between donor and recipients, the
+  # intraspecies conjugation rates are multiplied with the following
+  # conversion factors.
+  rateconv <- c(SameSpecies = 1, SameFamily = 2.7, SameOrder = 0.1,
+                SameClass = 0.05, OtherClass = 0.001)
+  convmat <- matrix(NA, nrow = nspecies, ncol = nspecies)
+  for(taxlevel in names(rateconv)) {
+    convmat[which(taxmatnsp == taxlevel)] <- rateconv[taxlevel]
+  }
+  # Multiply column n of convmat giving the conversion factors for
+  # conjugation from donor species n to the different recipient species,
+  # with element n of conjrate. Using t(t(convmat) * conjrate) is
+  # faster for nspecies > 15
+  conjmat <- convmat %*% diag(conjratensp)
   return(conjmat)
 }
 
@@ -1000,11 +976,8 @@ for(nspecies in nspeciesset) {
             
             for(conjrate in conjrateset) {
               conjratecode <- conjratecode + 1
-              conjratensp <- conjrate[1:nspecies]
-              taxmatnsp <- taxmat[1:nspecies, 1:nspecies]
-              conjmat <- getconjmat(nspecies = nspecies, type = conjmattype,
-                                    conjrate = conjratensp,
-                                    taxmat = taxmatnsp)
+              conjmat <- getconjmat(nspecies = nspecies,
+                                    conjrate = conjrate, taxmat = taxmat)
               # Get equilibrium characteristics for plasmid-free equilibrium in
               # the model with conjugation
               eqinfoconj <- geteqinfo(model = "gLVconj",
@@ -1170,7 +1143,7 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    costset = costset), conjrateset,
-              list(conjmattype = conjmattype, taxmat = taxmat))
+              list(taxmat = taxmat))
 for(index in 1:length(settings)) {
   write.table(t(as.data.frame(settings[index])), 
               paste0(DateTimeStamp, "settings.csv"), append = TRUE,
