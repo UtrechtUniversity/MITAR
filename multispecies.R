@@ -177,7 +177,7 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
 ## Parameters for detailed local stability analysis, not simulating invasion
-niter <- 1000
+niter <- 100
 niterintmat <- 1
 simulateinvasion <- FALSE
 intmeanset <- seq(from = -0.8, to = 0.6, by = 0.05)
@@ -1414,7 +1414,20 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", title = title, subtitle = subtitle)
   CreatePlot(fillvar = "abunPtotalconjmax", filltitle = "Maximum of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
-
+  
+  ## Plot total abundances of after perturbations for models with plasmids. Only
+  # abundances where equilibrium was reached are considered.
+  title <- "Total abundances after perturbation"
+  subtitle <- "Perturbation with plasmid-bearing bacteria"
+  CreatePlot(fillvar = "abuntotalconjmin", filltitle = "Minimum total\nabundance",
+             filltype = "continuous", title = title, subtitle = subtitle)
+  CreatePlot(fillvar = "abuntotalconjmean", filltitle = "Mean total\nabundance",
+             filltype = "continuous", title = title, subtitle = subtitle)
+  CreatePlot(fillvar = "abuntotalconjmedian", filltitle = "Median total\nabundance",
+             filltype = "continuous", title = title, subtitle = subtitle)
+  CreatePlot(fillvar = "abuntotalconjmax", filltitle = "Maximum total\nabundance",
+             filltype = "continuous", title = title, subtitle = subtitle)
+  
   ## Plot fraction of plasmid-free bacteria after perturbations for
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
