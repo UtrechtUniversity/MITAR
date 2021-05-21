@@ -146,64 +146,78 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 # On the pipe operator (%>%), see ?'%>%' and https://r4ds.had.co.nz/pipes.html
 
 
-#### Settings and defining parameterspace ####
+#### Settings and defining parameter space ####
+# If simulateinvasion == TRUE, simulations over time are performed
+# If states become smaller than smallstate, they are set to 0
+# If the sum of absolute rates of change is equal to smallchange, equilibrium is
+#   assumed to be reached and the integration is terminated
+# taxmat is a matrix giving the taxonomic relatedness between the donor species
+#   (columns) and recipient species (rows). Although the matrix is symmetric,
+#   this ordering is needed to calculate the conjugation rates correctly. Only
+#   the submatrix taxmat[1:nspecies, 1:nspecies] is used if nspecies <
+#   max(nspeciesset). The use of multiple values for taxmat is NOT supported
+#   (yet). An example matrix with E. coli, Klebsiella, and two Erwinia species:
+#   taxmat <- matrix(c("SameSpecies", "SameFamily",  "SameOrder",   "SameOrder",
+#                      "SameFamily",  "SameSpecies", "SameOrder",   "SameOrder",
+#                      "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies",
+#                      "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies"),
+#                    nrow = 4, ncol = 4, byrow = TRUE)
 
-# Simulation settings
-niter <- 10
-niterintmat <- 1
-simulateinvasion <- TRUE # If TRUE, simulations over time are performed
+## Basis parameter set
 saveplots <- TRUE
-smallstate <- 1e-20 # States are set to 0 if they become smaller than smallstate
-smallchange <- 1e-10 # If the sum of absolute rates of change is equal to
-# smallchange, equilibrium is assumed to be reached and integration is terminated
-
-# Define parameter space
+smallstate <- 1e-20
+smallchange <- 1e-10 
 totalabun <- 1
 nspeciesset <- c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
-intmeanset <- seq(from = -0.8, to = 0.6, by = 0.1)
-selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.1)
 costset <- c(0.01, 0.20)
-conjrateset <- list(rep(0.01, maxnspecies), rep(0.05, maxnspecies),
-                    rep(0.1, maxnspecies))
-conjmattype <- "diffTax"  # NOTE: use of multiple values is NOT supported (yet)
+conjrateset <- list(rep(0.01, maxnspecies), rep(0.1, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
-# Settings for testing code
+## Parameters for detailed local stability analysis, not simulating invasion
+niter <- 1000
+niterintmat <- 1
+simulateinvasion <- FALSE
+intmeanset <- seq(from = -0.8, to = 0.6, by = 0.05)
+selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.05)
+
+## Smaller parameter set to simulate invasion
+niter <- 10
+niterintmat <- 1
+simulateinvasion <- FALSE
+intmeanset <- seq(from = -0.8, to = 0.6, by = 0.1)
+selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.1)
+
+## Taxonomic information when all populations belong to the same species
+taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
+                 nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
+
+## Taxonomic information when the plasmid-bearing bacterium belongs to another
+# class than the other populations.
+taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
+                 nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
+taxmat[1, -1] <- "OtherClass"
+taxmat[-1, 1] <- "OtherClass"
+
+# Small parameter set to test code
 niter <- 2
 niterintmat <- 1
-simulateinvasion <- TRUE # If TRUE, simulations over time are performed
+simulateinvasion <- TRUE
 saveplots <- TRUE
 smallstate <- 1e-20
 smallchange <- 1e-10
 totalabun <- 1
-nspeciesset <- c(2, 4, 6)
+nspeciesset <- c(2, 4)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- seq(from = -0.6, to = 0.6, by = 0.6)
 selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.3)
 costset <- c(0.01, 0.20)
 conjrateset <- list(rep(0.01, maxnspecies), rep(0.1, maxnspecies))
-conjmattype <- "diffTax"  # NOTE: use of multiple values is NOT supported (yet)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
-
-# A matrix giving the taxonomic relatedness between the donor species (columns)
-# and recipient species (rows). Although the matrix is symmetric, this ordering
-# is needed to calculate the conjugation rates correctly. Only the submatrices
-# taxmat[1:nspecies, 1:nspecies] are used if nspecies < max(nspeciesset).
-# An example with E. coli, Klebsiella, two Erwinia species, and two Xanthomonas species:
-taxmat <- matrix(c("SameSpecies", "SameFamily",  "SameOrder",   "SameOrder",   "SameClass",   "SameClass",
-                   "SameFamily",  "SameSpecies", "SameOrder",   "SameOrder",   "SameClass",   "SameClass",
-                   "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies", "SameClass",   "SameClass",
-                   "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies", "SameClass",   "SameClass",
-                   "SameClass",   "SameClass",   "SameClass",   "SameClass",   "SameSpecies", "SameSpecies",
-                   "SameClass",   "SameClass",   "SameClass",   "SameClass",   "SameSpecies", "SameSpecies"),
-                  nrow = 6, ncol = 6, byrow = TRUE)
-taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
-                 nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
 
 
 #### Functions ####
