@@ -172,7 +172,8 @@ nspeciesset <- c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
 costset <- c(0.01, 0.20)
-conjrateset <- list(rep(0.01, maxnspecies), rep(0.1, maxnspecies))
+conjrateset <- list(rep(0, maxnspecies), rep(0.01, maxnspecies),
+                    rep(0.1, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -184,9 +185,9 @@ intmeanset <- seq(from = -0.8, to = 0.6, by = 0.05)
 selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.05)
 
 ## Smaller parameter set to simulate invasion
-niter <- 10
+niter <- 20
 niterintmat <- 1
-simulateinvasion <- FALSE
+simulateinvasion <- TRUE
 intmeanset <- seq(from = -0.8, to = 0.6, by = 0.1)
 selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.1)
 
@@ -200,6 +201,11 @@ taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
                  nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
 taxmat[1, -1] <- "OtherClass"
 taxmat[-1, 1] <- "OtherClass"
+
+## Taxonomic information when each species belongs to a different class.
+taxmat <- matrix(rep("OtherClass", maxnspecies^2),
+                 nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
+diag(taxmat) <- "SameSpecies"
 
 # Small parameter set to test code
 niter <- 2
