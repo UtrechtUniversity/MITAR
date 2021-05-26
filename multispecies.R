@@ -960,7 +960,7 @@ for(nspecies in nspeciesset) {
               abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
                                               growthrate = growthrate, cost = cost,
                                               conjmat = conjmat,
-                                              model = "gLV", pertpop = "all", tmax = 1e4,
+                                              model = "gLV", pertpop = "R1", tmax = 1e4,
                                               showplot = FALSE, verbose = FALSE,
                                               suppresswarninfgrowth = TRUE)
             } else {
