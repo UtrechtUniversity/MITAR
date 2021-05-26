@@ -1452,6 +1452,76 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", title = title, subtitle = subtitle)
   CreatePlot(fillvar = "abunPtotalconjmax", filltitle = "Maximum of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
+  
+  ## Plots to check if species go extinct after perturbation with
+  # plasmid-bearing bacteria
+  limits <- range(c(plotdata[, "abunRsp1median"],
+                    plotdata[, "abunconjsp1median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "abunRsp1median",
+             filltitle = "Median abundance sp1 after\nperturbation with R",
+             filltype = "continuous", limits = limits)
+  CreatePlot(fillvar = "abunconjsp1median",
+             filltitle = "Median abundance sp1 after\nperturbation with P1",
+             filltype = "continuous", limits = limits)
+  
+  limits <- range(c(plotdata[, "abunRsp2median"],
+                    plotdata[, "abunconjsp2median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "abunRsp2median",
+             filltitle = "Median abundance sp2 after\nperturbation with R",
+             filltype = "continuous", limits = limits)
+  CreatePlot(fillvar = "abunconjsp2median",
+             filltitle = "Median abundance sp2 after\nperturbation with P1",
+             filltype = "continuous", limits = limits)
+  
+  limits <- range(c(plotdata[, "abunRsp3median"],
+                    plotdata[, "abunconjsp3median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "abunRsp3median",
+             filltitle = "Median abundance sp3 after\nperturbation with R",
+             filltype = "continuous", limits = limits)
+  CreatePlot(fillvar = "abunconjsp3median",
+             filltitle = "Median abundance sp3 after\nperturbation with P1",
+             filltype = "continuous", limits = limits)
+  
+  limits <- range(c(plotdata[, "abunRsp4median"],
+                    plotdata[, "abunconjsp4median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "abunRsp4median",
+             filltitle = "Median abundance sp4 after\nperturbation with R",
+             filltype = "continuous", limits = limits)
+  CreatePlot(fillvar = "abunconjsp4median",
+             filltitle = "Median abundance sp4 after\nperturbation with P1",
+             filltype = "continuous", limits = limits)
+  
+  limits <- range(c(plotdata[, "abunRsp5median"],
+                    plotdata[, "abunconjsp5median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "abunRsp5median",
+             filltitle = "Median abundance sp5 after\nperturbation with R",
+             filltype = "continuous", limits = limits)
+  CreatePlot(fillvar = "abunconjsp5median",
+             filltitle = "Median abundance sp5 after\nperturbation with P1",
+             filltype = "continuous", limits = limits)
+  
+  limits <- range(c(plotdata[, "abunRsp6median"],
+                    plotdata[, "abunconjsp6median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "abunRsp6median",
+             filltitle = "Median abundance sp6 after\nperturbation with R",
+             filltype = "continuous", limits = limits)
+  CreatePlot(fillvar = "abunconjsp6median",
+             filltitle = "Median abundance sp6 after\nperturbation with P1",
+             filltype = "continuous", limits = limits)
+  
+  CreatePlot(fillvar = "log10(abunRsp4median)",
+             filltitle = "Log10(Median abundance sp4 after\nperturbation with R)",
+             filltype = "continuous", limits = c(-5, 0))
+  CreatePlot(fillvar = "log10(abunconjsp4median)",
+             filltitle = "Log10(Median abundance sp4 after\nperturbation with P1)",
+             filltype = "continuous", limits = c(-5, 0))
+  
+  CreatePlot(fillvar = "log10(abunRsp6median)",
+             filltitle = "Log10(Median abundance sp6 after\nperturbation with R)",
+             filltype = "continuous", limits = c(-5, 0), save = FALSE)
+  CreatePlot(fillvar = "log10(abunconjsp6median)",
+             filltitle = "Log10(Median abundance sp6 after\nperturbation with P1)",
+             filltype = "continuous", limits = c(-5, 0), save = FALSE)
 }
 
 
