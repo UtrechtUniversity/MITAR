@@ -25,11 +25,14 @@
 # Tokeshi M. 1990. Niche apportionment or random assortment: species abundance
 # patterns revisited. Journal of animal ecology 59(3):1129-1146.
 
+# Wickham H, Grolemund G. 2017. R for data science: import, tidy, transform,
+# visualize, and model data. Online version: https://r4ds.had.co.nz/index.html
+
 
 #### To do ####
 
 ## geteqinfo() ##
-# Currently the only the sign and complex part of the largest eigenvalue is used
+# Currently only the sign and complex part of the largest eigenvalue is used
 # to determine the type of equilibrium. However, sometimes the largest
 # eigenvalue does not have a complex part when (some of) the other eigenvalues
 # do have a complex part. If this affects the equilibrium this should be taken
@@ -143,7 +146,7 @@ library(dplyr)     # across(), group_by(), near(), summarise()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
 library(TruncatedNormal) # getintmat calls rtnorm()
-# On the pipe operator (%>%), see ?'%>%' and https://r4ds.had.co.nz/pipes.html
+# On the pipe operator (%>%), see ?'%>%' and Ch. 18 'Pipes' in Wickham 2017.
 
 
 #### Settings and defining parameter space ####
@@ -241,7 +244,7 @@ taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
 # the carrying capacities into gLV models:
 # dn1/dt = r1*n1*((K1 -     n1 - c12*n2)/K1) = r1*n1*(1 - (    n1 + c12*n2)/K1)
 # dn2/dt = r2*n2*((K2 - c21*n1 -     n2)/K2) = r2*n2*(1 - (c21*n1 +     n2)/K2)
-# In matrix-notation this becomes: dn/dt <- r*n*(1 - (1/K) * intmat %*% n).
+# In matrix-notation this becomes: dn/dt = r*n*(1 - (1/K) * intmat %*% n).
 # Ki is the carrying capacity of species 1 (cells mL^-1), and the interaction
 # matrix gives dimensionless interaction coefficients where element cij gives
 # the decline (if cij is positive) or increase (if cij is negative) in the
@@ -546,7 +549,7 @@ geteqinfo <- function(model, abundance, intmat, growthrate,
 # achieved by specifying terminalroot = c(1, 2) within ode(...). See
 # help(events) and help(lsodar) (both in the deSolve package) for background
 # information and examples.
-# COULD replace state[state <= smallstate] in eventfun with state[state <= smallstate]
+# COULD replace state[state <= smallstate] in eventfun with state[state == smallstate]
 # to prevent constantly re-copying the zeros ?
 rootfun <- function(t, state, p) {
   c(sum(abs(unlist(gLV(t, state, p)))) - smallchange,
@@ -934,9 +937,10 @@ for(nspecies in nspeciesset) {
           iterintmat <- 0
           conjratecode <- NA
           
-          # Create a combination of interaction matrix and growth rate that
-          # results in a stable plasmid-free equilibrium in the model
-          # without conjugation
+          # If niterintmat > 1 (which is not the default), niterintmat attempts
+          # are done to get a combination of interaction matrix and growth rates
+          # that results in a stable plasmid-free equilibrium in the model
+          # without conjugation.
           while(stableeq == FALSE && iterintmat < niterintmat) {
             intmat <- getintmat(nspecies = nspecies,
                                 intmean = intmean, selfintmean = selfintmean)
@@ -1030,9 +1034,13 @@ for(nspecies in nspeciesset) {
                 timefinalconj <- abunfinalconj$timefinal
                 
                 if(eqreachedconj == 1) {
+                  # Total abundances (cells / mL) for plasmid-free,
+                  # plamsmid-bearing, and both populations
                   abunRtotalconj <- sum(abunfinalconj$R)
                   abunPtotalconj <- sum(abunfinalconj$P)
                   abuntotalconj <- abunRtotalconj + abunPtotalconj
+                  
+                  # Relative abundances
                   abunRconj[1:nspecies] <- abunfinalconj$R / abuntotalconj
                   abunPconj[1:nspecies] <- abunfinalconj$P / abuntotalconj
                   abunconj <- abunRconj + abunPconj
