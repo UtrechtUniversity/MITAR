@@ -168,15 +168,15 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 ## Basis parameter set
 saveplots <- TRUE
-smallstate <- 1e-9
-smallchange <- 10 
+smallstate <- 1e-3
+smallchange <- 1e-3
 totalabun <- 1e11
 nspeciesset <- c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
-costset <- c(0.01, 0.20)
-conjrateset <- list(rep(0, maxnspecies), rep(0.01e-11, maxnspecies),
-                    rep(0.1e-11, maxnspecies))
+costset <- c(0.03, 0.10)
+conjrateset <- list(rep(0, maxnspecies), rep(1e-13, maxnspecies),
+                    rep(1e-12, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -215,16 +215,16 @@ niter <- 2
 niterintmat <- 1
 simulateinvasion <- TRUE
 saveplots <- TRUE
-smallstate <- 1e-9
-smallchange <- 10
+smallstate <- 1e-3
+smallchange <- 1e-3
 totalabun <- 1e11
 nspeciesset <- c(2, 4)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- c(-0.6, 0.6) / 1e11
 selfintmeanset <- c(-0.8, -0.5) / 1e11
-costset <- c(0.01, 0.20)
-conjrateset <- list(rep(0.01e-11, maxnspecies), rep(0.1e-11, maxnspecies))
+costset <- c(0.03, 0.10)
+conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
@@ -350,10 +350,11 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
 # maximum of the range. The other arguments specify the distributions from which
 # interaction coefficients are drawn.
 getintmat <- function(nspecies, sparsity = 0,
-                      intdistr = "normal", intmean = 0, intsd = 0.4 / 1e11,
-                      intrange = c(-0.8, 0.8),
-                      selfintdistr = "normal", selfintmean = -0.65, selfintsd = 0.075 / 1e11,
-                      selfintrange = c(-0.8, -0.5)) {
+                      intdistr = "normal", intmean = 0, intsd = 0.5e-11,
+                      intrange = c(-0.8e-11, 0.6e-11),
+                      selfintdistr = "normal",
+                      selfintmean = -0.65, selfintsd = 0.075e-11,
+                      selfintrange = c(-0.8e-11, -0.3e-11)) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             is.numeric(sparsity), length(sparsity) == 1,
             sparsity >= 0, sparsity <= 1)
@@ -606,7 +607,7 @@ eventfun <- function(t, state, p) {
 #   - eqreached indicating if equilibrium has been reached
 #   - timefinal indicating the last recorded time
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
-                               model, pertpop, pertmagn = 1e5,
+                               model, pertpop, pertmagn = 1000,
                                tmax = 1e4, tstep = 0.1, showplot = TRUE,
                                verbose = FALSE, suppresswarninfgrowth = FALSE) {
   
@@ -916,14 +917,14 @@ for(nspecies in nspeciesset) {
     }
     
     for(intmean in intmeanset) {
-      print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
-                   ", intmean = ", intmean,
-                   ": started at ", Sys.time()), quote = FALSE)
+      # print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
+      #              ", intmean = ", intmean,
+      #              ": started at ", Sys.time()), quote = FALSE)
       
       for(selfintmean in selfintmeanset) {
-        # print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
-        #              ", intmean = ", intmean, ", selfintmean = ", selfintmean,
-        #              ": started at ", Sys.time()), quote = FALSE)
+        print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
+                     ", intmean = ", intmean, ", selfintmean = ", selfintmean,
+                     ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
         data <- matrix(data = NA, nrow = nrowdata, ncol = 34 + 4*maxnspecies)
         indexdata <- 1
