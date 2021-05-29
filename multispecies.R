@@ -165,15 +165,15 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 ## Basis parameter set
 saveplots <- TRUE
-smallstate <- 1e-20
-smallchange <- 1e-10 
-totalabun <- 1
+smallstate <- 1e-9
+smallchange <- 10 
+totalabun <- 1e11
 nspeciesset <- c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
 costset <- c(0.01, 0.20)
-conjrateset <- list(rep(0, maxnspecies), rep(0.01, maxnspecies),
-                    rep(0.1, maxnspecies))
+conjrateset <- list(rep(0, maxnspecies), rep(0.01e-11, maxnspecies),
+                    rep(0.1e-11, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -181,15 +181,15 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 niter <- 100
 niterintmat <- 1
 simulateinvasion <- FALSE
-intmeanset <- seq(from = -0.8, to = 0.6, by = 0.05)
-selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.05)
+intmeanset <- seq(from = -0.8, to = 0.6, by = 0.05) / 1e11
+selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.05) / 1e11
 
 ## Smaller parameter set to simulate invasion
 niter <- 20
 niterintmat <- 1
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -0.8, to = 0.6, by = 0.1)
-selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.1)
+intmeanset <- seq(from = -0.8, to = 0.6, by = 0.1) / 1e11
+selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.1) / 1e11
 
 ## Taxonomic information when all populations belong to the same species
 taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
@@ -212,16 +212,16 @@ niter <- 2
 niterintmat <- 1
 simulateinvasion <- TRUE
 saveplots <- TRUE
-smallstate <- 1e-20
-smallchange <- 1e-10
-totalabun <- 1
+smallstate <- 1e-9
+smallchange <- 10
+totalabun <- 1e11
 nspeciesset <- c(2, 4)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
-intmeanset <- c(-0.6, 0.6)
-selfintmeanset <- c(-0.8, -0.5)
+intmeanset <- c(-0.6, 0.6) / 1e11
+selfintmeanset <- c(-0.8, -0.5) / 1e11
 costset <- c(0.01, 0.20)
-conjrateset <- list(rep(0.01, maxnspecies), rep(0.1, maxnspecies))
+conjrateset <- list(rep(0.01e-11, maxnspecies), rep(0.1e-11, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
@@ -347,9 +347,9 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
 # maximum of the range. The other arguments specify the distributions from which
 # interaction coefficients are drawn.
 getintmat <- function(nspecies, sparsity = 0,
-                      intdistr = "normal", intmean = 0, intsd = 0.4,
+                      intdistr = "normal", intmean = 0, intsd = 0.4 / 1e11,
                       intrange = c(-0.8, 0.8),
-                      selfintdistr = "normal", selfintmean = -0.65, selfintsd = 0.075,
+                      selfintdistr = "normal", selfintmean = -0.65, selfintsd = 0.075 / 1e11,
                       selfintrange = c(-0.8, -0.5)) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             is.numeric(sparsity), length(sparsity) == 1,
@@ -603,7 +603,7 @@ eventfun <- function(t, state, p) {
 #   - eqreached indicating if equilibrium has been reached
 #   - timefinal indicating the last recorded time
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
-                               model, pertpop, pertmagn = 1e-6,
+                               model, pertpop, pertmagn = 1e5,
                                tmax = 1e4, tstep = 0.1, showplot = TRUE,
                                verbose = FALSE, suppresswarninfgrowth = FALSE) {
   
@@ -1223,6 +1223,7 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 #        y = "Mean selfinteraction coefficient",
 #        caption = paste(niter, "iterations")) +
 #   facet_grid(nspecies ~ abunmodelcode, labeller = mylabeller)
+
 
 #### Plot output ####
 
