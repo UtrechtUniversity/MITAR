@@ -218,12 +218,14 @@ totalabun <- 1
 nspeciesset <- c(2, 4)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
-intmeanset <- seq(from = -0.6, to = 0.6, by = 0.6)
-selfintmeanset <- seq(from = -0.8, to = -0.5, by = 0.3)
+intmeanset <- c(-0.6, 0.6)
+selfintmeanset <- c(-0.8, -0.5)
 costset <- c(0.01, 0.20)
 conjrateset <- list(rep(0.01, maxnspecies), rep(0.1, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
+taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
+                 nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
 
 
 #### Functions ####
