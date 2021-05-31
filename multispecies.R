@@ -1171,6 +1171,7 @@ colnames(taxmat) <- paste0("donorsp", 1:dim(taxmat)[1])
 settings <- c(list(niter = niter, niterintmat = niterintmat,
                    simulateinvasion = simulateinvasion,
                    smallstate = smallstate, smallchange = smallchange,
+                   tstep = formals(perturbequilibrium)$tstep,
                    saveplots = saveplots, nspeciesset = nspeciesset,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
