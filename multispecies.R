@@ -169,7 +169,7 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 ## Basis parameter set
 saveplots <- TRUE
 smallstate <- 1e-3
-smallchange <- 1e-3
+smallchange <- 1e-2
 totalabun <- 1e11
 nspeciesset <- c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
@@ -216,7 +216,7 @@ niterintmat <- 1
 simulateinvasion <- TRUE
 saveplots <- TRUE
 smallstate <- 1e-3
-smallchange <- 1e-3
+smallchange <- 1e-2
 totalabun <- 1e11
 nspeciesset <- c(2, 4)
 maxnspecies <- max(nspeciesset)
@@ -608,7 +608,7 @@ eventfun <- function(t, state, p) {
 #   - timefinal indicating the last recorded time
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                                model, pertpop, pertmagn = 1000,
-                               tmax = 1e4, tstep = 0.1, showplot = TRUE,
+                               tmax = 1e4, tstep = 1, showplot = TRUE,
                                verbose = FALSE, suppresswarninfgrowth = FALSE) {
   
   # Name abundances, set line type and colors, get derivatives of initial state
