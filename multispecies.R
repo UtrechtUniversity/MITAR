@@ -1218,10 +1218,12 @@ for(index in 1:length(settings)) {
 #### Labels and limits for plots ####
 labspecies <- paste(nspeciesset, "species")
 names(labspecies) <- nspeciesset
-labmodel <- c("Broken stick model", "Dominance preemption model")
+labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
+labconjrate <- paste("Conjset", 1:length(conjrateset))
+names(labconjrate) <- 1:length(conjrateset)
 mylabeller <- labeller(nspecies = labspecies, abunmodelcode = labmodel,
-                       .default = label_both)
+                       conjratecode = labconjrate, .default = label_both)
 
 plotdata <- as.data.frame(plotdata)
 datatotal <- as.data.frame(datatotal)
