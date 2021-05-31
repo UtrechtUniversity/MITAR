@@ -528,9 +528,10 @@ geteqinfo <- function(model, abundance, intmat, growthrate,
   eigval <- sort(eigval, decreasing = TRUE)[1]
   eigvalRe <- Re(eigval)
   eigvalIm <- Im(eigval)
-  eigvalReSign <- sign(eigvalRe)
-  eigvalImSign <- sign(eigvalIm)
-  eqinfo <- c(eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, eigvalRep)
+  
+  eqinfo <- c(eigvalRe = eigvalRe, eigvalIm = eigvalIm,
+              eigvalReSign = sign(eigvalRe), eigvalImSign = sign(eigvalIm),
+              eigvalRep = eigvalRep)
   return(eqinfo)
 }
 
@@ -884,16 +885,16 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset),
                              use.names = FALSE))
 ncolplotdata <- if(simulateinvasion == TRUE) {
-  8*4 + 4*4*maxnspecies + 21
+  8*4 + 4*4*maxnspecies + 30
 } else {
-  3*4 + 8 + 5
+  3*4 + 8 + 5 + 9
 }
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata,
                    ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 36 + 4*maxnspecies)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 37 + 4*maxnspecies)
 indexdatatotal <- 1
 
 # Run simulations
@@ -921,11 +922,11 @@ for(nspecies in nspeciesset) {
       #              ": started at ", Sys.time()), quote = FALSE)
       
       for(selfintmean in selfintmeanset) {
-        print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
-                     ", intmean = ", intmean, ", selfintmean = ", selfintmean,
-                     ": started at ", Sys.time()), quote = FALSE)
+        # print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
+        #              ", intmean = ", intmean, ", selfintmean = ", selfintmean,
+        #              ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 36 + 4*maxnspecies)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 37 + 4*maxnspecies)
         indexdata <- 1
         abunR <- rep(NA, maxnspecies)
         abunRconj <- rep(NA, maxnspecies)
@@ -947,7 +948,7 @@ for(nspecies in nspeciesset) {
             growthrate <- getgrowthrate(abundance = abundance, intmat = intmat)
             eqinfo <- geteqinfo(model = "gLV", abundance = abundance,
                                 intmat = intmat, growthrate = growthrate)
-            if(eqinfo[1] < 0) {
+            if(eqinfo["eigvalRe"] < 0) {
               stableeq <- TRUE
             }
             iterintmat <- iterintmat + 1
@@ -1017,12 +1018,19 @@ for(nspecies in nspeciesset) {
                                       abundance = c(abundance, rep(0, nspecies)),
                                       intmat = intmat, growthrate = growthrate,
                                       cost = cost, conjmat = conjmat)
+              # Append the signs of the real parts of the largest eigenvalues to
+              # indicate change in stability without and with the plasmid (-1 =
+              # stable, 0 = neutral, 1 = unstable). The + 3 ensure numbers are
+              # positive, to prevent paste0(-1, -1) leading to NA because of
+              # as.integer(-1-1))
+              compstability <- as.integer(paste0(eqinfo["eigvalReSign"] + 3,
+                                                 eqinfoconj["eigvalReSign"] + 3))
               
               # To simulate invasion of the plasmid-free equilibrium with plasmids,
               # the abundances of the plasmid-free populations have to be appended
               # to the abundances of the plasmid-bearing populations
               if(simulateinvasion == TRUE) {
-                if(eqinfoconj[1] >= 0) {
+                if(eqinfoconj["eigvalRe"] >= 0) {
                   abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
                                                       intmat = intmat, growthrate = growthrate,
                                                       cost = cost, conjmat = conjmat,
@@ -1086,6 +1094,7 @@ for(nspecies in nspeciesset) {
                 diag(intmat), c(growthrate), iterintmat,
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
+                compstability,
                 infgrowth, infgrowthconj, eqreached, eqreachedconj,
                 tmaxshort, tmaxshortconj, timefinal, timefinalconj,
                 abunRtotal, abunRtotalconj, abunPtotalconj,
@@ -1111,6 +1120,7 @@ for(nspecies in nspeciesset) {
                             "eigvalReSign", "eigvalImSign", "eigvalRep",
                             "eigvalconjRe", "eigvalconjIm",
                             "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
+                            "compstability",
                             "infgrowth", "infgrowthconj",
                             "eqreached", "eqreachedconj",
                             "tmaxshort", "tmaxshortconj",
@@ -1135,6 +1145,15 @@ for(nspecies in nspeciesset) {
             fracrealconj = mean(eigvalconjIm == 0),
             across(c(eigvalRep, eigvalconjRep), getfracnotzero,
                    .names = "{.fn}{.col}"),
+            fracstablestable = mean(compstability == 22),
+            fracstableneutral = mean(compstability == 23),
+            fracstableunstable = mean(compstability == 24),
+            fracneutralstable = mean(compstability == 32),
+            fracneutralneutral = mean(compstability == 33),
+            fracneutralunstable = mean(compstability == 34),
+            fracunstablestable = mean(compstability == 42),
+            fracunstableneutral = mean(compstability == 43),
+            fracunstableunstable = mean(compstability == 44),
             .groups = "drop"
           )
         
@@ -1261,6 +1280,48 @@ CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
+
+# Show the effect of adding conjugation on stability
+CreatePlot(fillvar = "fracunstableunstable + fracneutralneutral + fracstablestable",
+           filltitle = "Fraction stability the same\nwithout and with conjugation",
+           filltype = "continuous", limits = limitsfraction)
+
+CreatePlot(fillvar = "fracunstableunstable",
+           filltitle = "Fraction unstable without and\nunstable with conjugation",
+           filltype = "continuous", limits = limitsfraction)
+
+CreatePlot(fillvar = "fracunstableneutral",
+           filltitle = "Fraction unstable without but\nneutral with conjugation",
+           filltype = "continuous", limits = limitsfraction)
+
+CreatePlot(fillvar = "fracunstablestable",
+           filltitle = "Fraction unstable without but\nstable with conjugation",
+           filltype = "continuous", limits = limitsfraction)
+
+CreatePlot(fillvar = "fracneutralunstable",
+           filltitle = "Fraction neutral without but\nunstable with conjugation",
+           filltype = "continuous", limits = limitsfraction)
+
+CreatePlot(fillvar = "fracneutralneutral",
+           filltitle = "Fraction neutral without and\nneutral with conjugation",
+           filltype = "continuous", limits = limitsfraction)
+
+CreatePlot(fillvar = "fracneutralstable",
+           filltitle = "Fraction neutral without but\nstable with conjugation",
+           filltype = "continuous", limits = limitsfraction)
+
+CreatePlot(fillvar = "fracstableunstable",
+           filltitle = "Fraction stable without but\nunstable with conjugation",
+           filltype = "continuous", limits = limitsfraction)
+
+CreatePlot(fillvar = "fracstableneutral",
+           filltitle = "Fraction stable without but\nneutral with conjugation",
+           filltype = "continuous", limits = limitsfraction)
+
+CreatePlot(fillvar = "fracstablestable",
+           filltitle = "Fraction stable without and\nstable with conjugation",
+           filltype = "continuous", limits = limitsfraction)
+
 
 # Show dominant eigenvalues
 datatotalfilteredspecies <- filter(datatotal, near(species, 1))
