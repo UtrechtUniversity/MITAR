@@ -379,12 +379,11 @@ getintmat <- function(nspecies, sparsity = 0,
          normal = {
            stopifnot(length(selfintmean) == 1, length(selfintsd) == 1,
                      selfintsd > 0)
-           diag(intmat) <- rnorm(n = nspecies, mean = selfintmean, sd = selfintsd)
            # Draw variates from a truncated normal distribution to ensure
            # negative self-interactions without having to redraw for positive
            # deviates, using rtnorm() from the package TruncatedNormal.
-           rtnorm(n = nspecies, mu = selfintmean, sd = selfintsd,
-                  lb = -Inf, ub = 0, method = "invtransfo")
+           diag(intmat) <- rtnorm(n = nspecies, mu = selfintmean, sd = selfintsd,
+                                  lb = -Inf, ub = 0, method = "invtransfo")
          },
          uniform = {
            stopifnot(length(selfintrange) == 2, selfintrange[1] <= selfintrange[2],
