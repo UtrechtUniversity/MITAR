@@ -353,7 +353,7 @@ getintmat <- function(nspecies, sparsity = 0,
                       intdistr = "normal", intmean = 0, intsd = 0.5e-11,
                       intrange = c(-0.8e-11, 0.6e-11),
                       selfintdistr = "normal",
-                      selfintmean = -0.65, selfintsd = 0.075e-11,
+                      selfintmean = -0.65e-11, selfintsd = 0.075e-11,
                       selfintrange = c(-0.8e-11, -0.3e-11)) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             is.numeric(sparsity), length(sparsity) == 1,
