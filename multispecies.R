@@ -174,7 +174,7 @@ totalabun <- 1e11
 nspeciesset <- c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
-costset <- c(0.03, 0.10)
+costset <- c(0.03, 0.09)
 conjrateset <- list(rep(0, maxnspecies), rep(1e-13, maxnspecies),
                     rep(1e-12, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
@@ -223,7 +223,7 @@ maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- c(-0.6, 0.6) / 1e11
 selfintmeanset <- c(-0.8, -0.5) / 1e11
-costset <- c(0.03, 0.10)
+costset <- c(0.03, 0.09)
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
@@ -1354,7 +1354,8 @@ ggplot(data = datatotalfilteredspecies,
   labs(x = "Real part dominant eigenvalue",
        y = "Imaginary part dominant eigenvalue",
        caption = paste(niter, "iterations")) +
-  facet_grid(rows = vars(nspecies), cols = vars(abunmodelcode),
+  facet_grid(rows = vars(nspecies, conjratecode),
+             cols = vars(abunmodelcode, cost),
              labeller = mylabeller)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "eigenvaluesdistr.png"))
@@ -1371,7 +1372,8 @@ ggplot(data = datatotalfilteredspecies,
   labs(x = "Real part dominant eigenvalue (with conjugation)",
        y = "Imaginary part dominant eigenvalue (with conj.)",
        caption = paste(niter, "iterations")) +
-  facet_grid(rows = vars(nspecies), cols = vars(abunmodelcode),
+  facet_grid(rows = vars(nspecies, conjratecode),
+             cols = vars(abunmodelcode, cost),
              labeller = mylabeller)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "eigenvaluesdistrconj.png"))
