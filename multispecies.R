@@ -732,10 +732,18 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   if(showplot == TRUE) {
     subtitle <- paste0(abunmodel, ", intmean=", intmean, ", selfintmean=", selfintmean, ", cost=",
                        cost, ", conjratecode=", conjratecode)
+    if(saveplots == TRUE) {
+      filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
+                         ".png")
+      png(filename = filename, height = 785)
+    }
     matplot.deSolve(out, lty = lty, col = col, ylab = "Abundance",
                     log = "y", sub = subtitle, lwd = 2, legend = list(x = "bottomright"))
     grid()
     abline(h = abuninit)
+    if(saveplots == TRUE) {
+      dev.off()
+    }
   }
   
   if(verbose == TRUE) {
@@ -966,10 +974,10 @@ for(nspecies in nspeciesset) {
           if(simulateinvasion == TRUE) {
             if(stableeq == FALSE) {
               abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
-                                              growthrate = growthrate, cost = cost,
-                                              conjmat = conjmat,
+                                              growthrate = growthrate,
+                                              cost = NULL, conjmat = NULL,
                                               model = "gLV", pertpop = "R1", tmax = 1e4,
-                                              showplot = FALSE, verbose = FALSE,
+                                              showplot = TRUE, verbose = FALSE,
                                               suppresswarninfgrowth = TRUE)
             } else {
               # No need for simulations if equilibrium is stable
@@ -1035,7 +1043,7 @@ for(nspecies in nspeciesset) {
                                                       intmat = intmat, growthrate = growthrate,
                                                       cost = cost, conjmat = conjmat,
                                                       model = "gLVConj", pertpop = "P1", tmax = 1e4,
-                                                      showplot = FALSE, verbose = FALSE,
+                                                      showplot = TRUE, verbose = FALSE,
                                                       suppresswarninfgrowth = TRUE)
                 } else {
                   # No need for simulations if equilibrium is stable
