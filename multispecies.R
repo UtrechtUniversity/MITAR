@@ -188,7 +188,7 @@ intmeanset <- seq(from = -0.8, to = 0.6, by = 0.05) / 1e11
 selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.05) / 1e11
 
 ## Smaller parameter set to simulate invasion
-niter <- 20
+niter <- 25
 niterintmat <- 1
 simulateinvasion <- TRUE
 intmeanset <- seq(from = -0.8, to = 0.6, by = 0.1) / 1e11
@@ -601,11 +601,15 @@ eventfun <- function(t, state, p) {
 # Output:
 # Returns abunfinal, a list containing:
 #   - R with abundances of plasmid-free populations for each species,
+#   - Rtotal with the sum of abundances of plasmid-free populations
 #   - P with abundances of plasmid-bearing population for each species (or NULL
 #     if model == "gLV")
-#   - infgrowth indicating if infinite growth was detected
-#   - eqreached indicating if equilibrium has been reached
+#   - Ptotal with the sum of abundances of plasmid-bearing populations (or NULL
+#     if model == "gLV")
 #   - timefinal indicating the last recorded time
+#   - tmaxshort indicating tmax was not reached but no infinite growth occured
+#   - eqreached indicating if equilibrium has been reached
+#   - infgrowth indicating if infinite growth was detected
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                                model, pertpop, pertmagn = 1000,
                                tmax = 1e4, tstep = 1, showplot = TRUE,
@@ -615,6 +619,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   # in the plasmid-free model.
   if(model == "gLV") {
     nspecies <- length(abundance)
+    indexR <- 1:nspecies
     names(abundance) <- paste0(rep("R", nspecies), 1:nspecies)
     lty <- 1
     col <- mycol[1:nspecies]
@@ -625,15 +630,17 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   
   if(model == "gLVConj") {
     nspecies <- length(abundance)/2
+    indexR <- 1:nspecies
+    indexP <- (nspecies + 1):(2*nspecies)
     names(abundance) <- c(paste0(rep("R", nspecies), 1:nspecies),
                           paste0(rep("P", nspecies), 1:nspecies))
     lty <- rep(c(1, 2), each = nspecies)
     col <- rep(mycol[1:nspecies], 2)
-    if(!all(near(abundance[(nspecies + 1):(2*nspecies)], 0))) {
+    if(!all(near(abundance[indexP], 0))) {
       message("Initial state is NOT plasmid-free.")
     }
     derivatives <- unlist(
-      gLV(t = 0, n = abundance[1:nspecies],
+      gLV(t = 0, n = abundance[indexR],
           parms = list(growthrate = growthrate, intmat = intmat)
       )
     )
@@ -702,6 +709,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   # became very large
   infgrowth <- 0
   eqreached <- 0
+  tmaxshort <- 0
   if(!is.null(attributes(out)$troot)) {
     # One or more roots found
     
@@ -725,6 +733,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   }
   
   if(eqreached == 0 && infgrowth != 1) {
+    tmaxshort <- 1
     warning("Equilibrium not reached. Increase tmax to prevent this? Final abundances were\n",
             paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
   }
@@ -761,14 +770,17 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   }
   
   if(model == "gLV") {
-    abunfinal <- list(R = abunfinaltemp, P = NULL,
-                      infgrowth = infgrowth, eqreached = eqreached,
-                      timefinal = timefinal)
+    abunfinal <- list(R = abunfinaltemp, Rtotal = sum(abunfinaltemp),
+                      P = NULL, Ptotal = NULL,
+                      timefinal = timefinal, tmaxshort = tmaxshort,
+                      eqreached = eqreached, infgrowth = infgrowth)
   } else {
-    abunfinal <- list(R = abunfinaltemp[1:nspecies],
-                      P = abunfinaltemp[(nspecies + 1):(2*nspecies)],
-                      infgrowth = infgrowth, eqreached = eqreached,
-                      timefinal = timefinal)
+    abunfinal <- list(R = abunfinaltemp[indexR],
+                      Rtotal = sum(abunfinaltemp[indexR]),
+                      P = abunfinaltemp[indexP],
+                      Ptotal = sum(abunfinaltemp[indexP]),
+                      timefinal = timefinal, tmaxshort = tmaxshort,
+                      eqreached = eqreached, infgrowth = infgrowth)
   }
   return(abunfinal)
 }
@@ -930,9 +942,9 @@ for(nspecies in nspeciesset) {
       #              ": started at ", Sys.time()), quote = FALSE)
       
       for(selfintmean in selfintmeanset) {
-        # print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
-        #              ", intmean = ", intmean, ", selfintmean = ", selfintmean,
-        #              ": started at ", Sys.time()), quote = FALSE)
+        print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
+                     ", intmean = ", intmean, ", selfintmean = ", selfintmean,
+                     ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
         data <- matrix(data = NA, nrow = nrowdata, ncol = 37 + 4*maxnspecies)
         indexdata <- 1
@@ -981,23 +993,20 @@ for(nspecies in nspeciesset) {
                                               suppresswarninfgrowth = TRUE)
             } else {
               # No need for simulations if equilibrium is stable
-              abunfinal <- list(R = abundance, P = NULL,
-                                infgrowth = 0, eqreached = 1,
-                                timefinal = 1)
-            }
-            infgrowth <- abunfinal$infgrowth
-            eqreached <- abunfinal$eqreached
-            if(eqreached == 0 && infgrowth == 0) {
-              tmaxshort <- 1
-            } else {
-              tmaxshort <- 0
+              abunfinal <- list(R = abundance, Rtotal = sum(abundance),
+                                P = NULL, Ptotal = NULL,
+                                timefinal = 1, tmaxshort = 0,
+                                eqreached = 1, infgrowth = 0)
             }
             timefinal <- abunfinal$timefinal
+            tmaxshort <- abunfinal$tmaxshort
+            eqreached <- abunfinal$eqreached
+            infgrowth <- abunfinal$infgrowth
             
             # It does not make sense to store abundances in case of infinite
             # growth or if equilibrium is not reached, so record those as NA
             if(eqreached == 1) {
-              abunRtotal <- sum(abunfinal$R)
+              abunRtotal <- abunfinal$Rtotal
               abunR[1:nspecies] <- abunfinal$R / abunRtotal
             } else {
               abunR[1:nspecies] <- NA
@@ -1005,10 +1014,10 @@ for(nspecies in nspeciesset) {
             }
           } else {
             # No simulations over time performed, so set values to NA
-            infgrowth <- NA
-            eqreached <- NA
-            tmaxshort <- NA
             timefinal <- NA
+            tmaxshort <- NA
+            eqreached <- NA
+            infgrowth <- NA
             abunR[1:nspecies] <- NA
             abunRtotal <- NA
           }
@@ -1047,24 +1056,21 @@ for(nspecies in nspeciesset) {
                                                       suppresswarninfgrowth = TRUE)
                 } else {
                   # No need for simulations if equilibrium is stable
-                  abunfinalconj <- list(R = abundance, P = rep(0, nspecies),
-                                    infgrowth = 0, eqreached = 1,
-                                    timefinal = 1)
-                }
-                infgrowthconj <- abunfinalconj$infgrowth
-                eqreachedconj <- abunfinalconj$eqreached
-                if(eqreachedconj == 0 && infgrowthconj == 0) {
-                  tmaxshortconj <- 1
-                } else {
-                  tmaxshortconj <- 0
+                  abunfinalconj <- list(R = abundance, Rtotal = sum(abundance),
+                                        P = rep(0, nspecies), Ptotal = 0,
+                                        timefinal = 1, tmaxshort = 0,
+                                        eqreached = 1, infgrowth = 0)
                 }
                 timefinalconj <- abunfinalconj$timefinal
+                tmaxshortconj <- abunfinalconj$tmaxshort
+                eqreachedconj <- abunfinalconj$eqreached
+                infgrowthconj <- abunfinalconj$infgrowth
                 
                 if(eqreachedconj == 1) {
                   # Total abundances (cells / mL) for plasmid-free,
                   # plamsmid-bearing, and both populations
-                  abunRtotalconj <- sum(abunfinalconj$R)
-                  abunPtotalconj <- sum(abunfinalconj$P)
+                  abunRtotalconj <- abunfinalconj$Rtotal
+                  abunPtotalconj <- abunfinalconj$Ptotal
                   abuntotalconj <- abunRtotalconj + abunPtotalconj
                   
                   # Relative abundances
@@ -1083,10 +1089,10 @@ for(nspecies in nspeciesset) {
                 }
               } else {
                 # No simulations over time performed, so set values to NA
-                infgrowthconj <- NA
-                eqreachedconj <- NA
-                tmaxshortconj <- NA
                 timefinalconj <- NA
+                tmaxshortconj <- NA
+                eqreachedconj <- NA
+                infgrowthconj <- NA
                 abunRtotalconj <- NA
                 abunPtotalconj <- NA
                 abuntotalconj <- NA
@@ -1231,8 +1237,8 @@ for(index in 1:length(settings)) {
 # filename <- "2021_05_04_17_44multispecies.csv"
 # plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
-# If plotdata has only one column, probably a semicolon instead of a comma is
-# used as separator in .csv-files. So read the file again.
+# # If plotdata has only one column, probably a semicolon instead of a comma is
+# # used as separator in .csv-files. So read the file again.
 # if(dim(plotdata)[2] == 1) {
 #   plotdata <- read.csv(filename, header = TRUE, sep = ";", quote = "\"",
 #                        dec = ".", stringsAsFactors = FALSE)
