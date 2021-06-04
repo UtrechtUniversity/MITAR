@@ -41,12 +41,6 @@
 # repeated eigenvalues. See p. 133 of Edelstein-Keshet 2005 and section 10.4.3.3 from
 # https://eng.libretexts.org/Bookshelves/Industrial_and_Systems_Engineering/Book%3A_Chemical_Process_Dynamics_and_Controls_(Woolf)
 
-## perturbequilibrium() ##
-# Test if using larger timesteps speeds up simulations without affecting the
-# result, since variable time-step method is used and most large changes occur
-# early. For example, tstep <- 1;
-# times <- c(0:300, seq(from = 300 + tstep, to = tmax, by = tstep))
-
 
 #### Optionally to do ####
 
@@ -56,11 +50,6 @@
 
 # Some variables are named x -> xconj (maxabunR, maxabunRconj), others are named
 # fraceigvalRep -> fraceigvalconjRep. That could be made more consistent.
-
-# I could move the 'niter' argument to the top functions, such that for 1000
-# iterations, rnorm is called only once to generate 1000*nspecies growthrates,
-# instead of being called 1000 times to generate nspecies growthrates.
-# Or use replicate(...) from the apply-family.
 
 # To check if enough iterations are used: run several times for niter iterations,
 # if the variation in fraction of stable equilibria is too large, use more
@@ -83,9 +72,6 @@
 # is affected when 'data', 'plotdata' or both are tibbles from the start.
 
 ## Checking function arguments ##
-# See also the remarks on checking function arguments in the 'Optionally to do'
-# section below.
-
 # stopifnot() checks conditions of function arguments, but does NOT STOP
 # execution of the script if a condition is not met, but issues a warning.
 # I should use something from ?conditions that actually terminates execution, or
