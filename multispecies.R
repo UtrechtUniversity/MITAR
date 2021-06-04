@@ -905,7 +905,7 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset),
                              use.names = FALSE))
 ncolplotdata <- if(simulateinvasion == TRUE) {
-  12*4 + 4*4*maxnspecies + 30
+  13*4 + 4*4*maxnspecies + 30
 } else {
   3*4 + 8 + 5 + 9
 }
@@ -914,7 +914,7 @@ plotdata <- matrix(data = NA, nrow = nrowplotdata,
                    ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 41 + 4*maxnspecies)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 42 + 4*maxnspecies)
 indexdatatotal <- 1
 
 # Run simulations
@@ -946,7 +946,7 @@ for(nspecies in nspeciesset) {
                      ", intmean = ", intmean, ", selfintmean = ", selfintmean,
                      ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 41 + 4*maxnspecies)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 42 + 4*maxnspecies)
         indexdata <- 1
         abunR <- rep(NA, maxnspecies)
         abunRconj <- rep(NA, maxnspecies)
@@ -1085,6 +1085,7 @@ for(nspecies in nspeciesset) {
                   npopRconj <- length(which(abunfinalconj$R > smallstate))
                   npopPconj <- length(which(abunfinalconj$P > smallstate))
                   npopconj <- npopRconj + npopPconj
+                  fracnpopRconj <- npopRconj / npopconj
                 } else {
                   # It does not make sense to store abundances in case of infinite
                   # growth or if equilibrium is not reached, so record those as NA
@@ -1097,6 +1098,7 @@ for(nspecies in nspeciesset) {
                   npopRconj <- NA
                   npopPconj <- NA
                   npopconj <- NA
+                  fracnpopRconj <- NA
                 }
               } else {
                 # No simulations over time performed, so set values to NA
@@ -1113,6 +1115,7 @@ for(nspecies in nspeciesset) {
                 npopRconj <- NA
                 npopPconj <- NA
                 npopconj <- NA
+                fracnpopRconj <- NA
               }
               indexdatanew <- indexdata + nspecies
               
@@ -1127,7 +1130,7 @@ for(nspecies in nspeciesset) {
                 tmaxshort, tmaxshortconj, timefinal, timefinalconj,
                 abunRtotal, abunRtotalconj, abunPtotalconj,
                 abuntotalconj, abunRtotalconj/abuntotalconj,
-                npopR, npopRconj, npopPconj, npopconj,
+                npopR, npopRconj, npopPconj, npopconj, fracnpopRconj,
                 matrix(rep(abunR, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(abunRconj, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(abunPconj, nspecies), nrow = nspecies, byrow = TRUE),
@@ -1157,6 +1160,7 @@ for(nspecies in nspeciesset) {
                             "abunRtotal", "abunRtotalconj", "abunPtotalconj",
                             "abuntotalconj", "fracRtotalconj",
                             "npopR", "npopRconj", "npopPconj", "npopconj",
+                            "fracnpopRconj",
                             paste0("abunRsp", 1:maxnspecies),
                             paste0("abunRconjsp", 1:maxnspecies),
                             paste0("abunPconjsp", 1:maxnspecies),
@@ -1200,7 +1204,7 @@ for(nspecies in nspeciesset) {
               timefinalconjmedian = median(timefinalconj),
               across(c(starts_with("abunR"), starts_with("abunP"),
                        abuntotalconj, fracRtotalconj, starts_with("abunconjsp"),
-                       starts_with("npop")),
+                       starts_with("npop"), fracnpopRconj),
                      getsummary4, .names = "{.col}{.fn}"),
               .groups = "drop"
             )
@@ -1547,6 +1551,11 @@ if(simulateinvasion == TRUE) {
              filltitle = "Mean number of plasmid-\nbearing populations",
              filltype = "continuous", limits = limitsnpop,
              title = title, subtitle = subtitle)
+  CreatePlot(fillvar = "fracnpopRconjmean",
+             filltitle = "Mean fraction of populations\nthat is plasmid-free",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subtitle) 
+  
   
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
