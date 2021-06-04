@@ -785,15 +785,16 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   return(abunfinal)
 }
 
-# 'Functions' to get summary statistics for the input data.
-# Actually not functions, but lists of functions. They are called with 
-# dplyr::summarise. I set na.rm = TRUE to get sensible values if not all values
-# are NA, otherwise Inf, NaN, NA, and -Inf are returned.
+# List of functions called within dplyr::summarise() to get summary statistics
+# for the input data. If all values in x are NA (which is the case for example
+# when data on species 3 is considered in the two-species model), NA will be
+# returned, otherwise the NA values are dropped and the function will be applied
+# to the remaining values.
 getsummary4 <- list(
-  min = ~min(.x, na.rm = TRUE),
-  mean = ~mean(.x, na.rm = TRUE),
-  median = ~median(.x, na.rm = TRUE),
-  max = ~max(.x, na.rm = TRUE)
+  min = ~if(any(!is.na(.x))) {min(.x, na.rm = TRUE)} else {NA},
+  mean = ~if(any(!is.na(.x))) {mean(.x, na.rm = TRUE)} else {NA},
+  median = ~if(any(!is.na(.x))) {median(.x, na.rm = TRUE)} else {NA},
+  max = ~if(any(!is.na(.x))) {max(.x, na.rm = TRUE)} else {NA}
 )
 getfracnotzero <- list(frac = ~mean(.x != 0))
 
