@@ -269,7 +269,9 @@ gLVConj <- function(t, n, parms) {
 # Calculate absolute species abundances from the specified total abundance if
 # species abundances are proportional to the length of fragments of a stick that
 # is broken randomly at nspecies - 1 points, following the broken stick model
-# (= MacArthur faction model) in the description of Tokeshi (1990).
+# (= MacArthur faction model) in the description of Tokeshi (1990). With the
+# default takelimits = TRUE, this is done 1000 times and the mean abundance for
+# each species is returned.
 brokenstick <- function(nspecies, totalabun, takelimit = TRUE) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             length(totalabun) == 1, totalabun > 0)
@@ -473,20 +475,20 @@ getconjmat <- function(nspecies, conjrate, taxmat) {
             isSymmetric.matrix(unname(taxmat)))
   conjratensp <- conjrate[1:nspecies]
   taxmatnsp <- taxmat[1:nspecies, 1:nspecies]
-  # To obtain interspecies conjugation rates for the different levels
-  # of taxonomic relatedness between donor and recipients, the
-  # intraspecies conjugation rates are multiplied with the following
-  # conversion factors.
+  
+  # To obtain interspecies conjugation rates for the different levels of
+  # taxonomic relatedness between donor and recipients, the intraspecies
+  # conjugation rates are multiplied with the following conversion factors.
   rateconv <- c(SameSpecies = 1, SameFamily = 2.7, SameOrder = 0.1,
                 SameClass = 0.05, OtherClass = 0.001)
   convmat <- matrix(NA, nrow = nspecies, ncol = nspecies)
   for(taxlevel in names(rateconv)) {
     convmat[which(taxmatnsp == taxlevel)] <- rateconv[taxlevel]
   }
-  # Multiply column n of convmat giving the conversion factors for
-  # conjugation from donor species n to the different recipient species,
-  # with element n of conjrate. Using t(t(convmat) * conjrate) is
-  # faster for nspecies > 15
+  
+  # Multiply column n of convmat giving the conversion factors for conjugation
+  # from donor species n to the different recipient species, with element n of
+  # conjrate. Using t(t(convmat) * conjrate) is faster for nspecies > 15
   conjmat <- convmat %*% diag(conjratensp)
   return(conjmat)
 }
