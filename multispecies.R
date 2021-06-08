@@ -901,8 +901,7 @@ ncolplotdata <- if(simulateinvasion == TRUE) {
   3*4 + 8 + 5 + 9
 }
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
-plotdata <- matrix(data = NA, nrow = nrowplotdata,
-                   ncol = ncolplotdata)
+plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
 datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 42 + 4*maxnspecies)
@@ -1001,8 +1000,8 @@ for(nspecies in nspeciesset) {
               abunR[1:nspecies] <- abunfinal$R / abunRtotal
               npopR <- length(which(abunfinal$R > smallstate))
             } else {
-              abunR[1:nspecies] <- NA
               abunRtotal <- NA
+              abunR[1:nspecies] <- NA
               npopR <- NA
             }
           } else {
@@ -1011,8 +1010,8 @@ for(nspecies in nspeciesset) {
             tmaxshort <- NA
             eqreached <- NA
             infgrowth <- NA
-            abunR[1:nspecies] <- NA
             abunRtotal <- NA
+            abunR[1:nspecies] <- NA
             npopR <- NA
           }
           
@@ -1269,6 +1268,9 @@ labconjrate <- paste("Conjset", 1:length(conjrateset))
 names(labconjrate) <- 1:length(conjrateset)
 mylabeller <- labeller(nspecies = labspecies, abunmodelcode = labmodel,
                        conjratecode = labconjrate, .default = label_both)
+
+plotdata <- as.data.frame(plotdata)
+datatotal <- as.data.frame(datatotal)
 
 limitsfraction <- c(0, 1)
 # Round the limits to one decimal place, while ensuring that all the data is
