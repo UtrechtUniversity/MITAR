@@ -895,45 +895,22 @@ set.seed(seed = 314, kind = "default", normal.kind = "default", sample.kind = "d
 nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset),
                              use.names = FALSE))
+ncolplotdata <- if(simulateinvasion == TRUE) {
+  13*4 + 4*4*maxnspecies + 30
+} else {
+  3*4 + 8 + 5 + 9
+}
+print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
+plotdata <- matrix(data = NA, nrow = nrowplotdata,
+                   ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
-if(simulateinvasion == TRUE) {
-  ncolplotdata <- 13*4 + 4*4*maxnspecies + 30
-  datatotalsimul <- matrix(data = NA, nrow = nrowdatatotal, ncol = 20 + 4*maxnspecies)
-  colnamesdatasimul <- c("cost", "conjratecode",
-                         "infgrowth", "infgrowthconj",
-                         "eqreached", "eqreachedconj",
-                         "tmaxshort", "tmaxshortconj",
-                         "timefinal", "timefinalconj",
-                         "abunRtotal", "abunRtotalconj", "abunPtotalconj",
-                         "abuntotalconj", "fracRtotalconj",
-                         "npopR", "npopRconj", "npopPconj", "npopconj",
-                         "fracnpopRconj",
-                         paste0("abunRsp", 1:maxnspecies),
-                         paste0("abunRconjsp", 1:maxnspecies),
-                         paste0("abunPconjsp", 1:maxnspecies),
-                         paste0("abunconjsp", 1:maxnspecies))
-} else {
-  ncolplotdata <- 3*4 + 8 + 5 + 9
-}
-plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 24)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 42 + 4*maxnspecies)
 indexdatatotal <- 1
-colnamesdata <- c("niter", "nspecies", "abunmodelcode",
-                  "intmean", "selfintmean", "cost", "conjratecode",
-                  "iter", "species", "abundance",
-                  "selfintdata", "growthrate", "iterintmat",
-                  "eigvalRe", "eigvalIm",
-                  "eigvalReSign", "eigvalImSign", "eigvalRep",
-                  "eigvalconjRe", "eigvalconjIm",
-                  "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
-                  "compstability")
-print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 
 # Run simulations
 rowindexplotdata <- 1
 rowindexdata <- 1
-# starttime <- Sys.time()
 for(nspecies in nspeciesset) {
   
   for(abunmodel in abunmodelset) {
@@ -960,10 +937,7 @@ for(nspecies in nspeciesset) {
                      ", intmean = ", intmean, ", selfintmean = ", selfintmean,
                      ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 24)
-        if(simulateinvasion == TRUE) {
-          datasimul <- matrix(data = NA, nrow = nrowdata, ncol = 20 + 4*maxnspecies)
-        }
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 42 + 4*maxnspecies)
         indexdata <- 1
         abunR <- rep(NA, maxnspecies)
         abunRconj <- rep(NA, maxnspecies)
@@ -1137,36 +1111,52 @@ for(nspecies in nspeciesset) {
               indexdatanew <- indexdata + nspecies
               
               data[indexdata:(indexdatanew - 1), ] <- cbind(
-                niter, nspecies, abunmodelcode,
-                intmean, selfintmean, cost, conjratecode,
-                iter, 1:nspecies, abundance,
+                niter, nspecies, abunmodelcode, intmean, selfintmean,
+                cost, conjratecode, iter, 1:nspecies, abundance,
                 diag(intmat), c(growthrate), iterintmat,
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
-                compstability
+                compstability,
+                infgrowth, infgrowthconj, eqreached, eqreachedconj,
+                tmaxshort, tmaxshortconj, timefinal, timefinalconj,
+                abunRtotal, abunRtotalconj, abunPtotalconj,
+                abuntotalconj, abunRtotalconj/abuntotalconj,
+                npopR, npopRconj, npopPconj, npopconj, fracnpopRconj,
+                matrix(rep(abunR, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(abunRconj, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(abunPconj, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(abunconj, nspecies), nrow = nspecies, byrow = TRUE)
               )
-              if(simulateinvasion == TRUE) {
-                datasimul[indexdata:(indexdatanew - 1), ] <- cbind(
-                  cost, conjratecode,
-                  infgrowth, infgrowthconj, eqreached, eqreachedconj,
-                  tmaxshort, tmaxshortconj, timefinal, timefinalconj,
-                  abunRtotal, abunRtotalconj, abunPtotalconj,
-                  abuntotalconj, abunRtotalconj/abuntotalconj,
-                  npopR, npopRconj, npopPconj, npopconj, fracnpopRconj,
-                  matrix(rep(abunR, nspecies), nrow = nspecies, byrow = TRUE),
-                  matrix(rep(abunRconj, nspecies), nrow = nspecies, byrow = TRUE),
-                  matrix(rep(abunPconj, nspecies), nrow = nspecies, byrow = TRUE),
-                  matrix(rep(abunconj, nspecies), nrow = nspecies, byrow = TRUE)
-                )
-              }
               indexdata <- indexdatanew
             }
           }
         }
         datatotal[indexdatatotal:(indexdatatotal + nrowdata - 1), ] <- data
-        colnames(data) <- colnamesdata
-        rowindexplotdatanew <- rowindexplotdata + length(costset) * length(conjrateset)
-
+        indexdatatotal <- indexdatatotal + nrowdata
+        
+        colnames(data) <- c("niter", "nspecies", "abunmodelcode",
+                            "intmean", "selfintmean", "cost", "conjratecode",
+                            "iter", "species", "abundance",
+                            "selfintdata", "growthrate",
+                            "iterintmat",
+                            "eigvalRe", "eigvalIm",
+                            "eigvalReSign", "eigvalImSign", "eigvalRep",
+                            "eigvalconjRe", "eigvalconjIm",
+                            "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
+                            "compstability",
+                            "infgrowth", "infgrowthconj",
+                            "eqreached", "eqreachedconj",
+                            "tmaxshort", "tmaxshortconj",
+                            "timefinal", "timefinalconj",
+                            "abunRtotal", "abunRtotalconj", "abunPtotalconj",
+                            "abuntotalconj", "fracRtotalconj",
+                            "npopR", "npopRconj", "npopPconj", "npopconj",
+                            "fracnpopRconj",
+                            paste0("abunRsp", 1:maxnspecies),
+                            paste0("abunRconjsp", 1:maxnspecies),
+                            paste0("abunPconjsp", 1:maxnspecies),
+                            paste0("abunconjsp", 1:maxnspecies))
+        
         # Get summary data which do not depend on simulated invasion for all
         # combinations of costs and conjugation rates
         summarydata <- as_tibble(data) %>%
@@ -1193,12 +1183,9 @@ for(nspecies in nspeciesset) {
           )
         
         if(simulateinvasion == TRUE) {
-          datatotalsimul[indexdatatotal:(indexdatatotal + nrowdata - 1), ] <- datasimul
-          colnames(datasimul) <- colnamesdatasimul
-          
           # If invasion was simulated, get summary of generated data for all
           # combinations of costs and conjugation rates
-          summarydatasimul <- as_tibble(datasimul) %>%
+          summarydatasimulation <- as_tibble(data) %>%
             group_by(cost, conjratecode) %>%
             summarise(
               across(c(infgrowth, infgrowthconj, eqreached, eqreachedconj,
@@ -1212,39 +1199,22 @@ for(nspecies in nspeciesset) {
                      getsummary4, .names = "{.col}{.fn}"),
               .groups = "drop"
             )
-          plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
-            tibble(niter, nspecies, abunmodelcode, intmean, selfintmean,
-                   full_join(summarydata, summarydatasimul, by = c("cost", "conjratecode"))
-            )
-          )
-        } else {
-          plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
-            tibble(niter, nspecies, abunmodelcode, intmean, selfintmean, summarydata))
+          summarydata <- full_join(summarydata, summarydatasimulation,
+                                   by = c("cost", "conjratecode"))
         }
-        indexdatatotal <- indexdatatotal + nrowdata
+        
+        rowindexplotdatanew <- rowindexplotdata + length(costset) * length(conjrateset)
+        plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
+          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean, summarydata))
         rowindexplotdata <- rowindexplotdatanew
       }
     }
   }
 }
-# duration[i] <- Sys.time() - starttime
-# }
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
-if(simulateinvasion == TRUE) {
-  colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode", "intmean", "selfintmean",
-                          colnames(summarydata), colnames(summarydatasimul)[-c(1:2)])
-  colnames(datatotalsimul) <- colnames(datasimul)
-  datatotal <- cbind(datatotal,
-                     datatotalsimul[, -which(colnames(datatotalsimul) %in% c("cost", "conjratecode"))])
-  colnames(datatotal) <- c(colnamesdata, colnamesdatasimul[-which(colnames(datatotalsimul) %in% c("cost", "conjratecode"))])
-  datatotalsimul <- as.data.frame(datatotalsimul)
-} else {
-  colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
-                          "intmean", "selfintmean", colnames(summarydata))
-  colnames(datatotal) <- colnames(data)
-}
-plotdata <- as.data.frame(plotdata)
-datatotal <- as.data.frame(datatotal)
+colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
+                        "intmean", "selfintmean", colnames(summarydata))
+colnames(datatotal) <- colnames(data)
 
 #### Saving output to .csv files ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
