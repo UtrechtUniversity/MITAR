@@ -161,6 +161,7 @@ nspeciesset <- c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
 costset <- c(0.03, 0.09)
+costtype <- "absolute"
 conjrateset <- list(rep(0, maxnspecies), rep(1e-13, maxnspecies),
                     rep(1e-12, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
@@ -210,6 +211,7 @@ abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- c(-0.6, 0.6) / 1e11
 selfintmeanset <- c(-0.8, -0.5) / 1e11
 costset <- c(0.03, 0.09)
+costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
@@ -896,7 +898,7 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset),
                              use.names = FALSE))
 ncolplotdata <- if(simulateinvasion == TRUE) {
-  13*4 + 4*4*maxnspecies + 30
+  15*4 + 4*4*maxnspecies + 30
 } else {
   3*4 + 8 + 5 + 9
 }
@@ -904,7 +906,7 @@ print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 42 + 4*maxnspecies)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 44 + 4*maxnspecies)
 indexdatatotal <- 1
 
 # Run simulations
@@ -936,7 +938,7 @@ for(nspecies in nspeciesset) {
                      ", intmean = ", intmean, ", selfintmean = ", selfintmean,
                      ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 42 + 4*maxnspecies)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 44 + 4*maxnspecies)
         indexdata <- 1
         abunR <- rep(NA, maxnspecies)
         abunRconj <- rep(NA, maxnspecies)
@@ -1075,7 +1077,9 @@ for(nspecies in nspeciesset) {
                   npopRconj <- length(which(abunfinalconj$R > smallstate))
                   npopPconj <- length(which(abunfinalconj$P > smallstate))
                   npopconj <- npopRconj + npopPconj
-                  fracnpopRconj <- npopRconj / npopconj
+                  fracpopRconj <- npopRconj / npopconj
+                  nspeciesconj <- length(which(abunfinalconj$R + abunfinalconj$P
+                                               > smallstate))
                 } else {
                   # It does not make sense to store abundances in case of infinite
                   # growth or if equilibrium is not reached, so record those as NA
@@ -1088,7 +1092,8 @@ for(nspecies in nspeciesset) {
                   npopRconj <- NA
                   npopPconj <- NA
                   npopconj <- NA
-                  fracnpopRconj <- NA
+                  fracpopRconj <- NA
+                  nspeciesconj <- NA
                 }
               } else {
                 # No simulations over time performed, so set values to NA
@@ -1105,7 +1110,8 @@ for(nspecies in nspeciesset) {
                 npopRconj <- NA
                 npopPconj <- NA
                 npopconj <- NA
-                fracnpopRconj <- NA
+                fracpopRconj <- NA
+                nspeciesconj <- NA
               }
               indexdatanew <- indexdata + nspecies
               
@@ -1120,7 +1126,8 @@ for(nspecies in nspeciesset) {
                 tmaxshort, tmaxshortconj, timefinal, timefinalconj,
                 abunRtotal, abunRtotalconj, abunPtotalconj,
                 abuntotalconj, abunRtotalconj/abuntotalconj,
-                npopR, npopRconj, npopPconj, npopconj, fracnpopRconj,
+                npopR, npopRconj, npopPconj, npopconj, fracpopRconj,
+                nspeciesconj, npopRconj / nspeciesconj,
                 matrix(rep(abunR, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(abunRconj, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(abunPconj, nspecies), nrow = nspecies, byrow = TRUE),
@@ -1150,7 +1157,7 @@ for(nspecies in nspeciesset) {
                             "abunRtotal", "abunRtotalconj", "abunPtotalconj",
                             "abuntotalconj", "fracRtotalconj",
                             "npopR", "npopRconj", "npopPconj", "npopconj",
-                            "fracnpopRconj",
+                            "fracpopRconj", "nspeciesconj", "fracspeciesRconj",
                             paste0("abunRsp", 1:maxnspecies),
                             paste0("abunRconjsp", 1:maxnspecies),
                             paste0("abunPconjsp", 1:maxnspecies),
@@ -1194,7 +1201,8 @@ for(nspecies in nspeciesset) {
               timefinalconjmedian = median(timefinalconj),
               across(c(starts_with("abunR"), starts_with("abunP"),
                        abuntotalconj, fracRtotalconj, starts_with("abunconjsp"),
-                       starts_with("npop"), fracnpopRconj),
+                       starts_with("npop"), fracpopRconj, "nspeciesconj",
+                       fracspeciesRconj),
                      getsummary4, .names = "{.col}{.fn}"),
               .groups = "drop"
             )
@@ -1234,7 +1242,7 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    costset = costset), conjrateset,
-              list(taxmat = taxmat))
+              list(taxmat = taxmat, costtype = costtype))
 for(index in 1:length(settings)) {
   write.table(t(as.data.frame(settings[index])), 
               paste0(DateTimeStamp, "settings.csv"), append = TRUE,
@@ -1306,6 +1314,11 @@ CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
+CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]), near(conjratecode, 1)),
+           fillvar = "fracstable", filltitle = "Fraction stable",
+           filltype = "continuous", limits = limitsfraction,
+           facetx = "abunmodelcode", facety = "nspecies",
+           filename = "fracstablefewfacets.png")
 
 # Show the effect of adding conjugation on stability
 CreatePlot(fillvar = "fracunstableunstable + fracneutralneutral + fracstablestable",
@@ -1542,11 +1555,36 @@ if(simulateinvasion == TRUE) {
              filltitle = "Mean number of plasmid-\nbearing populations",
              filltype = "continuous", limits = limitsnpop,
              title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "fracnpopRconjmean",
+  CreatePlot(fillvar = "fracpopRconjmean",
              filltitle = "Mean fraction of populations\nthat is plasmid-free",
              filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subtitle) 
+             title = "Fraction of populations surviving after perturbation",
+             subtitle = subtitle) 
+  CreatePlot(fillvar = "1 - fracpopRconjmean",
+             filltitle = "Mean fraction of populations\nthat is plasmid-bearing",
+             filltype = "continuous", limits = limitsfraction,
+             title = "Fraction of populations surviving after perturbation",
+             subtitle = subtitle, filename = "fracpopPconjmeancontinuous.png")
   
+  ## Plot of number of species surviving after perturbation
+  limitsnspecies <- range(plotdata[, "npopRmean"],
+                          plotdata[, "nspeciesconjmean"], finite = TRUE)
+  title <- "Number of species surviving after perturbation"
+  subtitle <- "Perturbation with plasmid-free bacteria"
+  # Note: In the model without plasmids, the number of populations is equal to
+  # the number of species
+  CreatePlot(fillvar = "npopRmean",
+             filltitle = "Mean total number\nof species",
+             filltype = "continuous", limits = limitsnspecies,
+             title = title, subtitle = subtitle)
+  subtitle <- "Perturbation with plasmid-bearing bacteria"
+  CreatePlot(fillvar = "nspeciesconjmean",
+             filltitle = "Mean total number\nof species",
+             filltype = "continuous", limits = limitsnspecies,
+             title = title, subtitle = subtitle)
+  # Note: the number and fraction of species that have a plasmid-bearing
+  # population, is equal to npopPconjmean and 1 - fracpopRconjmean [ALSO IF SOME OR ALL SPECIES HAVE only one or both populations?],
+  # plots of which are created slightly further above.
   
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
@@ -1624,8 +1662,8 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "abunPtotalconjmax", filltitle = "Maximum of plasmid-\nbearing bacteria",
              filltype = "continuous", title = title, subtitle = subtitle)
   
-  ## Plots to check if species go extinct after perturbation with
-  # plasmid-bearing bacteria
+  ## Plots comparing species abundances after perturbation with plasmid-bearing
+  # bacteria
   limits <- range(c(plotdata[, "abunRsp1median"],
                     plotdata[, "abunconjsp1median"]), na.rm = TRUE)
   CreatePlot(fillvar = "abunRsp1median",
