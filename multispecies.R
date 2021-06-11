@@ -918,6 +918,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 
 #### Running the simulations ####
 set.seed(seed = 314, kind = "default", normal.kind = "default", sample.kind = "default")
+starttime <- Sys.time()
 
 # Create matrix to store data
 nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
@@ -1242,6 +1243,8 @@ for(nspecies in nspeciesset) {
     }
   }
 }
+duration <- Sys.time() - starttime
+
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
                         "intmean", "selfintmean", colnames(summarydata))
@@ -1266,7 +1269,7 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    costset = costset), conjrateset,
-              list(taxmat = taxmat, costtype = costtype))
+              list(taxmat = taxmat, costtype = costtype, duration = duration))
 for(index in 1:length(settings)) {
   write.table(t(as.data.frame(settings[index])), 
               paste0(DateTimeStamp, "settings.csv"), append = TRUE,
@@ -1412,7 +1415,6 @@ ggplot(data = datatotalfilteredspecies,
   scale_x_continuous(limits = limitseigvalRe) +
   scale_y_continuous(limits = limitseigvalIm) +
   geom_point() +
-  coord_fixed(ratio = 1, expand = FALSE) +
   theme(legend.position = "bottom") +
   labs(x = "Real part dominant eigenvalue",
        y = "Imaginary part dominant eigenvalue",
@@ -1430,7 +1432,6 @@ ggplot(data = datatotalfilteredspecies,
   scale_x_continuous(limits = limitseigvalRe) +
   scale_y_continuous(limits = limitseigvalIm) +
   geom_point() +
-  coord_fixed(ratio = 1, expand = FALSE) +
   theme(legend.position = "bottom") +
   labs(x = "Real part dominant eigenvalue (with conjugation)",
        y = "Imaginary part dominant eigenvalue (with conj.)",
@@ -1648,22 +1649,22 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "abuntotalconjmax", filltitle = "Maximum total\nabundance",
              filltype = "continuous", title = title, subtitle = subtitle)
   
-  ## Plot fraction of plasmid-free bacteria after perturbations for
+  ## Plot fraction of bacteria that is plasmid-free after perturbations for
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
   title <- "Fraction plasmid-free bacteria after perturbation"
   subtitle <- "Perturbation with plasmid-bearing bacteria"
   CreatePlot(fillvar = "fracRtotalconjmin",
-             filltitle = "Minimum fraction of plasmid-\nfree bacteria",
+             filltitle = "Minimum fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", title = title, subtitle = subtitle)
   CreatePlot(fillvar = "fracRtotalconjmean",
-             filltitle = "Mean fraction of plasmid-\nfree bacteria",
+             filltitle = "Mean fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", title = title, subtitle = subtitle)
   CreatePlot(fillvar = "fracRtotalconjmedian",
-             filltitle = "Median fraction of plasmid-\nfree bacteria",
+             filltitle = "Median fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", title = title, subtitle = subtitle)
   CreatePlot(fillvar = "fracRtotalconjmax",
-             filltitle = "Maximum fraction of plasmid-\nfree bacteria",
+             filltitle = "Maximum fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", title = title, subtitle = subtitle)
   
   ## Plot total abundances of plasmid-free populations after perturbations in
@@ -1732,6 +1733,13 @@ if(simulateinvasion == TRUE) {
              filltitle = "Median abundance sp4 after\nperturbation with P1",
              filltype = "continuous", limits = limits)
   
+  CreatePlot(fillvar = "log10(abunRsp4median)",
+             filltitle = "Log10(Median abundance sp4 after\nperturbation with R1)",
+             filltype = "continuous", limits = log10(limits))
+  CreatePlot(fillvar = "log10(abunconjsp4median)",
+             filltitle = "Log10(Median abundance sp4 after\nperturbation with P1)",
+             filltype = "continuous", limits = log10(limits))
+  
   limits <- range(c(plotdata[, "abunRsp5median"],
                     plotdata[, "abunconjsp5median"]), na.rm = TRUE)
   CreatePlot(fillvar = "abunRsp5median",
@@ -1750,19 +1758,12 @@ if(simulateinvasion == TRUE) {
              filltitle = "Median abundance sp6 after\nperturbation with P1",
              filltype = "continuous", limits = limits)
   
-  CreatePlot(fillvar = "log10(abunRsp4median)",
-             filltitle = "Log10(Median abundance sp4 after\nperturbation with R1)",
-             filltype = "continuous", limits = c(-5, 0))
-  CreatePlot(fillvar = "log10(abunconjsp4median)",
-             filltitle = "Log10(Median abundance sp4 after\nperturbation with P1)",
-             filltype = "continuous", limits = c(-5, 0))
-  
   CreatePlot(fillvar = "log10(abunRsp6median)",
              filltitle = "Log10(Median abundance sp6 after\nperturbation with R1)",
-             filltype = "continuous", limits = c(-5, 0), save = FALSE)
+             filltype = "continuous", limits = log10(limits))
   CreatePlot(fillvar = "log10(abunconjsp6median)",
              filltitle = "Log10(Median abundance sp6 after\nperturbation with P1)",
-             filltype = "continuous", limits = c(-5, 0), save = FALSE)
+             filltype = "continuous", limits = log10(limits))
 }
 
 
