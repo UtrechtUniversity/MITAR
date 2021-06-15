@@ -1530,12 +1530,14 @@ CreatePlot(fillvar = "iterintmatmax", filltitle =
 
 if(simulateinvasion == TRUE) {
   title <- "Time to reach equilibrium after perturbation"
+  limitstime <- range(plotdata[, "timefinalmedian"],
+                  plotdata[, "timefinalconjmedian"])
   CreatePlot(fillvar = "timefinalmedian", filltitle = "Median time",
-             filltype = "continuous", title = title,
+             filltype = "continuous", limits = limitstime, title = title,
              subtitle = "Perturbation with plasmid-free bacteria",
              rotate_legend = TRUE)
   CreatePlot(fillvar = "timefinalconjmedian", filltitle = "Median time",
-             filltype = "continuous", title = title,
+             filltype = "continuous", limits = limitstime, title = title,
              subtitle = "Perturbation with plasmid-bearing bacteria",
              rotate_legend = TRUE)
   
@@ -1735,10 +1737,10 @@ if(simulateinvasion == TRUE) {
   
   CreatePlot(fillvar = "log10(abunRsp4median)",
              filltitle = "Log10(Median abundance sp4 after\nperturbation with R1)",
-             filltype = "continuous", limits = log10(limits))
+             filltype = "continuous", limits = NULL)
   CreatePlot(fillvar = "log10(abunconjsp4median)",
              filltitle = "Log10(Median abundance sp4 after\nperturbation with P1)",
-             filltype = "continuous", limits = log10(limits))
+             filltype = "continuous", limits = NULL)
   
   limits <- range(c(plotdata[, "abunRsp5median"],
                     plotdata[, "abunconjsp5median"]), na.rm = TRUE)
@@ -1760,10 +1762,10 @@ if(simulateinvasion == TRUE) {
   
   CreatePlot(fillvar = "log10(abunRsp6median)",
              filltitle = "Log10(Median abundance sp6 after\nperturbation with R1)",
-             filltype = "continuous", limits = log10(limits))
+             filltype = "continuous", limits = NULL)
   CreatePlot(fillvar = "log10(abunconjsp6median)",
              filltitle = "Log10(Median abundance sp6 after\nperturbation with P1)",
-             filltype = "continuous", limits = log10(limits))
+             filltype = "continuous", limits = NULL)
 }
 
 
