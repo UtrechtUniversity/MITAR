@@ -1053,7 +1053,7 @@ for(nspecies in nspeciesset) {
                                     conjrate = conjrate, taxmat = taxmat)
               # Get equilibrium characteristics for plasmid-free equilibrium in
               # the model with conjugation
-              eqinfoconj <- geteqinfo(model = "gLVconj",
+              eqinfoconj <- geteqinfo(model = "gLVConj",
                                       abundance = c(abundance, rep(0, nspecies)),
                                       intmat = intmat, growthrate = growthrate,
                                       cost = cost, conjmat = conjmat)
