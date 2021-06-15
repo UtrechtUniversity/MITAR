@@ -1336,16 +1336,16 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 ## Compare equilibrium characteristics for the models without and with plasmids.
 # If invasion has been simulated, data on infinite growth and reaching
 # equilibrium after perturbation is also plotted.
-CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
-           filltype = "continuous", limits = limitsfraction)
-CreatePlot(fillvar = "fracstableconj",
-           filltitle = "Fraction stable\nwith conjugation",
-           filltype = "continuous", limits = limitsfraction)
 CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]), near(conjratecode, 1)),
            fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction,
            facetx = "abunmodelcode", facety = "nspecies",
            filename = "fracstablefewfacets.png")
+CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
+           filltype = "continuous", limits = limitsfraction)
+CreatePlot(fillvar = "fracstableconj",
+           filltitle = "Fraction stable\nwith conjugation",
+           filltype = "continuous", limits = limitsfraction)
 
 # Show the effect of adding conjugation on stability
 CreatePlot(fillvar = "fracunstableunstable + fracneutralneutral + fracstablestable",
@@ -1498,7 +1498,7 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthrate1perspecies.png"))
+  ggsave(paste0(DateTimeStamp, "growthrateperspeciesv1.png"))
 }
 
 ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
@@ -1509,7 +1509,7 @@ ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthrate2perspecies.png"))
+  ggsave(paste0(DateTimeStamp, "growthrateperspeciesv2.png"))
 }
 
 
@@ -1529,185 +1529,150 @@ CreatePlot(fillvar = "iterintmatmax", filltitle =
            filltype = "continuous", limits = c(1, niterintmat))
 
 if(simulateinvasion == TRUE) {
-  title <- "Time to reach equilibrium after perturbation"
+  subplasmidfree <- "Perturbation with plasmid-free bacteria"
+  subplasmidbearing <- "Perturbation with plasmid-bearing bacteria"
+  
   limitstime <- range(plotdata[, "timefinalmedian"],
                   plotdata[, "timefinalconjmedian"])
+  title <- "Time to reach equilibrium after perturbation"
   CreatePlot(fillvar = "timefinalmedian", filltitle = "Median time",
-             filltype = "continuous", limits = limitstime, title = title,
-             subtitle = "Perturbation with plasmid-free bacteria",
-             rotate_legend = TRUE)
+             filltype = "continuous", limits = limitstime,
+             title = title, subtitle = subplasmidfree, rotate_legend = TRUE)
   CreatePlot(fillvar = "timefinalconjmedian", filltitle = "Median time",
-             filltype = "continuous", limits = limitstime, title = title,
-             subtitle = "Perturbation with plasmid-bearing bacteria",
-             rotate_legend = TRUE)
+             filltype = "continuous", limits = limitstime,
+             title = title, subtitle = subplasmidbearing, rotate_legend = TRUE)
   
-  ## Plots on populations surviving after perturbation
-  limitsnpop <- range(plotdata[, "npopRmin"], plotdata[, "npopRmax"],
-                        plotdata[, "npopRconjmin"], plotdata[, "npopRconjmax"],
-                        plotdata[, "npopPconjmin"], plotdata[, "npopPconjmax"],
-                        plotdata[, "npopconjmin"], plotdata[, "npopconjmax"],
-                      finite = TRUE)
-  title <- "Number of populations surviving after perturbation"
-  subtitle <- "Perturbation with plasmid-free bacteria"
-  CreatePlot(fillvar = "npopRmin",
-             filltitle = "Minimun number of plasmid-\nfree populations",
-             filltype = "continuous", limits = limitsnpop,
-             title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "npopRmean",
-             filltitle = "Mean number of plasmid-\nfree populations",
-             filltype = "continuous", limits = limitsnpop,
-             title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "npopRmax",
-             filltitle = "Maximum number of plasmid-\nfree populations",
-             filltype = "continuous", limits = limitsnpop,
-             title = title, subtitle = subtitle)
-  subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "npopconjmin",
-             filltitle = "Minimum total number\nof populations",
-             filltype = "continuous", limits = limitsnpop,
-             title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "npopconjmean",
-             filltitle = "Mean total number\nof populations",
-             filltype = "continuous", limits = limitsnpop,
-             title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "npopconjmax",
-             filltitle = "Maximum total number\nof populations",
-             filltype = "continuous", limits = limitsnpop,
-             title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "npopRconjmean",
-             filltitle = "Mean number of plasmid-\nfree populations",
-             filltype = "continuous", limits = limitsnpop,
-             title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "npopPconjmean",
-             filltitle = "Mean number of plasmid-\nbearing populations",
-             filltype = "continuous", limits = limitsnpop,
-             title = title, subtitle = subtitle)
-  title <- "Fraction of populations after perturbation"
-  CreatePlot(fillvar = "fracpopRconjmean",
-             filltitle = "Mean fraction of populations\nthat is plasmid-free",
-             filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "1 - fracpopRconjmean",
-             filltitle = "Mean fraction of populations\nthat is plasmid-bearing",
-             filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subtitle,
-             filename = "fracpopPconjmean.png")
-  
-  ## Plots on species surviving after perturbation
+  ## Plots on survival and extinction after perturbation
   limitsnspecies <- range(plotdata[, "npopRmean"],
                           plotdata[, "nspeciesconjmean"], finite = TRUE)
   title <- "Number of species surviving after perturbation"
-  subtitle <- "Perturbation with plasmid-free bacteria"
   # Note: In the model without plasmids, the number of populations is equal to
   # the number of species.
-  CreatePlot(fillvar = "npopRmean",
-             filltitle = "Mean total number\nof species",
+  CreatePlot(fillvar = "npopRmean", filltitle = "Mean total number\nof species",
              filltype = "continuous", limits = limitsnspecies,
-             title = title, subtitle = subtitle, filename = "nspeciesRmean.png")
+             title = title, subtitle = subplasmidfree,
+             filename = "nspeciesRmean.png")
+  CreatePlot(fillvar = "nspeciesconjmean", filltitle = "Mean total number\nof species",
+             filltype = "continuous", limits = limitsnspecies,
+             title = title, subtitle = subplasmidbearing)
+  
+  title <- "Number of species going extinct after perturbation"
+  CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]), near(conjratecode, 1)),
+             fillvar = "nspecies - npopRmean",
+             filltitle = "Mean number of\nspecies going extinct",
+             filltype = "continuous", limits = limitsnspecies,
+             title = title, subtitle = subplasmidfree,
+             facetx = "abunmodelcode", facety = "nspecies",
+             filename = "nspeciesRmeanextinctfewfacets.png")
   CreatePlot(fillvar = "nspecies - npopRmean",
-             filltitle = "Mean number of species\ngoing extinct",
+             filltitle = "Mean number of\nspecies going extinct",
              filltype = "continuous", limits = limitsnspecies,
-             title = "Number of species going extinct after perturbation",
-             subtitle = subtitle, filename = "nspeciesRmeanextinct.png")
-  
-  subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "nspeciesconjmean",
-             filltitle = "Mean total number\nof species",
-             filltype = "continuous", limits = limitsnspecies,
-             title = title, subtitle = subtitle)
+             title = title, subtitle = subplasmidfree,
+             filename = "nspeciesRmeanextinct.png")
   CreatePlot(fillvar = "nspecies - nspeciesconjmean",
-             filltitle = "Mean number of species\ngoing extinct",
+             filltitle = "Mean number of\nspecies going extinct",
              filltype = "continuous", limits = limitsnspecies,
-             title = "Number of species going extinct after perturbation",
-             subtitle = subtitle, filename = "nspeciesconjmeanextinct.png")
+             title = title, subtitle = subplasmidbearing,
+             filename = "nspeciesconjmeanextinct.png")
   
-  title <- "Species surviving after perturbation"
+  title <- "Fraction of species after perturbation"
   CreatePlot(fillvar = "fracspeciesRconjmean",
              filltitle = "Fraction of species that have\na plasmid-free population",
              filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subtitle)
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "fracspeciesPconjmean",
              filltitle = "Fraction of species that have\na plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subtitle)
-  # Note: the number of species that have a plasmid-bearing population is equal
-  # to npopPconjmean
+             title = title, subtitle = subplasmidbearing)
+  
+  ## Plots of fractions of bacteria that are plasmid-free or plasmid-bearing
+  # after perturbations. Only abundances where equilibrium was reached are
+  # considered.
+  title <- "Fraction bacteria after perturbation"
+  CreatePlot(fillvar = "fracRtotalconjmin",
+             filltitle = "Minimum fraction of bacteria\nthat is plasmid-free",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "fracRtotalconjmean",
+             filltitle = "Mean fraction of bacteria\nthat is plasmid-free",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "fracRtotalconjmedian",
+             filltitle = "Median fraction of bacteria\nthat is plasmid-free",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "fracRtotalconjmax",
+             filltitle = "Maximum fraction of bacteria\nthat is plasmid-free",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  
+  CreatePlot(fillvar = "1 - fracRtotalconjmean",
+             filltitle = "Mean fraction of bacteria\nthat is plasmid-bearing",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  
   
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
   # considered. Although costs and conjugation rates do not influence the
   # outcome, they are included as facets to facilitate comparison with plots of
   # abundances after perturbation with plasmid-bearing bacteria.
-  title <- "Total abundances after perturbation"
-  subtitle <- "Perturbation with plasmid-free bacteria"
-  CreatePlot(fillvar = "abunRtotalmin", filltitle = "Minimum of plasmid-\nfree bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abunRtotalmean", filltitle = "Mean of plasmid-\nfree bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abunRtotalmedian", filltitle = "Median of plasmid-\nfree bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abunRtotalmax", filltitle = "Maximum of plasmid-\nfree bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
+  title <- "Total abundance after perturbation"
+  CreatePlot(fillvar = "log10(abunRtotalmin)",
+             filltitle = "Log10(Minimum of plasmid-\nfree bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidfree)
+  CreatePlot(fillvar = "log10(abunRtotalmean)",
+             filltitle = "Log10(Mean of plasmid-\nfree bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidfree)
+  CreatePlot(fillvar = "log10(abunRtotalmedian)",
+             filltitle = "Log10(Median of plasmid-\nfree bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidfree)
+  CreatePlot(fillvar = "log10(abunRtotalmax)",
+             filltitle = "Log10(Maximum of plasmid-\nfree bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidfree)
 
-  ## Plot total abundances after perturbation with plasmid-bearing bacteria in
+  ## Plot of total abundances after perturbation with plasmid-bearing bacteria in
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  title <- "Total abundances after perturbation"
-  subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "abuntotalconjmin", filltitle = "Minimum total\nabundance",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abuntotalconjmean", filltitle = "Mean total\nabundance",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abuntotalconjmedian", filltitle = "Median total\nabundance",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abuntotalconjmax", filltitle = "Maximum total\nabundance",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  
-  ## Plot fraction of bacteria that is plasmid-free after perturbations for
-  # models with plasmids. Only abundances where equilibrium was reached are
-  # considered.
-  title <- "Fraction plasmid-free bacteria after perturbation"
-  subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "fracRtotalconjmin",
-             filltitle = "Minimum fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "fracRtotalconjmean",
-             filltitle = "Mean fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "fracRtotalconjmedian",
-             filltitle = "Median fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "fracRtotalconjmax",
-             filltitle = "Maximum fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subtitle)
+  CreatePlot(fillvar = "log10(abuntotalconjmin)",
+             filltitle = "Log10(Minimum total\nabundance)", filltype = "continuous",
+             title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "log10(abuntotalconjmean)",
+             filltitle = "Log10(Mean total\nabundance)", filltype = "continuous",
+             title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "log10(abuntotalconjmedian)",
+             filltitle = "Log10(Median total\nabundance)", filltype = "continuous",
+             title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "log10(abuntotalconjmax)",
+             filltitle = "Log10(Maximum total\nabundance)", filltype = "continuous",
+             title = title, subtitle = subplasmidbearing)
   
   ## Plot total abundances of plasmid-free populations after perturbations in
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  title <- "Total abundances after perturbation"
-  subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "abunRtotalconjmin", filltitle = "Minimum of plasmid-\nfree bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abunRtotalconjmean", filltitle = "Mean of plasmid-\nfree bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abunRtotalconjmedian", filltitle = "Median of plasmid-\nfree bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abunRtotalconjmax", filltitle = "Maximum of plasmid-\nfree bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)  
+  CreatePlot(fillvar = "log10(abunRtotalconjmin)",
+             filltitle = "Log10(Minimum of plasmid-\nfree bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "log10(abunRtotalconjmean)",
+             filltitle = "Log10(Mean of plasmid-\nfree bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "log10(abunRtotalconjmedian)",
+             filltitle = "Log10(Median of plasmid-\nfree bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "log10(abunRtotalconjmax)",
+             filltitle = "Log10(Maximum of plasmid-\nfree bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)  
   
   ## Plot total abundances of plasmid-bearing populations after perturbations for
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  title <- "Total abundances after perturbation"
-  subtitle <- "Perturbation with plasmid-bearing bacteria"
-  CreatePlot(fillvar = "abunPtotalconjmin", filltitle = "Minimum of plasmid-\nbearing bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abunPtotalconjmean", filltitle = "Mean of plasmid-\nbearing bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abunPtotalconjmedian", filltitle = "Median of plasmid-\nbearing bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
-  CreatePlot(fillvar = "abunPtotalconjmax", filltitle = "Maximum of plasmid-\nbearing bacteria",
-             filltype = "continuous", title = title, subtitle = subtitle)
+  CreatePlot(fillvar = "log10(abunPtotalconjmin)",
+             filltitle = "Log10(Minimum of plasmid-\nbearing bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "log10(abunPtotalconjmean)",
+             filltitle = "Log10(Mean of plasmid-\nbearing bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "log10(abunPtotalconjmedian)",
+             filltitle = "Log10(Median of plasmid-\nbearing bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "log10(abunPtotalconjmax)",
+             filltitle = "Log10(Maximum of plasmid-\nbearing bacteria)",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
   
   ## Plots comparing species abundances after perturbation with plasmid-bearing
   # bacteria
@@ -1749,10 +1714,10 @@ if(simulateinvasion == TRUE) {
   
   CreatePlot(fillvar = "log10(abunRsp4median)",
              filltitle = "Log10(Median abundance sp4 after\nperturbation with R1)",
-             filltype = "continuous", limits = NULL)
+             filltype = "continuous")
   CreatePlot(fillvar = "log10(abunconjsp4median)",
              filltitle = "Log10(Median abundance sp4 after\nperturbation with P1)",
-             filltype = "continuous", limits = NULL)
+             filltype = "continuous")
   
   limits <- range(c(plotdata[, "abunRsp5median"],
                     plotdata[, "abunconjsp5median"]), na.rm = TRUE)
@@ -1774,10 +1739,10 @@ if(simulateinvasion == TRUE) {
   
   CreatePlot(fillvar = "log10(abunRsp6median)",
              filltitle = "Log10(Median abundance sp6 after\nperturbation with R1)",
-             filltype = "continuous", limits = NULL)
+             filltype = "continuous")
   CreatePlot(fillvar = "log10(abunconjsp6median)",
              filltitle = "Log10(Median abundance sp6 after\nperturbation with P1)",
-             filltype = "continuous", limits = NULL)
+             filltype = "continuous")
 }
 
 
