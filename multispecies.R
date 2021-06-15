@@ -1604,11 +1604,23 @@ if(simulateinvasion == TRUE) {
              filltitle = "Mean total number\nof species",
              filltype = "continuous", limits = limitsnspecies,
              title = title, subtitle = subtitle, filename = "nspeciesRmean.png")
+  CreatePlot(fillvar = "nspecies - npopRmean",
+             filltitle = "Mean number of species\ngoing extinct",
+             filltype = "continuous", limits = limitsnspecies,
+             title = "Number of species going extinct after perturbation",
+             subtitle = subtitle, filename = "nspeciesRmeanextinct.png")
+  
   subtitle <- "Perturbation with plasmid-bearing bacteria"
   CreatePlot(fillvar = "nspeciesconjmean",
              filltitle = "Mean total number\nof species",
              filltype = "continuous", limits = limitsnspecies,
              title = title, subtitle = subtitle)
+  CreatePlot(fillvar = "nspecies - nspeciesconjmean",
+             filltitle = "Mean number of species\ngoing extinct",
+             filltype = "continuous", limits = limitsnspecies,
+             title = "Number of species going extinct after perturbation",
+             subtitle = subtitle, filename = "nspeciesconjmeanextinct.png")
+  
   title <- "Species surviving after perturbation"
   CreatePlot(fillvar = "fracspeciesRconjmean",
              filltitle = "Fraction of species that have\na plasmid-free population",
