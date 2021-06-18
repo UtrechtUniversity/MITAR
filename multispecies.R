@@ -1346,6 +1346,13 @@ CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
+CreatePlot(fillvar = "1 - fracstable", filltitle = "Fraction unstable",
+           filltype = "continuous", limits = limitsfraction,
+           filename = "fracunstablecontinuous")
+CreatePlot(fillvar = "1 - fracstableconj",
+           filltitle = "Fraction unstable\nwith conjugation",
+           filltype = "continuous", limits = limitsfraction,
+           filename = "fracunstableconjcontinuous")
 
 # Show the effect of adding conjugation on stability
 CreatePlot(fillvar = "fracunstableunstable + fracneutralneutral + fracstablestable",
@@ -1543,35 +1550,35 @@ if(simulateinvasion == TRUE) {
              title = title, subtitle = subplasmidbearing, rotate_legend = TRUE)
   
   ## Plots on survival and extinction after perturbation
-  limitsnspecies <- range(plotdata[, "npopRmean"],
+  limitsmeannspecies <- range(plotdata[, "npopRmean"],
                           plotdata[, "nspeciesconjmean"], finite = TRUE)
   title <- "Number of species surviving after perturbation"
   # Note: In the model without plasmids, the number of populations is equal to
   # the number of species.
   CreatePlot(fillvar = "npopRmean", filltitle = "Mean total number\nof species",
-             filltype = "continuous", limits = limitsnspecies,
+             filltype = "continuous", limits = limitsmeannspecies,
              title = title, subtitle = subplasmidfree,
              filename = "nspeciesRmean.png")
   CreatePlot(fillvar = "nspeciesconjmean", filltitle = "Mean total number\nof species",
-             filltype = "continuous", limits = limitsnspecies,
+             filltype = "continuous", limits = limitsmeannspecies,
              title = title, subtitle = subplasmidbearing)
   
   title <- "Number of species going extinct after perturbation"
   CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]), near(conjratecode, 1)),
              fillvar = "nspecies - npopRmean",
              filltitle = "Mean number of\nspecies going extinct",
-             filltype = "continuous", limits = limitsnspecies,
+             filltype = "continuous", limits = c(0, maxnspecies),
              title = title, subtitle = subplasmidfree,
              facetx = "abunmodelcode", facety = "nspecies",
              filename = "nspeciesRmeanextinctfewfacets.png")
   CreatePlot(fillvar = "nspecies - npopRmean",
              filltitle = "Mean number of\nspecies going extinct",
-             filltype = "continuous", limits = limitsnspecies,
+             filltype = "continuous", limits = c(0, maxnspecies),
              title = title, subtitle = subplasmidfree,
              filename = "nspeciesRmeanextinct.png")
   CreatePlot(fillvar = "nspecies - nspeciesconjmean",
              filltitle = "Mean number of\nspecies going extinct",
-             filltype = "continuous", limits = limitsnspecies,
+             filltype = "continuous", limits = c(0, maxnspecies),
              title = title, subtitle = subplasmidbearing,
              filename = "nspeciesconjmeanextinct.png")
   
@@ -1747,10 +1754,10 @@ if(simulateinvasion == TRUE) {
 
 
 ## Compare abundance models ##
-comparingabuntotal <- NULL
+compareabun <- NULL
 
 for(nspecies in nspeciesset) {
-  comparingabun <- data.frame(
+  comparetemp <- data.frame(
     nspecies = as.factor(rep(nspecies, 2*nspecies)),
     species = as.factor(rep(1:nspecies, 2)),
     abun = c(brokenstick(nspecies = nspecies, totalabun = totalabun,
@@ -1758,12 +1765,17 @@ for(nspecies in nspeciesset) {
              dompreempt(nspecies = nspecies, totalabun = totalabun,
                         takelimit = TRUE)),
     model = rep(c("brokenstick", "dompreempt"), each = nspecies))
-  comparingabuntotal <- rbind(comparingabuntotal, comparingabun)
+  compareabun <- rbind(compareabun, comparetemp)
 }
-comparingabuntotal[, "group"] <- paste0(comparingabuntotal[, "nspecies"],
-                                        " species, ", comparingabuntotal[, "model"])
+compareabun[, "group"] <- paste0(compareabun[, "nspecies"],
+                                 " species, ", compareabun[, "model"])
+if(!exists("DateTimeStamp")) {
+  DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
+}
 
-plotabun <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = nspecies, lty = model)) +
+plotcompareabun <- ggplot(data = compareabun,
+                          aes(x = species, y = abun,
+                              color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
   scale_x_discrete(limits = factor(1:maxnspecies)) +
   scale_y_continuous(limits = c(0, totalabun)) +
@@ -1775,14 +1787,15 @@ plotabun <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color =
        x = "Species rank", y = "Species abundance") +
   geom_line(aes(group = group), size = 1.25) +
   geom_point(size = 2)
-print(plotabun)
+print(plotcompareabun)
 if(saveplots == TRUE) {
-  filename <- paste0(DateTimeStamp, "compareabuntotal.png")
+  filename <- paste0(DateTimeStamp, "compareabunmodel.png")
   ggsave(filename)
 }
 
-plotabunlog <- ggplot(data = comparingabuntotal,
-                      aes(x = species, y = abun, color = nspecies, lty = model)) +
+plotcompareabunlog <- ggplot(data = compareabun,
+                             aes(x = species, y = abun,
+                                 color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
   scale_x_discrete(limits = factor(1:maxnspecies)) +
   scale_y_continuous(limits = c(NA, totalabun), trans = "log10") +
@@ -1794,8 +1807,12 @@ plotabunlog <- ggplot(data = comparingabuntotal,
        x = "Species rank", y = "Species abundance") +
   geom_line(aes(group = group), size = 1.25) +
   geom_point(size = 2)
-print(plotabunlog)
+print(plotcompareabunlog)
 if(saveplots == TRUE) {
-  filename <- paste0(DateTimeStamp, "compareabuntotallog.png")
+  filename <- paste0(DateTimeStamp, "compareabunmodellog.png")
   ggsave(filename)
 }
+
+write.csv(compareabun,
+          file = paste0(DateTimeStamp, "compareabunmodel.csv"),
+          quote = FALSE, row.names = FALSE)
