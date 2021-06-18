@@ -1759,47 +1759,19 @@ for(nspecies in nspeciesset) {
                         takelimit = TRUE)),
     model = rep(c("brokenstick", "dompreempt"), each = nspecies))
   comparingabuntotal <- rbind(comparingabuntotal, comparingabun)
-  
-  plotabun <- ggplot(data = comparingabun, aes(x = species, y = abun, color = model)) +
-    theme_bw() +
-    scale_x_discrete(limits = factor(1:maxnspecies)) +
-    scale_y_continuous(limits = c(0, 1)) +
-    theme(legend.position = "bottom") +
-    labs(title = "Comparing abundance models: linear scale",
-         x = "Species rank", y = "Species abundance") +
-    geom_line(aes(group = model), size = 1.25) +
-    geom_point(size = 2)
-  print(plotabun)
-  if(saveplots == TRUE) {
-    filename <- paste0(DateTimeStamp, "compareabun", nspecies, "species.png")
-    ggsave(filename)
-  }
-  
-  plotabunlog <- ggplot(data = comparingabun, aes(x = species, y = abun, color = model)) +
-    theme_bw() +
-    scale_x_discrete(limits = factor(1:maxnspecies)) +
-    scale_y_continuous(limits = c(NA, 1), trans = "log10") +
-    theme(legend.position = "bottom") +
-    labs(title = "Comparing abundance models: logarithmic scale",
-         x = "Species rank", y = "Species abundance") +
-    geom_line(aes(group = model), size = 1.25) +
-    geom_point(size = 2)
-  print(plotabunlog)
-  if(saveplots == TRUE) {
-    filename <- paste0(DateTimeStamp, "compareabun", nspecies, "specieslog.png")
-    ggsave(filename)
-  }
 }
-comparingabuntotal <- comparingabuntotal
 comparingabuntotal[, "group"] <- paste0(comparingabuntotal[, "nspecies"],
                                         " species, ", comparingabuntotal[, "model"])
 
 plotabun <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
   scale_x_discrete(limits = factor(1:maxnspecies)) +
-  scale_y_continuous(limits = c(0, 1)) +
-  theme(legend.position = "bottom") +
-  labs(title = "Comparing abundance models: linear scale",
+  scale_y_continuous(limits = c(0, totalabun)) +
+  theme(legend.position = "bottom", legend.just = "left",
+        legend.margin = margin(-5, 0, -5, 0),
+        legend.box = "vertical", legend.box.just = "left",
+        legend.box.margin = margin(-5, 0, 0, 0)) +
+  labs(title = "Comparing abundance models", subtitle = "Linear scale",
        x = "Species rank", y = "Species abundance") +
   geom_line(aes(group = group), size = 1.25) +
   geom_point(size = 2)
@@ -1809,12 +1781,16 @@ if(saveplots == TRUE) {
   ggsave(filename)
 }
 
-plotabunlog <- ggplot(data = comparingabuntotal, aes(x = species, y = abun, color = nspecies, lty = model)) +
+plotabunlog <- ggplot(data = comparingabuntotal,
+                      aes(x = species, y = abun, color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
   scale_x_discrete(limits = factor(1:maxnspecies)) +
-  scale_y_continuous(limits = c(NA, 1), trans = "log10") +
-  theme(legend.position = "bottom") +
-  labs(title = "Comparing abundance models: logarithmic scale",
+  scale_y_continuous(limits = c(NA, totalabun), trans = "log10") +
+  theme(legend.position = "bottom", legend.just = "left",
+        legend.margin = margin(-5, 0, -5, 0),
+        legend.box = "vertical", legend.box.just = "left",
+        legend.box.margin = margin(-5, 0, 0, 0)) +
+  labs(title = "Comparing abundance models", subtitle = "Logarithmic scale",
        x = "Species rank", y = "Species abundance") +
   geom_line(aes(group = group), size = 1.25) +
   geom_point(size = 2)
