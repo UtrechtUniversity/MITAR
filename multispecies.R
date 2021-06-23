@@ -172,15 +172,15 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 niter <- 100
 niterintmat <- 1
 simulateinvasion <- FALSE
-intmeanset <- seq(from = -0.8, to = 0.6, by = 0.05) / 1e11
-selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.05) / 1e11
+intmeanset <- seq(from = -8e-12, to = 6e-12, by = 0.05e-12)
+selfintmeanset <- seq(from = -8e-12, to = -3e-12, by = 0.05e-12)
 
 ## Smaller parameter set to simulate invasion
 niter <- 25
 niterintmat <- 1
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -0.8, to = 0.6, by = 0.1) / 1e11
-selfintmeanset <- seq(from = -0.8, to = -0.3, by = 0.1) / 1e11
+intmeanset <- seq(from = -8e-12, to = 6e-12, by = 0.1e-12)
+selfintmeanset <- seq(from = -8e-12, to = -3e-12, by = 0.1e-12)
 
 ## Taxonomic information when all populations belong to the same species
 taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
@@ -210,8 +210,8 @@ totalabun <- 1e11
 nspeciesset <- c(2, 4)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
-intmeanset <- c(-0.6, 0.6) / 1e11
-selfintmeanset <- c(-0.8, -0.5) / 1e11
+intmeanset <- c(-6e-12, 6e-12)
+selfintmeanset <- c(-8e-12, -5e-12)
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
@@ -342,11 +342,11 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
 # maximum of the range. The other arguments specify the distributions from which
 # interaction coefficients are drawn.
 getintmat <- function(nspecies, sparsity = 0,
-                      intdistr = "normal", intmean = 0, intsd = 0.5e-11,
-                      intrange = c(-0.8e-11, 0.6e-11),
+                      intdistr = "normal", intmean = -1e-12, intsd = 5e-13,
+                      intrange = c(-8e-12, 6e-12),
                       selfintdistr = "normal",
-                      selfintmean = -0.65e-11, selfintsd = 0.075e-11,
-                      selfintrange = c(-0.8e-11, -0.3e-11)) {
+                      selfintmean = -5.5e-12, selfintsd = 9e-13,
+                      selfintrange = c(-8e-12, -3e-12)) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             is.numeric(sparsity), length(sparsity) == 1,
             sparsity >= 0, sparsity <= 1)
