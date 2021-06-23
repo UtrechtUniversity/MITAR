@@ -1346,6 +1346,11 @@ CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
+CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]), near(conjratecode, 1)),
+           fillvar = "1 - fracstable", filltitle = "Fraction stable",
+           filltype = "continuous", limits = limitsfraction,
+           facetx = "abunmodelcode", facety = "nspecies",
+           filename = "fracunstablefewfacets.png")
 CreatePlot(fillvar = "1 - fracstable", filltitle = "Fraction unstable",
            filltype = "continuous", limits = limitsfraction,
            filename = "fracunstablecontinuous")
