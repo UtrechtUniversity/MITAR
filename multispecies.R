@@ -172,15 +172,15 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 niter <- 100
 niterintmat <- 1
 simulateinvasion <- FALSE
-intmeanset <- seq(from = -8e-12, to = 6e-12, by = 0.05e-12)
-selfintmeanset <- seq(from = -8e-12, to = -3e-12, by = 0.05e-12)
+intmeanset <- seq(from = -8e-12, to = 6e-12, by = 0.5e-12)
+selfintmeanset <- seq(from = -8e-12, to = -3e-12, by = 0.5e-12)
 
 ## Smaller parameter set to simulate invasion
 niter <- 25
 niterintmat <- 1
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -8e-12, to = 6e-12, by = 0.1e-12)
-selfintmeanset <- seq(from = -8e-12, to = -3e-12, by = 0.1e-12)
+intmeanset <- seq(from = -8e-12, to = 6e-12, by = 1e-12)
+selfintmeanset <- seq(from = -8e-12, to = -3e-12, by = 1e-12)
 
 ## Taxonomic information when all populations belong to the same species
 taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
@@ -1347,7 +1347,7 @@ CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
 CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]), near(conjratecode, 1)),
-           fillvar = "1 - fracstable", filltitle = "Fraction stable",
+           fillvar = "1 - fracstable", filltitle = "Fraction unstable",
            filltype = "continuous", limits = limitsfraction,
            facetx = "abunmodelcode", facety = "nspecies",
            filename = "fracunstablefewfacets.png")
