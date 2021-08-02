@@ -1502,6 +1502,17 @@ CreatePlot(fillvar = "growthratemax", filltitle = "Max growth rate",
 datatotalfiltercostconj <- filter(datatotal, near(cost, costset[1]),
                                   near(conjratecode, 1))
 
+ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) + 
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  geom_point(aes(color = selfintmean), size = 1) +
+  facet_grid(species + nspecies ~ abunmodelcode, labeller = mylabeller) +
+  scale_color_viridis_c() +
+  labs(caption = paste(niter, "iterations"))
+if(saveplots == TRUE) {
+  ggsave(paste0(DateTimeStamp, "carryingcapacity.png"))
+}
+
 # Larger intmean leads to lower growth rate, effect becomes larger when species
 # are less abundant
 ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) + 
