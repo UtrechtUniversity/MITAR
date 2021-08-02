@@ -1537,6 +1537,13 @@ if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthrateperspeciesv2.png"))
 }
 
+# Calculate density if only intraspecies interactions are present
+CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate/selfintmean",
+           filltitle = "Mean carrying capacity",
+           filltype = "continuous", filename = "carrycap")
+CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate/selfintmean",
+           filltitle = "Mean carrying capacity",
+           filltype = "continuous", rotate_legend = TRUE, filename = "carrycaprotated")
 
 ## Plot summary data on the number of iterations in creating intmat needed to
 # find a stable equilibrium with the model without plasmids
