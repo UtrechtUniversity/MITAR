@@ -405,16 +405,17 @@ labw <- paste0("Washout rate ", signif(wSet, 2), "/h")
 names(labw) <- wSet
 labNI <- paste(signif(NISet, 2), "mg nutrients/mL\nat inflow")
 names(labNI) <- NISet
-labgd <- paste0("Donor conjugation\nrate ", gdSet, "/h")
+labgd <- paste0("Donor:\nconjugation rate\n", gdSet, "/h")
 names(labgd) <- gdSet
-labgt <- paste0("Transconjugant\nconjugation rate\n", gtSet, "/h")
+labgt <- paste0("Transconjugant:\nconjugation rate\n", gtSet, "/h")
 names(labgt) <- gtSet
-labcd <- paste("Donor costs", cdSet)
+labcd <- paste("costs", cdSet)
 names(labcd) <- cdSet
-labct <- paste("Transconjugant\ncosts", ctSet)
+labct <- paste("costs", ctSet)
 names(labct) <- ctSet
 mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
-                       cd = labcd, ct = labct, .default = label_value)
+                       cd = labcd, ct = labct, .multi_line = FALSE,
+                       .default = label_value)
 
 
 #### Plotting output for parameter set 1 ####
@@ -537,29 +538,25 @@ CreatePlot(dataplot = filter(MyData, near(w, -log(0.5)/24), near(NI, 1.4)),
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
 # plasmid-free equilibrium (Figure 3 in article):
-CreatePlot(filltitle = "Plasmid can invade",
-           marginx = c(0, 0, 0, 0), marginy = c(0, 0, 0, 0))
+CreatePlot(filltitle = "Plasmid can invade")
 
 # Stability of the equilibrium for the bulk-conjugation model
 # (plot not shown in article)
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
-           filltitle = "Plasmid can invade\n(bulk model)",
-           marginx = c(0, 0, 0, 0), marginy = c(0, 0, 0, 0))
+           filltitle = "Plasmid can invade\n(bulk model)")
 
 # Show if sign of largest eigenvalues for pair-formation and bulk model is the 
 # same (Figure S2 in article)
 CreatePlot(fillvar = "factor(near(SignDomEigVal, SignDomEigValBulk))",
            filltype = "manual",
-           filltitle = "Largest eigenvalues\nhave equal signs",
-           marginx = c(0, 0, 0, 0), marginy = c(0, 0, 0, 0))
+           filltitle = "Largest eigenvalues\nhave equal signs")
 
 # Change layout of labels for next plots
 labgd <- paste0("Donor conjugation rate ", gdSet, "/h")
 names(labgd) <- gdSet
 labgt <- paste0("Transconjugant conjugation rate ", gtSet, "/h")
 names(labgt) <- gtSet
-mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
-                       cd = labcd, ct = labct, .default = label_value)
+mylabeller <- labeller(gd = labgd, gt = labgt, .default = label_value)
 
 # The influence of conjugation, attachment, and detachment rates on the
 # bulk-conjugation rates (Figure 7 and Figure S1 in the article). Data is
