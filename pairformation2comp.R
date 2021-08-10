@@ -784,7 +784,7 @@ labmigrwalllum <- paste0("Migration rate from\nwall to lumen: ", MigrWallLumSet)
 names(labmigrwalllum) <- MigrWallLumSet
 mylabeller <- labeller(kn = labkn, kpWall = labkpWall, knWall = labknWall,
                        MigrLumWall = labmigrlumwall,
-                       MigrWallLum = labmigrwalllum, .default = label_both)
+                       MigrWallLum = labmigrwalllum, .default = label_value)
 
 if(Parameterset == "2b") {
   ggplot(data = MyData,
