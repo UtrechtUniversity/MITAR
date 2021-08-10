@@ -502,6 +502,14 @@ knWallSet <- knSet
 gdSet <- 15
 gtSet <- gdSet
 
+# Extended set 2
+Parameterset <- "2b"
+MigrLumWallSet <- seq(from = 0.05, to = 0.4, by = 0.05)
+MigrWallLumSet <- MigrLumWallSet
+kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
+kpWallSet <- kpSet
+knSet <- 10^seq(from = -1, to = 3, by = 2)
+knWallSet <- knSet
 
 # Parameterset 3: comparing one-compartment pair-formation to two-compartment
 # pair-formation model where biomass, attachment and detachment rates in the
@@ -778,6 +786,26 @@ mylabeller <- labeller(kn = labkn, kpWall = labkpWall, knWall = labknWall,
                        MigrLumWall = labmigrlumwall,
                        MigrWallLum = labmigrwalllum, .default = label_both)
 
+if(Parameterset == "2b") {
+  ggplot(data = MyData,
+         aes(x = log10(kp), y = log10(kpWall), fill = factor(SignDomEigVal))) + 
+    geom_raster() +
+    scale_x_continuous(expand = c(0, 0), sec.axis = dup_axis(
+      name = expression(paste("Increasing biomass at the ", wall %->% "")),
+      breaks = NULL, labels = NULL)) +
+    scale_y_continuous(expand = c(0, 0), sec.axis = dup_axis(
+      name = expression(paste("Increasing biomass at the ", wall %->% "")),
+      breaks = NULL, labels = NULL)) +
+    coord_fixed(ratio = 1, expand = FALSE) +
+    facet_grid(MigrWallLum ~ MigrLumWall, as.table = FALSE, labeller = mylabeller) +
+    theme(legend.position = "bottom") +
+    labs(x = "Log10(attachment rate in the lumen)",
+         y = "Log10(attachment rate at the wall)", tag = NULL) +
+    scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes")) +
+    geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+  ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomass.png"))
+}
+
 
 #### Output parameterset 1 ####
 
@@ -981,6 +1009,38 @@ for(i in MigrLumWallSet) {
 print(filteredDf)
 write.csv(filteredDf, file = paste0(DateTimeStamp, "invperctwocomppar2.csv"),
           quote = FALSE, row.names = FALSE)
+
+
+#### Output extended parameterset 2 ####
+filteredDf <- as_tibble(MyData) %>%
+  group_by(MigrLumWall, MigrWallLum, kn, knWall) %>%
+  summarise(
+    invasion_n = length(which(near(SignDomEigVal, 1))),
+    no_invasion_n = length(which(near(SignDomEigVal, -1))),
+    total_n = invasion_n + no_invasion_n,
+    invasion_perc = round(100*invasion_n/total_n, 0),
+    no_invasion_perc = round(100*no_invasion_n/total_n, 0),
+    .groups = "drop"
+  )
+write.csv(filteredDf, file = "DataPlotExtendedDataset2.csv")
+
+ggplot(data = filteredDf,
+       aes(x = MigrLumWall, y = MigrWallLum, fill = invasion_perc)) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0), sec.axis = dup_axis(
+    name = expression(paste("Increasing biomass at the ", wall %->% "")),
+    breaks = NULL, labels = NULL)) +
+  scale_y_continuous(expand = c(0, 0), sec.axis = dup_axis(
+    name = expression(paste("Increasing biomass at the ", wall %->% "")),
+    breaks = NULL, labels = NULL)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  facet_grid(kn ~ knWall, as.table = FALSE, labeller = mylabeller) +
+  theme(legend.position = "bottom") +
+  labs(x = "MigrLumWall", y = "MigrWallLum", tag = NULL) +
+  scale_fill_viridis_c(paste("Percent of combinations of\nattachment rates",
+  "in the lumen and\nat the wall which invasion is possible")) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomassExtended.png"))
 
 
 #### Output parameterset 3 ####
