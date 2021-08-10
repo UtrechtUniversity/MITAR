@@ -291,6 +291,12 @@ gtSet <- 15
 cdSet <- 0.18
 ctSet <- 0.09
 
+parameterset <- "1b"
+# NISet <- seq(from = 0.14, to = 14, length.out = 9)
+NISet <- 10^seq(from = log10(0.14), to = log10(14), length.out = 9)
+gtSet <- c(1, 15)
+ctSet <- c(0.09, 0.18)
+
 
 ## Parameter set 2: show influence of costs, conjugation, attachment, and
 # detachment rates on the stability of the plasmid-free equilibrium and on
@@ -391,7 +397,7 @@ if(any(MyData[, "ComplexEigValBulk"] != 0)) {
 }
 print(paste("Eigenvalues estimated:", Sys.time()))
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
-write.csv(MyData, file = paste0(DateTimeStamp, ".csv"),
+write.csv(MyData, file = paste0(DateTimeStamp, "pairformation.csv"),
           quote = FALSE, row.names = FALSE)
 
 # Create facet labels and labeller 'function'
@@ -469,6 +475,55 @@ for(i in NISet) {
 print(filteredDf)
 write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar1.csv"),
           quote = FALSE, row.names = FALSE)
+
+if(exists("parameterset") && parameterset == "1b") {
+  filteredDf2 <- as_tibble(MyData) %>%
+    group_by(gt, ct, NI, w, kn) %>%
+    summarise(
+      invasion_n = length(which(near(SignDomEigVal, 1))),
+      no_invasion_n = length(which(near(SignDomEigVal, -1))),
+      total_n = invasion_n + no_invasion_n,
+      invasion_perc = round(100*invasion_n/total_n, 0),
+      no_invasion_perc = round(100*no_invasion_n/total_n, 0),
+      .groups = "drop"
+    )
+  write.csv(filteredDf2, file = paste0(DateTimeStamp, "invpercpar1Alternative1.csv"),
+            quote = FALSE, row.names = FALSE)
+  # Remove coordinate_fixed to get better plot?
+  CreatePlot(dataplot = filteredDf2, xvar = "log10(NI)", yvar = "log10(kn)",
+             fillvar = "invasion_perc", filltype = "continuous", limits = c(0, 100),
+             labx = "Log10(nutrient concentration in inflow)", laby = "Log10(detachment rate)",
+             filltitle = "Percent of attachment rates for\nwhich invasion possible",
+             facetx = "gt + ct", facety = "w", marginx = rep(0, 4),
+             filename = paste0(DateTimeStamp, "Figure2Alternative1.png"))
+  CreatePlot(dataplot = filteredDf2, xvar = "log10(NI)", yvar = "log10(kn)",
+             fillvar = "invasion_perc", filltype = "continuous",
+             labx = "Log10(nutrient concentration in inflow)", laby = "Log10(detachment rate)",
+             filltitle = "Percent of attachment rates for\nwhich invasion possible",
+             facetx = "gt + ct", facety = "w", marginx = rep(0, 4),
+             filename = paste0(DateTimeStamp, "Figure2Alternative1freelimits.png"))
+  
+  
+  filteredDf3 <- as_tibble(MyData) %>%
+    group_by(gt, ct, NI, w, kp) %>%
+    summarise(
+      invasion_n = length(which(near(SignDomEigVal, 1))),
+      no_invasion_n = length(which(near(SignDomEigVal, -1))),
+      total_n = invasion_n + no_invasion_n,
+      invasion_perc = round(100*invasion_n/total_n, 0),
+      no_invasion_perc = round(100*no_invasion_n/total_n, 0),
+      .groups = "drop"
+    )
+  write.csv(filteredDf3, file = paste0(DateTimeStamp, "invpercpar1Alternative2.csv"),
+            quote = FALSE, row.names = FALSE)
+  
+  CreatePlot(dataplot = filteredDf3, xvar = "log10(kp)", yvar = "log10(NI)",
+             fillvar = "invasion_perc", filltype = "continuous", limits = c(0, 100),
+             labx = "Log10(attachment rate)", laby = "Log10(nutrient concentration in inflow)",
+             filltitle = "Percent of detachment rates for\nwhich invasion possible",
+             facetx = "ct + gt", facety = "w", marginx = rep(0, 4),
+             filename = paste0(DateTimeStamp, "Figure2Alternative2.png"))
+}
 
 # Create separate plot of the default facet to compare the one-compartment
 # pair-formation model and the two-compartment pair-formation model (Figure 6A
