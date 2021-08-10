@@ -414,7 +414,7 @@ names(labcd) <- cdSet
 labct <- paste("Transconjugant\ncosts", ctSet)
 names(labct) <- ctSet
 mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
-                       cd = labcd, ct = labct, .default = label_both)
+                       cd = labcd, ct = labct, .default = label_value)
 
 
 #### Plotting output for parameter set 1 ####
@@ -559,7 +559,7 @@ names(labgd) <- gdSet
 labgt <- paste0("Transconjugant conjugation rate ", gtSet, "/h")
 names(labgt) <- gtSet
 mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
-                       cd = labcd, ct = labct, .default = label_both)
+                       cd = labcd, ct = labct, .default = label_value)
 
 # The influence of conjugation, attachment, and detachment rates on the
 # bulk-conjugation rates (Figure 7 and Figure S1 in the article). Data is
