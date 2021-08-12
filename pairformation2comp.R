@@ -786,26 +786,6 @@ mylabeller <- labeller(kn = labkn, kpWall = labkpWall, knWall = labknWall,
                        MigrLumWall = labmigrlumwall,
                        MigrWallLum = labmigrwalllum, .default = label_value)
 
-if(Parameterset == "2b") {
-  ggplot(data = MyData,
-         aes(x = log10(kp), y = log10(kpWall), fill = factor(SignDomEigVal))) + 
-    geom_raster() +
-    scale_x_continuous(expand = c(0, 0), sec.axis = dup_axis(
-      name = expression(paste("Increasing biomass at the ", wall %->% "")),
-      breaks = NULL, labels = NULL)) +
-    scale_y_continuous(expand = c(0, 0), sec.axis = dup_axis(
-      name = expression(paste("Increasing biomass at the ", wall %->% "")),
-      breaks = NULL, labels = NULL)) +
-    coord_fixed(ratio = 1, expand = FALSE) +
-    facet_grid(MigrWallLum ~ MigrLumWall, as.table = FALSE, labeller = mylabeller) +
-    theme(legend.position = "bottom") +
-    labs(x = "Log10(attachment rate in the lumen)",
-         y = "Log10(attachment rate at the wall)", tag = NULL) +
-    scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes")) +
-    geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-  ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomass.png"))
-}
-
 
 #### Output parameterset 1 ####
 
@@ -1027,16 +1007,13 @@ write.csv(filteredDf, file = "DataPlotExtendedDataset2.csv")
 ggplot(data = filteredDf,
        aes(x = MigrLumWall, y = MigrWallLum, fill = invasion_perc)) + 
   geom_raster() +
-  scale_x_continuous(expand = c(0, 0), sec.axis = dup_axis(
-    name = expression(paste("Increasing biomass at the ", wall %->% "")),
-    breaks = NULL, labels = NULL)) +
-  scale_y_continuous(expand = c(0, 0), sec.axis = dup_axis(
-    name = expression(paste("Increasing biomass at the ", wall %->% "")),
-    breaks = NULL, labels = NULL)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
   coord_fixed(ratio = 1, expand = FALSE) +
   facet_grid(kn ~ knWall, as.table = FALSE, labeller = mylabeller) +
   theme(legend.position = "bottom") +
-  labs(x = "MigrLumWall", y = "MigrWallLum", tag = NULL) +
+  labs(x = "Migration rate from lumen to wall (/h)",
+       y = "Migration rate from wall to lumen (/h)", tag = NULL) +
   scale_fill_viridis_c(paste("Percent of combinations of\nattachment rates",
   "in the lumen and\nat the wall which invasion is possible")) +
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
