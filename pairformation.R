@@ -454,6 +454,13 @@ CreatePlot(fillvar = "log10(gtbulk)", filltype = "continuous",
            filltitle = "Log10(Transconjugant\nbulkrate)",
            facetx = "NI", facety = "w")
 
+# Create separate plot of the default facet to compare the one-compartment
+# pair-formation model and the two-compartment pair-formation model (Figure 6A
+# in article).
+CreatePlot(dataplot = filter(MyData, near(w, -log(0.5)/24), near(NI, 1.4)),
+           filltitle = "Plasmid can invade", facetx = ".", facety = ".", mytag = "A",
+           filename = paste0(DateTimeStamp, "Figure6A.png"))
+
 # Show percentage and counts of parameter combinations for which invasion is,
 # or is not, possible
 filteredDf <- NULL
@@ -495,13 +502,13 @@ if(exists("parameterset") && parameterset == "1b") {
              fillvar = "invasion_perc", filltype = "continuous", limits = c(0, 100),
              labx = "Log10(nutrient concentration in inflow)", laby = "Log10(detachment rate)",
              filltitle = "Percent of attachment rates for\nwhich invasion possible",
-             facetx = "gt + ct", facety = "w", marginx = rep(0, 4),
+             facetx = "gt + ct", facety = "w", marginx = rep(1, 4),
              filename = paste0(DateTimeStamp, "Figure2Alternative1.png"))
   CreatePlot(dataplot = filteredDf2, xvar = "log10(NI)", yvar = "log10(kn)",
              fillvar = "invasion_perc", filltype = "continuous",
              labx = "Log10(nutrient concentration in inflow)", laby = "Log10(detachment rate)",
              filltitle = "Percent of attachment rates for\nwhich invasion possible",
-             facetx = "gt + ct", facety = "w", marginx = rep(0, 4),
+             facetx = "gt + ct", facety = "w", marginx = rep(1, 4),
              filename = paste0(DateTimeStamp, "Figure2Alternative1freelimits.png"))
   
   
@@ -525,13 +532,6 @@ if(exists("parameterset") && parameterset == "1b") {
              facetx = "ct + gt", facety = "w", marginx = rep(0, 4),
              filename = paste0(DateTimeStamp, "Figure2Alternative2.png"))
 }
-
-# Create separate plot of the default facet to compare the one-compartment
-# pair-formation model and the two-compartment pair-formation model (Figure 6A
-# in article).
-CreatePlot(dataplot = filter(MyData, near(w, -log(0.5)/24), near(NI, 1.4)),
-  filltitle = "Plasmid can invade", facetx = ".", facety = ".", mytag = "A",
-  filename = paste0(DateTimeStamp, "Figure6A.png"))
 
 
 #### Plotting output for parameter set 2 ####
