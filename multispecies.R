@@ -12,8 +12,6 @@
 # model to answer these questions.
 
 
-
-
 #### References ####
 # Edelstein-Keshet L. 2005. Mathematical models in biology. Society for
 # industrial and applied mathematics.
@@ -183,6 +181,28 @@ niterintmat <- 1
 simulateinvasion <- TRUE
 intmeanset <- seq(from = -8e-12, to = 6e-12, by = 1e-12)
 selfintmeanset <- seq(from = -8e-12, to = -3e-12, by = 1e-12)
+
+## Testset
+saveplots <- TRUE
+smallstate <- 1e-3
+finalsmallstate <- 1
+smallchange <- 1e-2
+totalabun <- 1e11
+nspeciesset <- c(2, 4, 6)
+maxnspecies <- max(nspeciesset)
+abunmodelset <- c("brokenstick", "dompreempt")
+costset <- c(0.03, 0.09)
+costtype <- "absolute"
+conjrateset <- list(rep(0, maxnspecies), rep(1e-13, maxnspecies),
+                    rep(1e-12, maxnspecies))
+mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
+           "darkorange", "green1", "yellow", "hotpink")
+niter <- 10
+niterintmat <- 1
+simulateinvasion <- TRUE
+intmeanset <- seq(from = -8e-12, to = 6e-12, by = 2e-12)
+selfintmeanset <- seq(from = -8e-12, to = -4e-12, by = 2e-12)
+
 
 ## Taxonomic information when all populations belong to the same species
 taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
