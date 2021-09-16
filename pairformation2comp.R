@@ -317,10 +317,13 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
       theme(plot.caption = element_text(vjust = 20))
   }
   if(filltype == "discrete") {
-    p <- p + scale_fill_viridis_d(filltitle, limits = if(is.null(limits)) {
-      as.factor(c(-1, 1))
-    } else {
-      factor(limits)}, labels = filllabels)
+    p <- p + scale_fill_viridis_d(filltitle,
+                                  limits = if(is.null(limits)) {
+                                    as.factor(c(-1, 1))
+                                  } else {
+                                    factor(limits)
+                                  },
+                                  labels = filllabels)
   }
   if(filltype == "continuous") {
     p <- p + scale_fill_viridis_c(filltitle, limits = limits)
@@ -341,6 +344,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
       ggsave(filename)
     }
   }
+  return(p)
 }
 
 # !! NOTE: Equations (and states?) HAVE NOT YET BEEN converted to milligram
