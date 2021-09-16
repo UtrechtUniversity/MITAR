@@ -27,6 +27,9 @@
 # Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
 # results as the single-compartment model.
 
+# I could add the 'diagonal' argument from the CreatePlot as used in the script
+# of the multispecies model.
+
 
 #### Loading packages ####
 # All packages are available from CRAN (https://cran.r-project.org/).
