@@ -484,6 +484,7 @@ print(filteredDf)
 write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar1.csv"),
           quote = FALSE, row.names = FALSE)
 
+#### Plotting output for parameter set 1b ####
 if(exists("parameterset") && parameterset == "1b") {
   filteredDf2 <- as_tibble(MyData) %>%
     group_by(gt, ct, NI, w, kn) %>%
@@ -501,13 +502,13 @@ if(exists("parameterset") && parameterset == "1b") {
   CreatePlot(dataplot = filteredDf2, xvar = "log10(NI)", yvar = "log10(kn)",
              fillvar = "invasion_perc", filltype = "continuous", limits = c(0, 100),
              labx = "Log10(nutrient concentration in inflow)", laby = "Log10(detachment rate)",
-             filltitle = "Percent of attachment rates for\nwhich invasion possible",
+             filltitle = "Percentage of attachment rates for\nwhich invasion possible",
              facetx = "gt + ct", facety = "w", marginx = rep(1, 4),
              filename = paste0(DateTimeStamp, "Figure2Alternative1.png"))
   CreatePlot(dataplot = filteredDf2, xvar = "log10(NI)", yvar = "log10(kn)",
              fillvar = "invasion_perc", filltype = "continuous",
              labx = "Log10(nutrient concentration in inflow)", laby = "Log10(detachment rate)",
-             filltitle = "Percent of attachment rates for\nwhich invasion possible",
+             filltitle = "Percentage of attachment rates for\nwhich invasion possible",
              facetx = "gt + ct", facety = "w", marginx = rep(1, 4),
              filename = paste0(DateTimeStamp, "Figure2Alternative1freelimits.png"))
   
@@ -528,7 +529,7 @@ if(exists("parameterset") && parameterset == "1b") {
   CreatePlot(dataplot = filteredDf3, xvar = "log10(kp)", yvar = "log10(NI)",
              fillvar = "invasion_perc", filltype = "continuous", limits = c(0, 100),
              labx = "Log10(attachment rate)", laby = "Log10(nutrient concentration in inflow)",
-             filltitle = "Percent of detachment rates for\nwhich invasion possible",
+             filltitle = "Percentage of detachment rates for\nwhich invasion possible",
              facetx = "ct + gt", facety = "w", marginx = rep(0, 4),
              filename = paste0(DateTimeStamp, "Figure2Alternative2.png"))
 }
@@ -607,7 +608,7 @@ write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar2.csv"),
 
 ################################################################################
 
-##### Create plots over time ####
+##### Create plots over time using parameter set 3 ####
 
 ## To do ##
 # The functions RunOverTime and PlotOverTime in the two-compartment script are
