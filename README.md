@@ -25,6 +25,4 @@ population is introduced: in the most-abundant species, in the least abundant sp
 or in a species that was not yet present model. These models are is still under development.
 
 R-script to analyze microbiome data of the BEWARE project:
-* bewaremicrobio.R
-This is under development.
-
+* bewaremicrobio.R (still under development)
