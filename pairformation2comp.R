@@ -1094,6 +1094,10 @@ filteredDf <- NULL
 for(i in MigrLumWallSet) {
   for(j in MigrWallLumSet) {
     MyDataFiltered <- filter(MyData, near(MigrLumWall, i), near(MigrWallLum, j))
+    nutr_lum <- unique(MyDataFiltered[, "NutrLumInit"])
+    nutr_wall <- unique(MyDataFiltered[, "NutrWallInit"])
+    biomass_lum <- unique(MyDataFiltered[, "RLumInit"])
+    biomass_wall <- unique(MyDataFiltered[, "RWallInit"])
     invasion_n <- length(which(near(MyDataFiltered[, "SignDomEigVal"], 1)))
     no_invasion_n <- length(which(near(MyDataFiltered[, "SignDomEigVal"], -1)))
     total_n <- invasion_n + no_invasion_n
@@ -1102,6 +1106,11 @@ for(i in MigrLumWallSet) {
     
     filteredDf <- rbind(filteredDf,
                         data.frame(MigrLumWall = i, MigrWallLum = j,
+                                   nutr_lum = nutr_lum,
+                                   nutr_wall = nutr_wall,
+                                   biomass_lum = biomass_lum,
+                                   biomass_wall = biomass_wall,
+                                   biomass_total = biomass_lum + biomass_wall,
                                    invasion_perc = invasion_perc,
                                    no_invasion_perc = no_invasion_perc,
                                    invasion_n = invasion_n,
