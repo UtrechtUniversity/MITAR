@@ -38,6 +38,7 @@ library(dplyr) # filter(), mutate(), near()
 library(ggplot2) # To create plots
 library(rootSolve) # Integration, obtaining Jacobian matrix and eigenvalues.
 library(tidyr) # expand_grid() with dataframe as input
+library(cowplot) # plot_grid() to create a single figure from multiple plots
 
 #### Plotting and simulation options ####
 saveplots <- TRUE
@@ -1185,6 +1186,101 @@ CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk model)",
            facetx = ".", facety = ".", mytag = "D",
            filename = paste0(DateTimeStamp, "Figure6DBulk.png"))
+
+
+#### Create Figure 6 as a single figure ####
+
+# Read data from .csv-files generated with the script 'pairformation.R'
+# (panel A), and with this script (panels B, C, D)
+DataA <- as.data.frame(read.csv("2021_08_28_09_20pairformation.csv",
+                                header = TRUE, sep = ",", quote = "\"",
+                                dec = ".", stringsAsFactors = FALSE))
+DataB <- as.data.frame(read.csv("2021_08_28_17_41twocomp.csv",
+                                header = TRUE, sep = ",", quote = "\"",
+                                dec = ".", stringsAsFactors = FALSE))
+DataC <- as.data.frame(read.csv("2021_08_28_17_42twocomp.csv",
+                                header = TRUE, sep = ",", quote = "\"",
+                                dec = ".", stringsAsFactors = FALSE))
+DataD <- as.data.frame(read.csv("2021_08_28_17_43twocomp.csv",
+                                header = TRUE, sep = ",", quote = "\"",
+                                dec = ".", stringsAsFactors = FALSE))
+
+# Create temporary plot with legend to extract legend from
+PlotATemp <- ggplot(data = filter(DataA, near(w, -log(0.5)/24), near(NI, 1.4)),
+                    aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment\nrate in the lumen)",
+       y = "Log10(detachment\nrate in the lumen)") +
+  scale_fill_viridis_d("Plasmid can invade",
+                       limits = as.factor(c(-1, 1)), labels = c("No", "Yes"))
+
+# Extract plot legend (code from http://www.sthda.com/english/wiki/wiki.php?id_contents=7930)
+get_legend <- function(myggplot) {
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+PlotLegend <- get_legend(PlotATemp)
+
+# Create the four panels without legends or tags
+PlotA <- ggplot(data = filter(DataA, near(w, -log(0.5)/24), near(NI, 1.4)),
+                aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "none") +
+  labs(x = "Log10(attachment\nrate in the lumen)",
+       y = "Log10(detachment\nrate in the lumen)") +
+  scale_fill_viridis_d(limits = as.factor(c(-1, 1)))
+
+PlotB <- ggplot(data = DataB,
+                aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "none") +
+  labs(x = "Log10(attachment rate in\nthe lumen and at the wall)",
+       y = "Log10(detachment rate in\nthe lumen and at the wall)") +
+  scale_fill_viridis_d(limits = as.factor(c(-1, 1)))
+
+PlotC <- ggplot(data = DataC,
+                aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "none") +
+  labs(x = "Log10(attachment rate in\nthe lumen and at the wall)",
+       y = "Log10(detachment rate in\nthe lumen and at the wall)") +
+  scale_fill_viridis_d(limits = as.factor(c(-1, 1)))
+
+PlotD <- ggplot(data = DataD,
+                aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "none") +
+  labs(x = "Log10(attachment\nrate in the lumen)",
+       y = "Log10(detachment\nrate in the lumen)") +
+  scale_fill_viridis_d(limits = as.factor(c(-1, 1)))
+
+DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
+# Initialize graphical device to be able to set width and height to required value
+png(filename = paste0("Fig6", DateTimeStamp, ".tiff"),
+    width = 1.5*480, height = 1.5*480)
+plot_grid(PlotA, PlotB, PlotC, PlotD, PlotLegend,
+          ncol = 2, rel_heights = c(1, 1, 0.05),
+          labels = c("A", "B", "C", "D"), label_size = 12)
+dev.off()
+
 
 #### Output parameterset 6 ####
 
