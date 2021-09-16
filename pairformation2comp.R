@@ -1145,8 +1145,9 @@ ggplot(data = filteredDf,
   theme(legend.position = "bottom") +
   labs(x = "Migration rate from lumen to wall (/h)",
        y = "Migration rate from wall to lumen (/h)", tag = NULL) +
-  scale_fill_viridis_c(paste("Percent of combinations of\nattachment rates",
-  "in the lumen and\nat the wall which invasion is possible")) +
+  scale_fill_viridis_c(paste("Percentage of combinations of\nattachment rates in ",
+                             "the lumen and\nat the wall for which invasion is possible"),
+                       limits = c(0, 100)) +
   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
 ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomassExtended.png"))
 
