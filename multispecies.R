@@ -1831,7 +1831,7 @@ plotcompareabun <- ggplot(data = compareabun,
   labs(title = "Comparing abundance models", subtitle = "Linear scale",
        x = "Species rank", y = "Species abundance") +
   geom_line(aes(group = group), size = 1.25) +
-  geom_point(size = 2)
+  geom_point(size = 3)
 print(plotcompareabun)
 if(saveplots == TRUE) {
   filename <- paste0(DateTimeStamp, "compareabunmodel.png")
@@ -1851,7 +1851,7 @@ plotcompareabunlog <- ggplot(data = compareabun,
   labs(title = "Comparing abundance models", subtitle = "Logarithmic scale",
        x = "Species rank", y = "Species abundance") +
   geom_line(aes(group = group), size = 1.25) +
-  geom_point(size = 2)
+  geom_point(size = 3)
 print(plotcompareabunlog)
 if(saveplots == TRUE) {
   filename <- paste0(DateTimeStamp, "compareabunmodellog.png")
