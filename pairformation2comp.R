@@ -883,8 +883,7 @@ for(knSel in knSet) {
 #### Output parameterset 2 ####
 
 # I use sec_axis to create a new axis, with expression in axis title
-# to draw an arrow (Figure 5). Note: issues warnings because (deliberately) no
-# limits have been set on the secondary axis.
+# to draw an arrow (Figure 5).
 ggplot(data = MyData,
        aes(x = log10(kp), y = log10(kpWall), fill = factor(SignDomEigVal))) + 
   geom_raster() +
