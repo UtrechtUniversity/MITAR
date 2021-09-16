@@ -21,6 +21,16 @@
 # Use vectors for atol, to have different tolerances for the cell-densities (~1),
 # and nutrient concentration (~1*10^-8 ?)
 
+# Add argument coord_ratio to be passed on to coord_fixed to CreatePlot().
+# Default should be 1 to not break existing code (and use if/else construct to
+# get free scales if set to FALSE?)
+
+# I could add the 'diagonal' argument from the CreatePlot as used in the script
+# of the multispecies model.
+
+# I could add method to pass additional plot-arguments: add argument 'plotargs = NULL',
+# and add '+ plotargs' to ggplot code.
+
 
 #### Loading packages ####
 # All packages are available from CRAN (https://cran.r-project.org/).
