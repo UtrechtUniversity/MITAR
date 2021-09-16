@@ -172,15 +172,15 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 niter <- 100
 niterintmat <- 1
 simulateinvasion <- FALSE
-intmeanset <- seq(from = -8e-12, to = 6e-12, by = 0.5e-12)
-selfintmeanset <- seq(from = -8e-12, to = -3e-12, by = 0.5e-12)
+intmeanset <- seq(from = -1e-11, to = 1e-11, by = 0.75e-12)
+selfintmeanset <- seq(from = -1.3e-11, to = -3e-12, by = 1e-12)
 
 ## Smaller parameter set to simulate invasion
 niter <- 25
 niterintmat <- 1
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -8e-12, to = 6e-12, by = 1e-12)
-selfintmeanset <- seq(from = -8e-12, to = -3e-12, by = 1e-12)
+intmeanset <- seq(from = -1e-11, to = 1e-11, by = 1.5e-12)
+selfintmeanset <- seq(from = -1.3e-11, to = -3e-12, by = 2e-12)
 
 ## Testset
 saveplots <- TRUE
@@ -200,8 +200,8 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 niter <- 10
 niterintmat <- 1
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -8e-12, to = 6e-12, by = 2e-12)
-selfintmeanset <- seq(from = -8e-12, to = -4e-12, by = 2e-12)
+intmeanset <- seq(from = -1e-11, to = 1e-11, by = 3e-12)
+selfintmeanset <- seq(from = -1.3e-11, to = -3e-12, by = 5e-12)
 
 
 ## Taxonomic information when all populations belong to the same species
@@ -233,7 +233,7 @@ nspeciesset <- c(2, 4)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("brokenstick", "dompreempt")
 intmeanset <- c(-6e-12, 6e-12)
-selfintmeanset <- c(-8e-12, -5e-12)
+selfintmeanset <- c(-1.3e-11, -3e-12)
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
@@ -364,11 +364,11 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
 # maximum of the range. The other arguments specify the distributions from which
 # interaction coefficients are drawn.
 getintmat <- function(nspecies, sparsity = 0,
-                      intdistr = "normal", intmean = -1e-12, intsd = 5e-13,
-                      intrange = c(-8e-12, 6e-12),
+                      intdistr = "normal", intmean = 0, intsd = 5e-12,
+                      intrange = c(-1e-11, 1e-11),
                       selfintdistr = "normal",
-                      selfintmean = -5.5e-12, selfintsd = 9e-13,
-                      selfintrange = c(-8e-12, -3e-12)) {
+                      selfintmean = -8e-13, selfintsd = 9e-12,
+                      selfintrange = c(-1.3e-12, -3e-13)) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             is.numeric(sparsity), length(sparsity) == 1,
             sparsity >= 0, sparsity <= 1)
