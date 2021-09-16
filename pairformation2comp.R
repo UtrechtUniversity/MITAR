@@ -482,6 +482,13 @@ knWallSet <- knSet
 gdSet <- 15
 gtSet <- gdSet
 
+# Extended set 1 (Alternative ways to present outcomes of two-compartment model)
+Parameterset <- "1b"
+kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
+kpWallSet <- kpSet
+knSet <- 10^seq(from = -1, to = 3, by = 0.25)
+knWallSet <- knSet
+
 # Parameterset 2 to show effect of migration rates on biomass and stability of
 # the plasmid-free equilibrium. Note that washout from the wall is excluded,
 # and the detachment rates in the lumen and at the wall are fixed to to 10^-1.
@@ -882,6 +889,115 @@ for(knSel in knSet) {
   }
 }
 
+#### Output extended parameterset 1 ####
+filteredDf1 <- as_tibble(MyData) %>%
+  group_by(kn, knWall) %>%
+  summarise(
+    invasion_n = length(which(near(SignDomEigVal, 1))),
+    no_invasion_n = length(which(near(SignDomEigVal, -1))),
+    total_n = invasion_n + no_invasion_n,
+    invasion_perc = round(100*invasion_n/total_n, 0),
+    no_invasion_perc = round(100*no_invasion_n/total_n, 0),
+    .groups = "drop"
+  )
+write.csv(filteredDf1, file = "DataPlotExtendedDataset1.1.csv")
+
+ggplot(data = filteredDf1,
+       aes(x = log10(kn), y = log10(knWall), fill = invasion_perc)) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(detachment rate in the lumen)",
+       y = "Log10(detachment rate at the wall)") +
+  scale_fill_viridis_c(
+    paste0("Percentage of combinations of attachment\nrates in the lumen and at",
+           "the wall for\nwhich invasion is possible"), limits = c(0, 100)) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompVar1.1.png"))
+
+
+filteredDf2 <- as_tibble(MyData) %>%
+  group_by(kp, kpWall) %>%
+  summarise(
+    invasion_n = length(which(near(SignDomEigVal, 1))),
+    no_invasion_n = length(which(near(SignDomEigVal, -1))),
+    total_n = invasion_n + no_invasion_n,
+    invasion_perc = round(100*invasion_n/total_n, 0),
+    no_invasion_perc = round(100*no_invasion_n/total_n, 0),
+    .groups = "drop"
+  )
+write.csv(filteredDf2, file = "DataPlotExtendedDataset1.2.csv")
+
+ggplot(data = filteredDf2,
+       aes(x = log10(kp), y = log10(kpWall), fill = invasion_perc)) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate in the lumen)",
+       y = "Log10(attachment rate at the wall)") +
+  scale_fill_viridis_c(
+    paste("Percentage of combinations of detachment\nrates in the lumen and at",
+          "the wall for\nwhich invasion is possible"), limits = c(0, 100)) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompVar1.2.png"))
+
+filteredDf3 <- as_tibble(MyData) %>%
+  group_by(kp, kn) %>%
+  summarise(
+    invasion_n = length(which(near(SignDomEigVal, 1))),
+    no_invasion_n = length(which(near(SignDomEigVal, -1))),
+    total_n = invasion_n + no_invasion_n,
+    invasion_perc = round(100*invasion_n/total_n, 0),
+    no_invasion_perc = round(100*no_invasion_n/total_n, 0),
+    .groups = "drop"
+  )
+write.csv(filteredDf3, file = "DataPlotExtendedDataset1.3.csv")
+
+ggplot(data = filteredDf3,
+       aes(x = log10(kp), y = log10(kn), fill = invasion_perc)) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate in the lumen)",
+       y = "Log10(detachment rate in the lumen)") +
+  scale_fill_viridis_c(
+    paste("Percentage of combinations of attachment\nand detachment rates at",
+          "the wall for\nwhich invasion is possible"), limits = c(0, 100)) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompVar1.3.png"))
+
+filteredDf4 <- as_tibble(MyData) %>%
+  group_by(kpWall, knWall) %>%
+  summarise(
+    invasion_n = length(which(near(SignDomEigVal, 1))),
+    no_invasion_n = length(which(near(SignDomEigVal, -1))),
+    total_n = invasion_n + no_invasion_n,
+    invasion_perc = round(100*invasion_n/total_n, 0),
+    no_invasion_perc = round(100*no_invasion_n/total_n, 0),
+    .groups = "drop"
+  )
+write.csv(filteredDf4, file = "DataPlotExtendedDataset1.4.csv")
+
+ggplot(data = filteredDf4,
+       aes(x = log10(kpWall), y = log10(knWall), fill = invasion_perc)) + 
+  geom_raster() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  coord_fixed(ratio = 1, expand = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(x = "Log10(attachment rate at the wall)",
+       y = "Log10(detachment rate at the wall)") +
+  scale_fill_viridis_c(
+    paste("Percentage of combinations of attachment\nand detachment rates in the",
+          "lumen for\nwhich invasion is possible"), limits = c(0, 100)) +
+  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+ggsave(paste0(DateTimeStamp, "InvasionTwoCompVar1.4.png"))
 
 #### Output parameterset 2 ####
 
