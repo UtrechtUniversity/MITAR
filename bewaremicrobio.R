@@ -15,10 +15,16 @@
 # tutorial by Benjamin Callahan (http://benjjneb.github.io/dada2/tutorial.html)
 
 
+#### To do ####
+# Check if days indicate the age of chicken, OR number of days after inoculation?
+
+# Based on id_group, add info on treatment to sample_data.
+
+
 #### Setting file path ####
 # Path should point to the folder where the phyloseq oject is saved, not to the file itself
 pathseqdata <- "D:/Userdata/Jesse Nieuw/Documents/SurfDriveF/TransmExp/Proef/SequenceData/"
-pathseqdata <- "C:/Users/3501477/surfdrive/TransmExp/Proef/SequenceData/"
+# pathseqdata <- "C:/Users/3501477/surfdrive/TransmExp/Proef/SequenceData/"
 
 
 #### Loading libraries ####
@@ -127,11 +133,81 @@ ps_otu_table_subset_nocolnames
 
 
 #### Inspecting sample_data ####
+# The sample_data is a phyloseq dataframe. It consists of 177 rows which names
+# are the 177 sample identifiers, and a single column named "SampleNames" which
+# gives the 177 sample identifiers. These identifiers should be split over
+# multiple columns to extract the metadata contained in the sample identifier.
+
 ps_sample_data <- sample_data(ps)
-# < to be continued >
+dim(ps_sample_data)
+# [1] 177   1
+
+ps_sample_data_subset <- ps_sample_data[1:20, ]
+attributes(ps_sample_data_subset) # showing subset
+# $names
+# [1] "SampleNames"
+# 
+# $row.names
+# [1] "A_1-10_G_1_D_14_S103"   "A_1-11_G_1_D_5_S127"    "A_1-12_G_1_D_5_S146"    "A_1-13_G_1_D_14_S134"   "A_1-14_G_1_D_14_S89"    "A_1-15_G_1_D_5_S106"   
+# [7] "A_1-2_G_1_D_14_S62"     "A_1-3_G_1_D_14_S60"     "A_1-4_G_1_D_14_S94"     "A_1-5_G_1_D_5_S58"      "A_1-6_G_1_D_5_S135"     "A_1-8_G_1_D_14_S32"    
+# [13] "A_10-1_G_10_D_5_S85"    "A_10-10_G_10_D_14_S27"  "A_10-11_G_10_D_5_S68"   "A_10-12_G_10_D_5_S79"   "A_10-13_G_10_D_14_S116" "A_10-14_G_10_D_5_S20"  
+# [19] "A_10-15_G_10_D_14_S163" "A_10-2_G_10_D_14_S13"  
+# 
+# $.S3Class
+# [1] "data.frame"
+# 
+# $class
+# [1] "sample_data"
+# attr(,"package")
+# [1] "phyloseq"
+
+# Concise enough to show complete table
+ps_sample_data
+
+## Obtaining data from sample identifiers
+# NOTE: HARDCODED column indices. Attempt to use regular expression within
+# strsplit() to split when a digit is followed by an underscore did NOT work,
+# because the last digits were discarded during the split: strsplit(id_sample[1],
+# split = "[0123456789]_", fixed = FALSE) drops digits from id_sample[1].
+# The identifiers of the non-spike and spike samples are coded differently, so
+# they are processed separately.
+
+# In the sample identifiers of the non-spike samples, animal ID (which also
+# contains the group ID) is preceded by A_, the group ID is preceded by G_, the
+# day of sample collection is preceded by D_, and the sample number is preceded
+# by _S. 
+
+total_id <- unlist(unname(ps_sample_data))
+index_spike <- grep("PBS_spike", total_id, value = FALSE, fixed = TRUE)
+
+id_sample <- total_id[-index_spike] # selecting only non-spike samples
+id_sample_split <- unname(t(as.data.frame(strsplit(id_sample, split = "_", fixed = TRUE))))
+sample_df <- id_sample_split[, c(2, 4, 6, 7)]
+colnames(sample_df) <- c("id_animal", "id_group", "day", "sample_nr")
+
+id_spike <- total_id[index_spike] # selecting only spike samples
+id_spike_split <- unname(t(as.data.frame(strsplit(id_spike, split = "_", fixed = TRUE))))
+id_animal_spike <- paste(id_spike_split[, 2], id_spike_split[, 3], sep = "_")
+# Get id_group from id_animal because groups were not coded separately.
+# NOTE: assuming single-digit group number.
+id_group_spike <- substr(id_animal_spike, start = 1, stop = 7)
+day_spike <- rep("spike", length(id_animal_spike))
+sample_nr_spike <- id_spike_split[, 4]
+spike_df <- cbind(id_animal = id_animal_spike, id_group = id_group_spike,
+                  day = day_spike, sample_nr = sample_nr_spike)
+
+# Merge data (same order as original data) and add it to the phyloseq object
+total_sample_data_df <- as.data.frame(rbind(sample_df, spike_df),
+                                      row.names = rownames(ps_sample_data))
+head(total_sample_data_df)
+tail(total_sample_data_df)
+# Convert dataframe to phyloseq object to merge correctly
+ps <- merge_phyloseq(ps, sample_data(total_sample_data_df))
+head(sample_data(ps))
+tail(sample_data(ps))
+ps
 
 
 #### Inspecting tax_table ####
 ps_tax_table <- tax_table(ps)
 # < to be continued >
-
