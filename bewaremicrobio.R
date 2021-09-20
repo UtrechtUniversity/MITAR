@@ -30,6 +30,7 @@ pathseqdata <- "D:/Userdata/Jesse Nieuw/Documents/SurfDriveF/TransmExp/Proef/Seq
 #### Loading libraries ####
 library(phyloseq)   # read and analyse phyloseq objects
 library(microbiome) # summarize_phyloseq(), transform()
+library(tidyr)      # separate() to split character string into multiple columns
 # library(data.table) # datatable()
 # library(DT)         # datatable()
 
@@ -166,12 +167,11 @@ ps_sample_data
 
 ## Obtaining data from sample identifiers
 # NOTE: HARDCODED column indices. Attempt to use regular expression within
-# strsplit() to split when a digit is followed by an underscore did NOT work,
-# because the last digits were discarded during the split: strsplit(id_sample[1],
-# split = "[0123456789]_", fixed = FALSE) drops digits from id_sample[1].
+# strsplit() or tidyr::separate to split when a digit is followed by an
+# underscore did NOT work, because the selected parts discarded during the split.
+
 # The identifiers of the non-spike and spike samples are coded differently, so
 # they are processed separately.
-
 # In the sample identifiers of the non-spike samples, animal ID (which also
 # contains the group ID) is preceded by A_, the group ID is preceded by G_, the
 # day of sample collection is preceded by D_, and the sample number is preceded
@@ -179,22 +179,19 @@ ps_sample_data
 
 total_id <- unlist(unname(ps_sample_data))
 index_spike <- grep("PBS_spike", total_id, value = FALSE, fixed = TRUE)
-
-id_sample <- total_id[-index_spike] # selecting only non-spike samples
-id_sample_split <- unname(t(as.data.frame(strsplit(id_sample, split = "_", fixed = TRUE))))
-sample_df <- id_sample_split[, c(2, 4, 6, 7)]
-colnames(sample_df) <- c("id_animal", "id_group", "day", "sample_nr")
-
-id_spike <- total_id[index_spike] # selecting only spike samples
-id_spike_split <- unname(t(as.data.frame(strsplit(id_spike, split = "_", fixed = TRUE))))
-id_animal_spike <- paste(id_spike_split[, 2], id_spike_split[, 3], sep = "_")
-# Get id_group from id_animal because groups were not coded separately.
+sample_df <- separate(as.data.frame(total_id[-index_spike]), col = 1,
+                      into = c(NA, "id_animal", NA, "id_group", NA, "day",
+                               "sample_nr"), sep = "_")
+id_spike_split <- separate(as.data.frame(total_id[index_spike]), col = 1,
+                           into = c(NA, "id_animal_part1", "id_animal_part2",
+                                    "sample_nr"), sep = "_")
+# Get id_group from id_animal because group labels were not coded separately.
 # NOTE: assuming single-digit group number.
-id_group_spike <- substr(id_animal_spike, start = 1, stop = 7)
-day_spike <- rep("spike", length(id_animal_spike))
-sample_nr_spike <- id_spike_split[, 4]
-spike_df <- cbind(id_animal = id_animal_spike, id_group = id_group_spike,
-                  day = day_spike, sample_nr = sample_nr_spike)
+spike_df <- tibble(id_animal = paste(id_spike_split[, "id_animal_part1"],
+                                     id_spike_split[, "id_animal_part2"], sep = "_"),
+                   id_group = substr(id_animal, start = 1, stop = 7),
+                   day = rep("spike", length(id_animal_spike)),
+                   sample_nr = id_spike_split[, "sample_nr"])
 
 # Merge data (same order as original data) and add it to the phyloseq object
 total_sample_data_df <- as.data.frame(rbind(sample_df, spike_df),
