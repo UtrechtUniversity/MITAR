@@ -289,10 +289,7 @@ table(ps_tax_table[, "Kingdom"])
 ps_compo <- transform(ps, "compositional")
 ps_compo_filt = filter_taxa(ps_compo, function(x) sum(x) > .01, prune = TRUE)  # filtering
 ps_phylum = tax_glom(ps_compo_filt, taxrank = "Phylum", NArm = FALSE)  # Taxonomic level Phylum - Family
-plot_bar(ps_phylum, fill = "Phylum") + facet_grid("day" ~ "id_group", scales = "free_x") 
-
-# Facet_grid currently does NOT result in multiple facets (because columns are
-# character instead of factor type?
+plot_bar(ps_phylum, fill = "Phylum") + facet_grid(day ~ id_group, scales = "free_x") 
 
 # Richness
-plot_richness(ps, "id_group", "day", measures = c("Observed", "Shannon", "Simpson", "InvSimpson")) 
+plot_richness(ps, x = "id_group", color = "day", measures = c("Observed", "Shannon", "Simpson", "InvSimpson"))
