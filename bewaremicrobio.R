@@ -29,7 +29,7 @@ pathseqdata <- "D:/Userdata/Jesse Nieuw/Documents/SurfDriveF/TransmExp/Proef/Seq
 
 #### Loading libraries ####
 library(phyloseq)   # read and analyse phyloseq objects
-# library(microbiome) # read_phyloseq()
+library(microbiome) # summarize_phyloseq(), transform()
 # library(data.table) # datatable()
 # library(DT)         # datatable()
 
@@ -209,5 +209,90 @@ ps
 
 
 #### Inspecting tax_table ####
+# The tax_table consists of 8055 rows which names are the 8055 identified OTUs,
+# and 6 columns which names are the taxonomic levels from Kingdom to Genus. 
+# The table gives each of the taxonomic levels for all sequences. If a sequence
+# could not be assigned to a taxonomic level, it is listed as NA. In a separate
+# output ALL missing (NA) taxa at level X where filled with one level higher
+# taxonomic data (X-1).
+
+# Below the structure of the tax_table is illustrated using a subset containing
+# only the first 20 samples with the first 10 taxa, without the column names,
+# because the column names are the actual sequences which are hundreds of
+# characters long.
+
 ps_tax_table <- tax_table(ps)
-# < to be continued >
+dim(ps_tax_table)
+# [1] 8055    6
+
+ps_tax_table[1:3, ] # Showing subset
+attributes(ps_tax_table[1:3, ]) # Showing subset
+# $dim
+# [1] 3 6
+# 
+# $class
+# [1] "taxonomyTable"
+# attr(,"package")
+# [1] "phyloseq"
+# 
+# $dimnames
+# $dimnames[[1]]
+# [1] "GGAATATTGCACAATGGGCGCAAGCCTGATGCAGCCATGCCGCGTGTATGAAGAAGGCCTTCGGGTTGTAAAGTA[...]GCGTGGG" 
+# [2] "GGAATCTTCGGCAATGGACGAAAGTCTGACCGAGCAACGCCGCGTGAGTGAAGAAGGTTTTCGGATCGTAAAACT[...]CGTGGG"
+# [3] "GGAATATTGCACAATGGGCGCAAGCCTGATGCAGCCATGCCGCGTGTATGAAGAAGGCCTTCGGGTTGTAAAGTA[...]CGTGGG" 
+# 
+# $dimnames[[2]]
+# [1] "Kingdom" "Phylum"  "Class"   "Order"   "Family"  "Genus"  
+
+ps_tax_table_norownames <- ps_tax_table
+rownames(ps_tax_table_norownames) <- NULL
+ps_tax_table_norownames[1:3, ] # Showing subset without rownames
+# Taxonomy Table:     [3 taxa by 6 taxonomic ranks]:
+#     Kingdom    Phylum           Class                 Order              Family               Genus                 
+# sp1 "Bacteria" "Proteobacteria" "Gammaproteobacteria" "Enterobacterales" "Enterobacteriaceae" "Escherichia/Shigella"
+# sp2 "Bacteria" "Firmicutes"     "Bacilli"             "Lactobacillales"  "Enterococcaceae"    "Enterococcus"        
+# sp3 "Bacteria" "Proteobacteria" "Gammaproteobacteria" "Enterobacterales" "Enterobacteriaceae" "Escherichia/Shigella"
+
+
+#### Checks on data ####
+summarize_phyloseq(ps)
+
+# Checking for NAs in taxonomic data
+taxNA <- as.data.frame(matrix(data = NA, nrow = 6, ncol = 3, byrow = FALSE,
+                              dimnames = list(NULL, c("TaxRank", "N_NA", "percent_NA"))))
+for(index in 1:dim(ps_tax_table)[2]) {
+  taxNA[index, "TaxRank"] <- colnames(ps_tax_table[, index])
+  taxNA[index, "N_NA"] <- as.numeric(length(which(is.na(ps_tax_table[, index]))))
+}
+taxNA[, "percent_NA"] <- round(100*taxNA[, "N_NA"] / dim(ps_tax_table)[1], 2)
+taxNA  # Gives same numbers as the table in the read-me file
+#   TaxRank N_NA percent_NA
+# 1 Kingdom    8       0.10
+# 2  Phylum  156       1.94
+# 3   Class  255       3.17
+# 4   Order  711       8.83
+# 5  Family 1509      18.73
+# 6   Genus 3821      47.44
+
+# Checking for non-prokaryotic sequences in taxonomic data: One sequence
+# assigned to an Archaeon (genus Halococcus), and 94 sequences to Eukaryota (all
+# taxa apart from Kingdom listed as "NA")
+ps_tax_table_norownames[which(ps_tax_table[, "Kingdom"] != "Bacteria"), ]
+table(ps_tax_table[, "Kingdom"])
+# Archaea  Bacteria Eukaryota 
+# 1      7952        94 
+
+
+#### Plotting data ####
+
+# Bar plots of composition
+ps_compo <- transform(ps, "compositional")
+ps_compo_filt = filter_taxa(ps_compo, function(x) sum(x) > .01, prune = TRUE)  # filtering
+ps_phylum = tax_glom(ps_compo_filt, taxrank = "Phylum", NArm = FALSE)  # Taxonomic level Phylum - Family
+plot_bar(ps_phylum, fill = "Phylum") + facet_grid("day" ~ "id_group", scales = "free_x") 
+
+# Facet_grid currently does NOT result in multiple facets (because columns are
+# character instead of factor type?
+
+# Richness
+plot_richness(ps, "id_group", "day", measures = c("Observed", "Shannon", "Simpson", "InvSimpson")) 
