@@ -23,6 +23,3 @@ R-scripts for multispecies models of conjugation:
 These scripts are for three different scenarios regarding how the plasmid-bearing
 population is introduced: in the most-abundant species, in the least abundant species,
 or in a species that was not yet present model. These models are is still under development.
-
-R-script to analyze microbiome data of the BEWARE project:
-* bewaremicrobio.R (still under development)
