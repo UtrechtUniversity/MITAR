@@ -1323,8 +1323,11 @@ labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
 labconjrate <- paste("Conjset", 1:length(conjrateset))
 names(labconjrate) <- 1:length(conjrateset)
+labcost <- paste0("Cost: ", costset, "/h")
+names(labcost) <- costset
 mylabeller <- labeller(nspecies = labspecies, abunmodelcode = labmodel,
-                       conjratecode = labconjrate, .default = label_both)
+                       conjratecode = labconjrate, cost = labcost,
+                       .default = label_value)
 
 plotdata <- as.data.frame(plotdata)
 datatotal <- as.data.frame(datatotal)
