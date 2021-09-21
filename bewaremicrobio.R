@@ -111,7 +111,7 @@ id_spike_split <- separate(as.data.frame(total_id[index_spike]), col = 1,
 spike_df <- tibble(id_animal = paste(id_spike_split[, "id_animal_part1"],
                                      id_spike_split[, "id_animal_part2"], sep = "_"),
                    id_group = substr(id_animal, start = 1, stop = 7),
-                   day = rep("spike", length(id_animal_spike)),
+                   day = rep("spike", length(index_spike)),
                    sample_nr = id_spike_split[, "sample_nr"])
 
 # Merge data (same order as original data) and add it to the phyloseq object
@@ -121,7 +121,7 @@ total_sample_data_df <- as.data.frame(rbind(sample_df, spike_df),
 ps <- merge_phyloseq(ps, sample_data(total_sample_data_df))
 head(sample_data(ps))
 tail(sample_data(ps))
-ps
+ps # sample_data() now contains 5 sample variables instead of 1
 
 
 #### Checks on data ####
@@ -130,11 +130,11 @@ summarize_phyloseq(ps)
 # Checking for NAs in taxonomic data
 taxNA <- as.data.frame(matrix(data = NA, nrow = 6, ncol = 3, byrow = FALSE,
                               dimnames = list(NULL, c("TaxRank", "N_NA", "percent_NA"))))
-for(index in 1:dim(ps_tax_table)[2]) {
-  taxNA[index, "TaxRank"] <- colnames(ps_tax_table[, index])
-  taxNA[index, "N_NA"] <- as.numeric(length(which(is.na(ps_tax_table[, index]))))
+for(index in 1:dim(tax_table(ps))[2]) {
+  taxNA[index, "TaxRank"] <- colnames(tax_table(ps))[index]
+  taxNA[index, "N_NA"] <- length(which(is.na(tax_table(ps)[, index])))
 }
-taxNA[, "percent_NA"] <- round(100*taxNA[, "N_NA"] / dim(ps_tax_table)[1], 2)
+taxNA[, "percent_NA"] <- round(100*taxNA[, "N_NA"] / dim(tax_table(ps))[1], 2)
 taxNA  # Gives same numbers as the table in the read-me file
 #   TaxRank N_NA percent_NA
 # 1 Kingdom    8       0.10
@@ -147,8 +147,10 @@ taxNA  # Gives same numbers as the table in the read-me file
 # Checking for non-prokaryotic sequences in taxonomic data: One sequence
 # assigned to an Archaeon (genus Halococcus), and 94 sequences to Eukaryota (all
 # taxa apart from Kingdom listed as "NA")
-ps_tax_table_norownames[which(ps_tax_table[, "Kingdom"] != "Bacteria"), ]
-table(ps_tax_table[, "Kingdom"])
+select_tax_table <- tax_table(ps)[which(tax_table(ps)[, "Kingdom"] != "Bacteria"), ]
+rownames(select_tax_table) <- NULL # removing long row names to display nicer
+select_tax_table
+table(tax_table(ps)[, "Kingdom"])
 # Archaea  Bacteria Eukaryota 
 # 1      7952        94 
 
