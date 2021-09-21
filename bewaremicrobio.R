@@ -84,8 +84,6 @@ ps
 # sample_data(ps) consists of a single column giving the 177 sample identifiers.
 # These identifiers will be split over multiple columns to extract the metadata
 # contained in the sample identifier.
-ps_sample_data <- sample_data(ps)
-ps_sample_data
 
 # NOTE: HARDCODED column indices. Attempt to use regular expression within
 # strsplit() or tidyr::separate to split when a digit is followed by an
@@ -98,7 +96,7 @@ ps_sample_data
 # day of sample collection is preceded by D_, and the sample number is preceded
 # by _S. 
 
-total_id <- unlist(unname(ps_sample_data))
+total_id <- unlist(unname(sample_data(ps)))
 index_spike <- grep("PBS_spike", total_id, value = FALSE, fixed = TRUE)
 sample_df <- separate(as.data.frame(total_id[-index_spike]), col = 1,
                       into = c(NA, "id_animal", NA, "id_group", NA, "day",
@@ -116,7 +114,7 @@ spike_df <- tibble(id_animal = paste(id_spike_split[, "id_animal_part1"],
 
 # Merge data (same order as original data) and add it to the phyloseq object
 total_sample_data_df <- as.data.frame(rbind(sample_df, spike_df),
-                                      row.names = rownames(ps_sample_data))
+                                      row.names = rownames(sample_data(ps)))
 # Convert dataframe to phyloseq object to merge correctly
 ps <- merge_phyloseq(ps, sample_data(total_sample_data_df))
 head(sample_data(ps))
