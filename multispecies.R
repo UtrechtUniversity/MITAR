@@ -160,11 +160,10 @@ smallchange <- 1e-2
 totalabun <- 1e11
 nspeciesset <- c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
-abunmodelset <- c("brokenstick", "dompreempt")
+abunmodelset <- c("dompreempt")
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
-conjrateset <- list(rep(0, maxnspecies), rep(1e-13, maxnspecies),
-                    rep(1e-12, maxnspecies))
+conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -190,11 +189,10 @@ smallchange <- 1e-2
 totalabun <- 1e11
 nspeciesset <- c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
-abunmodelset <- c("brokenstick", "dompreempt")
+abunmodelset <- c("dompreempt")
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
-conjrateset <- list(rep(0, maxnspecies), rep(1e-13, maxnspecies),
-                    rep(1e-12, maxnspecies))
+conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 niter <- 10
@@ -231,7 +229,7 @@ smallchange <- 1e-2
 totalabun <- 1e11
 nspeciesset <- c(2, 4)
 maxnspecies <- max(nspeciesset)
-abunmodelset <- c("brokenstick", "dompreempt")
+abunmodelset <- c("dompreempt")
 intmeanset <- c(-6e-12, 6e-12)
 selfintmeanset <- c(-1.3e-11, -3e-12)
 costset <- c(0.03, 0.09)
