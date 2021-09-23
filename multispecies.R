@@ -248,10 +248,8 @@ taxmatset <- list(taxmatsame, taxmatother)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
-# Taxonomic information when each species belongs to a different class.
-taxmatset <- matrix(rep("OtherClass", maxnspecies^2),
-                 nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
-diag(taxmatset) <- "SameSpecies"
+# To simulate that each species belongs to a different class, reduce conjrateset
+# 1000-fold and look at data for taxmattype = taxmatsame.
 
 
 #### Functions ####
