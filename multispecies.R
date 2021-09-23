@@ -164,6 +164,15 @@ abunmodelset <- c("dompreempt")
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
+taxmatsame <- matrix(rep("SameSpecies", maxnspecies^2),
+                     nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
+taxmatother <- taxmatsame
+taxmatother[1, -1] <- "OtherClass"
+taxmatother[-1, 1] <- "OtherClass"
+# Set containing taxonomic information when all populations belong to the same
+# species and when the plasmid-bearing bacterium belongs to another class than
+# the other populations.
+taxmatset <- list(taxmatsame, taxmatother)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -193,6 +202,15 @@ abunmodelset <- c("dompreempt")
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
+taxmatsame <- matrix(rep("SameSpecies", maxnspecies^2),
+                     nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
+taxmatother <- taxmatsame
+taxmatother[1, -1] <- "OtherClass"
+taxmatother[-1, 1] <- "OtherClass"
+# Set containing taxonomic information when all populations belong to the same
+# species and when the plasmid-bearing bacterium belongs to another class than
+# the other populations.
+taxmatset <- list(taxmatsame, taxmatother)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 niter <- 10
@@ -200,23 +218,6 @@ niterintmat <- 1
 simulateinvasion <- TRUE
 intmeanset <- seq(from = -1e-11, to = 1e-11, by = 3e-12)
 selfintmeanset <- seq(from = -1.3e-11, to = -3e-12, by = 5e-12)
-
-
-## Taxonomic information when all populations belong to the same species
-taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
-                 nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
-
-## Taxonomic information when the plasmid-bearing bacterium belongs to another
-# class than the other populations.
-taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
-                 nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
-taxmat[1, -1] <- "OtherClass"
-taxmat[-1, 1] <- "OtherClass"
-
-## Taxonomic information when each species belongs to a different class.
-taxmat <- matrix(rep("OtherClass", maxnspecies^2),
-                 nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
-diag(taxmat) <- "SameSpecies"
 
 # Small parameter set to test code
 niter <- 2
@@ -235,10 +236,22 @@ selfintmeanset <- c(-1.3e-11, -3e-12)
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
+taxmatsame <- matrix(rep("SameSpecies", maxnspecies^2),
+                     nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
+taxmatother <- taxmatsame
+taxmatother[1, -1] <- "OtherClass"
+taxmatother[-1, 1] <- "OtherClass"
+# Set containing taxonomic information when all populations belong to the same
+# species and when the plasmid-bearing bacterium belongs to another class than
+# the other populations.
+taxmatset <- list(taxmatsame, taxmatother)
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
-taxmat <- matrix(rep("SameSpecies", maxnspecies^2),
+
+# Taxonomic information when each species belongs to a different class.
+taxmatset <- matrix(rep("OtherClass", maxnspecies^2),
                  nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
+diag(taxmatset) <- "SameSpecies"
 
 
 #### Functions ####
@@ -841,7 +854,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        labx = "Mean interaction coefficient",
                        laby = "Mean selfinteraction coefficient",
                        tag = NULL, addstamp = FALSE, diagonal = "none",
-                       facetx = "abunmodelcode + cost",
+                       facetx = "taxmatcode + abunmodelcode + cost",
                        facety = "nspecies + conjratecode",
                        as.table = TRUE,
                        marginx = NULL, marginy = NULL, base_size = 11,
@@ -942,18 +955,19 @@ starttime <- Sys.time()
 
 # Create matrix to store data
 nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
-                                  selfintmeanset, costset, conjrateset),
+                                  selfintmeanset, costset, conjrateset, taxmatset),
                              use.names = FALSE))
 ncolplotdata <- if(simulateinvasion == TRUE) {
-  16*4 + 4*4*maxnspecies + 30
+  16*4 + 4*4*maxnspecies + 31
 } else {
-  3*4 + 8 + 5 + 9
+  3*4 + 8 + 5 + 10
 }
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
-                                   costset, conjrateset), use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 45 + 4*maxnspecies)
+                                   costset, conjrateset, taxmatset),
+                              use.names = FALSE))*niter*sum(nspeciesset)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 46 + 4*maxnspecies)
 indexdatatotal <- 1
 
 # Run simulations
@@ -984,8 +998,9 @@ for(nspecies in nspeciesset) {
         print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
                      ", intmean = ", intmean, ", selfintmean = ", selfintmean,
                      ": started at ", Sys.time()), quote = FALSE)
-        nrowdata <- niter * nspecies * length(costset) * length(conjrateset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 45 + 4*maxnspecies)
+        nrowdata <- niter * nspecies * length(costset) * length(conjrateset) *
+          length(taxmatset)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 46 + 4*maxnspecies)
         indexdata <- 1
         abunR <- rep(NA, maxnspecies)
         abunRconj <- rep(NA, maxnspecies)
@@ -1069,6 +1084,11 @@ for(nspecies in nspeciesset) {
             
             for(conjrate in conjrateset) {
               conjratecode <- conjratecode + 1
+              taxmatcode <- 0
+              
+            for(taxmat in taxmatset) {
+                taxmatcode <- taxmatcode + 1
+                
               conjmat <- getconjmat(nspecies = nspecies,
                                     conjrate = conjrate, taxmat = taxmat)
               # Get equilibrium characteristics for plasmid-free equilibrium in
@@ -1161,7 +1181,7 @@ for(nspecies in nspeciesset) {
               
               data[indexdata:(indexdatanew - 1), ] <- cbind(
                 niter, nspecies, abunmodelcode, intmean, selfintmean,
-                cost, conjratecode, iter, 1:nspecies, abundance,
+                cost, conjratecode, taxmatcode, iter, 1:nspecies, abundance,
                 diag(intmat), c(growthrate), iterintmat,
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
@@ -1179,6 +1199,7 @@ for(nspecies in nspeciesset) {
               )
               indexdata <- indexdatanew
             }
+            }
           }
         }
         datatotal[indexdatatotal:(indexdatatotal + nrowdata - 1), ] <- data
@@ -1186,7 +1207,7 @@ for(nspecies in nspeciesset) {
         
         colnames(data) <- c("niter", "nspecies", "abunmodelcode",
                             "intmean", "selfintmean", "cost", "conjratecode",
-                            "iter", "species", "abundance",
+                            "taxmatcode", "iter", "species", "abundance",
                             "selfintdata", "growthrate",
                             "iterintmat",
                             "eigvalRe", "eigvalIm",
@@ -1211,7 +1232,7 @@ for(nspecies in nspeciesset) {
         # Get summary data which do not depend on simulated invasion for all
         # combinations of costs and conjugation rates
         summarydata <- as_tibble(data) %>%
-          group_by(cost, conjratecode) %>%
+          group_by(cost, conjratecode, taxmatcode) %>%
           summarise(
             across(c(selfintdata, growthrate, iterintmat),
                    getsummary4, .names = "{.col}{.fn}"),
@@ -1237,7 +1258,7 @@ for(nspecies in nspeciesset) {
           # If invasion was simulated, get summary of generated data for all
           # combinations of costs and conjugation rates
           summarydatasimulation <- as_tibble(data) %>%
-            group_by(cost, conjratecode) %>%
+            group_by(cost, conjratecode, taxmatcode) %>%
             summarise(
               across(c(infgrowth, infgrowthconj, eqreached, eqreachedconj,
                        tmaxshort, tmaxshortconj),
@@ -1252,10 +1273,11 @@ for(nspecies in nspeciesset) {
               .groups = "drop"
             )
           summarydata <- full_join(summarydata, summarydatasimulation,
-                                   by = c("cost", "conjratecode"))
+                                   by = c("cost", "conjratecode", "taxmatcode"))
         }
         
-        rowindexplotdatanew <- rowindexplotdata + length(costset) * length(conjrateset)
+        rowindexplotdatanew <- rowindexplotdata + length(costset) *
+          length(conjrateset) * length(taxmatset)
         plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
           tibble(niter, nspecies, abunmodelcode, intmean, selfintmean, summarydata))
         rowindexplotdata <- rowindexplotdatanew
@@ -1279,8 +1301,10 @@ write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
 
 # Saving settings
 names(conjrateset) <- paste0("conjrateset", 1:length(conjrateset))
-rownames(taxmat) <- paste0("recipientsp", 1:dim(taxmat)[1])
-colnames(taxmat) <- paste0("donorsp", 1:dim(taxmat)[1])
+for(index in 1:length(taxmatset)) {
+  rownames(taxmatset[[index]]) <- paste0("recipientsp", 1:(dim(taxmatset[[index]])[1]))
+  colnames(taxmatset[[index]]) <- paste0("donorsp", 1:(dim(taxmatset[[index]])[1]))
+}
 settings <- c(list(niter = niter, niterintmat = niterintmat,
                    simulateinvasion = simulateinvasion,
                    smallstate = smallstate, smallchange = smallchange,
@@ -1289,7 +1313,7 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    costset = costset), conjrateset,
-              list(taxmat = taxmat, costtype = costtype, duration = duration))
+              list(taxmat = taxmatset, costtype = costtype, duration = duration))
 for(index in 1:length(settings)) {
   write.table(t(as.data.frame(settings[index])), 
               paste0(DateTimeStamp, "settings.csv"), append = TRUE,
@@ -1319,13 +1343,15 @@ labspecies <- paste(nspeciesset, "species")
 names(labspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
-labconjrate <- paste("Conjset", 1:length(conjrateset))
-names(labconjrate) <- 1:length(conjrateset)
 labcost <- paste0("Cost: ", costset, "/h")
 names(labcost) <- costset
+labconjrate <- paste("Conjset", 1:length(conjrateset))
+names(labconjrate) <- 1:length(conjrateset)
+labtaxmat <- paste("Taxmat", 1:length(taxmatset))
+names(labtaxmat) <- 1:length(taxmatset)
 mylabeller <- labeller(nspecies = labspecies, abunmodelcode = labmodel,
-                       conjratecode = labconjrate, cost = labcost,
-                       .default = label_value)
+                       cost = labcost, conjratecode = labconjrate,
+                       taxmatcode = labtaxmat, .default = label_value)
 
 plotdata <- as.data.frame(plotdata)
 datatotal <- as.data.frame(datatotal)
@@ -1359,7 +1385,8 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 ## Compare equilibrium characteristics for the models without and with plasmids.
 # If invasion has been simulated, data on infinite growth and reaching
 # equilibrium after perturbation is also plotted.
-CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]), near(conjratecode, 1)),
+CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+                             near(conjratecode, 1), near(taxmatcode, 1)),
            fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction,
            facetx = "abunmodelcode", facety = "nspecies",
@@ -1369,7 +1396,8 @@ CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
-CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]), near(conjratecode, 1)),
+CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+                             near(conjratecode, 1), near(taxmatcode, 1)),
            fillvar = "1 - fracstable", filltitle = "Fraction unstable",
            filltype = "continuous", limits = limitsfraction,
            facetx = "abunmodelcode", facety = "nspecies",
@@ -1455,7 +1483,7 @@ ggplot(data = datatotalfilteredspecies,
        y = "Imaginary part dominant eigenvalue",
        caption = paste(niter, "iterations")) +
   facet_grid(rows = vars(nspecies, conjratecode),
-             cols = vars(abunmodelcode, cost),
+             cols = vars(taxmatcode, abunmodelcode, cost),
              labeller = mylabeller)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "eigenvaluesdistr.png"))
@@ -1472,7 +1500,7 @@ ggplot(data = datatotalfilteredspecies,
        y = "Imaginary part dominant eigenvalue (with conj.)",
        caption = paste(niter, "iterations")) +
   facet_grid(rows = vars(nspecies, conjratecode),
-             cols = vars(abunmodelcode, cost),
+             cols = vars(taxmatcode, abunmodelcode, cost),
              labeller = mylabeller)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "eigenvaluesdistrconj.png"))
@@ -1521,7 +1549,7 @@ CreatePlot(fillvar = "growthratemax", filltitle = "Max growth rate",
 # obtain an equilibrium. Costs and conjugation rate do not affect growth rate,
 # so data has been filtered to have only one value for them.
 datatotalfiltercostconj <- filter(datatotal, near(cost, costset[1]),
-                                  near(conjratecode, 1))
+                                  near(conjratecode, 1), near(taxmatcode, 1))
 
 ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) + 
   theme_bw() +
@@ -1560,11 +1588,13 @@ if(saveplots == TRUE) {
 
 # Calculate density if only intraspecies interactions are present
 CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate/selfintmean",
-           filltitle = "Mean carrying capacity",
-           filltype = "continuous", filename = "carrycap")
+           filltitle = "Mean carrying capacity", filltype = "continuous",
+           facetx = "abunmodelcode", facety = "nspecies",
+           filename = "carrycap")
 CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate/selfintmean",
-           filltitle = "Mean carrying capacity",
-           filltype = "continuous", rotate_legend = TRUE, filename = "carrycaprotated")
+           filltitle = "Mean carrying capacity", filltype = "continuous",
+           facetx = "abunmodelcode", facety = "nspecies",
+           rotate_legend = TRUE, filename = "carrycaprotated")
 
 ## Plot summary data on the number of iterations in creating intmat needed to
 # find a stable equilibrium with the model without plasmids
@@ -1610,7 +1640,8 @@ if(simulateinvasion == TRUE) {
              title = title, subtitle = subplasmidbearing)
   
   title <- "Number of species going extinct after perturbation"
-  CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]), near(conjratecode, 1)),
+  CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+                               near(conjratecode, 1), near(taxmatcode, 1)),
              fillvar = "nspecies - npopRmean",
              filltitle = "Mean number of\nspecies going extinct",
              filltype = "continuous", limits = c(0, maxnspecies),
