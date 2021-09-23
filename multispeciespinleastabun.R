@@ -1079,6 +1079,8 @@ for(nspecies in nspeciesset) {
                 taxmat <- matrix(rep("SameSpecies", nspecies^2),
                                  nrow = nspecies, ncol = nspecies, byrow = TRUE)
                 if(taxmattype == "PInOtherClass") {
+                  # The plasmid is introduced in the least abundant species,
+                  # so set the last row and column of the matrix to OtherClass
                   taxmat[nspecies, ] <- "OtherClass"
                   taxmat[, nspecies] <- "OtherClass"
                   diag(taxmat) <- "SameSpecies"
@@ -1305,8 +1307,8 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    saveplots = saveplots, nspeciesset = nspeciesset,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
-                   costset = costset), conjrateset,
-              list(taxmattype = taxmattypeset, costtype = costtype, duration = duration))
+                   costset = costset, conjrateset, taxmattype = taxmattypeset,
+                   costtype = costtype, duration = duration))
 for(index in 1:length(settings)) {
   write.table(t(as.data.frame(settings[index])), 
               paste0(DateTimeStamp, "settings.csv"), append = TRUE,
@@ -1340,8 +1342,8 @@ labcost <- paste0("Cost: ", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", 1:length(conjrateset))
 names(labconjrate) <- 1:length(conjrateset)
-labtaxmat <- paste("Taxmat", 1:length(taxmattypeset))
-names(labtaxmat) <- 1:length(taxmattypeset)
+labtaxmat <- taxmattypeset
+names(labtaxmat) <- 1:length(conjrateset)
 mylabeller <- labeller(nspecies = labspecies, abunmodelcode = labmodel,
                        cost = labcost, conjratecode = labconjrate,
                        taxmatcode = labtaxmat, .default = label_value)
