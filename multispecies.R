@@ -164,15 +164,11 @@ abunmodelset <- c("dompreempt")
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
-taxmatsame <- matrix(rep("SameSpecies", maxnspecies^2),
-                     nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
-taxmatother <- taxmatsame
-taxmatother[1, -1] <- "OtherClass"
-taxmatother[-1, 1] <- "OtherClass"
-# Set containing taxonomic information when all populations belong to the same
-# species and when the plasmid-bearing bacterium belongs to another class than
-# the other populations.
-taxmatset <- list(taxmatsame, taxmatother)
+# If taxmattype is SameSpecies, the conjugation rate is the same for all
+# populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
+# to and from the initially plasmid-bearing population (here the most abundant
+# species) is reduced a 1000-fold
+taxmattypeset <- c("SameSpecies", "PInOtherClass")
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -202,15 +198,11 @@ abunmodelset <- c("dompreempt")
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
-taxmatsame <- matrix(rep("SameSpecies", maxnspecies^2),
-                     nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
-taxmatother <- taxmatsame
-taxmatother[1, -1] <- "OtherClass"
-taxmatother[-1, 1] <- "OtherClass"
-# Set containing taxonomic information when all populations belong to the same
-# species and when the plasmid-bearing bacterium belongs to another class than
-# the other populations.
-taxmatset <- list(taxmatsame, taxmatother)
+# If taxmattype is SameSpecies, the conjugation rate is the same for all
+# populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
+# to and from the initially plasmid-bearing population (here the most abundant
+# species) is reduced a 1000-fold
+taxmattypeset <- c("SameSpecies", "PInOtherClass")
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 niter <- 10
@@ -236,15 +228,12 @@ selfintmeanset <- c(-1.3e-11, -3e-12)
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
-taxmatsame <- matrix(rep("SameSpecies", maxnspecies^2),
-                     nrow = maxnspecies, ncol = maxnspecies, byrow = TRUE)
-taxmatother <- taxmatsame
-taxmatother[1, -1] <- "OtherClass"
-taxmatother[-1, 1] <- "OtherClass"
-# Set containing taxonomic information when all populations belong to the same
-# species and when the plasmid-bearing bacterium belongs to another class than
-# the other populations.
-taxmatset <- list(taxmatsame, taxmatother)
+conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
+# If taxmattype is SameSpecies, the conjugation rate is the same for all
+# populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
+# to and from the initially plasmid-bearing population (here the most abundant
+# species) is reduced a 1000-fold
+taxmattypeset <- c("SameSpecies", "PInOtherClass")
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -953,7 +942,7 @@ starttime <- Sys.time()
 
 # Create matrix to store data
 nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
-                                  selfintmeanset, costset, conjrateset, taxmatset),
+                                  selfintmeanset, costset, conjrateset, taxmattypeset),
                              use.names = FALSE))
 ncolplotdata <- if(simulateinvasion == TRUE) {
   16*4 + 4*4*maxnspecies + 31
@@ -963,7 +952,7 @@ ncolplotdata <- if(simulateinvasion == TRUE) {
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
-                                   costset, conjrateset, taxmatset),
+                                   costset, conjrateset, taxmattypeset),
                               use.names = FALSE))*niter*sum(nspeciesset)
 datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 46 + 4*maxnspecies)
 indexdatatotal <- 1
@@ -997,7 +986,7 @@ for(nspecies in nspeciesset) {
                      ", intmean = ", intmean, ", selfintmean = ", selfintmean,
                      ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset) *
-          length(taxmatset)
+          length(taxmattypeset)
         data <- matrix(data = NA, nrow = nrowdata, ncol = 46 + 4*maxnspecies)
         indexdata <- 1
         abunR <- rep(NA, maxnspecies)
@@ -1084,11 +1073,20 @@ for(nspecies in nspeciesset) {
               conjratecode <- conjratecode + 1
               taxmatcode <- 0
               
-            for(taxmat in taxmatset) {
+            for(taxmattype in taxmattypeset) {
                 taxmatcode <- taxmatcode + 1
-                
+                taxmat <- matrix(rep("SameSpecies", nspecies^2),
+                                 nrow = nspecies, ncol = nspecies, byrow = TRUE)
+                if(taxmattype == "PInOtherClass") {
+                  # The plasmid is introduced in the most abundant species,
+                  # so set the first row and column of the matrix to OtherClass
+                  taxmat[1, ] <- "OtherClass"
+                  taxmat[, 1] <- "OtherClass"
+                  diag(taxmat) <- "SameSpecies"
+                }
               conjmat <- getconjmat(nspecies = nspecies,
                                     conjrate = conjrate, taxmat = taxmat)
+              
               # Get equilibrium characteristics for plasmid-free equilibrium in
               # the model with conjugation
               eqinfoconj <- geteqinfo(model = "gLVConj",
@@ -1275,7 +1273,7 @@ for(nspecies in nspeciesset) {
         }
         
         rowindexplotdatanew <- rowindexplotdata + length(costset) *
-          length(conjrateset) * length(taxmatset)
+          length(conjrateset) * length(taxmattypeset)
         plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
           tibble(niter, nspecies, abunmodelcode, intmean, selfintmean, summarydata))
         rowindexplotdata <- rowindexplotdatanew
@@ -1299,10 +1297,6 @@ write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
 
 # Saving settings
 names(conjrateset) <- paste0("conjrateset", 1:length(conjrateset))
-for(index in 1:length(taxmatset)) {
-  rownames(taxmatset[[index]]) <- paste0("recipientsp", 1:(dim(taxmatset[[index]])[1]))
-  colnames(taxmatset[[index]]) <- paste0("donorsp", 1:(dim(taxmatset[[index]])[1]))
-}
 settings <- c(list(niter = niter, niterintmat = niterintmat,
                    simulateinvasion = simulateinvasion,
                    smallstate = smallstate, smallchange = smallchange,
@@ -1310,8 +1304,8 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    saveplots = saveplots, nspeciesset = nspeciesset,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
-                   costset = costset), conjrateset,
-              list(taxmat = taxmatset, costtype = costtype, duration = duration))
+                   costset = costset, conjrateset, taxmattype = taxmattypeset,
+                   costtype = costtype, duration = duration))
 for(index in 1:length(settings)) {
   write.table(t(as.data.frame(settings[index])), 
               paste0(DateTimeStamp, "settings.csv"), append = TRUE,
@@ -1345,8 +1339,8 @@ labcost <- paste0("Cost: ", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", 1:length(conjrateset))
 names(labconjrate) <- 1:length(conjrateset)
-labtaxmat <- paste("Taxmat", 1:length(taxmatset))
-names(labtaxmat) <- 1:length(taxmatset)
+labtaxmat <- taxmattypeset
+names(labtaxmat) <- 1:length(conjrateset)
 mylabeller <- labeller(nspecies = labspecies, abunmodelcode = labmodel,
                        cost = labcost, conjratecode = labconjrate,
                        taxmatcode = labtaxmat, .default = label_value)
