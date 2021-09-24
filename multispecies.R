@@ -900,6 +900,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   if(save == TRUE) {
     if(is.null(filename)) {
       filename <- gsub("/", ".", fillvar)
+      filename <- gsub("\\*", ".", filename)
       filename <- gsub(" ", "", filename)
       filename <- paste0(filename, filltype)
     }
@@ -1331,8 +1332,10 @@ for(index in 1:length(settings)) {
 
 
 #### Labels and limits for plots ####
-labspecies <- paste(nspeciesset, "species")
-names(labspecies) <- nspeciesset
+labspecies <- paste("Species", 1:maxnspecies)
+names(labspecies) <- 1:maxnspecies
+labnspecies <- paste(nspeciesset, "species")
+names(labnspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
 labcost <- paste0("Cost: ", costset, "/h")
@@ -1341,7 +1344,8 @@ labconjrate <- paste("Conjset", 1:length(conjrateset))
 names(labconjrate) <- 1:length(conjrateset)
 labtaxmat <- taxmattypeset
 names(labtaxmat) <- 1:length(conjrateset)
-mylabeller <- labeller(nspecies = labspecies, abunmodelcode = labmodel,
+mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
+                       abunmodelcode = labmodel,
                        cost = labcost, conjratecode = labconjrate,
                        taxmatcode = labtaxmat, .default = label_value)
 
