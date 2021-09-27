@@ -1388,7 +1388,7 @@ CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
            fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction,
            facetx = "abunmodelcode", facety = "nspecies",
-           filename = "fracstablefewfacets.png")
+           filename = "fracstablefewfacets")
 CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
            filltype = "continuous", limits = limitsfraction)
 CreatePlot(fillvar = "fracstableconj",
@@ -1399,7 +1399,7 @@ CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
            fillvar = "1 - fracstable", filltitle = "Fraction unstable",
            filltype = "continuous", limits = limitsfraction,
            facetx = "abunmodelcode", facety = "nspecies",
-           filename = "fracunstablefewfacets.png")
+           filename = "fracunstablefewfacets")
 CreatePlot(fillvar = "1 - fracstable", filltitle = "Fraction unstable",
            filltype = "continuous", limits = limitsfraction,
            filename = "fracunstablecontinuous")
@@ -1495,7 +1495,7 @@ ggplot(data = datatotalfilteredspecies,
   geom_point() +
   theme(legend.position = "bottom") +
   labs(x = "Real part dominant eigenvalue (with conjugation)",
-       y = "Imaginary part dominant eigenvalue (with conj.)",
+       y = "Imaginary part dominant eigenvalue (with conjugation)",
        caption = paste(niter, "iterations")) +
   facet_grid(rows = vars(nspecies, conjratecode),
              cols = vars(taxmatcode, abunmodelcode, cost),
@@ -1557,20 +1557,7 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "carryingcapacity.png"))
-}
-
-# Larger intmean leads to lower growth rate, effect becomes larger when species
-# are less abundant
-ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) + 
-  theme_bw() +
-  theme(legend.position = "bottom") +
-  geom_point(aes(color = selfintmean), size = 1) +
-  facet_grid(species + nspecies ~ abunmodelcode, labeller = mylabeller) +
-  scale_color_viridis_c() +
-  labs(caption = paste(niter, "iterations"))
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthrateperspeciesv1.png"))
+  ggsave(paste0(DateTimeStamp, "growthratevsintmean.png"))
 }
 
 ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
@@ -1581,7 +1568,7 @@ ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthrateperspeciesv2.png"))
+  ggsave(paste0(DateTimeStamp, "growthratevsselfintmean.png"))
 }
 
 # Calculate density if only intraspecies interactions are present
@@ -1632,7 +1619,7 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "npopRmean", filltitle = "Mean total number\nof species",
              filltype = "continuous", limits = limitsmeannspecies,
              title = title, subtitle = subplasmidfree,
-             filename = "nspeciesRmean.png")
+             filename = "nspeciesRmean")
   CreatePlot(fillvar = "nspeciesconjmean", filltitle = "Mean total number\nof species",
              filltype = "continuous", limits = limitsmeannspecies,
              title = title, subtitle = subplasmidbearing)
@@ -1645,17 +1632,37 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = c(0, maxnspecies),
              title = title, subtitle = subplasmidfree,
              facetx = "abunmodelcode", facety = "nspecies",
-             filename = "nspeciesRmeanextinctfewfacets.png")
+             filename = "nspeciesRmeanextinctfewfacets")
   CreatePlot(fillvar = "nspecies - npopRmean",
              filltitle = "Mean number of\nspecies going extinct",
              filltype = "continuous", limits = c(0, maxnspecies),
              title = title, subtitle = subplasmidfree,
-             filename = "nspeciesRmeanextinct.png")
+             filename = "nspeciesRmeanextinct")
   CreatePlot(fillvar = "nspecies - nspeciesconjmean",
              filltitle = "Mean number of\nspecies going extinct",
              filltype = "continuous", limits = c(0, maxnspecies),
              title = title, subtitle = subplasmidbearing,
-             filename = "nspeciesconjmeanextinct.png")
+             filename = "nspeciesconjmeanextinct")
+  
+  title <- "Fraction of species going extinct after perturbation"
+  CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+                               near(conjratecode, 1), near(taxmatcode, 1)),
+             fillvar = "1 - (npopRmean / nspecies)",
+             filltitle = "Mean fraction of\nspecies going extinct",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidfree,
+             facetx = "abunmodelcode", facety = "nspecies",
+             filename = "fracspeciesextinctmeanfewfacets")
+  CreatePlot(fillvar = "1 - (npopRmean / nspecies)",
+             filltitle = "Mean fraction of\nspecies going extinct",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidfree,
+             filename = "fracspeciesextinctmean")
+  CreatePlot(fillvar = "1 - (nspeciesconjmean / nspecies)",
+             filltitle = "Mean fraction of\nspecies going extinct",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing,
+             filename = "fracspeciesextinctmeanconj")
   
   title <- "Fraction of species after perturbation"
   CreatePlot(fillvar = "fracspeciesRconjmean",
