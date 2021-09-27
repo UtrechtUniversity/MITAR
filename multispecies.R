@@ -1343,7 +1343,7 @@ names(labcost) <- costset
 labconjrate <- paste("Conjset", 1:length(conjrateset))
 names(labconjrate) <- 1:length(conjrateset)
 labtaxmat <- taxmattypeset
-names(labtaxmat) <- 1:length(conjrateset)
+names(labtaxmat) <- 1:length(taxmattypeset)
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
                        abunmodelcode = labmodel,
                        cost = labcost, conjratecode = labconjrate,
