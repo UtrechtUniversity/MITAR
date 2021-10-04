@@ -39,6 +39,8 @@ library(dplyr) # filter(), near()
 library(ggplot2) # Creating plots.
 library(rootSolve) # Integrating ODEs, obtaining Jacobian matrix.
 library(tidyr) # expand_grid() which allows for dataframe as input
+library(cowplot) # plot_grid() to create a single figure from multiple plots,
+                 # get_legend() to create shared legends
 
 #### Plotting and simulation options ####
 saveplots <- TRUE
@@ -241,7 +243,6 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
   if(filltype == "manual") {
     p <- p + scale_fill_manual(values = manualvalues, name = filltitle)
   }
-  print(p)
   if(save == TRUE) {
     if(is.null(filename)) {
       fillvarname <- gsub("/", ".", fillvar)
@@ -254,6 +255,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
       ggsave(filename)
     }
   }
+  return(p)
 }
 
 
@@ -435,7 +437,7 @@ mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
 CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
 
 # Show if the largest eigenvalues of the pair-formation model and bulk model
-# have equal signs (Figure S1 in article)
+# have equal signs
 CreatePlot(fillvar = "factor(near(SignDomEigVal, SignDomEigValBulk))",
            filltype = "manual",
            filltitle = "Largest eigenvalues\nhave equal signs",
@@ -562,6 +564,125 @@ CreatePlot(fillvar = "factor(near(SignDomEigVal, SignDomEigValBulk))",
            filltype = "manual",
            filltitle = "Largest eigenvalues\nhave equal signs")
 
+## Compare simulation-derived and calculated bulk-rates
+# Bulk-rates calculated as gdbulk = gd * kp / kn and gtbulk = gt * kp / kn.
+# First filter data on conjugation rates and costs. Copy data on
+# bulk-conjugation rates and eigenvalues from simulation-derived
+# bulk-conjugation rates to new columns, and replace the old columns with data
+# from calculated bulk-conjugation rates
+DataCalcRates <- filter(MyData, near(gd, 15), near(gt, 15),
+                        near(cd, 0.18), near(ct, 0.09))
+DataCalcRates[, "gdbulksim"] <- DataCalcRates[, "gdbulk"]
+DataCalcRates[, "gtbulksim"] <- DataCalcRates[, "gtbulk"]
+DataCalcRates[, "SignDomEigValsim"] <- DataCalcRates[, "SignDomEigVal"]
+DataCalcRates[, "SignDomEigValBulksim"] <- DataCalcRates[, "SignDomEigValBulk"]
+DataCalcRates[, "gdbulk"] <- DataCalcRates[, "gd"] * DataCalcRates[, "kp"] /
+  DataCalcRates[, "kn"]
+DataCalcRates[, "gtbulk"] <- DataCalcRates[, "gt"] * DataCalcRates[, "kp"] /
+  DataCalcRates[, "kn"]
+
+# Remove existing columns with data on eigenvalues, calculate eigenvalues using
+# calculated bulk-conjugation rates, and save the results
+DataCalcRates <- select(DataCalcRates, -c("SignDomEigVal", "SignDomEigValBulk",
+                                          starts_with(c("Eigval", "ComplexEigVal", "DomEigVal"))))
+MyInfoEigValCalcRates <- t(apply(DataCalcRates, MARGIN = 1, FUN = CalcEigenvalues))
+DataCalcRates <- cbind(DataCalcRates, MyInfoEigValCalcRates)
+DataCalcRates <- select(DataCalcRates, -starts_with("Eigval"))
+write.csv(DataCalcRates, file = paste0(DateTimeStamp, "calcbulkratepairformation.csv"),
+          quote = FALSE, row.names = FALSE)
+
+## Plots to compare the influence of conjugation, attachment, and detachment
+# rates on the simulation-derived and calculated bulk-conjugation rates
+# Plots of data from simulation-derived bulk-rates
+limitscalcbulkrates <- range(log10(c(DataCalcRates$gtbulk, DataCalcRates$gtbulksim)))
+theme_no_y <- theme(legend.position = "none", axis.title.y = element_blank(),
+                    plot.margin = unit(c(0, 0, 0, 0), "pt"))
+
+Plotgtbulksim <- CreatePlot(dataplot = DataCalcRates,
+                            fillvar = "log10(gtbulksim)", filltype = "continuous",
+                            limits = limitscalcbulkrates,
+                            filltitle = "Log10(Transconjugant\nbulkrate)",
+                            facetx = ".", facety = ".", save = FALSE) +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "pt"))
+PlotLegendgtbulk <- get_legend(Plotgtbulksim)
+Plotgtbulksim <- Plotgtbulksim + theme(legend.position = "none")
+Plotgtbulkcalc <- CreatePlot(dataplot = DataCalcRates,
+                             fillvar = "log10(gtbulk)", filltype = "continuous",
+                             limits = limitscalcbulkrates, filltitle = NULL,
+                             facetx = ".", facety = ".", save = FALSE) + theme_no_y
+Plotgtbulk <- plot_grid(Plotgtbulksim, Plotgtbulkcalc) +
+  theme(plot.margin = unit(c(10, 0, 10, 0), "pt"))
+
+PlotSignEigValsim <- CreatePlot(dataplot = DataCalcRates,
+                                fillvar = "factor(SignDomEigValBulksim)",
+                                filltitle = "Plasmid can invade\n(bulk model)",
+                                facetx = ".", facety = ".", save = FALSE) +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "pt"))
+PlotLegendSignEigVal <- get_legend(PlotSignEigValsim)
+PlotSignEigValsim <- PlotSignEigValsim + theme(legend.position = "none")
+PlotSignEigValcalc <- CreatePlot(dataplot = DataCalcRates,
+                                 fillvar = "factor(SignDomEigValBulk)",
+                                 filltitle = NULL,
+                                 facetx = ".", facety = ".", save = FALSE) + theme_no_y
+PlotSignEigVal <- plot_grid(PlotSignEigValsim, PlotSignEigValcalc) +
+  theme(plot.margin = unit(c(10, 0, 10, 0), "pt"))
+
+PlotSignEigValEqualsim <- CreatePlot(dataplot = DataCalcRates,
+                                     fillvar = "near(SignDomEigValsim, SignDomEigValBulksim)",
+                                     filltype = "manual",
+                                     filltitle = "Largest eigenvalues\nhave equal signs",
+                                     facetx = ".", facety = ".", save = FALSE) +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "pt"))
+PlotLegendSignEigValEqual <- get_legend(PlotSignEigValEqualsim)
+PlotLegendSignEigValEqual <- PlotLegendSignEigValEqual
+PlotSignEigValEqualsim <- PlotSignEigValEqualsim + theme(legend.position = "none")
+PlotSignEigValEqualcalc <- CreatePlot(dataplot = DataCalcRates,
+                                      fillvar = "near(SignDomEigVal, SignDomEigValBulk)",
+                                      filltype = "manual",
+                                      filltitle = "Largest eigenvalues\nhave equal signs\n(calculated bulkrates)",
+                                      facetx = ".", facety = ".", save = FALSE) + theme_no_y
+PlotSignEigValEqual <- plot_grid(PlotSignEigValEqualsim, PlotSignEigValEqualcalc) +
+  theme(plot.margin = unit(c(10, 0, 10, 0), "pt"))
+
+DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
+png(filename = paste0("FigA5", DateTimeStamp, ".tiff"),
+    width = 420, height = 1.5*480)
+plot_grid(Plotgtbulk, PlotLegendgtbulk,
+          PlotSignEigVal, PlotLegendSignEigVal,
+          PlotSignEigValEqual, PlotLegendSignEigValEqual,
+          ncol = 1, byrow = TRUE,
+          rel_heights = c(1, 0.1, 1, 0.1, 1, 0.1),
+          labels = c("A", "", "B", "", "C"), hjust = -1) +
+  theme(plot.margin = margin(0, 0, 5, 0, "pt"))
+dev.off()
+
+png(filename = paste0("FigA5v6", DateTimeStamp, ".tiff"),
+    width = 0.8*420, height = 0.8*1.5*480)
+plot_grid(Plotgtbulk, PlotLegendgtbulk,
+          PlotSignEigVal, PlotLegendSignEigVal,
+          PlotSignEigValEqual, PlotLegendSignEigValEqual,
+          ncol = 1, byrow = TRUE,
+          rel_heights = c(1, 0.1, 1, 0.1, 1, 0.1),
+          labels = c("A", "", "B", "", "C"), hjust = -1) +
+  theme(plot.margin = margin(0, 0, 5, 0, "pt"))
+dev.off()
+
+# show plots comparing bulk-conjugations derived from simulations with calculated
+# bulk-conjugation rates.
+CreatePlot(dataplot = DataCalcRates, fillvar = "gdbulk / gdbulksim",
+           filltype = "continuous", filltitle = "gdbulkcalc / gdbulksim",
+           facetx = ".", facety = ".")
+CreatePlot(dataplot = DataCalcRates, fillvar = "log10(gdbulk / gdbulksim)",
+           filltype = "continuous", filltitle = "Log10(gdbulkcalc / gdbulksim)",
+           facetx = ".", facety = ".")
+CreatePlot(dataplot = DataCalcRates, fillvar = "gtbulk / gtbulksim",
+           filltype = "continuous", filltitle = "gtbulkcalc / gtbulksim",
+           facetx = ".", facety = ".")
+CreatePlot(dataplot = DataCalcRates, fillvar = "log10(gtbulk / gtbulksim)",
+           filltype = "continuous", filltitle = "Log10(gtbulkcalc / gtbulksim)",
+           facetx = ".", facety = ".")
+
+
 # Change layout of labels for next plots
 labgd <- paste0("Donor conjugation rate ", gdSet, "/h")
 names(labgd) <- gdSet
@@ -636,7 +757,7 @@ write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar2.csv"),
 mylty <- c(lty = c(3, 1, 2, 1, 1, 1, 1, 1))
 mycol <- c("black", "blue", "red", "darkgreen", "brown", "purple", "darkorange",
            "yellow")
-myylim <- c(1E-7, 1E7) # Defining the limits for the y-axis
+myylim <- c(1E-6, 1E7) # Defining the limits for the y-axis
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 plotoutput <- 1
 verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed
