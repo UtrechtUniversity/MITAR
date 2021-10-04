@@ -237,8 +237,12 @@ taxmattypeset <- c("SameSpecies", "PInOtherClass")
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
-# To simulate that each species belongs to a different class, reduce conjrateset
-# 1000-fold and look at data for taxmattype = taxmatsame.
+# Note: to simulate that each species belongs to a different class, an
+# additional taxmattype has to be added. Then only the interspecies conjugation
+# rates should be reduced, as the intraspecies conjugation rates of all species
+# are still those given in conjrateset. This unchanged intraspecies conjugation
+# rate makes it different from reducing conjrateset 1000-fold and using
+# 'taxmatsame' as taxmattype.
 
 
 #### Functions ####
@@ -1342,7 +1346,7 @@ labcost <- paste0("Cost: ", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", 1:length(conjrateset))
 names(labconjrate) <- 1:length(conjrateset)
-labtaxmat <- taxmattypeset
+labtaxmat <- c("All conj. equal", "Reduced g[ij]\nand g[ji] in initP")
 names(labtaxmat) <- 1:length(taxmattypeset)
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
                        abunmodelcode = labmodel,
