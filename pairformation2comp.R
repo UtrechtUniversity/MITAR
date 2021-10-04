@@ -1287,9 +1287,9 @@ dev.off()
 # Create plots to compare bulk- and pair-formation model over time
 myltypairs <- c(lty = rep(c(3, 1, 2, 1, 1, 1, 1, 1), 2))
 myltyother <- c(lty = rep(c(3, 1, 2, 1), 2))
-mycolpairs <- rep(c("black", "purple", "darkgreen", "red", "yellow", "brown",
-                    "blue", "darkorange"), 2)
-mycolother <- rep(c("black", "purple", "darkgreen", "red"), 2)
+mycolpairs <- rep(c("black", "blue", "red", "darkgreen", "brown", "purple",
+                    "darkorange", "yellow"), 2)
+mycolother <- rep(c("black", "blue", "red", "darkgreen"), 2)
 myylim <- c(1E-6, 1E7)
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
 verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed
