@@ -628,18 +628,17 @@ PlotSignEigVal <- plot_grid(PlotSignEigValsim, PlotSignEigValcalc) +
   theme(plot.margin = unit(c(10, 0, 10, 0), "pt"))
 
 PlotSignEigValEqualsim <- CreatePlot(dataplot = DataCalcRates,
-                                     fillvar = "near(SignDomEigValsim, SignDomEigValBulksim)",
-                                     filltype = "manual",
-                                     filltitle = "Largest eigenvalues\nhave equal signs",
+                                     fillvar = "factor(as.numeric(near(SignDomEigValsim, SignDomEigValBulksim)))",
+                                     limits = c(0, 1),
+                                     filltitle = "Possibility for invasion equal in\nbulk- and pair-formation models",
                                      facetx = ".", facety = ".", save = FALSE) +
   theme(plot.margin = unit(c(0, 0, 0, 0), "pt"))
 PlotLegendSignEigValEqual <- get_legend(PlotSignEigValEqualsim)
 PlotLegendSignEigValEqual <- PlotLegendSignEigValEqual
 PlotSignEigValEqualsim <- PlotSignEigValEqualsim + theme(legend.position = "none")
 PlotSignEigValEqualcalc <- CreatePlot(dataplot = DataCalcRates,
-                                      fillvar = "near(SignDomEigVal, SignDomEigValBulk)",
-                                      filltype = "manual",
-                                      filltitle = "Largest eigenvalues\nhave equal signs\n(calculated bulkrates)",
+                                      fillvar = "factor(as.numeric(near(SignDomEigVal, SignDomEigValBulk)))",
+                                      limits = c(0, 1), filltitle = NULL,
                                       facetx = ".", facety = ".", save = FALSE) + theme_no_y
 PlotSignEigValEqual <- plot_grid(PlotSignEigValEqualsim, PlotSignEigValEqualcalc) +
   theme(plot.margin = unit(c(10, 0, 10, 0), "pt"))
@@ -656,7 +655,7 @@ plot_grid(Plotgtbulk, PlotLegendgtbulk,
   theme(plot.margin = margin(0, 0, 5, 0, "pt"))
 dev.off()
 
-png(filename = paste0("FigA5v6", DateTimeStamp, ".tiff"),
+png(filename = paste0("FigA5", DateTimeStamp, ".tiff"),
     width = 0.8*420, height = 0.8*1.5*480)
 plot_grid(Plotgtbulk, PlotLegendgtbulk,
           PlotSignEigVal, PlotLegendSignEigVal,
