@@ -228,7 +228,6 @@ selfintmeanset <- c(-1.3e-11, -3e-12)
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
-conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
 # to and from the initially plasmid-bearing population (here the most abundant
@@ -1381,6 +1380,10 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 
 
 #### Plot output ####
+# The error '$ operator is invalid for atomic vectors' arises if the matrix
+# 'plotdata' has not been comverted to a dataframe. To convert it to a dataframe,
+# run plotdata <- as.data.frame(plotdata)
+
 
 ## Compare equilibrium characteristics for the models without and with plasmids.
 # If invasion has been simulated, data on infinite growth and reaching
