@@ -1670,11 +1670,11 @@ if(simulateinvasion == TRUE) {
   
   title <- "Fraction of species after perturbation"
   CreatePlot(fillvar = "fracspeciesRconjmean",
-             filltitle = "Fraction of species that have\na plasmid-free population",
+             filltitle = "Mean fraction of species that have\na plasmid-free population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "fracspeciesPconjmean",
-             filltitle = "Fraction of species that have\na plasmid-bearing population",
+             filltitle = "Mean fraction of species that have\na plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   
