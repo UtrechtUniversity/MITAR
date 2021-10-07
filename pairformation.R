@@ -655,16 +655,6 @@ plot_grid(Plotgtbulk, PlotLegendgtbulk,
   theme(plot.margin = margin(0, 0, 5, 0, "pt"))
 dev.off()
 
-png(filename = paste0("FigA5", DateTimeStamp, ".tiff"),
-    width = 0.8*420, height = 0.8*1.5*480)
-plot_grid(Plotgtbulk, PlotLegendgtbulk,
-          PlotSignEigVal, PlotLegendSignEigVal,
-          PlotSignEigValEqual, PlotLegendSignEigValEqual,
-          ncol = 1, byrow = TRUE,
-          rel_heights = c(1, 0.1, 1, 0.1, 1, 0.1),
-          labels = c("A", "", "B", "", "C"), hjust = -1) +
-  theme(plot.margin = margin(0, 0, 5, 0, "pt"))
-dev.off()
 
 # show plots comparing bulk-conjugations derived from simulations with calculated
 # bulk-conjugation rates.
