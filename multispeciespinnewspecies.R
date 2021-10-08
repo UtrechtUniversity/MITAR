@@ -161,6 +161,10 @@ totalabun <- 1e11
 nspeciesset <- 1 + c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
+# The growth rate of new species is the mean growth rate of the plasmid-free 
+# species decreased with 2 standard deviations, unchanged, or increased with 2
+# standard deviations when newgrowthratecode == 1, 2, or 3, respectively.
+newgrowthratecode <- 1 # A SINGLE value should be provided
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
@@ -195,6 +199,10 @@ totalabun <- 1e11
 nspeciesset <- 1 + c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
+# The growth rate of new species is the mean growth rate of the plasmid-free 
+# species decreased with 2 standard deviations, unchanged, or increased with 2
+# standard deviations when newgrowthratecode == 1, 2, or 3, respectively.
+newgrowthratecode <- 1 # A SINGLE value should be provided
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
@@ -224,6 +232,10 @@ totalabun <- 1e11
 nspeciesset <- 1 + c(2, 4)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
+# The growth rate of new species is the mean growth rate of the plasmid-free 
+# species decreased with 2 standard deviations, unchanged, or increased with 2
+# standard deviations when newgrowthratecode == 1, 2, or 3, respectively.
+newgrowthratecode <- 1 # A SINGLE value should be provided
 intmeanset <- c(-6e-12, 6e-12)
 selfintmeanset <- c(-1.3e-11, -3e-12)
 costset <- c(0.03, 0.09)
@@ -950,16 +962,16 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset, taxmattypeset),
                              use.names = FALSE))
 ncolplotdata <- if(simulateinvasion == TRUE) {
-  16*4 + 4*4*maxnspecies + 31
+  16*4 + 4*4*maxnspecies + 32
 } else {
-  3*4 + 8 + 5 + 10
+  3*4 + 8 + 5 + 10 + 1
 }
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset, taxmattypeset),
                               use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 46 + 4*maxnspecies)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 47 + 4*maxnspecies)
 indexdatatotal <- 1
 
 # Run simulations
@@ -992,7 +1004,7 @@ for(nspecies in nspeciesset) {
                      ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset) *
           length(taxmattypeset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 46 + 4*maxnspecies)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 47 + 4*maxnspecies)
         indexdata <- 1
         abunR <- rep(NA, maxnspecies)
         abunRconj <- rep(NA, maxnspecies)
@@ -1011,8 +1023,16 @@ for(nspecies in nspeciesset) {
           while(stableeq == FALSE && iterintmat < niterintmat) {
             intmat <- getintmat(nspecies = nspecies,
                                 intmean = intmean, selfintmean = selfintmean)
-            growthrate <- c(getgrowthrate(abundance = abundance, intmat = intmat[-nspecies, -nspecies]),
-                            runif(1, min = 0.05, max = 0.55))
+            growthrateeq <- getgrowthrate(abundance = abundance,
+                                          intmat = intmat[-nspecies, -nspecies])
+            # The growth rate of new species is the mean growth rate of the
+            # plasmid-free species decreased with 2 standard deviations,
+            # unchanged, or increased with 2 standard deviations when
+            # newgrowthratecode == 1, 2, or 3, respectively
+            growthrate <- c(growthrateeq, switch(newgrowthratecode,
+                                                 mean(growthrateeq) - sd(growthrateeq),
+                                                 mean(growthrateeq),
+                                                 mean(growthrateeq) + sd(growthrateeq)))
             eqinfo <- geteqinfo(model = "gLV", abundance = c(abundance, 0),
                                 intmat = intmat, growthrate = growthrate)
             if(eqinfo["eigvalRe"] < 0) {
@@ -1186,7 +1206,7 @@ for(nspecies in nspeciesset) {
               data[indexdata:(indexdatanew - 1), ] <- cbind(
                 niter, nspecies, abunmodelcode, intmean, selfintmean,
                 cost, conjratecode, taxmatcode, iter, 1:nspecies, c(abundance, 0),
-                diag(intmat), c(growthrate), iterintmat,
+                diag(intmat), c(growthrate), newgrowthratecode, iterintmat,
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
                 compstability,
@@ -1212,7 +1232,7 @@ for(nspecies in nspeciesset) {
         colnames(data) <- c("niter", "nspecies", "abunmodelcode",
                             "intmean", "selfintmean", "cost", "conjratecode",
                             "taxmatcode", "iter", "species", "abundance",
-                            "selfintdata", "growthrate",
+                            "selfintdata", "growthrate", "newgrowthratecode",
                             "iterintmat",
                             "eigvalRe", "eigvalIm",
                             "eigvalReSign", "eigvalImSign", "eigvalRep",
@@ -1283,7 +1303,8 @@ for(nspecies in nspeciesset) {
         rowindexplotdatanew <- rowindexplotdata + length(costset) *
           length(conjrateset) * length(taxmattypeset)
         plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
-          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean, summarydata))
+          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean,
+                 newgrowthratecode, summarydata))
         rowindexplotdata <- rowindexplotdatanew
       }
     }
@@ -1293,7 +1314,8 @@ duration <- Sys.time() - starttime
 
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
-                        "intmean", "selfintmean", colnames(summarydata))
+                        "intmean", "selfintmean", "newgrowthratecode",
+                        colnames(summarydata))
 colnames(datatotal) <- colnames(data)
 
 #### Saving output to .csv files ####
@@ -1312,6 +1334,7 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    saveplots = saveplots, nspeciesset = nspeciesset,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
+                   newgrowthratecode = newgrowthratecode,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
                    costtype = costtype, duration = duration))
 for(index in 1:length(settings)) {
