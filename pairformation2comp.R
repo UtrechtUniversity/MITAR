@@ -375,8 +375,12 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, type = "Pair", ...) {
   out2[, "TotalRWall"] <- out2[, "RWall"] + out2[, "MdrWall"] + out2[, "MrtWall"]
   out2[, "TotalTransWall"] <- out2[, "TransWall"] + out2[, "MdtWall"] + out2[, "MrtWall"] + 2*out2[, "MttWall"]
   EqAfterInvasion <- tail(out2, 1)
+  # Change variable name to be same as in equations of the manuscript
+  colnames(out2)[which(colnames(out2) == "MdrLum")] <- "MrdLum"
+  colnames(out2)[which(colnames(out2) == "MdrWall")] <- "MrdWall"
   PlotOverTime(plotdata = out2, parms = parms, type = type, verbose = verbose, saveplot = saveplots)
-  
+  colnames(out2)[which(colnames(out2) == "MrdLum")] <- "MdrLum"
+  colnames(out2)[which(colnames(out2) == "MrdWall")] <- "MdrWall"
   stateBulk <- c(NutrLum = parms[["NutrLumInit"]], DLum = parms[["DInitLum"]],
                  RLum = parms[["RLumInit"]], TransLum = 0,
                  NutrWall = parms[["NutrWallInit"]], 
@@ -416,8 +420,8 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair", saveplot
     mycol <- mycolpairs
     mylty <- myltypairs
     mylwd <- rep(c(2, 1), each = 8)
-    plotdata <- plotdata[, c("time", "NutrLum", "DLum", "RLum", "TransLum", "MdrLum", "MdtLum", "MrtLum", "MttLum",
-                             "NutrWall", "DWall", "RWall", "TransWall", "MdrWall", "MdtWall", "MrtWall", "MttWall")]
+    plotdata <- plotdata[, c("time", "NutrLum", "DLum", "RLum", "TransLum", "MrdLum", "MdtLum", "MrtLum", "MttLum",
+                             "NutrWall", "DWall", "RWall", "TransWall", "MrdWall", "MdtWall", "MrtWall", "MttWall")]
   } else {
     mycol <- mycolother
     mylty <- myltyother
