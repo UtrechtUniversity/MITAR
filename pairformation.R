@@ -333,7 +333,7 @@ Ks <- 0.004
 NISet <- 1.4
 NutrConvSet <- 1.4e-7
 DInitSet <- 1000
-kpSet <- 10^c(-10, -9)
+kpSet <- 10^c(-11, -9)
 knSet <- 10
 gdSet <- 15
 gtSet <- 15
@@ -772,7 +772,7 @@ times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 # Note: the functions RunOverTime and PlotOverTime in the two-compartment script are
 # more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
 # with TotalD, TotalR, TotalTrans in the pair-formation model.
-RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
+RunOverTime <- function(parms = Mydf, verbose = FALSE, printsubtitle = FALSE, ...) {
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]],
              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms,
@@ -783,8 +783,10 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
     print(diagnostics(out2))
     print(attributes(out2))
   }
+  # Change variable name to be same as in equations of the manuscript
+  colnames(out2)[which(colnames(out2) == "Mdr")] <- "Mrd"
   PlotOverTime(plotdata = out2, parms = parms, type = "Pair", verbose = verbose,
-               saveplot = saveplots)
+               printsubtitle = printsubtitle, saveplot = saveplots)
   stateBulk <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]],
                  R = parms[["REq"]], Trans = 0)
   out2bulk <- ode(t = times, y = stateBulk, func = ModelBulkNutr, parms = parms,
@@ -795,7 +797,8 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
     print(attributes(out2bulk))
   }
   PlotOverTime(plotdata = out2bulk, parms = parms, type = "Bulk",
-               verbose = verbose, saveplot = saveplots)
+               verbose = verbose, printsubtitle = printsubtitle,
+               saveplot = saveplots)
   
   EqAfterInvasionTotal <- cbind(EqAfterInvasion, EqAfterInvasionBulk)
   names(EqAfterInvasionTotal) <- c(colnames(EqAfterInvasion),
@@ -804,11 +807,11 @@ RunOverTime <- function(parms = Mydf, verbose = FALSE, ...) {
 }
 
 PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair",
-                         saveplot = saveplots, printsubtitle = FALSE, ...) {
+                         printsubtitle = FALSE, saveplot = saveplots, ...) {
   maintitle <- paste(type, "model")
   subtitle <- paste0("bR=", parms[["bR"]], " NI=", parms[["NI"]],
                      " log10kp=", log10(parms[["kp"]]), " log10kn=", log10(parms[["kn"]]),
-                     " NutrConv=", parms[["NutrConv"]], " w=", parms[["w"]],
+                     " NutrConv=", parms[["NutrConv"]], "\nw=", signif(parms[["w"]], digits = 4),
                      " cd=", parms[["cd"]], " ct=", parms[["ct"]])
   if(type == "Pair") {
     subtitle <- paste0(subtitle, " gd=", parms[["gd"]], " gt=", parms[["gt"]]) 
@@ -840,7 +843,8 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair",
 }
 
 # Plots are shown in Figure S4 in the article.
-EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime))
+EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime,
+                           printsubtitle = FALSE))
 
 EqAfterInvasion <- cbind(Mydf, EqAfterInvasion)
 
