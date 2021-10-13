@@ -1309,7 +1309,8 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
-                   costtype = costtype, duration = duration))
+                   costtype = costtype, PIntroduced = "PInMostAbun",
+                   duration = duration))
 for(index in 1:length(settings)) {
   write.table(t(as.data.frame(settings[index])), 
               paste0(DateTimeStamp, "settings.csv"), append = TRUE,
@@ -1706,6 +1707,9 @@ if(simulateinvasion == TRUE) {
   # considered. Although costs and conjugation rates do not influence the
   # outcome, they are included as facets to facilitate comparison with plots of
   # abundances after perturbation with plasmid-bearing bacteria.
+  # Note that log10(0) is not displayed in the plots, which explains the
+  # different numbers of gray squares in the plots for abunRtotalmin vs.
+  # abunRtotalmean, ect.
   title <- "Total abundance after perturbation"
   CreatePlot(fillvar = "log10(abunRtotalmin)",
              filltitle = "Log10(Minimum of plasmid-\nfree bacteria)",
