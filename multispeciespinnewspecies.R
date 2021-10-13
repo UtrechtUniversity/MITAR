@@ -1336,7 +1336,8 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    newgrowthratecode = newgrowthratecode,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
-                   costtype = costtype, duration = duration))
+                   costtype = costtype, PIntroduced = "PInNewSpecies",
+                   duration = duration))
 for(index in 1:length(settings)) {
   write.table(t(as.data.frame(settings[index])), 
               paste0(DateTimeStamp, "settings.csv"), append = TRUE,
