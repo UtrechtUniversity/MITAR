@@ -15,21 +15,6 @@
 # see the quasiquotation section in aes() documentation and https://www.tidyverse.org/blog/2018/07/ggplot2-tidy-evaluation/
 # See also # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
 
-# Use vectors for atol, to have different tolerances for the cell-densities (~1),
-# and nutrient concentration (~1*10^-8 ?)
-
-# I could use the variable 'Parameterset' to plot the appropriate plots.
-
-# Using sec.axis without breaks and labels to use the axis title as point to
-# draw arrows for the plot with differences in biomass at the wall works, but
-# leads to warnings being issued because no limits are supplied.
-
-# Check if using MigrLumWall = MigrWallLum = 0 en DInitWall = 0 leads to same 
-# results as the single-compartment model.
-
-# I could add the 'diagonal' argument from the CreatePlot as used in the script
-# of the multispecies model.
-
 
 #### Loading packages ####
 # All packages are available from CRAN (https://cran.r-project.org/).
@@ -297,9 +282,9 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
                        filltype = "discrete", limits = NULL, 
                        labx = "Log10(attachment rate in the lumen)",
                        laby = "Log10(detachment rate in the lumen)",
-                       filltitle, filllabels = c("No", "Yes"),
-                       mytag = NULL,
-                       manualvalues = c("TRUE" = "darkgreen", "FALSE" = "red"),
+                       filltitle, filllabels = c("No", "Yes"), 
+                       mytag = NULL, showdiagonal = FALSE, 
+                       manualvalues = c("TRUE" = "yellow", "FALSE" = "navy"),
                        facetx = "gt + ct", facety = "gd + cd", as.table = TRUE,
                        save = saveplots, filename = NULL, addstamp = FALSE, ...) {
   if(addstamp == TRUE & exists("DateTimeStamp") == FALSE) {
@@ -335,12 +320,14 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
   if(filltype == "manual") {
     p <- p + scale_fill_manual(values = manualvalues, name = filltitle)
   }
-  print(p)
+  if(showdiagonal == TRUE) {
+    p <- p + geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+  }
   if(save == TRUE) {
     if(is.null(filename)) {
       fillvarname <- gsub("/", ".", fillvar)
       fillvarname <- gsub(" ", "", fillvarname)
-      filename <- paste0(DateTimeStamp, fillvarname, "twocomp", ".png")      
+      filename <- paste0(DateTimeStamp, fillvarname, "twocomp", ".png")
     }
     if(file.exists(filename)) {
       warning("File already exists, not saved again!")
@@ -354,7 +341,7 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
 # !! NOTE: Equations (and states?) HAVE NOT YET BEEN converted to milligram
 # nutrients and number of cells by multiplication with the appropriate volumes !!
 
-RunOverTime <- function(parms = Mydf, verbose = FALSE, type = "Pair", ...) {
+RunOverTime <- function(parms = MyDataSubset, verbose = FALSE, type = "Pair", ...) {
   state <- c(NutrLum = parms[["NutrLumInit"]], DLum = parms[["DInitLum"]], RLum = parms[["RLumInit"]],
              TransLum = 0, MdrLum = 0, MdtLum = 0, MrtLum = 0, MttLum = 0,
              NutrWall = parms[["NutrWallInit"]],
@@ -486,13 +473,6 @@ knSet <- 10^seq(from = -1, to = 3, by = 2)
 knWallSet <- knSet
 gdSet <- 15
 gtSet <- gdSet
-
-# Extended set 1 (Alternative ways to present outcomes of two-compartment model)
-Parameterset <- "1b"
-kpSet <- 10^seq(from = -12, to = -8, by = 0.25)
-kpWallSet <- kpSet
-knSet <- 10^seq(from = -1, to = 3, by = 0.25)
-knWallSet <- knSet
 
 # Parameterset 2 to show effect of migration rates on biomass and stability of
 # the plasmid-free equilibrium. Note that washout from the wall is excluded,
@@ -638,6 +618,7 @@ knSet <- 10
 knWallSet <- knSet
 gdSet <- 15
 gtSet <- gdSet
+
 
 #### Run simulations ####
 CheckParms <- c(VLum = VLumSet, VWall = VWallSet,
@@ -837,50 +818,34 @@ write.csv(filteredDf, file = paste0(DateTimeStamp, "invperctwocomppar1.csv"),
 
 # Plot showing influence of attachment and detachment rates in the lumen and at
 # the wall on stability of the equilibrium (Figure 4 in article)
-ggplot(data = MyData,
-       aes(x = log10(kp), y = log10(kpWall), fill = factor(SignDomEigVal))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(knWall ~ kn, as.table = FALSE, labeller = mylabeller) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment rate in the lumen)",
-       y = "Log10(attachment rate at the wall)", tag = NULL) +
-  scale_fill_viridis_d("Plasmid can invade", labels = c("No", "Yes")) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "factor(SignDomEigVal)twocomp.png"))
+CreatePlot(xvar = "log10(kp)", yvar = "log10(kpWall)",
+           facetx = "kn", facety = "knWall", as.table = FALSE,
+           filltitle = "Plasmid can invade",
+           labx = "Log10(attachment rate in the lumen)",
+           laby = "Log10(attachment rate at the wall)",
+           showdiagonal = TRUE,
+           filename = paste0(DateTimeStamp, "SignDomEigValtwocomp.png"))
 
-# Show if signs of bulk and pair-formation model are equal (Figure S5 in article)
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
-           fill = factor(near(SignDomEigVal, SignDomEigValBulk)))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(knWall ~ kn, as.table = FALSE, labeller = mylabeller) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment rate in the lumen)",
-       y = "Log10(attachment rate at the wall)", tag = NULL) +
-  scale_fill_manual("Largest eigenvalues\nhave equal signs",
-                    values = c("TRUE" = "darkgreen", "FALSE" = "red")) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "factor(SignDomEigVal==SignDomEigValBulk)twocomp.png"))
+# Plot showing influence of attachment and detachment rates in the lumen and at
+# the wall on stability of the equilibrium in the bulk-conjugation model
+CreatePlot(fillvar = "factor(SignDomEigValBulk)",
+           xvar = "log10(kp)", yvar = "log10(kpWall)",
+           facetx = "kn", facety = "knWall", as.table = FALSE,
+           filltitle = "Plasmid can invade\n(bulk-model)",
+           labx = "Log10(attachment rate in the lumen)",
+           laby = "Log10(attachment rate at the wall)",
+           showdiagonal = TRUE,
+           filename = paste0(DateTimeStamp, "SignDomEigValBulktwocomp.png"))
 
-ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
-           fill = factor(SignDomEigValBulk))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(knWall ~ kn, as.table = FALSE, labeller = mylabeller) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment rate in the lumen)",
-       y = "Log10(attachment rate at the wall)", tag = NULL) +
-  scale_fill_viridis_d("Plasmid can invade\n(bulk-model)",
-                       labels = c("No", "Yes")) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "factor(SignDomEigValBulk)twocomp.png"))
+# Show if signs of bulk and pair-formation model are equal
+CreatePlot(fillvar = "factor(as.numeric(near(SignDomEigVal, SignDomEigValBulk)))",
+           xvar = "log10(kp)", yvar = "log10(kpWall)",
+           facetx = "kn", facety = "knWall", as.table = FALSE,
+           filltitle = "Possibility for invasion equal in pair-\nformation and bulk-conjugation models",
+           labx = "Log10(attachment rate in the lumen)",
+           laby = "Log10(attachment rate at the wall)",
+           showdiagonal = TRUE,
+           filename = paste0(DateTimeStamp, "SignDomEigValComptwocomp.png"))
 
 for(knSel in knSet) {
   for(knWallSel in knWallSet) {
@@ -894,115 +859,6 @@ for(knSel in knSet) {
   }
 }
 
-#### Output extended parameterset 1 ####
-filteredDf1 <- as_tibble(MyData) %>%
-  group_by(kn, knWall) %>%
-  summarise(
-    invasion_n = length(which(near(SignDomEigVal, 1))),
-    no_invasion_n = length(which(near(SignDomEigVal, -1))),
-    total_n = invasion_n + no_invasion_n,
-    invasion_perc = round(100*invasion_n/total_n, 0),
-    no_invasion_perc = round(100*no_invasion_n/total_n, 0),
-    .groups = "drop"
-  )
-write.csv(filteredDf1, file = "DataPlotExtendedDataset1.1.csv")
-
-ggplot(data = filteredDf1,
-       aes(x = log10(kn), y = log10(knWall), fill = invasion_perc)) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(detachment rate in the lumen)",
-       y = "Log10(detachment rate at the wall)") +
-  scale_fill_viridis_c(
-    paste0("Percentage of combinations of attachment\nrates in the lumen and at",
-           "the wall for\nwhich invasion is possible"), limits = c(0, 100)) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "InvasionTwoCompVar1.1.png"))
-
-
-filteredDf2 <- as_tibble(MyData) %>%
-  group_by(kp, kpWall) %>%
-  summarise(
-    invasion_n = length(which(near(SignDomEigVal, 1))),
-    no_invasion_n = length(which(near(SignDomEigVal, -1))),
-    total_n = invasion_n + no_invasion_n,
-    invasion_perc = round(100*invasion_n/total_n, 0),
-    no_invasion_perc = round(100*no_invasion_n/total_n, 0),
-    .groups = "drop"
-  )
-write.csv(filteredDf2, file = "DataPlotExtendedDataset1.2.csv")
-
-ggplot(data = filteredDf2,
-       aes(x = log10(kp), y = log10(kpWall), fill = invasion_perc)) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment rate in the lumen)",
-       y = "Log10(attachment rate at the wall)") +
-  scale_fill_viridis_c(
-    paste("Percentage of combinations of detachment\nrates in the lumen and at",
-          "the wall for\nwhich invasion is possible"), limits = c(0, 100)) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "InvasionTwoCompVar1.2.png"))
-
-filteredDf3 <- as_tibble(MyData) %>%
-  group_by(kp, kn) %>%
-  summarise(
-    invasion_n = length(which(near(SignDomEigVal, 1))),
-    no_invasion_n = length(which(near(SignDomEigVal, -1))),
-    total_n = invasion_n + no_invasion_n,
-    invasion_perc = round(100*invasion_n/total_n, 0),
-    no_invasion_perc = round(100*no_invasion_n/total_n, 0),
-    .groups = "drop"
-  )
-write.csv(filteredDf3, file = "DataPlotExtendedDataset1.3.csv")
-
-ggplot(data = filteredDf3,
-       aes(x = log10(kp), y = log10(kn), fill = invasion_perc)) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment rate in the lumen)",
-       y = "Log10(detachment rate in the lumen)") +
-  scale_fill_viridis_c(
-    paste("Percentage of combinations of attachment\nand detachment rates at",
-          "the wall for\nwhich invasion is possible"), limits = c(0, 100)) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "InvasionTwoCompVar1.3.png"))
-
-filteredDf4 <- as_tibble(MyData) %>%
-  group_by(kpWall, knWall) %>%
-  summarise(
-    invasion_n = length(which(near(SignDomEigVal, 1))),
-    no_invasion_n = length(which(near(SignDomEigVal, -1))),
-    total_n = invasion_n + no_invasion_n,
-    invasion_perc = round(100*invasion_n/total_n, 0),
-    no_invasion_perc = round(100*no_invasion_n/total_n, 0),
-    .groups = "drop"
-  )
-write.csv(filteredDf4, file = "DataPlotExtendedDataset1.4.csv")
-
-ggplot(data = filteredDf4,
-       aes(x = log10(kpWall), y = log10(knWall), fill = invasion_perc)) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment rate at the wall)",
-       y = "Log10(detachment rate at the wall)") +
-  scale_fill_viridis_c(
-    paste("Percentage of combinations of attachment\nand detachment rates in the",
-          "lumen for\nwhich invasion is possible"), limits = c(0, 100)) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "InvasionTwoCompVar1.4.png"))
 
 #### Output parameterset 2 ####
 
@@ -1028,7 +884,6 @@ ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomass.png"))
 
 
 # Are signs of the largest eigenvalues equal for bulk- and pair-formation model?
-# (Figure S6 in article).
 ggplot(data = MyData, aes(x = log10(kp), y = log10(kpWall),
                           fill = factor(near(SignDomEigVal, SignDomEigValBulk)))) + 
   geom_raster() +
@@ -1140,21 +995,14 @@ filteredDf <- as_tibble(MyData) %>%
   )
 write.csv(filteredDf, file = "DataPlotExtendedDataset2.csv")
 
-ggplot(data = filteredDf,
-       aes(x = MigrLumWall, y = MigrWallLum, fill = invasion_perc)) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  facet_grid(kn ~ knWall, as.table = FALSE, labeller = mylabeller) +
-  theme(legend.position = "bottom") +
-  labs(x = "Migration rate from lumen to wall (/h)",
-       y = "Migration rate from wall to lumen (/h)", tag = NULL) +
-  scale_fill_viridis_c(paste("Percentage of combinations of\nattachment rates in ",
+CreatePlot(data = filteredDf, xvar = "MigrLumWall", yvar = "MigrWallLum",
+           fillvar = "invasion_perc", filltype = "continuous", limits = c(0, 100),
+           labx = "Migration rate from lumen to wall (/h)",
+           laby = "Migration rate from wall to lumen (/h)",
+           filltitle = paste("Percentage of combinations of\nattachment rates in ",
                              "the lumen and\nat the wall for which invasion is possible"),
-                       limits = c(0, 100)) +
-  geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
-ggsave(paste0(DateTimeStamp, "InvasionTwoCompDiffBiomassExtended.png"))
+           facetx = "knWall", facety = "kn", as.table = FALSE, showdiagonal = TRUE,
+           filename = paste0(DateTimeStamp, "InvasionTwoCompDiffBiomassExtended.png"))
 
 
 #### Output parameterset 3 ####
@@ -1166,6 +1014,7 @@ CreatePlot(filltitle = "Plasmid can invade",
            laby = "Log10(detachment rate in the lumen and at the wall)",
            facetx = ".", facety = ".", mytag = "B",
            filename = paste0(DateTimeStamp, "Figure6B.png"))
+
 
 #### Output parameterset 4 ####
 # Attachment rates in the lumen and at the wall are the same, detachment rates
@@ -1185,15 +1034,7 @@ CreatePlot(filltitle = "Plasmid can invade",
            facetx = ".", facety = ".", mytag = "D",
            filename = paste0(DateTimeStamp, "Figure6D.png"))
 
-# Bulk-conjugation model (Figure not shown in article).
-CreatePlot(fillvar = "factor(SignDomEigValBulk)",
-           filltitle = "Plasmid can invade\n(bulk model)",
-           facetx = ".", facety = ".", mytag = "D",
-           filename = paste0(DateTimeStamp, "Figure6DBulk.png"))
-
-
-#### Create Figure 6 as a single figure ####
-
+## Create Figure 6 as a single figure
 # Read data from .csv-files generated with the script 'pairformation.R'
 # (panel A), and with this script (panels B, C, D)
 DataA <- as.data.frame(read.csv("2021_08_28_09_20pairformation.csv",
@@ -1209,72 +1050,46 @@ DataD <- as.data.frame(read.csv("2021_08_28_17_43twocomp.csv",
                                 header = TRUE, sep = ",", quote = "\"",
                                 dec = ".", stringsAsFactors = FALSE))
 
-# Create temporary plot with legend to extract legend from
-PlotATemp <- ggplot(data = filter(DataA, near(w, -log(0.5)/24), near(NI, 1.4)),
-                    aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "bottom") +
-  labs(x = "Log10(attachment\nrate in the lumen)",
-       y = "Log10(detachment\nrate in the lumen)") +
-  scale_fill_viridis_d("Plasmid can invade",
-                       limits = as.factor(c(-1, 1)), labels = c("No", "Yes"))
+# Create temporary plot with legend to extract legend from plot
+PlotATemp <- CreatePlot(data = filter(DataA, near(w, -log(0.5)/24), near(NI, 1.4)),
+                        xvar = "log10(kp)", yvar = "log10(kn)",
+                        fillvar = "factor(SignDomEigVal)",
+                        labx = "Log10(attachment\nrate in the lumen)",
+                        laby = "Log10(detachment\nrate in the lumen)",
+                        filltitle = "Plasmid can invade",
+                        facetx = ".", facety = ".", save = FALSE)
 
-# Extract plot legend (code from http://www.sthda.com/english/wiki/wiki.php?id_contents=7930)
-get_legend <- function(myggplot) {
-  tmp <- ggplot_gtable(ggplot_build(myggplot))
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
-  legend <- tmp$grobs[[leg]]
-  return(legend)
-}
+# Extract plot legend using cowplot
 PlotLegend <- get_legend(PlotATemp)
 
 # Create the four panels without legends or tags
-PlotA <- ggplot(data = filter(DataA, near(w, -log(0.5)/24), near(NI, 1.4)),
-                aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) +
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "none") +
-  labs(x = "Log10(attachment\nrate in the lumen)",
-       y = "Log10(detachment\nrate in the lumen)") +
-  scale_fill_viridis_d(limits = as.factor(c(-1, 1)))
+PlotA <- PlotATemp + theme(legend.position = "none")
 
-PlotB <- ggplot(data = DataB,
-                aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "none") +
-  labs(x = "Log10(attachment rate in\nthe lumen and at the wall)",
-       y = "Log10(detachment rate in\nthe lumen and at the wall)") +
-  scale_fill_viridis_d(limits = as.factor(c(-1, 1)))
+PlotB <- CreatePlot(data = DataB, xvar = "log10(kp)", yvar = "log10(kn)",
+                    fillvar = "factor(SignDomEigVal)",
+                    labx = "Log10(attachment rate in\nthe lumen and at the wall)",
+                    laby = "Log10(detachment rate in\nthe lumen and at the wall)",
+                    filltitle = "Plasmid can invade",
+                    facetx = ".", facety = ".", save = FALSE) +
+  theme(legend.position = "none")
 
-PlotC <- ggplot(data = DataC,
-                aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "none") +
-  labs(x = "Log10(attachment rate in\nthe lumen and at the wall)",
-       y = "Log10(detachment rate in\nthe lumen and at the wall)") +
-  scale_fill_viridis_d(limits = as.factor(c(-1, 1)))
 
-PlotD <- ggplot(data = DataD,
-                aes(x = log10(kp), y = log10(kn), fill = factor(SignDomEigVal))) + 
-  geom_raster() +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) +
-  coord_fixed(ratio = 1, expand = FALSE) +
-  theme(legend.position = "none") +
-  labs(x = "Log10(attachment\nrate in the lumen)",
-       y = "Log10(detachment\nrate in the lumen)") +
-  scale_fill_viridis_d(limits = as.factor(c(-1, 1)))
+PlotC <- CreatePlot(data = DataC, xvar = "log10(kp)", yvar = "log10(kn)",
+                    fillvar = "factor(SignDomEigVal)",
+                    labx = "Log10(attachment rate in\nthe lumen and at the wall)",
+                    laby = "Log10(detachment rate in\nthe lumen and at the wall)",
+                    filltitle = "Plasmid can invade",
+                    facetx = ".", facety = ".", save = FALSE) +
+  theme(legend.position = "none")
+
+PlotD <- CreatePlot(data = DataD, xvar = "log10(kp)", yvar = "log10(kn)",
+                    fillvar = "factor(SignDomEigVal)",
+                    labx = "Log10(attachment\nrate in the lumen)",
+                    laby = "Log10(detachment\nrate in the lumen)",
+                    filltitle = "Plasmid can invade",
+                    facetx = ".", facety = ".", save = FALSE) +
+  theme(legend.position = "none")
+
 
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 # Initialize graphical device to be able to set width and height to required value
@@ -1296,15 +1111,13 @@ mycolpairs <- rep(c("black", "blue", "red", "darkgreen", "brown", "purple",
 mycolother <- rep(c("black", "blue", "red", "darkgreen"), 2)
 myylim <- c(1E-6, 1E7)
 yaxislog <- 1 # if yaxislog == 1, the y-axis is plotted on a logarithmic scale
-verbose <- 0 # if verbose == 1, diagnositics on the simulations are printed
+verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed
 Mytmax <- c(4000)
 Mytstep <- c(10)
-TheseRows <- c(1:nrow(MyData)) # Rows to use for simulations over time
 
 ColumnsToSelect <- c(1:(which(names(MyData) == "Eigval1") - 1))
-Mydf <- MyData[TheseRows, ColumnsToSelect]
-TotalIterations <- length(TheseRows)
-print(TotalIterations)
+MyDataSubset <- MyData[, ColumnsToSelect]
+print(paste(dim(MyDataSubset)[1], "iterations to run."))
 
 # Times for which output of the simulation is wanted. Note that the used
 # ode-solvers are variable-step methods, so the times in times are NOT the only
@@ -1313,13 +1126,12 @@ print(TotalIterations)
 times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 
 # To see the dynamics of the different populations
-EqAfterInvasionPair <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Pair"))
-EqAfterInvasion <- cbind(Mydf, EqAfterInvasionPair)
+EqAfterInvasionPair <- t(apply(X = MyDataSubset, MARGIN = 1, FUN = RunOverTime, type = "Pair"))
+EqAfterInvasion <- cbind(MyDataSubset, EqAfterInvasionPair)
 
 # To compare total numbers of donors, recipients, and transconjugants in the
 # output of the pair-formation model with the bulk-formation model
-EqAfterInvasionTotal <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime, type = "Total"))
-
-EqAfterInvasion <- cbind(Mydf, EqAfterInvasionTotal)
+EqAfterInvasionTotal <- t(apply(X = MyDataSubset, MARGIN = 1, FUN = RunOverTime, type = "Total"))
+EqAfterInvasion <- cbind(MyDataSubset, EqAfterInvasionTotal)
 write.csv(EqAfterInvasion, file = paste0(DateTimeStamp, "twocomprunovertime.csv"),
           quote = FALSE, row.names = FALSE)
