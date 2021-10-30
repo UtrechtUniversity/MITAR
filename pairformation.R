@@ -18,19 +18,6 @@
 # see the quasiquotation section in aes() documentation and https://www.tidyverse.org/blog/2018/07/ggplot2-tidy-evaluation/
 # See also # On aes_string see https://stackoverflow.com/questions/5106782/use-of-ggplot-within-another-function-in-r
 
-# Use vectors for atol, to have different tolerances for the cell-densities (~1),
-# and nutrient concentration (~1*10^-8 ?)
-
-# Add argument coord_ratio to be passed on to coord_fixed to CreatePlot().
-# Default should be 1 to not break existing code (and use if/else construct to
-# get free scales if set to FALSE?)
-
-# I could add the 'diagonal' argument from the CreatePlot as used in the script
-# of the multispecies model.
-
-# I could add method to pass additional plot-arguments: add argument 'plotargs = NULL',
-# and add '+ plotargs' to ggplot code.
-
 
 #### Loading packages ####
 # All packages are available from CRAN (https://cran.r-project.org/).
@@ -42,12 +29,14 @@ library(tidyr) # expand_grid() which allows for dataframe as input
 library(cowplot) # plot_grid() to create a single figure from multiple plots,
                  # get_legend() to create shared legends
 
+
 #### Plotting and simulation options ####
 saveplots <- TRUE
 plotdataapproxbulk <- FALSE
 tmaxEstConj <- 3
 tstepEstConj <- 0.1
 timesEstConj <- seq(from = 0, to = tmaxEstConj, by = tstepEstConj)
+
 
 #### Functions ####
 # Calculate the plasmid-free equilibrium (R*, Nutr*) using the solution to
@@ -202,8 +191,9 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
                        filltype = "discrete", limits = NULL, 
                        labx = "Log10(attachment rate)",
                        laby = "Log10(detachment rate)",
-                       filltitle, filllabels = c("No", "Yes"), mytag = NULL,
-                       manualvalues = c("TRUE" = "darkgreen", "FALSE" = "red"),
+                       filltitle, filllabels = c("No", "Yes"),
+                       mytag = NULL,
+                       manualvalues = c("TRUE" = "yellow", "FALSE" = "navy"),
                        facetx = "gt + ct", facety = "gd + cd", as.table = TRUE,
                        marginx = NULL, marginy = NULL,
                        save = saveplots, filename = NULL, addstamp = FALSE, ...) {
@@ -232,10 +222,13 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
       theme(plot.caption = element_text(vjust = 20))
   }
   if(filltype == "discrete") {
-    p <- p + scale_fill_viridis_d(filltitle, limits = if(is.null(limits)) {
-      as.factor(c(-1, 1))
-    } else {
-      factor(limits)}, labels = filllabels)
+    p <- p + scale_fill_viridis_d(filltitle,
+                                  limits = if(is.null(limits)) {
+                                    as.factor(c(-1, 1))
+                                  } else {
+                                    factor(limits)
+                                  },
+                                  labels = filllabels)
   }
   if(filltype == "continuous") {
     p <- p + scale_fill_viridis_c(filltitle, limits = limits)
@@ -277,8 +270,8 @@ CreatePlot <- function(dataplot = MyData, xvar = "log10(kp)", yvar = "log10(kn)"
 # gdbulk (mL/(cell*h)): bulk-conjugation rate of the donor
 # gtbulk (mL/(cell*h)): bulk-conjugation rate of the transconjugant
 
-## To read data from csv-file, uncomment this section and fill in the 
-# needed datetimestamp
+## To read data from csv-file, uncomment this section and supply the 
+# needed FileName
 # FileName <- "YYYY_MM_DD_hh_mm.csv"
 # MyData <- read.csv(FileName, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
@@ -304,11 +297,9 @@ cdSet <- 0.18
 ctSet <- 0.09
 
 parameterset <- "1b"
-# NISet <- seq(from = 0.14, to = 14, length.out = 9)
 NISet <- 10^seq(from = log10(0.14), to = log10(14), length.out = 9)
 gtSet <- c(1, 15)
 ctSet <- c(0.09, 0.18)
-
 
 ## Parameter set 2: show influence of costs, conjugation, attachment, and
 # detachment rates on the stability of the plasmid-free equilibrium and on
@@ -436,15 +427,15 @@ mylabeller <- labeller(w = labw, NI = labNI, gd = labgd, gt = labgt,
 # on stability of the plasmid-free equilibrium (Figure 2 in article).
 CreatePlot(filltitle = "Plasmid can invade", facetx = "NI", facety = "w")
 
-# Show if the largest eigenvalues of the pair-formation model and bulk model
-# have equal signs
-CreatePlot(fillvar = "factor(near(SignDomEigVal, SignDomEigValBulk))",
-           filltype = "manual",
-           filltitle = "Largest eigenvalues\nhave equal signs",
-           facetx = "NI", facety = "w")
-
 CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk model)",
+           facetx = "NI", facety = "w")
+
+# Show if the largest eigenvalues of the pair-formation model and bulk model
+# have equal signs
+CreatePlot(fillvar = "factor(as.numeric(near(SignDomEigVal, SignDomEigValBulk)))",
+           limits = c(0, 1),
+           filltitle = "Possibility for invasion equal in pair-\nformation and bulk-conjugation models",
            facetx = "NI", facety = "w")
 
 # Nutrient concentration at the inflow influences recipient cell density,
@@ -496,6 +487,7 @@ print(filteredDf)
 write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar1.csv"),
           quote = FALSE, row.names = FALSE)
 
+
 #### Plotting output for parameter set 1b ####
 if(exists("parameterset") && parameterset == "1b") {
   filteredDf2 <- as_tibble(MyData) %>%
@@ -510,47 +502,19 @@ if(exists("parameterset") && parameterset == "1b") {
     )
   write.csv(filteredDf2, file = paste0(DateTimeStamp, "invpercpar1Alternative1.csv"),
             quote = FALSE, row.names = FALSE)
-  # Remove coordinate_fixed to get better plot?
-  CreatePlot(dataplot = filteredDf2, xvar = "log10(NI)", yvar = "log10(kn)",
-             fillvar = "invasion_perc", filltype = "continuous", limits = c(0, 100),
-             labx = "Log10(nutrient concentration in inflow)", laby = "Log10(detachment rate)",
-             filltitle = "Percentage of attachment rates for\nwhich invasion possible",
-             facetx = "gt + ct", facety = "w", marginx = rep(1, 4),
-             filename = paste0(DateTimeStamp, "Figure2Alternative1.png"))
   CreatePlot(dataplot = filteredDf2, xvar = "log10(NI)", yvar = "log10(kn)",
              fillvar = "invasion_perc", filltype = "continuous",
              labx = "Log10(nutrient concentration in inflow)", laby = "Log10(detachment rate)",
              filltitle = "Percentage of attachment rates for\nwhich invasion possible",
              facetx = "gt + ct", facety = "w", marginx = rep(1, 4),
-             filename = paste0(DateTimeStamp, "Figure2Alternative1freelimits.png"))
-  
-  
-  filteredDf3 <- as_tibble(MyData) %>%
-    group_by(gt, ct, NI, w, kp) %>%
-    summarise(
-      invasion_n = length(which(near(SignDomEigVal, 1))),
-      no_invasion_n = length(which(near(SignDomEigVal, -1))),
-      total_n = invasion_n + no_invasion_n,
-      invasion_perc = round(100*invasion_n/total_n, 0),
-      no_invasion_perc = round(100*no_invasion_n/total_n, 0),
-      .groups = "drop"
-    )
-  write.csv(filteredDf3, file = paste0(DateTimeStamp, "invpercpar1Alternative2.csv"),
-            quote = FALSE, row.names = FALSE)
-  
-  CreatePlot(dataplot = filteredDf3, xvar = "log10(kp)", yvar = "log10(NI)",
-             fillvar = "invasion_perc", filltype = "continuous", limits = c(0, 100),
-             labx = "Log10(attachment rate)", laby = "Log10(nutrient concentration in inflow)",
-             filltitle = "Percentage of detachment rates for\nwhich invasion possible",
-             facetx = "ct + gt", facety = "w", marginx = rep(0, 4),
-             filename = paste0(DateTimeStamp, "Figure2Alternative2.png"))
+             filename = paste0(DateTimeStamp, "Figure3.png"))
 }
 
 
 #### Plotting output for parameter set 2 ####
 
 # To show influence of costs and intrinsic conjugation rates on stability of the
-# plasmid-free equilibrium (Figure 3 in article):
+# plasmid-free equilibrium (Figure A5 in the supplement):
 CreatePlot(filltitle = "Plasmid can invade")
 
 # Stability of the equilibrium for the bulk-conjugation model
@@ -559,10 +523,10 @@ CreatePlot(fillvar = "factor(SignDomEigValBulk)",
            filltitle = "Plasmid can invade\n(bulk model)")
 
 # Show if sign of largest eigenvalues for pair-formation and bulk model is the 
-# same (Figure S2 in article)
-CreatePlot(fillvar = "factor(near(SignDomEigVal, SignDomEigValBulk))",
-           filltype = "manual",
-           filltitle = "Largest eigenvalues\nhave equal signs")
+# same
+CreatePlot(fillvar = "factor(as.numeric(near(SignDomEigVal, SignDomEigValBulk)))",
+           limits = c(0, 1),
+           filltitle = "Possibility for invasion equal in pair-\nformation and bulk-conjugation models")
 
 ## Compare simulation-derived and calculated bulk-rates
 # Bulk-rates calculated as gdbulk = gd * kp / kn and gtbulk = gt * kp / kn.
@@ -643,8 +607,9 @@ PlotSignEigValEqualcalc <- CreatePlot(dataplot = DataCalcRates,
 PlotSignEigValEqual <- plot_grid(PlotSignEigValEqualsim, PlotSignEigValEqualcalc) +
   theme(plot.margin = unit(c(10, 0, 10, 0), "pt"))
 
+# Collect all sub-plots in one figure (Figure A4 in the supplement)
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
-png(filename = paste0("FigA5", DateTimeStamp, ".tiff"),
+png(filename = paste0("FigA4", DateTimeStamp, ".tiff"),
     width = 420, height = 1.5*480)
 plot_grid(Plotgtbulk, PlotLegendgtbulk,
           PlotSignEigVal, PlotLegendSignEigVal,
@@ -680,9 +645,9 @@ names(labgt) <- gtSet
 mylabeller <- labeller(gd = labgd, gt = labgt, .default = label_value)
 
 # The influence of conjugation, attachment, and detachment rates on the
-# bulk-conjugation rates (Figure 7 and Figure S1 in the article). Data is
-# filtered to show only one value for costs, because costs do not influence the
-# bulk-conjugation rates.
+# bulk-conjugation rates (Figure 7 in the article and Figure S1 in the supplement).
+# Data is filtered to contain only one value for costs, because costs do not
+# influence the bulk-conjugation rates.
 limitsbulkrates <- range(log10(c(MyData$gdbulk, MyData$gtbulk)))
 CreatePlot(dataplot = filter(MyData, near(gd, 15) &
                                near(cd, cdSet[1]) & near(ct, ctSet[1])),
@@ -726,16 +691,9 @@ write.csv(filteredDf, file = paste0(DateTimeStamp, "invpercpar2.csv"),
           quote = FALSE, row.names = FALSE)
 
 
-################################################################################
+#### Plotting output for parameter set 3 ####
 
-##### Create plots over time using parameter set 3 ####
-
-## To do ##
-# The functions RunOverTime and PlotOverTime in the two-compartment script are
-# more elaborate to enable comparison of D, R, Trans in the bulk-conjugation
-# model with TotalD, TotalR, TotalTrans in the pair-formation model. That might
-# be a fairer comparison.
-
+# Note:
 # Generating the file names with the DateTimeStamp as used above led to problems
 # because multiple plots were generated within one second. They got the same
 # name and were not all saved. I now use a more precise DateTimeStamp. For
@@ -753,15 +711,10 @@ verbose <- 0 # if verbose == 1, diagnostics on the simulations are printed
 Mytmax <- c(4000)
 Mytstep <- c(10)
 
-#### Create matrix to store data ####
-TheseRows <- 1:nrow(MyData)
-if(!exists("ColumnsToSelect")) {
-  ColumnsToSelect <- c(1:(which(names(MyData)=="Eigval1") - 1))
-}
-Mydf <- MyData[TheseRows, ColumnsToSelect]
-TotalIterations <- length(TheseRows)
-print(TotalIterations)
-CurrentIteration <- 0
+## Select subset of data to use for runs over time
+ColumnsToSelect <- c(1:(which(names(MyData) == "Eigval1") - 1))
+MyDataSubset <- MyData[, ColumnsToSelect]
+print(paste(dim(MyDataSubset)[1], "iterations to run."))
 
 # Times for which output of the simulation is wanted. The used ODE-solvers are
 # variable-step methods, so the times in times are NOT the only times at which
@@ -771,8 +724,9 @@ times <- c(0:100, seq(from = 100 + Mytstep, to = Mytmax, by = Mytstep))
 
 # Note: the functions RunOverTime and PlotOverTime in the two-compartment script are
 # more elaborate to enable comparison of D, R, Trans in the bulk-conjugation model
-# with TotalD, TotalR, TotalTrans in the pair-formation model.
-RunOverTime <- function(parms = Mydf, verbose = FALSE, printsubtitle = FALSE, ...) {
+# with TotalD, TotalR, TotalTrans in the pair-formation model. That might be a
+# fairer comparison.
+RunOverTime <- function(parms = MyDataSubset, verbose = FALSE, printsubtitle = FALSE, ...) {
   state <- c(Nutr = parms[["NutrEq"]], D = parms[["DInit"]], R = parms[["REq"]],
              Trans = 0, Mdr = 0, Mdt = 0, Mrt = 0, Mtt = 0)
   out2 <- ode(t = times, y = state, func = ModelPairsNutr, parms = parms,
@@ -842,11 +796,9 @@ PlotOverTime <- function(plotdata = out2, parms = parms, type = "Pair",
   }
 }
 
-# Plots are shown in Figure S4 in the article.
-EqAfterInvasion <- t(apply(X = Mydf, MARGIN = 1, FUN = RunOverTime,
+# Plots are shown in Figure A2 in the supplement
+EqAfterInvasion <- t(apply(X = MyDataSubset, MARGIN = 1, FUN = RunOverTime,
                            printsubtitle = FALSE))
-
-EqAfterInvasion <- cbind(Mydf, EqAfterInvasion)
-
+EqAfterInvasion <- cbind(MyDataSubset, EqAfterInvasion)
 write.csv(EqAfterInvasion, file = paste0(DateTimeStamp, "runovertimeonecomp.csv"),
           quote = FALSE, row.names = FALSE)
