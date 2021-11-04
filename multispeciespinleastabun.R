@@ -840,7 +840,8 @@ getfracnotzero <- list(frac = ~mean(.x != 0))
 
 # Function to create plots
 CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmean",
-                       fillvar, filltitle, filltype = "discrete", limits = NULL, 
+                       limits = NULL, ratio = 1, fillvar, filltitle,
+                       filltype = "discrete",
                        title = NULL, subtitle = NULL,
                        labx = "Mean interaction coefficient",
                        laby = "Mean selfinteraction coefficient",
@@ -866,7 +867,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     geom_raster() +
     scale_x_continuous() +
     scale_y_continuous() +
-    coord_fixed(ratio = 1, expand = FALSE) +
+    coord_fixed(ratio = ratio, expand = FALSE) +
     facet_grid(as.formula(paste(facety, "~", facetx)), as.table = as.table,
                labeller = mylabeller) +
     theme(legend.position = "bottom") +
@@ -879,10 +880,13 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     p <- p + theme(strip.text.y = element_text(margin = margin(marginy)))
   }
   if(filltype == "discrete") {
-    p <- p + scale_fill_viridis_d(filltitle, limits = if(is.null(limits)) {
-      as.factor(c(-1, 1))
-    } else {
-      factor(limits)}, labels = filllabels)
+    p <- p + scale_fill_viridis_d(filltitle,
+                                  limits = if(is.null(limits)) {
+                                    as.factor(c(-1, 1))
+                                  } else {
+                                    factor(limits)
+                                  },
+                                  labels = filllabels)
   }
   if(filltype == "binned") {
     p <- p + scale_fill_viridis_b(filltitle, breaks = limits)
@@ -915,6 +919,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
       ggsave(filename)
     }
   }
+  return(p)
 }
 
 
