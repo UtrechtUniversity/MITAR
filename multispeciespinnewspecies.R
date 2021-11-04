@@ -1036,9 +1036,9 @@ for(nspecies in nspeciesset) {
             # unchanged, or increased with 2 standard deviations when
             # newgrowthratecode == 1, 2, or 3, respectively
             growthrate <- c(growthrateeq, switch(newgrowthratecode,
-                                                 mean(growthrateeq) - sd(growthrateeq),
+                                                 mean(growthrateeq) - 2*sd(growthrateeq),
                                                  mean(growthrateeq),
-                                                 mean(growthrateeq) + sd(growthrateeq)))
+                                                 mean(growthrateeq) + 2*sd(growthrateeq)))
             eqinfo <- geteqinfo(model = "gLV", abundance = c(abundance, 0),
                                 intmat = intmat, growthrate = growthrate)
             if(eqinfo["eigvalRe"] < 0) {
