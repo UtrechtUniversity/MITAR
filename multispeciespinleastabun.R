@@ -363,7 +363,8 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
 # drawn from the distribution 'selfintdistr', which is truncated to obtain
 # negative self-interactions. To get fixed values for the interactions, choose
 # the uniform distribution and provide the desired value both as the minimum and
-# maximum of the range. The other arguments specify the distributions from which
+# maximum of the range, or provide the standard deviation of the normal
+# distribution as zero. The other arguments specify the distributions from which
 # interaction coefficients are drawn.
 getintmat <- function(nspecies, sparsity = 0,
                       intdistr = "normal", intmean = 0, intsd = 5e-12,
@@ -376,7 +377,7 @@ getintmat <- function(nspecies, sparsity = 0,
             sparsity >= 0, sparsity <= 1)
   switch(intdistr,
          normal = {
-           stopifnot(length(intmean) == 1, length(intsd) == 1, intsd > 0)
+           stopifnot(length(intmean) == 1, length(intsd) == 1, intsd >= 0)
            intcoefs <- rnorm(n = nspecies^2, mean = intmean, sd = intsd)
          },
          uniform = {
@@ -385,7 +386,7 @@ getintmat <- function(nspecies, sparsity = 0,
                              max = intrange[2])
          },
          {
-           warning("'intdistr' should be 'normal' or 'uniform'.")
+           stop("'intdistr' should be 'normal' or 'uniform'.")
            intcoefs <- NULL
          }
   )
@@ -394,7 +395,7 @@ getintmat <- function(nspecies, sparsity = 0,
   switch(selfintdistr,
          normal = {
            stopifnot(length(selfintmean) == 1, length(selfintsd) == 1,
-                     selfintsd > 0)
+                     selfintsd >= 0)
            # Draw variates from a truncated normal distribution to ensure
            # negative self-interactions without having to redraw for positive
            # deviates, using rtnorm() from the package TruncatedNormal.
@@ -403,12 +404,12 @@ getintmat <- function(nspecies, sparsity = 0,
          },
          uniform = {
            stopifnot(length(selfintrange) == 2, selfintrange[1] <= selfintrange[2],
-                     selfintrange[2] < 0)
+                     selfintrange[2] <= 0)
            diag(intmat) <- runif(n = nspecies,
                                  min = selfintrange[1], max = selfintrange[2])
          },
          {
-           warning("'selfintdistr' should be 'normal' or 'uniform'.")
+           stop("'selfintdistr' should be 'normal' or 'uniform'.")
            diag(intmat) <- NULL
          }
   )
