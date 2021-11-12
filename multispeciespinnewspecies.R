@@ -125,7 +125,7 @@
 # The diagonals are not displayed correctly if the plotting area is non-square
 
 
-#### Loading required libraries ####
+#### Loading required packages ####
 library(deSolve)   # checkequilibrium and perturbequilibrium call ode() if
 # showplot == TRUE and simulateinvasion == TRUE, respectively
 library(dplyr)     # across(), group_by(), near(), summarise()
@@ -1058,11 +1058,11 @@ for(nspecies in nspeciesset) {
           # stability)
           if(simulateinvasion == TRUE) {
             if(stableeq == FALSE) {
-              pertpopnew <- paste0("R", nspecies)
+              pertpop <- paste0("R", nspecies)
               abunfinal <- perturbequilibrium(abundance = c(abundance, 0), intmat = intmat,
                                               growthrate = growthrate,
                                               cost = NULL, conjmat = NULL,
-                                              model = "gLV", pertpop = pertpopnew, tmax = 1e4,
+                                              model = "gLV", pertpop = pertpop, tmax = 1e4,
                                               showplot = FALSE, verbose = FALSE,
                                               suppresswarninfgrowth = TRUE)
             } else {
@@ -1139,11 +1139,11 @@ for(nspecies in nspeciesset) {
               # to the abundances of the plasmid-bearing populations
               if(simulateinvasion == TRUE) {
                 if(eqinfoconj["eigvalRe"] >= 0) {
-                  pertpopnewconj <- paste0("P", nspecies)
+                  pertpopconj <- paste0("P", nspecies)
                   abunfinalconj <- perturbequilibrium(abundance = c(abundance, 0, rep(0, nspecies)),
                                                       intmat = intmat, growthrate = growthrate,
                                                       cost = cost, conjmat = conjmat,
-                                                      model = "gLVConj", pertpop = pertpopnewconj, tmax = 1e4,
+                                                      model = "gLVConj", pertpop = pertpopconj, tmax = 1e4,
                                                       showplot = FALSE, verbose = FALSE,
                                                       suppresswarninfgrowth = TRUE)
                 } else {
@@ -1326,6 +1326,7 @@ colnames(datatotal) <- colnames(data)
 
 #### Saving output to .csv files ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
+DateTimeStamp <- paste0(DateTimeStamp, "PInNewSpecies")
 write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
           quote = FALSE, row.names = FALSE)
 write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
@@ -1381,7 +1382,8 @@ labconjrate <- paste("Conjset", 1:length(conjrateset))
 names(labconjrate) <- 1:length(conjrateset)
 labtaxmat <- taxmattypeset
 names(labtaxmat) <- 1:length(taxmattypeset)
-mylabeller <- labeller(nspecies = labspecies, abunmodelcode = labmodel,
+mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
+                       abunmodelcode = labmodel,
                        cost = labcost, conjratecode = labconjrate,
                        taxmatcode = labtaxmat, .default = label_value)
 
