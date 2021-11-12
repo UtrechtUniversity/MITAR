@@ -125,7 +125,7 @@
 # The diagonals are not displayed correctly if the plotting area is non-square
 
 
-#### Loading required libraries ####
+#### Loading required packages ####
 library(deSolve)   # checkequilibrium and perturbequilibrium call ode() if
 # showplot == TRUE and simulateinvasion == TRUE, respectively
 library(dplyr)     # across(), group_by(), near(), summarise()
@@ -166,9 +166,11 @@ costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
-# to and from the initially plasmid-bearing population (here the most abundant
-# species) is reduced a 1000-fold
+# from and to the initially plasmid-bearing population is reduced a 1000-fold
 taxmattypeset <- c("SameSpecies", "PInOtherClass")
+# Introduce plasmid in the most abundant species (PInMostAbun == TRUE) or in the
+# least abundant species (PInMostAbun == FALSE)
+PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -200,9 +202,11 @@ costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
-# to and from the initially plasmid-bearing population (here the most abundant
-# species) is reduced a 1000-fold
+# from and to the initially plasmid-bearing population is reduced a 1000-fold
 taxmattypeset <- c("SameSpecies", "PInOtherClass")
+# Introduce plasmid in the most abundant species (PInMostAbun == TRUE) or in the
+# least abundant species (PInMostAbun == FALSE)
+PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 niter <- 10
@@ -230,9 +234,11 @@ costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
-# to and from the initially plasmid-bearing population (here the most abundant
-# species) is reduced a 1000-fold
+# from and to the initially plasmid-bearing population is reduced a 1000-fold
 taxmattypeset <- c("SameSpecies", "PInOtherClass")
+# Introduce plasmid in the most abundant species (PInMostAbun == TRUE) or in the
+# least abundant species (PInMostAbun == FALSE)
+PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -1037,10 +1043,12 @@ for(nspecies in nspeciesset) {
           # stability)
           if(simulateinvasion == TRUE) {
             if(stableeq == FALSE) {
+              pertpop <- if(PInMostAbun == TRUE) {"R1"} else {paste0("R", nspecies)}
               abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
                                               growthrate = growthrate,
                                               cost = NULL, conjmat = NULL,
-                                              model = "gLV", pertpop = "R1", tmax = 1e4,
+                                              model = "gLV",
+                                              pertpop = pertpop, tmax = 1e4,
                                               showplot = FALSE, verbose = FALSE,
                                               suppresswarninfgrowth = TRUE)
             } else {
@@ -1089,10 +1097,17 @@ for(nspecies in nspeciesset) {
                 taxmat <- matrix(rep("SameSpecies", nspecies^2),
                                  nrow = nspecies, ncol = nspecies, byrow = TRUE)
                 if(taxmattype == "PInOtherClass") {
-                  # The plasmid is introduced in the most abundant species,
-                  # so set the first row and column of the matrix to OtherClass
-                  taxmat[1, ] <- "OtherClass"
-                  taxmat[, 1] <- "OtherClass"
+                  if(PInMostAbun == TRUE) {
+                    # The plasmid is introduced in the most abundant species,
+                    # so set the first row and column of the matrix to OtherClass
+                    taxmat[1, ] <- "OtherClass"
+                    taxmat[, 1] <- "OtherClass"                    
+                  } else {
+                    # The plasmid is introduced in the least abundant species,
+                    # so set the last row and column of the matrix to OtherClass
+                    taxmat[nspecies, ] <- "OtherClass"
+                    taxmat[, nspecies] <- "OtherClass"
+                  }
                   diag(taxmat) <- "SameSpecies"
                 }
               conjmat <- getconjmat(nspecies = nspecies,
@@ -1117,10 +1132,11 @@ for(nspecies in nspeciesset) {
               # to the abundances of the plasmid-bearing populations
               if(simulateinvasion == TRUE) {
                 if(eqinfoconj["eigvalRe"] >= 0) {
+                  pertpopconj <- if(PInMostAbun == TRUE) {"P1"} else {paste0("P", nspecies)}
                   abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
                                                       intmat = intmat, growthrate = growthrate,
                                                       cost = cost, conjmat = conjmat,
-                                                      model = "gLVConj", pertpop = "P1", tmax = 1e4,
+                                                      model = "gLVConj", pertpop = pertpopconj, tmax = 1e4,
                                                       showplot = FALSE, verbose = FALSE,
                                                       suppresswarninfgrowth = TRUE)
                 } else {
@@ -1301,6 +1317,10 @@ colnames(datatotal) <- colnames(data)
 
 #### Saving output to .csv files ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
+if(PInMostAbun == FALSE) {
+  DateTimeStamp <- paste0(DateTimeStamp, "PInLeastAbun")
+}
+
 write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
           quote = FALSE, row.names = FALSE)
 write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
@@ -1316,7 +1336,7 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
-                   costtype = costtype, PIntroduced = "PInMostAbun",
+                   costtype = costtype, PInMostAbun = PInMostAbun,
                    duration = duration))
 for(index in 1:length(settings)) {
   write.table(t(as.data.frame(settings[index])), 
@@ -1353,7 +1373,7 @@ labcost <- paste0("Cost: ", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", 1:length(conjrateset))
 names(labconjrate) <- 1:length(conjrateset)
-labtaxmat <- c("All conj. equal", "Reduced g[ij]\nand g[ji] in initP")
+labtaxmat <- taxmattypeset
 names(labtaxmat) <- 1:length(taxmattypeset)
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
                        abunmodelcode = labmodel,
@@ -1616,6 +1636,9 @@ if(simulateinvasion == TRUE) {
   limitstime <- range(plotdata[, "timefinalmedian"],
                   plotdata[, "timefinalconjmedian"])
   title <- "Time to reach equilibrium after perturbation"
+  if(PInMostAbun == FALSE) {
+    title <- paste(title, "(PinLeastAbun)")
+  }
   CreatePlot(fillvar = "timefinalmedian", filltitle = "Median time",
              filltype = "continuous", limits = limitstime,
              title = title, subtitle = subplasmidfree, rotate_legend = TRUE)
@@ -1627,6 +1650,9 @@ if(simulateinvasion == TRUE) {
   limitsmeannspecies <- range(plotdata[, "npopRmean"],
                           plotdata[, "nspeciesconjmean"], finite = TRUE)
   title <- "Number of species surviving after perturbation"
+  if(PInMostAbun == FALSE) {
+    title <- paste(title, "(PinLeastAbun)")
+  }
   # Note: In the model without plasmids, the number of populations is equal to
   # the number of species.
   CreatePlot(fillvar = "npopRmean", filltitle = "Mean total number\nof species",
@@ -1638,6 +1664,9 @@ if(simulateinvasion == TRUE) {
              title = title, subtitle = subplasmidbearing)
   
   title <- "Number of species going extinct after perturbation"
+  if(PInMostAbun == FALSE) {
+    title <- paste(title, "(PinLeastAbun)")
+  }
   CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                                near(conjratecode, 1), near(taxmatcode, 1)),
              fillvar = "nspecies - npopRmean",
@@ -1658,6 +1687,9 @@ if(simulateinvasion == TRUE) {
              filename = "nspeciesconjmeanextinct")
   
   title <- "Fraction of species going extinct after perturbation"
+  if(PInMostAbun == FALSE) {
+    title <- paste(title, "(PinLeastAbun)")
+  }
   CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                                near(conjratecode, 1), near(taxmatcode, 1)),
              fillvar = "1 - (npopRmean / nspecies)",
@@ -1678,6 +1710,9 @@ if(simulateinvasion == TRUE) {
              filename = "fracspeciesextinctmeanconj")
   
   title <- "Fraction of species after perturbation"
+  if(PInMostAbun == FALSE) {
+    title <- paste(title, "(PinLeastAbun)")
+  }
   CreatePlot(fillvar = "fracspeciesRconjmean",
              filltitle = "Mean fraction of species that have\na plasmid-free population",
              filltype = "continuous", limits = limitsfraction,
@@ -1691,6 +1726,9 @@ if(simulateinvasion == TRUE) {
   # after perturbations. Only abundances where equilibrium was reached are
   # considered.
   title <- "Fraction bacteria after perturbation"
+  if(PInMostAbun == FALSE) {
+    title <- paste(title, "(PinLeastAbun)")
+  }
   CreatePlot(fillvar = "fracRtotalconjmin",
              filltitle = "Minimum fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
@@ -1718,6 +1756,9 @@ if(simulateinvasion == TRUE) {
   # different numbers of gray squares in the plots for abunRtotalmin vs.
   # abunRtotalmean, ect.
   title <- "Total abundance after perturbation"
+  if(PInMostAbun == FALSE) {
+    title <- paste(title, "(PinLeastAbun)")
+  }
   CreatePlot(fillvar = "log10(abunRtotalmin)",
              filltitle = "Log10(Minimum of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
