@@ -917,7 +917,6 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   if(diagonal == "both" || diagonal == "minor") {
     p <- p + geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
   }
-  print(p)
   if(save == TRUE) {
     if(is.null(filename)) {
       filename <- gsub("/", ".", fillvar)
@@ -1702,11 +1701,19 @@ if(simulateinvasion == TRUE) {
   
   title <- "Fraction of species after perturbation"
   CreatePlot(fillvar = "fracspeciesRconjmean",
-             filltitle = "Mean fraction of species that have\na plasmid-free population",
+             filltitle = "Mean fraction of surviving species\nthat have a plasmid-free population",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "npopRconjmean / nspecies",
+             filltitle = "Mean fraction of initial species\nthat have a plasmid-free population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "fracspeciesPconjmean",
-             filltitle = "Mean fraction of species that have\na plasmid-bearing population",
+             filltitle = "Mean fraction of surviving species\nthat have a plasmid-bearing population",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "npopPconjmean / nspecies",
+             filltitle = "Mean fraction of initial species\nthat have a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   
