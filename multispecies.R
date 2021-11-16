@@ -228,7 +228,7 @@ nspeciesset <- c(2, 4)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 intmeanset <- c(-6e-12, 6e-12)
-selfintmeanset <- c(-1.2e-11, -3e-12)
+selfintmeanset <- c(-1.2e-11, -6e-12)
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
@@ -376,7 +376,7 @@ getintmat <- function(nspecies, sparsity = 0,
                       intrange = c(-1.2e-11, 1.2e-11),
                       selfintdistr = "normal",
                       selfintmean = -6e-13, selfintsd = 9e-12,
-                      selfintrange = c(-1.2e-12, 0)) {
+                      selfintrange = c(-1.2e-11, 0)) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             is.numeric(sparsity), length(sparsity) == 1,
             sparsity >= 0, sparsity <= 1)
