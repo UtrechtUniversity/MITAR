@@ -16,7 +16,7 @@
 # Edelstein-Keshet L. 2005. Mathematical models in biology. Society for
 # industrial and applied mathematics.
 
-# Lischke H, Löffler TJ. 2017. Finding all multiple stable fixpoints of n-species
+# Lischke H, LÃ¶ffler TJ. 2017. Finding all multiple stable fixpoints of n-species
 # Lotka-Volterra competition models Theoretical Population Biology 115:24-34.
 
 # May RM. 2001.  Stability and complexity in model ecosystems. Princeton/Oxford:
@@ -180,15 +180,15 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 niter <- 100
 niterintmat <- 1
 simulateinvasion <- FALSE
-intmeanset <- seq(from = -1e-11, to = 1e-11, by = 0.75e-12)
-selfintmeanset <- seq(from = -1.3e-11, to = -3e-12, by = 1e-12)
+intmeanset <- seq(from = -1.2e-11, to = 1.2e-11, by = 1e-12)
+selfintmeanset <- seq(from = -1.2e-11, to = 0, by = 1e-12)
 
 ## Smaller parameter set to simulate invasion
 niter <- 25
 niterintmat <- 1
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -1e-11, to = 1e-11, by = 1.5e-12)
-selfintmeanset <- seq(from = -1.3e-11, to = -3e-12, by = 2e-12)
+intmeanset <- seq(from = -1.2e-11, to = 1.2e-11, by = 2e-12)
+selfintmeanset <- seq(from = -1.2e-11, to = 0e-12, by = 2e-12)
 
 ## Testset
 saveplots <- TRUE
@@ -216,9 +216,8 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 niter <- 10
 niterintmat <- 1
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -1e-11, to = 1e-11, by = 3e-12)
-selfintmeanset <- seq(from = -1.3e-11, to = -3e-12, by = 5e-12)
-
+intmeanset <- seq(from = -1.2e-11, to = 1.2e-11, by = 3e-12)
+selfintmeanset <- seq(from = -1.2e-11, to = 0, by = 3e-12)
 
 # Small parameter set to test code
 niter <- 2
@@ -237,7 +236,7 @@ abunmodelset <- c("dompreempt")
 # standard deviations when newgrowthratecode == 1, 2, or 3, respectively.
 newgrowthratecode <- 1 # A SINGLE value should be provided
 intmeanset <- c(-6e-12, 6e-12)
-selfintmeanset <- c(-1.3e-11, -3e-12)
+selfintmeanset <- c(-1.2e-11, -6e-12)
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
@@ -380,10 +379,10 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
 # interaction coefficients are drawn.
 getintmat <- function(nspecies, sparsity = 0,
                       intdistr = "normal", intmean = 0, intsd = 5e-12,
-                      intrange = c(-1e-11, 1e-11),
+                      intrange = c(-1.2e-11, 1.2e-11),
                       selfintdistr = "normal",
-                      selfintmean = -8e-13, selfintsd = 9e-12,
-                      selfintrange = c(-1.3e-12, -3e-13)) {
+                      selfintmean = -6e-13, selfintsd = 9e-12,
+                      selfintrange = c(-1.2e-11, 0)) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             is.numeric(sparsity), length(sparsity) == 1,
             sparsity >= 0, sparsity <= 1)
