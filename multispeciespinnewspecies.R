@@ -133,6 +133,9 @@ library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
 library(TruncatedNormal) # getintmat calls rtnorm()
 # On the pipe operator (%>%), see ?'%>%' and Ch. 18 'Pipes' in Wickham 2017.
+require(beepr, quietly = TRUE) # Optional package. If installed, a sound is
+                               # played when the simulations are finished and
+                               # when plotting is finished.
 
 
 #### Settings and defining parameter space ####
@@ -1328,6 +1331,11 @@ for(index in 1:length(settings)) {
               quote = FALSE, sep = ",", col.names = FALSE)
 }
 
+# If the beepr package is installed, a sound is played
+if(requireNamespace("beepr", quietly = TRUE)) {
+  beepr::beep(2)
+}
+
 
 #### Reading previously saved data from a .csv-file ####
 ## To read data from csv-file, uncomment this section and fill in the 
@@ -1869,6 +1877,11 @@ if(simulateinvasion == TRUE) {
              filltitle = paste("Log10(Median abundance sp6 after\nperturbation",
                                "with P of newly\nintroduced species)"),
              filltype = "continuous")
+}
+
+# If the beepr package is installed, a sound is played
+if(requireNamespace("beepr", quietly = TRUE)) {
+  beepr::beep(2)
 }
 
 
