@@ -609,10 +609,7 @@ eventfun <- function(t, state, p) {
 # model should be 'gLV' (no plasmids modelled) or 'gLVConj' (to include plasmid-
 #   bearing populations in the model).
 # pertpop is a character vector with the name(s) of the population(s) to be
-#   perturbed. Acceptable names are those of specific populations such as "R1"
-#   or "P2", and the groups of populations 'all', 'R' and 'P' to denote all, all
-#   plasmid-free, and all plasmid-bearing populations, respectively. These can
-#   be combined, for example using pertpop = c("R", "P1")
+#   perturbed, e.g., pertpop = "R1" or pertpop = c("R1", "P1").
 # pertmagn gives the absolute increase in populations for the perturbation
 # tmax and tstep give the timesteps at which abundances should be calculated
 #   (since variable step-size methods are used, those are not the only times
@@ -676,8 +673,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     }
     derivatives <- unlist(
       gLV(t = 0, n = abundance[indexR],
-          parms = list(growthrate = growthrate, intmat = intmat)
-      )
+          parms = list(growthrate = growthrate, intmat = intmat))
     )
   }
   
@@ -686,22 +682,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   if(!all(near(derivatives, 0))) {
     warntext <- paste("Initial (unperturbed) state is NOT an equilibrium in the
                       plasmid-free model! Derivatives are:",
-                      paste(signif(derivatives), collapse = ", ")
-    )
+                      paste(signif(derivatives), collapse = ", "))
     warning(warntext)
-  }
-  
-  # Get names of populations to perturb
-  if("all" %in% pertpop) {
-    pertpop <- names(abundance)
-  }
-  if("R" %in% pertpop) {
-    pertpop <- pertpop[-which(pertpop == "R")]
-    pertpop <- unique(c(pertpop, paste0(rep("R", nspecies), 1:nspecies)))
-  }
-  if("P" %in% pertpop) {
-    pertpop <- pertpop[-which(pertpop == "P")]
-    pertpop <- unique(c(pertpop, paste0(rep("P", nspecies), 1:nspecies)))
   }
   
   # Only perturb populations that exist
@@ -777,8 +759,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     subtitle <- paste0(abunmodel, ", intmean=", intmean, ", selfintmean=", selfintmean, ", cost=",
                        cost, ", conjratecode=", conjratecode)
     if(saveplots == TRUE) {
-      filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"),
-                         ".png")
+      filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), ".png")
       png(filename = filename, height = 785)
     }
     matplot.deSolve(out, lty = lty, col = col, ylab = "Abundance",
@@ -807,8 +788,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   if(model == "gLV") {
     derivatives <- unlist(
       gLV(t = 0, n = abunfinaltemp,
-          parms = list(growthrate = growthrate, intmat = intmat)
-      )
+          parms = list(growthrate = growthrate, intmat = intmat))
     )
     abunfinaltemp[which(derivatives < 0 & abunfinaltemp < finalsmallstate)] <- 0
     abunfinal <- list(R = abunfinaltemp, Rtotal = sum(abunfinaltemp),
@@ -817,11 +797,9 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                       eqreached = eqreached, infgrowth = infgrowth)
   } else {
     derivatives <- unlist(
-      gLVConj(
-        t = 0, n = abunfinaltemp,
-        parms = list(growthrate = growthrate, intmat = intmat,
-                     cost = cost, conjmat = conjmat)
-      )
+      gLVConj(t = 0, n = abunfinaltemp,
+              parms = list(growthrate = growthrate, intmat = intmat,
+                           cost = cost, conjmat = conjmat))
     )
     # Plasmid-bearing populations can reach densities smaller than smallstate
     # without being set to 0 because they are constantly produced through
