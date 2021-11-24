@@ -1033,11 +1033,12 @@ for(nspecies in nspeciesset) {
             # plasmid-free species decreased with 2 standard deviations,
             # unchanged, or increased with 2 standard deviations when
             # newgrowthratecode == 1, 2, or 3, respectively
-            growthrate <- c(growthrateeq, switch(newgrowthratecode,
-                                                 mean(growthrateeq) - 2*sd(growthrateeq),
-                                                 mean(growthrateeq),
-                                                 mean(growthrateeq) + 2*sd(growthrateeq)))
-            eqinfo <- geteqinfo(model = "gLV", abundance = c(abundance, 0),
+            growthrate <- c(switch(newgrowthratecode,
+                                   mean(growthrateeq) - 2*sd(growthrateeq),
+                                   mean(growthrateeq),
+                                   mean(growthrateeq) + 2*sd(growthrateeq)),
+                            growthrateeq)
+            eqinfo <- geteqinfo(model = "gLV", abundance = c(0, abundance),
                                 intmat = intmat, growthrate = growthrate)
             if(eqinfo["eigvalRe"] < 0) {
               stableeq <- TRUE
@@ -1056,8 +1057,8 @@ for(nspecies in nspeciesset) {
           # stability)
           if(simulateinvasion == TRUE) {
             if(stableeq == FALSE) {
-              pertpop <- paste0("R", nspecies)
-              abunfinal <- perturbequilibrium(abundance = c(abundance, 0), intmat = intmat,
+              pertpop <- "R1"
+              abunfinal <- perturbequilibrium(abundance = c(0, abundance), intmat = intmat,
                                               growthrate = growthrate,
                                               cost = NULL, conjmat = NULL,
                                               model = "gLV", pertpop = pertpop, tmax = 1e4,
@@ -1065,7 +1066,7 @@ for(nspecies in nspeciesset) {
                                               suppresswarninfgrowth = TRUE)
             } else {
               # No need for simulations if equilibrium is stable
-              abunfinal <- list(R = c(abundance, 0), Rtotal = sum(abundance),
+              abunfinal <- list(R = c(0, abundance), Rtotal = sum(abundance),
                                 P = NULL, Ptotal = NULL,
                                 timefinal = 1, tmaxshort = 0,
                                 eqreached = 1, infgrowth = 0)
@@ -1110,10 +1111,10 @@ for(nspecies in nspeciesset) {
                                  nrow = nspecies, ncol = nspecies, byrow = TRUE)
                 if(taxmattype == "PInOtherClass") {
                   # The plasmid is introduced in a newly added species, so set
-                  # the last row and column of the matrix to OtherClass
-                  taxmat[nspecies, ] <- "OtherClass"
-                  taxmat[, nspecies] <- "OtherClass"
-                  diag(taxmat) <- "SameSpecies"
+                  # the first row and column of the matrix to OtherClass, with
+                  # exception of the diagonal which should remain SameSpecies
+                  taxmat[1, -1] <- "OtherClass"
+                  taxmat[-1, 1] <- "OtherClass"
                 }
               conjmat <- getconjmat(nspecies = nspecies,
                                     conjrate = conjrate, taxmat = taxmat)
@@ -1121,7 +1122,7 @@ for(nspecies in nspeciesset) {
               # Get equilibrium characteristics for plasmid-free equilibrium in
               # the model with conjugation
               eqinfoconj <- geteqinfo(model = "gLVConj",
-                                      abundance = c(abundance, 0, rep(0, nspecies)),
+                                      abundance = c(0, abundance, rep(0, nspecies)),
                                       intmat = intmat, growthrate = growthrate,
                                       cost = cost, conjmat = conjmat)
               # Append the signs of the real parts of the largest eigenvalues to
@@ -1137,8 +1138,8 @@ for(nspecies in nspeciesset) {
               # to the abundances of the plasmid-bearing populations
               if(simulateinvasion == TRUE) {
                 if(eqinfoconj["eigvalRe"] >= 0) {
-                  pertpopconj <- paste0("P", nspecies)
-                  abunfinalconj <- perturbequilibrium(abundance = c(abundance, 0, rep(0, nspecies)),
+                  pertpopconj <- "P1"
+                  abunfinalconj <- perturbequilibrium(abundance = c(0, abundance, rep(0, nspecies)),
                                                       intmat = intmat, growthrate = growthrate,
                                                       cost = cost, conjmat = conjmat,
                                                       model = "gLVConj", pertpop = pertpopconj, tmax = 1e4,
@@ -1146,7 +1147,7 @@ for(nspecies in nspeciesset) {
                                                       suppresswarninfgrowth = TRUE)
                 } else {
                   # No need for simulations if equilibrium is stable
-                  abunfinalconj <- list(R = c(abundance, 0), Rtotal = sum(abundance),
+                  abunfinalconj <- list(R = c(0, abundance), Rtotal = sum(abundance),
                                         P = rep(0, nspecies), Ptotal = 0,
                                         timefinal = 1, tmaxshort = 0,
                                         eqreached = 1, infgrowth = 0)
@@ -1209,7 +1210,7 @@ for(nspecies in nspeciesset) {
               
               data[indexdata:(indexdatanew - 1), ] <- cbind(
                 niter, nspecies, abunmodelcode, intmean, selfintmean,
-                cost, conjratecode, taxmatcode, iter, 1:nspecies, c(abundance, 0),
+                cost, conjratecode, taxmatcode, iter, 1:nspecies, c(0, abundance),
                 diag(intmat), c(growthrate), newgrowthratecode, iterintmat,
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
