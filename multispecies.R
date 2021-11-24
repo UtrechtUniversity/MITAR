@@ -1099,15 +1099,14 @@ for(nspecies in nspeciesset) {
                   if(PInMostAbun == TRUE) {
                     # The plasmid is introduced in the most abundant species,
                     # so set the first row and column of the matrix to OtherClass
-                    taxmat[1, ] <- "OtherClass"
-                    taxmat[, 1] <- "OtherClass"                    
+                    taxmat[1, -1] <- "OtherClass"
+                    taxmat[-1, 1] <- "OtherClass"                    
                   } else {
                     # The plasmid is introduced in the least abundant species,
                     # so set the last row and column of the matrix to OtherClass
-                    taxmat[nspecies, ] <- "OtherClass"
-                    taxmat[, nspecies] <- "OtherClass"
+                    taxmat[nspecies, -nspecies] <- "OtherClass"
+                    taxmat[-nspecies, nspecies] <- "OtherClass"
                   }
-                  diag(taxmat) <- "SameSpecies"
                 }
               conjmat <- getconjmat(nspecies = nspecies,
                                     conjrate = conjrate, taxmat = taxmat)
