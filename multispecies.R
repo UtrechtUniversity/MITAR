@@ -1324,9 +1324,7 @@ for(index in 1:length(settings)) {
 }
 
 # If the beepr package is installed, a sound is played
-if(requireNamespace("beepr", quietly = TRUE)) {
-  beepr::beep(2)
-}
+beepr::beep(2)
 
 
 #### Reading previously saved data from a .csv-file ####
@@ -1884,9 +1882,7 @@ if(simulateinvasion == TRUE) {
 }
 
 # If the beepr package is installed, a sound is played
-if(requireNamespace("beepr", quietly = TRUE)) {
-  beepr::beep(2)
-}
+beepr::beep(2)
 
 
 ## Compare abundance models ##
