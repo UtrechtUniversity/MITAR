@@ -666,7 +666,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     lty <- rep(c(1, 2), each = nspecies)
     col <- rep(mycol[1:nspecies], 2)
     if(!all(near(abundance[indexP], 0))) {
-      message("Initial state is NOT plasmid-free.")
+      warning("Initial state is NOT plasmid-free.")
     }
     derivatives <- unlist(
       gLV(t = 0, n = abundance[indexR],
@@ -1290,6 +1290,7 @@ for(nspecies in nspeciesset) {
 duration <- Sys.time() - starttime
 
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
+warnings()
 colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
                         "intmean", "selfintmean", colnames(summarydata))
 colnames(datatotal) <- colnames(data)
