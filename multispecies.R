@@ -182,7 +182,7 @@ niter <- 25
 niterintmat <- 1
 simulateinvasion <- TRUE
 intmeanset <- seq(from = -1.2e-11, to = 1.2e-11, by = 2e-12)
-selfintmeanset <- seq(from = -1.2e-11, to = 0e-12, by = 2e-12)
+selfintmeanset <- seq(from = -1.2e-11, to = 0, by = 2e-12)
 
 ## Testset
 saveplots <- TRUE
@@ -299,13 +299,12 @@ gLVConj <- function(t, n, parms) {
 # species abundances are proportional to the length of fragments of a stick that
 # is broken randomly at nspecies - 1 points, following the broken stick model
 # (= MacArthur faction model) in the description of Tokeshi (1990). With the
-# default takelimits = TRUE, this is done 1000 times and the mean abundance for
-# each species is returned.
-brokenstick <- function(nspecies, totalabun, takelimit = TRUE) {
+# default takelimits = TRUE, this is done niterabun times and the mean abundance
+# for each species is returned.
+brokenstick <- function(nspecies, totalabun, takelimit = TRUE, niterabun = 1000) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             length(totalabun) == 1, totalabun > 0)
   if(takelimit == TRUE) {
-    niterabun <- 1e3
     abunmat <- matrix(data = NA, nrow = niterabun, ncol = nspecies)
     for(iterindex in 1:niterabun) {
       # sorting to get positive differences in the next step
