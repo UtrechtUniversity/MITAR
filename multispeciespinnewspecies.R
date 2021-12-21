@@ -88,7 +88,6 @@
 # only check input on the first iteration, by including a checkinput argument
 # and use if(checkinput == TRUE) {code to check input}.
 
-
 ## Abundance models ##
 # brokenstick()
 # diff() works vectorised on matrix columns, but then the breakpoints should be
@@ -99,7 +98,6 @@
 # Instead of assigning all remaining niche to the last species to obtain the
 # user-defined total abundance, Tokeshi 1990 suggests dividing by
 # 1 - (1 - 0.75)^nspecies for scaling the geometric series.
-
 
 ## getintmat() ##
 # See May 2005 on other options for intraspecies interactions (all < 0, all -1, ...).
@@ -115,11 +113,6 @@
 ## perturbequilibrium() ##
 # I could try if supplying the analytic Jacobian to the solver speeds up the
 # integration. See Box 1 in Lischke 2017.
-
-# Add function to perturb equilibrium when abundances, intmat, ect. are not
-# supplied, but instead the parameters to obtain them. Then split this in
-# calcStuff function (to be used also in main script [with (l/m)apply?]) and
-# PerturbFunction ?
 
 ## createplot() ##
 # The diagonals are not displayed correctly if the plotting area is non-square
@@ -581,8 +574,6 @@ geteqinfo <- function(model, abundance, intmat, growthrate,
 # achieved by specifying terminalroot = c(1, 2) within ode(...). See
 # help(events) and help(lsodar) (both in the deSolve package) for background
 # information and examples.
-# COULD replace state[state <= smallstate] in eventfun with state[state == smallstate]
-# to prevent constantly re-copying the zeros ?
 rootfun <- function(t, state, p) {
   c(sum(abs(unlist(gLV(t, state, p)))) - smallchange,
     sum(state) - 1e10*totalabun,
@@ -617,8 +608,8 @@ eventfun <- function(t, state, p) {
 # tmax and tstep give the timesteps at which abundances should be calculated
 #   (since variable step-size methods are used, those are not the only times
 #   that integration occurs)
-# If showplot == TRUE, the result is plotted (or saved to a .png file if
-#   saveplots == TRUE), which is slow
+# If showplot == TRUE, the result is plotted (which is slow) or saved to a .png
+#   file if saveplots == TRUE.
 # If verbose is TRUE, abundances before and after perturbation, and their
 #   differences, are printed.
 # Abundances grow to infinity when positive feedback is present, because the
