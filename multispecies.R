@@ -1730,72 +1730,76 @@ if(simulateinvasion == TRUE) {
   # considered. Although costs and conjugation rates do not influence the
   # outcome, they are included as facets to facilitate comparison with plots of
   # abundances after perturbation with plasmid-bearing bacteria.
-  # Note that log10(0) is not displayed in the plots, which explains the
-  # different numbers of gray squares in the plots for abunRtotalmin vs.
-  # abunRtotalmean, ect.
+  
+  # log10(0) leads to -Inf and is displayed as a gray square in the plots,
+  # leading to different numbers of gray squares between plots. It is also
+  # confusing because gray squares can also indicate no data is available
+  # because all simulations were discarded because equilibrium was not reached.
+  # Therefor I plot log10(1 + x) instead of log10(x). I do not use the built-in
+  # function log1p(x) because that uses natural logarithms.
   title <- "Total abundance after perturbation"
   if(PInMostAbun == FALSE) {
     title <- paste(title, "(PinLeastAbun)")
   }
-  CreatePlot(fillvar = "log10(abunRtotalmin)",
-             filltitle = "Log10(Minimum of plasmid-\nfree bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunRtotalmin)",
+             filltitle = "Log10(1 + Minimum of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
-  CreatePlot(fillvar = "log10(abunRtotalmean)",
-             filltitle = "Log10(Mean of plasmid-\nfree bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunRtotalmean)",
+             filltitle = "Log10(1 + Mean of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
-  CreatePlot(fillvar = "log10(abunRtotalmedian)",
-             filltitle = "Log10(Median of plasmid-\nfree bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunRtotalmedian)",
+             filltitle = "Log10(1 + Median of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
-  CreatePlot(fillvar = "log10(abunRtotalmax)",
-             filltitle = "Log10(Maximum of plasmid-\nfree bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunRtotalmax)",
+             filltitle = "Log10(1 + Maximum of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
 
   ## Plot of total abundances after perturbation with plasmid-bearing bacteria in
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  CreatePlot(fillvar = "log10(abuntotalconjmin)",
-             filltitle = "Log10(Minimum total\nabundance)", filltype = "continuous",
+  CreatePlot(fillvar = "log10(1 + abuntotalconjmin)",
+             filltitle = "Log10(1 + Minimum total\nabundance)", filltype = "continuous",
              title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(abuntotalconjmean)",
-             filltitle = "Log10(Mean total\nabundance)", filltype = "continuous",
+  CreatePlot(fillvar = "log10(1 + abuntotalconjmean)",
+             filltitle = "Log10(1 + Mean total\nabundance)", filltype = "continuous",
              title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(abuntotalconjmedian)",
-             filltitle = "Log10(Median total\nabundance)", filltype = "continuous",
+  CreatePlot(fillvar = "log10(1 + abuntotalconjmedian)",
+             filltitle = "Log10(1 + Median total\nabundance)", filltype = "continuous",
              title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(abuntotalconjmax)",
-             filltitle = "Log10(Maximum total\nabundance)", filltype = "continuous",
+  CreatePlot(fillvar = "log10(1 + abuntotalconjmax)",
+             filltitle = "Log10(1 + Maximum total\nabundance)", filltype = "continuous",
              title = title, subtitle = subplasmidbearing)
   
   ## Plot total abundances of plasmid-free populations after perturbations in
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  CreatePlot(fillvar = "log10(abunRtotalconjmin)",
-             filltitle = "Log10(Minimum of plasmid-\nfree bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunRtotalconjmin)",
+             filltitle = "Log10(1 + Minimum of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(abunRtotalconjmean)",
-             filltitle = "Log10(Mean of plasmid-\nfree bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunRtotalconjmean)",
+             filltitle = "Log10(1 + Mean of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(abunRtotalconjmedian)",
-             filltitle = "Log10(Median of plasmid-\nfree bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunRtotalconjmedian)",
+             filltitle = "Log10(1 + Median of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(abunRtotalconjmax)",
-             filltitle = "Log10(Maximum of plasmid-\nfree bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunRtotalconjmax)",
+             filltitle = "Log10(1 + Maximum of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)  
   
   ## Plot total abundances of plasmid-bearing populations after perturbations for
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  CreatePlot(fillvar = "log10(abunPtotalconjmin)",
-             filltitle = "Log10(Minimum of plasmid-\nbearing bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunPtotalconjmin)",
+             filltitle = "Log10(1 + Minimum of plasmid-\nbearing bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(abunPtotalconjmean)",
-             filltitle = "Log10(Mean of plasmid-\nbearing bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunPtotalconjmean)",
+             filltitle = "Log10(1 + Mean of plasmid-\nbearing bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(abunPtotalconjmedian)",
-             filltitle = "Log10(Median of plasmid-\nbearing bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunPtotalconjmedian)",
+             filltitle = "Log10(1 + Median of plasmid-\nbearing bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(abunPtotalconjmax)",
-             filltitle = "Log10(Maximum of plasmid-\nbearing bacteria)",
+  CreatePlot(fillvar = "log10(1 + abunPtotalconjmax)",
+             filltitle = "Log10(1 + Maximum of plasmid-\nbearing bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
   
   ## Plots comparing species abundances after perturbation with plasmid-bearing
@@ -1836,11 +1840,11 @@ if(simulateinvasion == TRUE) {
              filltitle = "Median abundance sp4 after\nperturbation with P1",
              filltype = "continuous", limits = limits)
   
-  CreatePlot(fillvar = "log10(abunRsp4median)",
-             filltitle = "Log10(Median abundance sp4 after\nperturbation with R1)",
+  CreatePlot(fillvar = "log10(1 + abunRsp4median)",
+             filltitle = "Log10(1 + Median abundance sp4 after\nperturbation with R1)",
              filltype = "continuous")
-  CreatePlot(fillvar = "log10(abunconjsp4median)",
-             filltitle = "Log10(Median abundance sp4 after\nperturbation with P1)",
+  CreatePlot(fillvar = "log10(1 + abunconjsp4median)",
+             filltitle = "Log10(1 + Median abundance sp4 after\nperturbation with P1)",
              filltype = "continuous")
   
   limits <- range(c(plotdata[, "abunRsp5median"],
@@ -1861,11 +1865,11 @@ if(simulateinvasion == TRUE) {
              filltitle = "Median abundance sp6 after\nperturbation with P1",
              filltype = "continuous", limits = limits)
   
-  CreatePlot(fillvar = "log10(abunRsp6median)",
-             filltitle = "Log10(Median abundance sp6 after\nperturbation with R1)",
+  CreatePlot(fillvar = "log10(1 + abunRsp6median)",
+             filltitle = "Log10(1 + Median abundance sp6 after\nperturbation with R1)",
              filltype = "continuous")
-  CreatePlot(fillvar = "log10(abunconjsp6median)",
-             filltitle = "Log10(Median abundance sp6 after\nperturbation with P1)",
+  CreatePlot(fillvar = "log10(1 + abunconjsp6median)",
+             filltitle = "Log10(1 + Median abundance sp6 after\nperturbation with P1)",
              filltype = "continuous")
 }
 
