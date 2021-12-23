@@ -822,7 +822,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        laby = "Mean selfinteraction coefficient",
                        tag = NULL, addstamp = FALSE, diagonal = "none",
                        facetx = "taxmatcode + abunmodelcode + cost",
-                       facety = "nspecies + conjratecode",
+                       facety = "conjratecode + nspecies",
                        as.table = TRUE,
                        marginx = NULL, marginy = NULL, base_size = 11,
                        rotate_x_labels = TRUE, rotate_legend = FALSE,
