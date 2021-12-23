@@ -1293,8 +1293,10 @@ if(PInMostAbun == FALSE) {
 
 write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
           quote = FALSE, row.names = FALSE)
-write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
-          quote = FALSE, row.names = FALSE)
+if(nrow(datatotal) < 250000) {
+  write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
+            quote = FALSE, row.names = FALSE)
+}
 
 # Saving settings
 names(conjrateset) <- paste0("conjrateset", 1:length(conjrateset))
