@@ -825,7 +825,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        facety = "nspecies + conjratecode",
                        as.table = TRUE,
                        marginx = NULL, marginy = NULL, base_size = 11,
-                       rotate_legend = FALSE,
+                       rotate_x_labels = TRUE, rotate_legend = FALSE,
                        save = saveplots, filename = NULL, ...) {
   caption <- paste(unique(dataplot$niter), "iterations")
   if(exists("DateTimeStamp") == FALSE) {
@@ -868,6 +868,9 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   }
   if(filltype == "continuous") {
     p <- p + scale_fill_viridis_c(filltitle, limits = limits)
+  }
+  if(rotate_x_labels == TRUE) {
+    p <- p + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
   }
   if(rotate_legend == TRUE) {
     p <- p + guides(fill = guide_colourbar(label.hjust = 0.4, label.vjust = 0.5,
