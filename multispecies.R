@@ -19,9 +19,6 @@
 # Lischke H, Löffler TJ. 2017. Finding all multiple stable fixpoints of n-species
 # Lotka-Volterra competition models Theoretical Population Biology 115:24-34.
 
-# May RM. 2001.  Stability and complexity in model ecosystems. Princeton/Oxford:
-# Princeton University Press.
-
 # Tokeshi M. 1990. Niche apportionment or random assortment: species abundance
 # patterns revisited. Journal of animal ecology 59(3):1129-1146.
 
@@ -45,9 +42,6 @@
 #### Optionally to do ####
 
 ## General ##
-# Formatting of text in messages, warnings, and graphs can be coded nicer using
-# the stringr package.
-
 # Some variables are named x -> xconj (maxabunR, maxabunRconj), others are named
 # fraceigvalRep -> fraceigvalconjRep. That could be made more consistent.
 
@@ -88,21 +82,7 @@
 # only check input on the first iteration, by including a checkinput argument
 # and use if(checkinput == TRUE) {code to check input}.
 
-## Abundance models ##
-# brokenstick()
-# diff() works vectorised on matrix columns, but then the breakpoints should be
-# sorted in per column before applying diff(), so then still a loop/apply has to
-# be used.
-
-# dompreempt()
-# Instead of assigning all remaining niche to the last species to obtain the
-# user-defined total abundance, Tokeshi 1990 suggests dividing by
-# 1 - (1 - 0.75)^nspecies for scaling the geometric series.
-
 ## getintmat() ##
-# See May 2005 on other options for intraspecies interactions (all < 0, all -1, ...).
-# Search literature for abundance models applied to a microbiome.
-
 # Add logistic interaction in addition the the linear interaction currently
 # implemented (see https://github.com/EgilFischer/FlockMicrobiome for code).
 
@@ -133,17 +113,6 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 # If states become smaller than smallstate, they are set to 0
 # If the sum of absolute rates of change is equal to smallchange, equilibrium is
 #   assumed to be reached and the integration is terminated
-# taxmat is a matrix giving the taxonomic relatedness between the donor species
-#   (columns) and recipient species (rows). Although the matrix is symmetric,
-#   this ordering is needed to calculate the conjugation rates correctly. Only
-#   the submatrix taxmat[1:nspecies, 1:nspecies] is used if nspecies <
-#   max(nspeciesset). The use of multiple values for taxmat is NOT supported
-#   (yet). An example matrix with E. coli, Klebsiella, and two Erwinia species:
-#   taxmat <- matrix(c("SameSpecies", "SameFamily",  "SameOrder",   "SameOrder",
-#                      "SameFamily",  "SameSpecies", "SameOrder",   "SameOrder",
-#                      "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies",
-#                      "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies"),
-#                    nrow = 4, ncol = 4, byrow = TRUE)
 
 ## Basis parameter set
 saveplots <- TRUE
@@ -295,7 +264,7 @@ gLVConj <- function(t, n, parms) {
 # Calculate absolute species abundances from the specified total abundance if
 # species abundances are proportional to the length of fragments of a stick that
 # is broken randomly at nspecies - 1 points, following the broken stick model
-# (= MacArthur faction model) in the description of Tokeshi (1990). With the
+# (= MacArthur fraction model) in the description of Tokeshi (1990). With the
 # default takelimits = TRUE, this is done niterabun times and the mean abundance
 # for each species is returned.
 brokenstick <- function(nspecies, totalabun, takelimit = TRUE, niterabun = 1000) {
@@ -319,32 +288,29 @@ brokenstick <- function(nspecies, totalabun, takelimit = TRUE, niterabun = 1000)
 
 # Calculate abundances following the dominance preemption model. The first
 # species occupies (preempts) more than half of the total niche, and each
-# subsequent species occupies more than half of the remainder. The last species
-# is assigned all of the niche that remains, to obtain the user-defined total
-# abundance. Over many iterations, each species preempts on average (0.5 + 1)/2
-# = 0.75 of the remainder, such that the model converges to the geometric series
-# with k = 0.75 for all but the last species. This geometric model is used
-# instead of the dominance preemption model with the default takelimit = TRUE.
+# subsequent species occupies more than half of the remainder (Tokeshi 1990).
+# Over many iterations, each species preempts on average (0.5 + 1)/2 = 0.75 of
+# the remainder, such that the abundances converge to the geometric series where
+# the abundance of species i is given by totalabun*k*(1 - k)^(i - 1) with k =
+# 0.75. The geometric model is used instead of the dominance preemption model if
+# takelimit = TRUE, which is the default. The abundances are divided by
+# 1 - (1 - 0.75)^nspecies to obtain the user-defined total abundance (Tokeshi 1990).
 dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             length(totalabun) == 1, totalabun > 0)
   abun <- rep(NA, nspecies)
-  remainingabun <- totalabun  
   if(takelimit == TRUE) {
-    for(speciesindex in 1:nspecies) {
-      abun.temp <- 0.75*remainingabun
-      abun[speciesindex] <- abun.temp
-      remainingabun <- remainingabun - abun.temp
-    }
-    abun[speciesindex] <- abun[speciesindex] + remainingabun
+    abun <- totalabun*0.75*0.25^((1:nspecies) - 1)
   } else {
+    remainingabun <- totalabun
     for(speciesindex in 1:nspecies) {
       abun.temp <- runif(1, min = 0.5, max = 1)*remainingabun
       abun[speciesindex] <- abun.temp
       remainingabun <- remainingabun - abun.temp
     }
-    abun[speciesindex] <- abun[speciesindex] + remainingabun
   }
+  # Scaling abundances to get specified total abundance
+  abun <- abun / (1 - (0.25^nspecies))
   return(abun)
 }
 
@@ -478,17 +444,27 @@ checkequilibrium <- function(abundance, intmat, growthrate,
 #   - nspecies: integer indicating the number of species
 #   - conjrate: numeric vector of length nspecies giving the intraspecies
 #     conjugation rates for each species.
-#   - taxmat: matrix where element in column n and row r gives taxonomic
-#     relatedness between species n and r, as a character string (possible are
-#     "SameSpecies", "SameFamily", "SameOrder", "SameClass", and "OtherClass").
-#     This matrix is used to calculate the interspecies conjugation rates based
-#     on the intraspecies conjugation rates provided in conjrate, and the
-#     taxonomic relatedness as provided in taxmat. By default R fills matrices
-#     by column, so byrow = TRUE should be used to obtain the same matrix as
-#     the 'folded' vector. For example for 2 species:
-#     taxmat <- matrix(c("SameSpecies", "SameFamily",
-#                          "SameFamily", "SameSpecies"),
-#                        nrow = nspecies, ncol = nspecies, byrow = TRUE)
+#   - taxmat: matrix where element in column n and row r gives the taxonomic
+#     relatedness between donor species n and recipient species r. Although the
+#     matrix is symmetric, this ordering is needed to correctly calculate the
+#     conjugation rates.
+#     Valid values are the character strings "SameSpecies", "SameFamily",
+#     "SameOrder", "SameClass", and "OtherClass". Currently only "SameSpecies"
+#     and, if taxmattypeset contains "PInOtherClass", "OtherClass" are used.
+#     Interspecies conjugation rates are calculated based on the intraspecies
+#     conjugation rates provided in conjrate and the taxonomic relatedness as
+#     provided in this matrix taxmat.
+#     By default R fills matrices by column, so byrow = TRUE should be used to
+#     obtain the same matrix as the 'folded' vector.
+#     An example matrix with E. coli, Klebsiella, and two Erwinia species:
+#     taxmat <- matrix(c("SameSpecies", "SameFamily",  "SameOrder",   "SameOrder",
+#                        "SameFamily",  "SameSpecies", "SameOrder",   "SameOrder",
+#                        "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies",
+#                        "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies"),
+#                      nrow = 4, ncol = 4, byrow = TRUE)
+#     Only the submatrix taxmat[1:nspecies, 1:nspecies] is used if nspecies <
+#     max(nspeciesset). The use of multiple values for taxmat is NOT supported
+#     (yet).
 # Return:
 #   - conjmat: matrix where the element in column n and row r gives the
 #     conjugation rate from species n to species r.
@@ -920,8 +896,6 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 # geteqinfo(model = "gLV", abundance = abunbrokenstick, intmat = intmat1, growthrate = growthratebrokenstick)
 # geteqinfo(model = "gLV", abundance = abundompreempt, intmat = intmat1, growthrate = growthratedompreempt)
 
-# duration <- rep(NA, 10)
-# for(i in 1:10) {
 
 #### Running the simulations ####
 set.seed(seed = 314, kind = "default", normal.kind = "default", sample.kind = "default")
