@@ -1704,6 +1704,10 @@ if(simulateinvasion == TRUE) {
              filltitle = "Mean fraction of bacteria\nthat is plasmid-bearing",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
 
+  CreatePlot(fillvar = "(1 - fracRtotalconjmedian) - abunPconjsp1median",
+             filltitle = "Median fraction of plasmid-bearing bacteria excluding species 1",
+             filltype = "continuous",
+             subtitle = "I should recreate this plot from data computed\non individual simulations")
   
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
