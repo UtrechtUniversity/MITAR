@@ -1699,7 +1699,7 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "1 - fracRtotalconjmean",
              filltitle = "Mean fraction of bacteria\nthat is plasmid-bearing",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  
+
   
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
@@ -1851,17 +1851,17 @@ if(simulateinvasion == TRUE) {
 
 ## Compare abundance models ##
 compareabun <- NULL
-
-for(nspecies in nspeciesset) {
-  comparetemp <- data.frame(
-    nspecies = as.factor(rep(nspecies, 2*nspecies)),
-    species = as.factor(rep(1:nspecies, 2)),
-    abun = c(brokenstick(nspecies = nspecies, totalabun = totalabun,
-                         takelimit = TRUE),
-             dompreempt(nspecies = nspecies, totalabun = totalabun,
-                        takelimit = TRUE)),
-    model = rep(c("brokenstick", "dompreempt"), each = nspecies))
-  compareabun <- rbind(compareabun, comparetemp)
+for(abunmodel in abunmodelset) {
+  for(nspecies in nspeciesset) {
+    comparetemp <- data.frame(
+      nspecies = as.factor(nspecies),
+      species = as.factor(1:nspecies),
+      abun = switch(abunmodel,
+                    "brokenstick" = brokenstick(nspecies = nspecies, totalabun = totalabun, takelimit = TRUE),
+                    "dompreempt" = dompreempt(nspecies = nspecies, totalabun = totalabun, takelimit = TRUE)),
+      model = abunmodel)
+    compareabun <- rbind(compareabun, comparetemp)
+  }
 }
 compareabun[, "group"] <- paste0(compareabun[, "nspecies"],
                                  " species, ", compareabun[, "model"])
