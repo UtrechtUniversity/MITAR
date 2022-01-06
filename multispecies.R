@@ -797,6 +797,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        labx = "Mean interaction coefficient",
                        laby = "Mean selfinteraction coefficient",
                        tag = NULL, addstamp = FALSE, diagonal = "none",
+                       linezero = FALSE,
                        facetx = "taxmatcode + abunmodelcode + cost",
                        facety = "conjratecode + nspecies",
                        as.table = TRUE,
@@ -857,6 +858,9 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   }
   if(diagonal == "both" || diagonal == "minor") {
     p <- p + geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+  }
+  if(linezero == TRUE) {
+    p <- p + geom_vline(xintercept = 0, col = "white", size = 1.1)
   }
   if(save == TRUE) {
     if(is.null(filename)) {
