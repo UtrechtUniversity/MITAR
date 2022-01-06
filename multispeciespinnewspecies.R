@@ -1793,6 +1793,17 @@ if(simulateinvasion == TRUE) {
                                "with P of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
   
+  CreatePlot(fillvar = "abunRsp1median",
+             filltitle = paste("Median abundance sp1 after\nperturbation",
+                               "with R of newly\nintroduced species 1"),
+             filltype = "continuous", limits = limitsfraction,
+             filename = "abunRsp1mediancontinuouschangedlim")
+  CreatePlot(fillvar = "abunconjsp1median",
+             filltitle = paste("Median abundance sp1 after\nperturbation",
+                               "with P of newly\nintroduced species 1"),
+             filltype = "continuous", limits = limitsfraction,
+             filename = "abunconjsp1mediancontinuouschangedlim")
+  
   limits <- range(c(plotdata[, "abunRsp2median"],
                     plotdata[, "abunconjsp2median"]), na.rm = TRUE)
   CreatePlot(fillvar = "abunRsp2median",
