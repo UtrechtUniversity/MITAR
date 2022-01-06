@@ -1315,8 +1315,8 @@ for(index in 1:length(settings)) {
 
 
 #### Reading previously saved data from a .csv-file ####
-## To read data from csv-file, uncomment this section and fill in the 
-# needed datetimestamp
+# # To read data from csv-file, uncomment this section and fill in the
+# # needed datetimestamp
 # filename <- "2021_05_04_17_44multispecies.csv"
 # plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
 #                   dec = ".", stringsAsFactors = FALSE)
@@ -1701,9 +1701,9 @@ if(simulateinvasion == TRUE) {
              filltitle = "Mean fraction of bacteria\nthat is plasmid-bearing",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
   
-  CreatePlot(fillvar = "(1 - fracRtotalconjmedian) - abunPconjsp1median",
-             filltitle = "Median fraction of plasmid-bearing bacteria excluding species 1",
-             filltype = "continuous",
+  CreatePlot(fillvar = "abunPconjsp1median / (1 - fracRtotalconjmedian)",
+             filltitle = "Median fraction of plasmid-bearing\nbacteria belonging to species 1",
+             filltype = "continuous", limits = limitsfraction,
              subtitle = "I should recreate this plot from data computed\non individual simulations")
   
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
