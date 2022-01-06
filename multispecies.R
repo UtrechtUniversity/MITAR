@@ -1705,7 +1705,7 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
 
   CreatePlot(fillvar = "(1 - fracRtotalconjmedian) - abunPconjsp1median",
-             filltitle = "Median fraction of plasmid-bearing bacteria excluding species 1",
+             filltitle = "Median fraction of plasmid-bearing\nbacteria excluding species 1",
              filltype = "continuous",
              subtitle = "I should recreate this plot from data computed\non individual simulations")
   
@@ -1798,13 +1798,11 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limits)
   
   CreatePlot(fillvar = "abunRsp1median",
-             filltitle = paste("Median abundance sp1 after\nperturbation",
-                               "with R of newly\nintroduced species 1"),
+             filltitle = "Median abundance sp1 after\nperturbation with R1",
              filltype = "continuous", limits = limitsfraction,
              filename = "abunRsp1mediancontinuouschangedlim")
   CreatePlot(fillvar = "abunconjsp1median",
-             filltitle = paste("Median abundance sp1 after\nperturbation",
-                               "with P of newly\nintroduced species 1"),
+             filltitle = "Median abundance sp1 after\nperturbation with P1",
              filltype = "continuous", limits = limitsfraction,
              filename = "abunconjsp1mediancontinuouschangedlim")
   
