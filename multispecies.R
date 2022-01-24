@@ -1045,14 +1045,8 @@ for(nspecies in nspeciesset) {
                               eqreached = NA, infgrowth = NA)
           }
           
-          timefinal <- abunfinal$timefinal
-          tmaxshort <- abunfinal$tmaxshort
-          eqreached <- abunfinal$eqreached
-          infgrowth <- abunfinal$infgrowth
-          abunRtotal <- abunfinal$Rtotal
-          abunR[1:nspecies] <- abunfinal$R / abunRtotal
-          npopR <- abunfinal$npopR
-          
+          abunR[1:nspecies] <- abunfinal$R / abunfinal$Rtotal
+
           for(cost in costset) {
             conjratecode <- 0
             
@@ -1125,31 +1119,15 @@ for(nspecies in nspeciesset) {
                                   eqreached = NA, infgrowth = NA)
               }
               
-              timefinalconj <- abunfinalconj$timefinal
-              tmaxshortconj <- abunfinalconj$tmaxshort
-              eqreachedconj <- abunfinalconj$eqreached
-              infgrowthconj <- abunfinalconj$infgrowth
-              
-              # Total abundances (cells / mL) for plasmid-free,
-              # plasmid-bearing, and both populations
-              abunRtotalconj <- abunfinalconj$Rtotal
-              abunPtotalconj <- abunfinalconj$Ptotal
-              abuntotalconj <- abunRtotalconj + abunPtotalconj
-              
-              # Relative abundances (fractions of total)
+              # Total (cells / mL) and relative (fractions of total) abundances
+              abuntotalconj <- abunfinalconj$Rtotal + abunfinalconj$Ptotal
               abunRconj[1:nspecies] <- abunfinalconj$R / abuntotalconj
               abunPconj[1:nspecies] <- abunfinalconj$P / abuntotalconj
-              abunconj <- abunRconj + abunPconj
-              
-              # Number of surviving populations
-              npopRconj <- abunfinalconj$npopR
-              npopPconj <- abunfinalconj$npopP
-              npopconj <- npopRconj + npopPconj
-              
+
               # Using abunfinalconj$R + abunfinalconj$P > smallstate if the
               # abundances are NA leads to 0 instead of NA, so instead use
               # if-else construct.
-              if(eqreachedconj == 0 | simulateinvasion == FALSE) {
+              if(abunfinalconj$eqreached == 0 | simulateinvasion == FALSE) {
                 nspeciesconj <- NA 
               } else {
                 nspeciesconj <- length(which(
@@ -1166,16 +1144,19 @@ for(nspecies in nspeciesset) {
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
                 compstability,
-                infgrowth, infgrowthconj, eqreached, eqreachedconj,
-                tmaxshort, tmaxshortconj, timefinal, timefinalconj,
-                abunRtotal, abunRtotalconj, abunPtotalconj,
-                abuntotalconj, abunRtotalconj/abuntotalconj,
-                npopR, npopRconj, npopPconj, npopconj, npopRconj / npopconj,
-                nspeciesconj, npopRconj / nspeciesconj, npopPconj / nspeciesconj,
+                abunfinal$infgrowth, abunfinalconj$infgrowth,
+                abunfinal$eqreached, abunfinalconj$eqreached,
+                abunfinal$tmaxshort, abunfinalconj$tmaxshort,
+                abunfinal$timefinal, abunfinalconj$timefinal,
+                abunfinal$Rtotal, abunfinalconj$Rtotal, abunfinalconj$Ptotal,
+                abuntotalconj, abunfinalconj$Rtotal/abuntotalconj,
+                abunfinal$npopR, abunfinalconj$npopR, abunfinalconj$npopP,
+                abunfinalconj$npopR + abunfinalconj$npopP, abunfinalconj$npopR / (abunfinalconj$npopR + abunfinalconj$npopP),
+                nspeciesconj, abunfinalconj$npopR / nspeciesconj, abunfinalconj$npopP / nspeciesconj,
                 matrix(rep(abunR, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(abunRconj, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(abunPconj, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(abunconj, nspecies), nrow = nspecies, byrow = TRUE)
+                matrix(rep(abunRconj + abunPconj, nspecies), nrow = nspecies, byrow = TRUE)
               )
               indexdata <- indexdatanew
             }
