@@ -110,7 +110,8 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 #### Settings and defining parameter space ####
 # If simulateinvasion == TRUE, simulations over time are performed
-# If states become smaller than smallstate, they are set to 0
+# If states become smaller than smallstate during the integration, they are set
+# to 0
 # If the sum of absolute rates of change is equal to smallchange, equilibrium is
 #   assumed to be reached and the integration is terminated
 
@@ -631,6 +632,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     if(!all(near(abundance[indexP], 0))) {
       warning("Initial state is NOT plasmid-free.")
     }
+    # Derivatives of model without plasmids, to check if initial state is an
+    # equilibrium in that model
     derivatives <- unlist(
       gLV(t = 0, n = abundance[indexR],
           parms = list(growthrate = growthrate, intmat = intmat))
@@ -696,6 +699,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     
     if(any(attributes(out)$indroot == 2)) {
       infgrowth <- 1
+      
       if(suppresswarninfgrowth != TRUE) {
         warning(
           paste0("Integration was terminated at time = ",
@@ -746,29 +750,54 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   }
   
   if(model == "gLV") {
-    derivatives <- unlist(
-      gLV(t = 0, n = abunfinaltemp,
-          parms = list(growthrate = growthrate, intmat = intmat))
-    )
-    abunfinaltemp[which(derivatives < 0 & abunfinaltemp < finalsmallstate)] <- 0
+    if(eqreached == 0) {
+      # It does not make sense to store abundances in case of infinite
+      # growth or if equilibrium is not reached, so record those as NA
+      abunfinaltemp <- rep(NA, nspecies)
+      names(abunfinaltemp) <- names(abundance)
+      npopR <- NA
+    } else {
+      derivatives <- unlist(
+        gLV(t = 0, n = abunfinaltemp,
+            parms = list(growthrate = growthrate, intmat = intmat))
+      )
+      abunfinaltemp[which(derivatives < 0 & abunfinaltemp < finalsmallstate)] <- 0
+      npopR <- length(which(abunfinaltemp > smallstate))
+    }
+    
     abunfinal <- list(R = abunfinaltemp, Rtotal = sum(abunfinaltemp),
-                      P = NULL, Ptotal = NULL,
+                      npopR = npopR,
+                      P = NULL, Ptotal = NULL, npopP = NULL,
                       timefinal = timefinal, tmaxshort = tmaxshort,
                       eqreached = eqreached, infgrowth = infgrowth)
   } else {
-    derivatives <- unlist(
-      gLVConj(t = 0, n = abunfinaltemp,
-              parms = list(growthrate = growthrate, intmat = intmat,
-                           cost = cost, conjmat = conjmat))
-    )
-    # Plasmid-bearing populations can reach densities smaller than smallstate
-    # without being set to 0 because they are constantly produced through
-    # conjugation.
-    abunfinaltemp[which(derivatives < 0 & abunfinaltemp < finalsmallstate)] <- 0
+    if(eqreached == 0) {
+      # It does not make sense to store abundances in case of infinite
+      # growth or if equilibrium is not reached, so record those as NA
+      abunfinaltemp <- rep(NA, 2*nspecies)
+      names(abunfinaltemp) <- names(abundance)
+      npopR <- NA
+      npopP <- NA
+    } else {
+      derivatives <- unlist(
+        gLVConj(t = 0, n = abunfinaltemp,
+                parms = list(growthrate = growthrate, intmat = intmat,
+                             cost = cost, conjmat = conjmat))
+      )
+      # Plasmid-bearing populations can reach densities smaller than smallstate
+      # during the integration, because they are constantly produced through
+      # conjugation after being set to 0.
+      abunfinaltemp[which(derivatives < 0 & abunfinaltemp < finalsmallstate)] <- 0
+      npopR <- length(which(abunfinaltemp[indexR] > smallstate))
+      npopP <- length(which(abunfinaltemp[indexP] > smallstate))
+    }
+    
     abunfinal <- list(R = abunfinaltemp[indexR],
                       Rtotal = sum(abunfinaltemp[indexR]),
+                      npopR = npopR,
                       P = abunfinaltemp[indexP],
                       Ptotal = sum(abunfinaltemp[indexP]),
+                      npopP = npopP,
                       timefinal = timefinal, tmaxshort = tmaxshort,
                       eqreached = eqreached, infgrowth = infgrowth)
   }
@@ -1002,36 +1031,27 @@ for(nspecies in nspeciesset) {
             } else {
               # No need for simulations if equilibrium is stable
               abunfinal <- list(R = abundance, Rtotal = sum(abundance),
-                                P = NULL, Ptotal = NULL,
+                                npopR = nspecies,
+                                P = NULL, Ptotal = NULL, npopP = NULL,
                                 timefinal = 1, tmaxshort = 0,
                                 eqreached = 1, infgrowth = 0)
             }
-            timefinal <- abunfinal$timefinal
-            tmaxshort <- abunfinal$tmaxshort
-            eqreached <- abunfinal$eqreached
-            infgrowth <- abunfinal$infgrowth
-            
-            # It does not make sense to store abundances in case of infinite
-            # growth or if equilibrium is not reached, so record those as NA
-            if(eqreached == 1) {
-              abunRtotal <- abunfinal$Rtotal
-              abunR[1:nspecies] <- abunfinal$R / abunRtotal
-              npopR <- length(which(abunfinal$R > smallstate))
-            } else {
-              abunRtotal <- NA
-              abunR[1:nspecies] <- NA
-              npopR <- NA
-            }
           } else {
             # No simulations over time performed, so set values to NA
-            timefinal <- NA
-            tmaxshort <- NA
-            eqreached <- NA
-            infgrowth <- NA
-            abunRtotal <- NA
-            abunR[1:nspecies] <- NA
-            npopR <- NA
+            abunfinal <- list(R = rep(NA, nspecies), Rtotal = NA,
+                              npopR = NA,
+                              P = NULL, Ptotal = NULL, npopP = NULL,
+                              timefinal = NA, tmaxshort = NA,
+                              eqreached = NA, infgrowth = NA)
           }
+          
+          timefinal <- abunfinal$timefinal
+          tmaxshort <- abunfinal$tmaxshort
+          eqreached <- abunfinal$eqreached
+          infgrowth <- abunfinal$infgrowth
+          abunRtotal <- abunfinal$Rtotal
+          abunR[1:nspecies] <- abunfinal$R / abunRtotal
+          npopR <- abunfinal$npopR
           
           for(cost in costset) {
             conjratecode <- 0
@@ -1089,64 +1109,54 @@ for(nspecies in nspeciesset) {
                 } else {
                   # No need for simulations if equilibrium is stable
                   abunfinalconj <- list(R = abundance, Rtotal = sum(abundance),
+                                        npopR = nspecies,
                                         P = rep(0, nspecies), Ptotal = 0,
+                                        npopP = 0,
                                         timefinal = 1, tmaxshort = 0,
                                         eqreached = 1, infgrowth = 0)
                 }
-                timefinalconj <- abunfinalconj$timefinal
-                tmaxshortconj <- abunfinalconj$tmaxshort
-                eqreachedconj <- abunfinalconj$eqreached
-                infgrowthconj <- abunfinalconj$infgrowth
                 
-                if(eqreachedconj == 1) {
-                  # Total abundances (cells / mL) for plasmid-free,
-                  # plamsmid-bearing, and both populations
-                  abunRtotalconj <- abunfinalconj$Rtotal
-                  abunPtotalconj <- abunfinalconj$Ptotal
-                  abuntotalconj <- abunRtotalconj + abunPtotalconj
-                  
-                  # Relative abundances (fractions of total)
-                  abunRconj[1:nspecies] <- abunfinalconj$R / abuntotalconj
-                  abunPconj[1:nspecies] <- abunfinalconj$P / abuntotalconj
-                  abunconj <- abunRconj + abunPconj
-                  
-                  # Number of surviving populations
-                  npopRconj <- length(which(abunfinalconj$R > smallstate))
-                  npopPconj <- length(which(abunfinalconj$P > smallstate))
-                  npopconj <- npopRconj + npopPconj
-                  nspeciesconj <- length(which(abunfinalconj$R + abunfinalconj$P
-                                               > smallstate))
-                } else {
-                  # It does not make sense to store abundances in case of infinite
-                  # growth or if equilibrium is not reached, so record those as NA
-                  abunRtotalconj <- NA
-                  abunPtotalconj <- NA
-                  abuntotalconj <- NA
-                  abunRconj[1:nspecies] <- NA
-                  abunPconj[1:nspecies] <- NA
-                  abunconj[1:nspecies] <- NA
-                  npopRconj <- NA
-                  npopPconj <- NA
-                  npopconj <- NA
-                  nspeciesconj <- NA
-                }
               } else {
                 # No simulations over time performed, so set values to NA
-                timefinalconj <- NA
-                tmaxshortconj <- NA
-                eqreachedconj <- NA
-                infgrowthconj <- NA
-                abunRtotalconj <- NA
-                abunPtotalconj <- NA
-                abuntotalconj <- NA
-                abunRconj[1:nspecies] <- NA
-                abunPconj[1:nspecies] <- NA
-                abunconj[1:nspecies] <- NA
-                npopRconj <- NA
-                npopPconj <- NA
-                npopconj <- NA
-                nspeciesconj <- NA
+                abunfinal <- list(R = rep(NA, nspecies), Rtotal = NA,
+                                  npopR = NA,
+                                  P = NULL, Ptotal = NULL, npopP = NULL,
+                                  timefinal = NA, tmaxshort = NA,
+                                  eqreached = NA, infgrowth = NA)
               }
+              
+              timefinalconj <- abunfinalconj$timefinal
+              tmaxshortconj <- abunfinalconj$tmaxshort
+              eqreachedconj <- abunfinalconj$eqreached
+              infgrowthconj <- abunfinalconj$infgrowth
+              
+              # Total abundances (cells / mL) for plasmid-free,
+              # plasmid-bearing, and both populations
+              abunRtotalconj <- abunfinalconj$Rtotal
+              abunPtotalconj <- abunfinalconj$Ptotal
+              abuntotalconj <- abunRtotalconj + abunPtotalconj
+              
+              # Relative abundances (fractions of total)
+              abunRconj[1:nspecies] <- abunfinalconj$R / abuntotalconj
+              abunPconj[1:nspecies] <- abunfinalconj$P / abuntotalconj
+              abunconj <- abunRconj + abunPconj
+              
+              # Number of surviving populations
+              npopRconj <- abunfinalconj$npopR
+              npopPconj <- abunfinalconj$npopP
+              npopconj <- npopRconj + npopPconj
+              
+              # Using abunfinalconj$R + abunfinalconj$P > smallstate if the
+              # abundances are NA leads to 0 instead of NA, so instead use
+              # if-else construct.
+              if(eqreachedconj == 0 | simulateinvasion == FALSE) {
+                nspeciesconj <- NA 
+              } else {
+                nspeciesconj <- length(which(
+                  abunfinalconj$R + abunfinalconj$P > smallstate
+                ))
+              }
+              
               indexdatanew <- indexdata + nspecies
               
               data[indexdata:(indexdatanew - 1), ] <- cbind(
