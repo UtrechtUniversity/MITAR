@@ -1111,7 +1111,8 @@ for(nspecies in nspeciesset) {
                 # No simulations over time performed, so set values to NA
                 abunfinalconj <- list(R = rep(NA, nspecies), Rtotal = NA,
                                   npopR = NA,
-                                  P = NULL, Ptotal = NULL, npopP = NULL,
+                                  P = rep(NA, nspecies), Ptotal = NA,
+                                  npopP = NA,
                                   timefinal = NA, tmaxshort = NA,
                                   eqreached = NA, infgrowth = NA)
               }
