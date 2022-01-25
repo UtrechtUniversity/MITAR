@@ -42,9 +42,6 @@
 #### Optionally to do ####
 
 ## General ##
-# Some variables are named x -> xconj (maxabunR, maxabunRconj), others are named
-# fraceigvalRep -> fraceigvalconjRep. That could be made more consistent.
-
 # To check if enough iterations are used: run several times for niter iterations,
 # if the variation in fraction of stable equilibria is too large, use more
 # iterations.
@@ -999,11 +996,10 @@ for(nspecies in nspeciesset) {
           length(taxmattypeset)
         data <- matrix(data = NA, nrow = nrowdata, ncol = 47 + 4*maxnspecies)
         indexdata <- 1
-        abunR <- rep(NA, maxnspecies)
-        abunRconj <- rep(NA, maxnspecies)
-        abunPconj <- rep(NA, maxnspecies)
-        abunconj <- rep(NA, maxnspecies)
-        
+        relabunRsp <- rep(NA, maxnspecies)
+        relabunRconjsp <- rep(NA, maxnspecies)
+        relabunPconjsp <- rep(NA, maxnspecies)
+
         for(iter in 1:niter) {
           stableeq <- FALSE
           iterintmat <- 0
@@ -1070,7 +1066,9 @@ for(nspecies in nspeciesset) {
                               eqreached = NA, infgrowth = NA)
           }
           
-          abunR[1:nspecies] <- abunfinal$R / abunfinal$Rtotal
+          # Model without conjugation, so Rtotal is total abundance as P does
+          # not exist
+          relabunRsp[1:nspecies] <- abunfinal$R / abunfinal$Rtotal
 
           for(cost in costset) {
             conjratecode <- 0
@@ -1131,18 +1129,18 @@ for(nspecies in nspeciesset) {
                 
               } else {
                 # No simulations over time performed, so set values to NA
-                abunfinal <- list(R = rep(NA, nspecies), Rtotal = NA,
-                                  npopR = NA,
-                                  P = rep(NA, nspecies), Ptotal = NA,
-                                  npopP = NA,
-                                  timefinal = NA, tmaxshort = NA,
-                                  eqreached = NA, infgrowth = NA)
+                abunfinalconj <- list(R = rep(NA, nspecies), Rtotal = NA,
+                                      npopR = NA,
+                                      P = rep(NA, nspecies), Ptotal = NA,
+                                      npopP = NA,
+                                      timefinal = NA, tmaxshort = NA,
+                                      eqreached = NA, infgrowth = NA)
               }
               
               # Total (cells / mL) and relative (fractions of total) abundances
               abuntotalconj <- abunfinalconj$Rtotal + abunfinalconj$Ptotal
-              abunRconj[1:nspecies] <- abunfinalconj$R / abuntotalconj
-              abunPconj[1:nspecies] <- abunfinalconj$P / abuntotalconj
+              relabunRconjsp[1:nspecies] <- abunfinalconj$R / abuntotalconj
+              relabunPconjsp[1:nspecies] <- abunfinalconj$P / abuntotalconj
               
               # Using abunfinalconj$R + abunfinalconj$P > smallstate if the
               # abundances are NA leads to 0 instead of NA, so instead use
@@ -1163,21 +1161,22 @@ for(nspecies in nspeciesset) {
                 diag(intmat), c(growthrate), newgrowthratecode, iterintmat,
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
-                compstability,
-                abunfinal$infgrowth, abunfinalconj$infgrowth,
+                compstability, abunfinal$infgrowth, abunfinalconj$infgrowth,
                 abunfinal$eqreached, abunfinalconj$eqreached,
                 abunfinal$tmaxshort, abunfinalconj$tmaxshor,
                 abunfinal$timefinal, abunfinalconj$timefinal,
-                
                 abunfinal$Rtotal, abunfinalconj$Rtotal, abunfinalconj$Ptotal,
                 abuntotalconj, abunfinalconj$Rtotal/abuntotalconj,
                 abunfinal$npopR, abunfinalconj$npopR, abunfinalconj$npopP,
-                abunfinalconj$npopR + abunfinalconj$npopP, abunfinalconj$npopR / (abunfinalconj$npopR + abunfinalconj$npopP),
-                nspeciesconj, abunfinalconj$npopR / nspeciesconj, abunfinalconj$npopP / nspeciesconj,
-                matrix(rep(abunR, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(abunRconj, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(abunPconj, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(abunRconj + abunPconj, nspecies), nrow = nspecies, byrow = TRUE)
+                abunfinalconj$npopR + abunfinalconj$npopP,
+                abunfinalconj$npopR / (abunfinalconj$npopR + abunfinalconj$npopP),
+                nspeciesconj, abunfinalconj$npopR / nspeciesconj,
+                abunfinalconj$npopP / nspeciesconj,
+                matrix(rep(relabunRsp, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(relabunRconjsp, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(relabunRconjsp + relabunPconjsp, nspecies),
+                       nrow = nspecies, byrow = TRUE)
               )
               indexdata <- indexdatanew
             }
@@ -1194,22 +1193,22 @@ for(nspecies in nspeciesset) {
                             "iterintmat",
                             "eigvalRe", "eigvalIm",
                             "eigvalReSign", "eigvalImSign", "eigvalRep",
-                            "eigvalconjRe", "eigvalconjIm",
-                            "eigvalconjReSign", "eigvalconjImSign", "eigvalconjRep",
+                            "eigvalReconj", "eigvalImconj",
+                            "eigvalReSignconj", "eigvalImSignconj", "eigvalRepconj",
                             "compstability",
                             "infgrowth", "infgrowthconj",
                             "eqreached", "eqreachedconj",
                             "tmaxshort", "tmaxshortconj",
                             "timefinal", "timefinalconj",
-                            "abunRtotal", "abunRtotalconj", "abunPtotalconj",
-                            "abuntotalconj", "fracRtotalconj",
+                            "abuntotal", "abunRtotalconj", "abunPtotalconj",
+                            "abuntotalconj", "relabunRconj",
                             "npopR", "npopRconj", "npopPconj", "npopconj",
                             "fracpopRconj", "nspeciesconj",
                             "fracspeciesRconj", "fracspeciesPconj",
-                            paste0("abunRsp", 1:maxnspecies),
-                            paste0("abunRconjsp", 1:maxnspecies),
-                            paste0("abunPconjsp", 1:maxnspecies),
-                            paste0("abunconjsp", 1:maxnspecies))
+                            paste0("relabunRsp", 1:maxnspecies),
+                            paste0("relabunRconjsp", 1:maxnspecies),
+                            paste0("relabunPconjsp", 1:maxnspecies),
+                            paste0("relabunconjsp", 1:maxnspecies))
         
         # Get summary data which do not depend on simulated invasion for all
         # combinations of costs and conjugation rates
@@ -1219,10 +1218,10 @@ for(nspecies in nspeciesset) {
             across(c(selfintdata, growthrate, iterintmat),
                    getsummary4, .names = "{.col}{.fn}"),
             fracstable = mean(eigvalRe < 0),
-            fracstableconj = mean(eigvalconjRe < 0),
+            fracstableconj = mean(eigvalReconj < 0),
             fracreal = mean(eigvalIm == 0),
-            fracrealconj = mean(eigvalconjIm == 0),
-            across(c(eigvalRep, eigvalconjRep), getfracnotzero,
+            fracrealconj = mean(eigvalImconj == 0),
+            across(c(eigvalRep, eigvalRepconj), getfracnotzero,
                    .names = "{.fn}{.col}"),
             fracstablestable = mean(compstability == 22),
             fracstableneutral = mean(compstability == 23),
@@ -1247,9 +1246,11 @@ for(nspecies in nspeciesset) {
                      getfracnotzero, .names = "{.col}{.fn}"),
               timefinalmedian = median(timefinal),
               timefinalconjmedian = median(timefinalconj),
-              across(c(starts_with("abunR"), starts_with("abunP"),
-                       abuntotalconj, fracRtotalconj, starts_with("abunconjsp"),
-                       starts_with("npop"), fracpopRconj, "nspeciesconj",
+              across(c(abuntotal, abunRtotalconj,
+                       starts_with("relabunR"), abunPtotalconj,
+                       starts_with("relabunP"), abuntotalconj,
+                       relabunRconj, starts_with("relabunconjsp"),
+                       starts_with("npop"), fracpopRconj, nspeciesconj,
                        fracspeciesRconj, fracspeciesPconj),
                      getsummary4, .names = "{.col}{.fn}"),
               .groups = "drop"
@@ -1445,22 +1446,22 @@ CreatePlot(fillvar = "fracstablestable",
 datatotalfilteredspecies <- filter(datatotal, near(species, 1))
 datatotalfilteredspeciesiter <- filter(datatotalfilteredspecies, near(iter, 1))
 limitseigvalRe <- range(c(datatotalfilteredspeciesiter[, "eigvalRe"],
-                          datatotalfilteredspeciesiter[, "eigvalconjRe"]))
+                          datatotalfilteredspeciesiter[, "eigvalReconj"]))
 limitseigvalIm <- range(c(datatotalfilteredspeciesiter[, "eigvalIm"],
-                          datatotalfilteredspeciesiter[, "eigvalconjIm"]))
+                          datatotalfilteredspeciesiter[, "eigvalImconj"]))
 CreatePlot(dataplot = datatotalfilteredspeciesiter,
            fillvar = "eigvalRe",
            filltitle = "Real part of\ndominant eigenvalue",
            filltype = "continuous", limits = limitseigvalRe)
 CreatePlot(dataplot = datatotalfilteredspeciesiter,
-           fillvar = "eigvalconjRe",
+           fillvar = "eigvalReconj",
            filltitle = "Real part of\ndominant eigenvalue\nwith conjugation",
            filltype = "continuous", limits = limitseigvalRe)
 
 limitseigvalRe <- range(c(datatotalfilteredspecies[, "eigvalRe"],
-                          datatotalfilteredspecies[, "eigvalconjRe"]))
+                          datatotalfilteredspecies[, "eigvalReconj"]))
 limitseigvalIm <- range(c(datatotalfilteredspecies[, "eigvalIm"],
-                          datatotalfilteredspecies[, "eigvalconjIm"]))
+                          datatotalfilteredspecies[, "eigvalImconj"]))
 ggplot(data = datatotalfilteredspecies,
        aes(x = eigvalRe, y = eigvalIm,
            color = as.factor(eigvalReSign))) +
@@ -1479,8 +1480,8 @@ if(saveplots == TRUE) {
 }
 
 ggplot(data = datatotalfilteredspecies,
-       aes(x = eigvalconjRe, y = eigvalconjIm,
-           color = as.factor(eigvalconjReSign))) +
+       aes(x = eigvalReconj, y = eigvalImconj,
+           color = as.factor(eigvalReSignconj))) +
   scale_x_continuous(limits = limitseigvalRe) +
   scale_y_continuous(limits = limitseigvalIm) +
   geom_point() +
@@ -1519,7 +1520,7 @@ CreatePlot(fillvar = "fracrealconj",
            filltype = "continuous", limits = limitsfraction)
 CreatePlot(fillvar = "fraceigvalRep", filltitle = "Fraction repeated eigenvalues",
            filltype = "continuous", limits = limitsfraction)
-CreatePlot(fillvar = "fraceigvalconjRep",
+CreatePlot(fillvar = "fraceigvalRepconj",
            filltitle = "Fraction repeated eigenvalues\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
 
@@ -1677,24 +1678,24 @@ if(simulateinvasion == TRUE) {
   # after perturbations. Only abundances where equilibrium was reached are
   # considered.
   title <- "Fraction bacteria after perturbation"
-  CreatePlot(fillvar = "fracRtotalconjmin",
+  CreatePlot(fillvar = "relabunRconjmin",
              filltitle = "Minimum fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "fracRtotalconjmean",
+  CreatePlot(fillvar = "relabunRconjmean",
              filltitle = "Mean fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "fracRtotalconjmedian",
+  CreatePlot(fillvar = "relabunRconjmedian",
              filltitle = "Median fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "fracRtotalconjmax",
+  CreatePlot(fillvar = "relabunRconjmax",
              filltitle = "Maximum fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
   
-  CreatePlot(fillvar = "1 - fracRtotalconjmean",
+  CreatePlot(fillvar = "1 - relabunRconjmean",
              filltitle = "Mean fraction of bacteria\nthat is plasmid-bearing",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
   
-  CreatePlot(fillvar = "abunPconjsp1median / (1 - fracRtotalconjmedian)",
+  CreatePlot(fillvar = "relabunPconjsp1median / (1 - relabunRconjmedian)",
              filltitle = "Median fraction of plasmid-bearing\nbacteria belonging to species 1",
              filltype = "continuous", limits = limitsfraction,
              subtitle = "I should recreate this plot from data computed\non individual simulations")
@@ -1712,16 +1713,16 @@ if(simulateinvasion == TRUE) {
   # Therefor I plot log10(1 + x) instead of log10(x). I do not use the built-in
   # function log1p(x) because that uses natural logarithms.
   title <- "Total abundance after perturbation"
-  CreatePlot(fillvar = "log10(1 + abunRtotalmin)",
+  CreatePlot(fillvar = "log10(1 + abuntotalmin)",
              filltitle = "Log10(1 + Minimum of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
-  CreatePlot(fillvar = "log10(1 + abunRtotalmean)",
+  CreatePlot(fillvar = "log10(1 + abuntotalmean)",
              filltitle = "Log10(1 + Mean of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
-  CreatePlot(fillvar = "log10(1 + abunRtotalmedian)",
+  CreatePlot(fillvar = "log10(1 + abuntotalmedian)",
              filltitle = "Log10(1 + Median of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
-  CreatePlot(fillvar = "log10(1 + abunRtotalmax)",
+  CreatePlot(fillvar = "log10(1 + abuntotalmax)",
              filltitle = "Log10(1 + Maximum of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
   
@@ -1775,109 +1776,109 @@ if(simulateinvasion == TRUE) {
   
   ## Plots comparing species abundances after perturbation with plasmid-bearing
   # bacteria
-  limits <- range(c(plotdata[, "abunRsp1median"],
-                    plotdata[, "abunconjsp1median"]), na.rm = TRUE)
-  CreatePlot(fillvar = "abunRsp1median",
-             filltitle = paste("Median abundance sp1 after\nperturbation",
+  limits <- range(c(plotdata[, "relabunRsp1median"],
+                    plotdata[, "relabunconjsp1median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "relabunRsp1median",
+             filltitle = paste("Median rel. abundance sp1 after\nperturbation",
                                "with R of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
-  CreatePlot(fillvar = "abunconjsp1median",
-             filltitle = paste("Median abundance sp1 after\nperturbation",
+  CreatePlot(fillvar = "relabunconjsp1median",
+             filltitle = paste("Median rel. abundance sp1 after\nperturbation",
                                "with P of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
   
-  CreatePlot(fillvar = "abunRsp1median",
-             filltitle = paste("Median abundance sp1 after\nperturbation",
+  CreatePlot(fillvar = "relabunRsp1median",
+             filltitle = paste("Median rel. abundance sp1 after\nperturbation",
                                "with R of newly\nintroduced species 1"),
              filltype = "continuous", limits = limitsfraction,
-             filename = "abunRsp1mediancontinuouschangedlim")
-  CreatePlot(fillvar = "abunconjsp1median",
-             filltitle = paste("Median abundance sp1 after\nperturbation",
+             filename = "relabunRsp1mediancontinuouschangedlim")
+  CreatePlot(fillvar = "relabunconjsp1median",
+             filltitle = paste("Median rel. abundance sp1 after\nperturbation",
                                "with P of newly\nintroduced species 1"),
              filltype = "continuous", limits = limitsfraction,
-             filename = "abunconjsp1mediancontinuouschangedlim")
+             filename = "relabunconjsp1mediancontinuouschangedlim")
   
-  limits <- range(c(plotdata[, "abunRsp2median"],
-                    plotdata[, "abunconjsp2median"]), na.rm = TRUE)
-  CreatePlot(fillvar = "abunRsp2median",
-             filltitle = paste("Median abundance sp2 after\nperturbation",
+  limits <- range(c(plotdata[, "relabunRsp2median"],
+                    plotdata[, "relabunconjsp2median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "relabunRsp2median",
+             filltitle = paste("Median rel. abundance sp2 after\nperturbation",
                                "with R of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
-  CreatePlot(fillvar = "abunconjsp2median",
-             filltitle = paste("Median abundance sp2 after\nperturbation",
+  CreatePlot(fillvar = "relabunconjsp2median",
+             filltitle = paste("Median rel. abundance sp2 after\nperturbation",
                                "with P of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
   
-  limits <- range(c(plotdata[, "abunRsp3median"],
-                    plotdata[, "abunconjsp3median"]), na.rm = TRUE)
-  CreatePlot(fillvar = "abunRsp3median",
-             filltitle = paste("Median abundance sp3 after\nperturbation",
+  limits <- range(c(plotdata[, "relabunRsp3median"],
+                    plotdata[, "relabunconjsp3median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "relabunRsp3median",
+             filltitle = paste("Median rel. abundance sp3 after\nperturbation",
                                "with R of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
-  CreatePlot(fillvar = "abunconjsp3median",
-             filltitle = paste("Median abundance sp3 after\nperturbation",
+  CreatePlot(fillvar = "relabunconjsp3median",
+             filltitle = paste("Median rel. abundance sp3 after\nperturbation",
                                "with P of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
   
-  limits <- range(c(plotdata[, "abunRsp4median"],
-                    plotdata[, "abunconjsp4median"]), na.rm = TRUE)
-  CreatePlot(fillvar = "abunRsp4median",
-             filltitle = paste("Median abundance sp4 after\nperturbation",
+  limits <- range(c(plotdata[, "relabunRsp4median"],
+                    plotdata[, "relabunconjsp4median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "relabunRsp4median",
+             filltitle = paste("Median rel. abundance sp4 after\nperturbation",
                                "with R of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
-  CreatePlot(fillvar = "abunconjsp4median",
-             filltitle = paste("Median abundance sp4 after\nperturbation",
+  CreatePlot(fillvar = "relabunconjsp4median",
+             filltitle = paste("Median rel. abundance sp4 after\nperturbation",
                                "with P of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
   
-  CreatePlot(fillvar = "log10(1 + abunRsp4median)",
-             filltitle = paste("Log10(1 + Median abundance sp4 after\nperturbation",
+  CreatePlot(fillvar = "log10(1 + relabunRsp4median)",
+             filltitle = paste("Log10(1 + Median rel. abundance sp4 after\nperturbation",
                                "with R of newly\nintroduced species 1)"),
              filltype = "continuous")
-  CreatePlot(fillvar = "log10(1 + abunconjsp4median)",
-             filltitle = paste("Log10(1 + Median abundance sp4 after\nperturbation",
+  CreatePlot(fillvar = "log10(1 + relabunconjsp4median)",
+             filltitle = paste("Log10(1 + Median rel. abundance sp4 after\nperturbation",
                                "with P of newly\nintroduced species 1)"),
              filltype = "continuous")
   
-  limits <- range(c(plotdata[, "abunRsp5median"],
-                    plotdata[, "abunconjsp5median"]), na.rm = TRUE)
-  CreatePlot(fillvar = "abunRsp5median",
-             filltitle = paste("Median abundance sp5 after\nperturbation",
+  limits <- range(c(plotdata[, "relabunRsp5median"],
+                    plotdata[, "relabunconjsp5median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "relabunRsp5median",
+             filltitle = paste("Median rel. abundance sp5 after\nperturbation",
                                "with R of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
-  CreatePlot(fillvar = "abunconjsp5median",
-             filltitle = paste("Median abundance sp5 after\nperturbation",
+  CreatePlot(fillvar = "relabunconjsp5median",
+             filltitle = paste("Median rel. abundance sp5 after\nperturbation",
                                "with P of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
   
-  limits <- range(c(plotdata[, "abunRsp6median"],
-                    plotdata[, "abunconjsp6median"]), na.rm = TRUE)
-  CreatePlot(fillvar = "abunRsp6median",
-             filltitle = paste("Median abundance sp6 after\nperturbation",
+  limits <- range(c(plotdata[, "relabunRsp6median"],
+                    plotdata[, "relabunconjsp6median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "relabunRsp6median",
+             filltitle = paste("Median rel. abundance sp6 after\nperturbation",
                                "with R of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
-  CreatePlot(fillvar = "abunconjsp6median",
-             filltitle = paste("Median abundance sp6 after\nperturbation",
+  CreatePlot(fillvar = "relabunconjsp6median",
+             filltitle = paste("Median rel. abundance sp6 after\nperturbation",
                                "with P of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
   
-  CreatePlot(fillvar = "log10(1 + abunRsp6median)",
-             filltitle = paste("Log10(1 + Median abundance sp6 after\nperturbation",
+  CreatePlot(fillvar = "log10(1 + relabunRsp6median)",
+             filltitle = paste("Log10(1 + Median rel. abundance sp6 after\nperturbation",
                                "with R of newly\nintroduced species 1)"),
              filltype = "continuous")
-  CreatePlot(fillvar = "log10(1 + abunconjsp6median)",
-             filltitle = paste("Log10(1 + Median abundance sp6 after\nperturbation",
+  CreatePlot(fillvar = "log10(1 + relabunconjsp6median)",
+             filltitle = paste("Log10(1 + Median rel. abundance sp6 after\nperturbation",
                                "with P of newly\nintroduced species 1)"),
              filltype = "continuous")
   
-  limits <- range(c(plotdata[, "abunRsp7median"],
-                    plotdata[, "abunconjsp7median"]), na.rm = TRUE)
-  CreatePlot(fillvar = "abunRsp7median",
-             filltitle = paste("Median abundance sp7 after\nperturbation",
+  limits <- range(c(plotdata[, "relabunRsp7median"],
+                    plotdata[, "relabunconjsp7median"]), na.rm = TRUE)
+  CreatePlot(fillvar = "relabunRsp7median",
+             filltitle = paste("Median rel. abundance sp7 after\nperturbation",
                                "with R of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
-  CreatePlot(fillvar = "abunconjsp7median",
-             filltitle = paste("Median abundance sp7 after\nperturbation",
+  CreatePlot(fillvar = "relabunconjsp7median",
+             filltitle = paste("Median rel. abundance sp7 after\nperturbation",
                                "with P of newly\nintroduced species 1"),
              filltype = "continuous", limits = limits)
 }
