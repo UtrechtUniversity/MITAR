@@ -952,6 +952,13 @@ indexdatatotal <- 1
 rowindexplotdata <- 1
 rowindexdata <- 1
 for(nspecies in nspeciesset) {
+  if(PInMostAbun == TRUE) {
+    pertpop <- "R1"
+    pertpopconj <- "P1"
+  } else {
+    pertpop <- paste0("R", nspecies)
+    pertpopconj <- paste0("P", nspecies)
+  }
   
   for(abunmodel in abunmodelset) {
     if(abunmodel == "brokenstick") {
@@ -1016,7 +1023,6 @@ for(nspecies in nspeciesset) {
           # stability)
           if(simulateinvasion == TRUE) {
             if(stableeq == FALSE) {
-              pertpop <- if(PInMostAbun == TRUE) {"R1"} else {paste0("R", nspecies)}
               abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
                                               growthrate = growthrate,
                                               cost = NULL, conjmat = NULL,
@@ -1090,7 +1096,6 @@ for(nspecies in nspeciesset) {
               # to the abundances of the plasmid-bearing populations
               if(simulateinvasion == TRUE) {
                 if(eqinfoconj["eigvalRe"] >= 0) {
-                  pertpopconj <- if(PInMostAbun == TRUE) {"P1"} else {paste0("P", nspecies)}
                   abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
                                                       intmat = intmat, growthrate = growthrate,
                                                       cost = cost, conjmat = conjmat,
