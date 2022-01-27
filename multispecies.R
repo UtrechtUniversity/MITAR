@@ -936,7 +936,7 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset, taxmattypeset),
                              use.names = FALSE))
 ncolplotdata <- if(simulateinvasion == TRUE) {
-  16*4 + 4*4*maxnspecies + 31
+  17*4 + 4*4*maxnspecies + 31
 } else {
   3*4 + 8 + 5 + 10
 }
@@ -945,7 +945,7 @@ plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset, taxmattypeset),
                               use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 46 + 4*maxnspecies)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 47 + 4*maxnspecies)
 indexdatatotal <- 1
 
 # Run simulations
@@ -978,7 +978,7 @@ for(nspecies in nspeciesset) {
                      ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset) *
           length(taxmattypeset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 46 + 4*maxnspecies)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 47 + 4*maxnspecies)
         indexdata <- 1
         relabunRsp <- rep(NA, maxnspecies)
         relabunRconjsp <- rep(NA, maxnspecies)
@@ -1150,9 +1150,10 @@ for(nspecies in nspeciesset) {
                 abuntotalconj, abunfinalconj$Rtotal/abuntotalconj,
                 abunfinal$npopR, abunfinalconj$npopR, abunfinalconj$npopP,
                 abunfinalconj$npopR + abunfinalconj$npopP,
-                abunfinalconj$npopR / (abunfinalconj$npopR + abunfinalconj$npopP),
+                abunfinalconj$Ptotal / abuntotalconj,
                 nspeciesconj, abunfinalconj$npopR / nspeciesconj,
                 abunfinalconj$npopP / nspeciesconj,
+                abunfinalconj$P[pertpopconj] / abunfinalconj$Ptotal,
                 matrix(rep(relabunRsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunRconjsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE),
@@ -1182,8 +1183,9 @@ for(nspecies in nspeciesset) {
                             "abuntotal", "abunRtotalconj", "abunPtotalconj",
                             "abuntotalconj", "relabunRconj",
                             "npopR", "npopRconj", "npopPconj", "npopconj",
-                            "fracpopRconj", "nspeciesconj",
+                            "relabunPconj", "nspeciesconj",
                             "fracspeciesRconj", "fracspeciesPconj",
+                            "fracPformedbypertpop",
                             paste0("relabunRsp", 1:maxnspecies),
                             paste0("relabunRconjsp", 1:maxnspecies),
                             paste0("relabunPconjsp", 1:maxnspecies),
@@ -1229,8 +1231,8 @@ for(nspecies in nspeciesset) {
                        starts_with("relabunR"), abunPtotalconj,
                        starts_with("relabunP"), abuntotalconj,
                        relabunRconj, starts_with("relabunconjsp"),
-                       starts_with("npop"), fracpopRconj, nspeciesconj,
-                       fracspeciesRconj, fracspeciesPconj),
+                       starts_with("npop"), nspeciesconj,
+                       fracspeciesRconj, fracspeciesPconj, fracPformedbypertpop),
                      getsummary4, .names = "{.col}{.fn}"),
               .groups = "drop"
             )
@@ -1692,14 +1694,35 @@ if(simulateinvasion == TRUE) {
              filltitle = "Maximum fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
   
-  CreatePlot(fillvar = "1 - relabunRconjmean",
+  CreatePlot(fillvar = "relabunPconjmin",
+             filltitle = "Minimum fraction of bacteria\nthat is plasmid-bearing",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "relabunPconjmean",
              filltitle = "Mean fraction of bacteria\nthat is plasmid-bearing",
              filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "relabunPconjmedian",
+             filltitle = "Median fraction of bacteria\nthat is plasmid-bearing",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "relabunPconjmax",
+             filltitle = "Maximum fraction of bacteria\nthat is plasmid-bearing",
+             filltype = "continuous", title = title, subtitle = subplasmidbearing)
 
-  CreatePlot(fillvar = "relabunPconjsp1median / (1 - relabunRconjmedian)",
-             filltitle = "Median fraction of plasmid-bearing\nbacteria belonging to species 1",
-             filltype = "continuous", limits = limitsfraction,
-             subtitle = "I should recreate this plot from data computed\non individual simulations")
+  CreatePlot(fillvar = "fracPformedbypertpopmin",
+             filltitle = paste("Minimum fraction of plasmid-bearing bacteria",
+                               "\nbelonging to the initially plasmid-bearing strain"),
+             filltype = "continuous", limits = limitsfraction)
+  CreatePlot(fillvar = "fracPformedbypertpopmean",
+             filltitle = paste("Mean fraction of plasmid-bearing bacteria",
+             "\nbelonging to the initially plasmid-bearing strain"),
+             filltype = "continuous", limits = limitsfraction)
+  CreatePlot(fillvar = "fracPformedbypertpopmedian",
+             filltitle = paste("Median fraction of plasmid-bearing bacteria",
+                               "\nbelonging to the initially plasmid-bearing strain"),
+             filltype = "continuous", limits = limitsfraction)
+  CreatePlot(fillvar = "fracPformedbypertpopmax",
+             filltitle = paste("Maximum fraction of plasmid-bearing bacteria",
+                               "\nbelonging to the initially plasmid-bearing strain"),
+             filltype = "continuous", limits = limitsfraction)
   
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
