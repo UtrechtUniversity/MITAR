@@ -16,6 +16,10 @@
 # Edelstein-Keshet L. 2005. Mathematical models in biology. Society for
 # industrial and applied mathematics.
 
+# Roberts MG, Heesterbeek JAP. 2021. Infection dynamics in ecosystems: on the
+# interaction between red and grey squirrels, pox virus, pine martens and trees.
+# Journal of the Royal Society, Interface 18(183):20210551.
+
 # Lischke H, Löffler TJ. 2017. Finding all multiple stable fixpoints of n-species
 # Lotka-Volterra competition models Theoretical Population Biology 115:24-34.
 
@@ -493,21 +497,61 @@ getconjmat <- function(nspecies, conjrate, taxmat) {
   return(conjmat)
 }
 
-# Get equilibrium characteristics
+# Get equilibrium characteristics. On ecological and epidemiological stability
+# see Roberts and Heesterbeek 2021.
 geteqinfo <- function(model, abundance, intmat, growthrate,
                       cost = NULL, conjmat = NULL) {
-  if(model == "gLV") {
-    eigval <- eigen(
-      x = jacobian.full(y = abundance, func = gLV,
-                        parms = list(growthrate = growthrate, intmat = intmat)),
-      symmetric = FALSE, only.values = TRUE)$values
-  } else {
-    eigval <- eigen(
-      x = jacobian.full(y = abundance, func = gLVConj,
-                        parms = list(growthrate = growthrate, intmat = intmat,
-                                     cost = cost, conjmat = conjmat)),
-      symmetric = FALSE, only.values = TRUE)$values
-  }
+  switch(model,
+         "gLV" = {
+           eigval <- eigen(x = jacobian.full(y = abundance, func = gLV,
+                                             parms = list(growthrate = growthrate,
+                                                          intmat = intmat)),
+                           symmetric = FALSE, only.values = TRUE)$values
+         },
+         "gLVConj" = {
+           eigval <- eigen(x = jacobian.full(y = abundance, func = gLVConj,
+                                             parms = list(growthrate = growthrate,
+                                                          intmat = intmat,
+                                                          cost = cost,
+                                                          conjmat = conjmat)),
+                           symmetric = FALSE, only.values = TRUE)$values
+         },
+         "ecol" = {
+           jac <- jacobian.full(y = abundance, func = gLVConj,
+                                parms = list(growthrate = growthrate,
+                                             intmat = intmat,
+                                             cost = cost,
+                                             conjmat = conjmat))
+           jaclow <- jac[(nspecies + 1):(2*nspecies), 1:nspecies]
+           if(!isTRUE(all.equal(range(jaclow), c(0, 0), check.attributes = FALSE))) {
+             warning(paste("Jacobian matrix does not contain a block of zeros",
+                     "in the lower-left corner,\nso currently used determination",
+                     "of ecological stability is invalid"))
+             print(jaclow)
+           }
+           eigval <- eigen(x = jac[1:nspecies, 1:nspecies],
+                           symmetric = FALSE, only.values = TRUE)$values
+         },
+         "epi" = {
+           jac <- jacobian.full(y = abundance, func = gLVConj,
+                                parms = list(growthrate = growthrate, intmat = intmat,
+                                             cost = cost, conjmat = conjmat))
+           jaclow <- jac[(nspecies + 1):(2*nspecies), 1:nspecies]
+           if(!isTRUE(all.equal(range(jaclow), c(0, 0), check.attributes = FALSE))) {
+             warning(paste("Jacobian matrix does not contain a block of zeros",
+                           "in the lower-left corner,\nso currently used determination",
+                           "of epidemiological stability is invalid"))
+             print(jaclow)
+           }
+           eigval <- eigen(x = jac[(nspecies + 1):(2*nspecies),
+                                   (nspecies + 1):(2*nspecies)],
+                           symmetric = FALSE, only.values = TRUE)$values
+         },
+         {
+           eigval <- NULL
+           warning("'model' should be one of 'gLV', 'gLVConj', 'ecol' or 'epi'")
+         }
+  )
   
   eigvalRep <- any(duplicated(eigval))
   # Using sort(eigval) to get eigenvalue with largest real part, because
@@ -936,16 +980,16 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset, taxmattypeset),
                              use.names = FALSE))
 ncolplotdata <- if(simulateinvasion == TRUE) {
-  17*4 + 4*4*maxnspecies + 31
+  17*4 + 4*4*maxnspecies + 37
 } else {
-  3*4 + 8 + 5 + 10
+  3*4 + 8 + 5 + 16
 }
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset, taxmattypeset),
                               use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 47 + 4*maxnspecies)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 57 + 4*maxnspecies)
 indexdatatotal <- 1
 
 # Run simulations
@@ -959,7 +1003,7 @@ for(nspecies in nspeciesset) {
     pertpop <- paste0("R", nspecies)
     pertpopconj <- paste0("P", nspecies)
   }
-  
+
   for(abunmodel in abunmodelset) {
     if(abunmodel == "brokenstick") {
       abundance <- brokenstick(nspecies = nspecies, totalabun = totalabun,
@@ -985,7 +1029,7 @@ for(nspecies in nspeciesset) {
                      ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset) *
           length(taxmattypeset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 47 + 4*maxnspecies)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 57 + 4*maxnspecies)
         indexdata <- 1
         relabunRsp <- rep(NA, maxnspecies)
         relabunRconjsp <- rep(NA, maxnspecies)
@@ -1083,6 +1127,18 @@ for(nspecies in nspeciesset) {
                                       abundance = c(abundance, rep(0, nspecies)),
                                       intmat = intmat, growthrate = growthrate,
                                       cost = cost, conjmat = conjmat)
+              # Get equilibrium characteristics regarding ecological and
+              # epidemiological stability of the plasmid-free equilibrium (see
+              # Roberts and Heesterbeek 2021).
+              eqinfoecol <- geteqinfo(model = "ecol",
+                                      abundance = c(abundance, rep(0, nspecies)),
+                                      intmat = intmat, growthrate = growthrate,
+                                      cost = cost, conjmat = conjmat)
+              eqinfoepi <- geteqinfo(model = "epi",
+                                      abundance = c(abundance, rep(0, nspecies)),
+                                      intmat = intmat, growthrate = growthrate,
+                                      cost = cost, conjmat = conjmat)
+
               # Append the signs of the real parts of the largest eigenvalues to
               # indicate change in stability without and with the plasmid (-1 =
               # stable, 0 = neutral, 1 = unstable). The + 3 ensure numbers are
@@ -1146,6 +1202,8 @@ for(nspecies in nspeciesset) {
                 diag(intmat), c(growthrate), iterintmat,
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(eqinfoecol, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(eqinfoepi, nspecies), nrow = nspecies, byrow = TRUE),
                 compstability,
                 abunfinal$infgrowth, abunfinalconj$infgrowth,
                 abunfinal$eqreached, abunfinalconj$eqreached,
@@ -1180,6 +1238,10 @@ for(nspecies in nspeciesset) {
                             "eigvalImSign", "eigvalRep",
                             "eigvalReconj", "eigvalImconj", "eigvalReSignconj",
                             "eigvalImSignconj", "eigvalRepconj",
+                            "eigvalReecol", "eigvalImecol", "eigvalReSignecol",
+                            "eigvalImSignecol", "eigvalRepecol",
+                            "eigvalReepi", "eigvalImepi", "eigvalReSignepi",
+                            "eigvalImSignepi", "eigvalRepepi",
                             "compstability",
                             "infgrowth", "infgrowthconj",
                             "eqreached", "eqreachedconj",
@@ -1195,7 +1257,7 @@ for(nspecies in nspeciesset) {
                             paste0("relabunRconjsp", 1:maxnspecies),
                             paste0("relabunPconjsp", 1:maxnspecies),
                             paste0("relabunconjsp", 1:maxnspecies))
-        
+
         # Get summary data which do not depend on simulated invasion for all
         # combinations of costs and conjugation rates
         summarydata <- as_tibble(data) %>%
@@ -1205,10 +1267,14 @@ for(nspecies in nspeciesset) {
                    getsummary4, .names = "{.col}{.fn}"),
             fracstable = mean(eigvalRe < 0),
             fracstableconj = mean(eigvalReconj < 0),
+            fracstableecol = mean(eigvalReecol < 0),
+            fracstableepi = mean(eigvalReepi < 0),
             fracreal = mean(eigvalIm == 0),
             fracrealconj = mean(eigvalImconj == 0),
-            across(c(eigvalRep, eigvalRepconj), getfracnotzero,
-                   .names = "{.fn}{.col}"),
+            fracrealecol = mean(eigvalImecol == 0),
+            fracrealepi = mean(eigvalImepi == 0),
+            across(c(eigvalRep, eigvalRepconj, eigvalRepecol, eigvalRepepi),
+                   getfracnotzero, .names = "{.fn}{.col}"),
             fracstablestable = mean(compstability == 22),
             fracstableneutral = mean(compstability == 23),
             fracstableunstable = mean(compstability == 24),
