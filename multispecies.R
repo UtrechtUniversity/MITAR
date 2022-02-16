@@ -1456,6 +1456,13 @@ CreatePlot(fillvar = "1 - fracstableconj",
            filltype = "continuous", limits = limitsfraction,
            filename = "fracunstableconjcontinuous")
 
+CreatePlot(fillvar = "fracstableecol",
+           filltitle = "Fraction ecologically\nstable",
+           filltype = "continuous", limits = limitsfraction)
+CreatePlot(fillvar = "fracstableepi",
+           filltitle = "Fraction epidemiologically\nstable",
+           filltype = "continuous", limits = limitsfraction)
+
 # Show the effect of adding conjugation on stability
 CreatePlot(fillvar = "fracunstableunstable + fracneutralneutral + fracstablestable",
            filltitle = "Fraction stability the same\nwithout and with conjugation",
