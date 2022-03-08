@@ -95,7 +95,7 @@
 # I could try if supplying the analytic Jacobian to the solver speeds up the
 # integration. See Box 1 in Lischke 2017.
 
-## createplot() ##
+## CreatePlot() ##
 # The diagonals are not displayed correctly if the plotting area is non-square
 
 
@@ -115,6 +115,8 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 # to 0
 # If the sum of absolute rates of change is equal to smallchange, equilibrium is
 #   assumed to be reached and the integration is terminated
+# See the functions that use the arguments for more detailed info
+
 
 ## Basis parameter set
 saveplots <- TRUE
@@ -146,7 +148,7 @@ intmeanset <- seq(from = -1.2e-11, to = 1.2e-11, by = 1e-12)
 selfintmeanset <- seq(from = -1.2e-11, to = 0, by = 1e-12)
 
 ## Smaller parameter set to simulate invasion
-niter <- 25
+niter <- 50
 niterintmat <- 1
 simulateinvasion <- TRUE
 intmeanset <- seq(from = -1.2e-11, to = 1.2e-11, by = 2e-12)
