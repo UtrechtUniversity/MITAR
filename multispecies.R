@@ -872,6 +872,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        linezero = FALSE,
                        facetx = "taxmatcode + abunmodelcode + cost",
                        facety = "conjratecode + nspecies",
+                       dropfacets = TRUE,
                        as.table = TRUE,
                        marginx = NULL, marginy = NULL, base_size = 11,
                        rotate_x_labels = TRUE, rotate_legend = FALSE,
@@ -886,6 +887,46 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   if(addstamp == TRUE) {
     caption <- paste0(caption, ", ", DateTimeStamp)
   }
+  
+  # Facets that have only a single unique value are not shown if dropfacets = TRUE
+  if(dropfacets == TRUE) {
+    if(!is.null(facetx) && facetx != ".") {
+      elements_facetx <- unlist(strsplit(facetx, split = " + ", fixed = TRUE))
+      if(!all(elements_facetx %in% colnames(dataplot))) {
+        warning("Dropped facetx variables that are not column names of plotdata")
+        elements_facetx <- elements_facetx[elements_facetx %in% colnames(dataplot)]
+      }
+      include_facetx <- rep(FALSE, length(elements_facetx))
+      for(index_facetx in seq_along(elements_facetx)) {
+        if(length(unique(dataplot[, elements_facetx[index_facetx]])) > 1) {
+          include_facetx[index_facetx] <- TRUE
+        }
+      }
+      facetx <- paste0(elements_facetx[include_facetx], collapse = " + ")
+      if(facetx == "") {
+        facetx <- "."
+      }
+    }
+    
+    if(!is.null(facety) && facety != ".") {
+      elements_facety <- unlist(strsplit(facety, split = " + ", fixed = TRUE))
+      if(!all(elements_facety %in% colnames(dataplot))) {
+        warning("Dropped facety variables that are not column names of plotdata")
+        elements_facety <- elements_facety[elements_facety %in% colnames(dataplot)]
+      }
+      include_facety <- rep(FALSE, length(elements_facety))
+      for(index_facety in seq_along(elements_facety)) {
+        if(length(unique(dataplot[, elements_facety[index_facety]])) > 1) {
+          include_facety[index_facety] <- TRUE
+        }
+      }
+      facety <- paste0(elements_facety[include_facety], collapse = " + ")
+      if(facety == "") {
+        facety <- "."
+      }
+    }
+  }
+  
   p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar)) + 
     theme_bw(base_size = base_size) +
     geom_raster() +
