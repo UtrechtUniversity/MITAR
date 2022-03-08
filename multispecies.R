@@ -127,7 +127,7 @@ maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 costset <- c(0.03, 0.09)
 costtype <- "absolute"
-conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
+conjrateset <- list(rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
 # from and to the initially plasmid-bearing population is reduced a 1000-fold
