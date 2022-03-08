@@ -16,12 +16,12 @@
 # Edelstein-Keshet L. 2005. Mathematical models in biology. Society for
 # industrial and applied mathematics.
 
+# Lischke H, Löffler TJ. 2017. Finding all multiple stable fixpoints of n-species
+# Lotka-Volterra competition models Theoretical Population Biology 115:24-34.
+
 # Roberts MG, Heesterbeek JAP. 2021. Infection dynamics in ecosystems: on the
 # interaction between red and grey squirrels, pox virus, pine martens and trees.
 # Journal of the Royal Society, Interface 18(183):20210551.
-
-# Lischke H, Löffler TJ. 2017. Finding all multiple stable fixpoints of n-species
-# Lotka-Volterra competition models Theoretical Population Biology 115:24-34.
 
 # Tokeshi M. 1990. Niche apportionment or random assortment: species abundance
 # patterns revisited. Journal of animal ecology 59(3):1129-1146.
@@ -252,14 +252,14 @@ gLV <- function(t, n, parms) {
 # plasmid-bearing species j to plasmid-free species i.
 gLVConj <- function(t, n, parms) {
   with(parms, {
-  S0 <- n[1:nspecies]
-  S1 <- n[(nspecies+1):(2*nspecies)]
-  
-  dS0 <- S0*(growthrate        + intmat %*% (S0 + S1)) - (conjmat %*% S1) * S0
-  dS1 <- S1*(growthrate - cost + intmat %*% (S0 + S1)) + (conjmat %*% S1) * S0
-  
-  dn <- c(dS0, dS1)
-  return(list(dn))
+    S0 <- n[1:nspecies]
+    S1 <- n[(nspecies+1):(2*nspecies)]
+    
+    dS0 <- S0*(growthrate        + intmat %*% (S0 + S1)) - (conjmat %*% S1) * S0
+    dS1 <- S1*(growthrate - cost + intmat %*% (S0 + S1)) + (conjmat %*% S1) * S0
+    
+    dn <- c(dS0, dS1)
+    return(list(dn))
   })
 }
 
@@ -1025,7 +1025,7 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
 ncolplotdata <- if(simulateinvasion == TRUE) {
   17*4 + 4*4*maxnspecies + 37
 } else {
-  3*4 + 8 + 5 + 16
+  3*4 + 29
 }
 print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
@@ -1134,7 +1134,8 @@ for(nspecies in nspeciesset) {
                               eqreached = NA, infgrowth = NA)
           }
           
-          # Model without conjugation, so Rtotal is total abundance as P does not exist 
+          # Model without conjugation, so Rtotal is total abundance as P does
+          # not exist 
           relabunRsp[1:nspecies] <- abunfinal$R / abunfinal$Rtotal
 
           for(cost in costset) {
@@ -1151,12 +1152,14 @@ for(nspecies in nspeciesset) {
                 if(taxmattype == "PInOtherClass") {
                   if(PInMostAbun == TRUE) {
                     # The plasmid is introduced in the most abundant species,
-                    # so set the first row and column of the matrix to OtherClass
+                    # so set the first row and column of the matrix to OtherClass,
+                    # with exception of the diagonal which should remain SameSpecies
                     taxmat[1, -1] <- "OtherClass"
                     taxmat[-1, 1] <- "OtherClass"                    
                   } else {
                     # The plasmid is introduced in the least abundant species,
-                    # so set the last row and column of the matrix to OtherClass
+                    # so set the last row and column of the matrix to OtherClass,
+                    # with exception of the diagonal which should remain SameSpecies
                     taxmat[nspecies, -nspecies] <- "OtherClass"
                     taxmat[-nspecies, nspecies] <- "OtherClass"
                   }
@@ -1170,6 +1173,7 @@ for(nspecies in nspeciesset) {
                                       abundance = c(abundance, rep(0, nspecies)),
                                       intmat = intmat, growthrate = growthrate,
                                       cost = cost, conjmat = conjmat)
+              
               # Get equilibrium characteristics regarding ecological and
               # epidemiological stability of the plasmid-free equilibrium (see
               # Roberts and Heesterbeek 2021).
@@ -1178,9 +1182,9 @@ for(nspecies in nspeciesset) {
                                       intmat = intmat, growthrate = growthrate,
                                       cost = cost, conjmat = conjmat)
               eqinfoepi <- geteqinfo(model = "epi",
-                                      abundance = c(abundance, rep(0, nspecies)),
-                                      intmat = intmat, growthrate = growthrate,
-                                      cost = cost, conjmat = conjmat)
+                                     abundance = c(abundance, rep(0, nspecies)),
+                                     intmat = intmat, growthrate = growthrate,
+                                     cost = cost, conjmat = conjmat)
 
               # Append the signs of the real parts of the largest eigenvalues to
               # indicate change in stability without and with the plasmid (-1 =
@@ -1263,7 +1267,8 @@ for(nspecies in nspeciesset) {
                 matrix(rep(relabunRsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunRconjsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(relabunRconjsp + relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE)
+                matrix(rep(relabunRconjsp + relabunPconjsp, nspecies),
+                       nrow = nspecies, byrow = TRUE)
               )
               indexdata <- indexdatanew
             }
@@ -1276,15 +1281,16 @@ for(nspecies in nspeciesset) {
         colnames(data) <- c("niter", "nspecies", "abunmodelcode",
                             "intmean", "selfintmean", "cost", "conjratecode",
                             "taxmatcode", "iter", "species", "abundance",
-                            "selfintdata", "growthrate", "iterintmat",
+                            "selfintdata", "growthrate",
+                            "iterintmat",
                             "eigvalRe", "eigvalIm", "eigvalReSign",
                             "eigvalImSign", "eigvalRep",
-                            "eigvalReconj", "eigvalImconj", "eigvalReSignconj",
-                            "eigvalImSignconj", "eigvalRepconj",
-                            "eigvalReecol", "eigvalImecol", "eigvalReSignecol",
-                            "eigvalImSignecol", "eigvalRepecol",
-                            "eigvalReepi", "eigvalImepi", "eigvalReSignepi",
-                            "eigvalImSignepi", "eigvalRepepi",
+                            "eigvalReconj", "eigvalImconj",
+                            "eigvalReSignconj", "eigvalImSignconj", "eigvalRepconj",
+                            "eigvalReecol", "eigvalImecol",
+                            "eigvalReSignecol", "eigvalImSignecol", "eigvalRepecol",
+                            "eigvalReepi", "eigvalImepi",
+                            "eigvalReSignepi", "eigvalImSignepi", "eigvalRepepi",
                             "compstability",
                             "infgrowth", "infgrowthconj",
                             "eqreached", "eqreachedconj",
@@ -1371,6 +1377,7 @@ colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
                         "intmean", "selfintmean", colnames(summarydata))
 colnames(datatotal) <- colnames(data)
 
+
 #### Saving output to .csv files ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 if(PInMostAbun == FALSE) {
@@ -1405,10 +1412,10 @@ for(index in 1:length(settings)) {
 
 #### Reading previously saved data from a .csv-file ####
 ## To read data from csv-file, uncomment this section and fill in the 
-# needed datetimestamp
+## needed datetimestamp
 # filename <- "2021_05_04_17_44multispecies.csv"
 # plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
-#                   dec = ".", stringsAsFactors = FALSE)
+#                      dec = ".", stringsAsFactors = FALSE)
 # # If plotdata has only one column, probably a semicolon instead of a comma is
 # # used as separator in .csv-files. So read the file again.
 # if(dim(plotdata)[2] == 1) {
@@ -1469,7 +1476,6 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 # The error '$ operator is invalid for atomic vectors' arises if the matrix
 # 'plotdata' has not been comverted to a dataframe. To convert it to a dataframe,
 # run plotdata <- as.data.frame(plotdata)
-
 
 ## Compare equilibrium characteristics for the models without and with plasmids.
 # If invasion has been simulated, data on infinite growth and reaching
@@ -1699,7 +1705,7 @@ if(simulateinvasion == TRUE) {
   subplasmidbearing <- "Perturbation with plasmid-bearing bacteria"
   
   limitstime <- range(plotdata[, "timefinalmedian"],
-                  plotdata[, "timefinalconjmedian"])
+                      plotdata[, "timefinalconjmedian"])
   title <- "Time to reach equilibrium after perturbation"
   if(PInMostAbun == FALSE) {
     title <- paste(title, "(PinLeastAbun)")
@@ -1834,7 +1840,7 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "fracPformedbypertpopmean",
              filltitle = paste("Mean fraction of plasmid-bearing bacteria",
-             "\nbelonging to the initially plasmid-bearing strain"),
+                               "\nbelonging to the initially plasmid-bearing strain"),
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "fracPformedbypertpopmedian",
              filltitle = paste("Median fraction of plasmid-bearing bacteria",
@@ -1844,7 +1850,7 @@ if(simulateinvasion == TRUE) {
              filltitle = paste("Maximum fraction of plasmid-bearing bacteria",
                                "\nbelonging to the initially plasmid-bearing strain"),
              filltype = "continuous", limits = limitsfraction)
-  
+
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
   # considered. Although costs and conjugation rates do not influence the
