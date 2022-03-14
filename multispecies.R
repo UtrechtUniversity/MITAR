@@ -615,11 +615,7 @@ eventfun <- function(t, state, p) {
 # model should be 'gLV' (no plasmids modelled) or 'gLVConj' (to include plasmid-
 #   bearing populations in the model).
 # pertpop is a character vector with the names of the populations to be
-#   perturbed, e.g., pertpop = "R1" or pertpop = c("R1", "P1"). Although the
-#   function works fine when multiple populations are perturbed, the line
-#   'abunfinalconj$P[pertpopconj] / abunfinalconj$Ptotal' in the script leads to
-#   wrong dimensions if multiple populations are perturbed in the model with
-#   conjugation.
+#   perturbed, e.g., pertpop = "R1" or pertpop = c("R1", "P1").
 # pertmagn gives the absolute increase in populations for the perturbation
 # tmax and tstep give the timesteps at which abundances should be calculated
 #   (since variable step-size methods are used, those are not the only times
@@ -1285,7 +1281,7 @@ for(nspecies in nspeciesset) {
                 abunfinalconj$Ptotal / abuntotalconj,
                 nspeciesconj, abunfinalconj$npopR / nspeciesconj,
                 abunfinalconj$npopP / nspeciesconj,
-                abunfinalconj$P[pertpopconj] / abunfinalconj$Ptotal,
+                sum(abunfinalconj$P[pertpopconj]) / abunfinalconj$Ptotal,
                 matrix(rep(relabunRsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunRconjsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE),
