@@ -614,8 +614,12 @@ eventfun <- function(t, state, p) {
 # cost is a vector of plasmid costs in growth rate. 
 # model should be 'gLV' (no plasmids modelled) or 'gLVConj' (to include plasmid-
 #   bearing populations in the model).
-# pertpop is a character vector with the name(s) of the population(s) to be
-#   perturbed, e.g., pertpop = "R1" or pertpop = c("R1", "P1").
+# pertpop is a character vector with the names of the populations to be
+#   perturbed, e.g., pertpop = "R1" or pertpop = c("R1", "P1"). Although the
+#   function works fine when multiple populations are perturbed, the line
+#   'abunfinalconj$P[pertpopconj] / abunfinalconj$Ptotal' in the script leads to
+#   wrong dimensions if multiple populations are perturbed in the model with
+#   conjugation.
 # pertmagn gives the absolute increase in populations for the perturbation
 # tmax and tstep give the timesteps at which abundances should be calculated
 #   (since variable step-size methods are used, those are not the only times
@@ -645,6 +649,8 @@ eventfun <- function(t, state, p) {
 #   - tmaxshort indicating tmax was not reached but no infinite growth occured
 #   - eqreached indicating if equilibrium has been reached
 #   - infgrowth indicating if infinite growth was detected
+# If showplots == TRUE, plots over time are either shown or saved, depending on
+#   the global variable saveplots
 # Notes
 #   Although this function returns absolute abundances, various of these are
 #   converted to relative abundances later on in the script.
@@ -700,10 +706,20 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     pertpop <- pertpop[which(pertpop %in% names(abundance))]
   }
   
-  # Create perturbed abundances
+  # Create perturbed abundances. Note that plasmid-baering bacteria replace
+  # plasmid-free bacteria, instead of being added to the plasmid-free equilibrium.
+  # In this way the number of bacteria for each species the same, such that the
+  # ecological equilibrium is only affected by plasmid costs altering growth
+  # rates, not by changes in abundances.
   abuninit <- abundance
   abunpert <- abundance
   abunpert[pertpop] <- abunpert[pertpop] + pertmagn
+  pertpopP <- which(substr(pertpop, start = 1, stop = 1) == "P")
+  # pertpopP becomes integer(0) in case of perturbation by plasmid-free bacteria
+  if(length(pertpopP) > 0) {
+    pertpopminus <- paste0("R", pertpopP)
+    abunpert[pertpopminus] <- abunpert[pertpopminus] - pertmagn
+  }
   
   if(verbose == TRUE) {
     print("abunpert =")
@@ -764,36 +780,6 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
             paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
   }
   
-  if(showplot == TRUE) {
-    subtitle <- paste0(abunmodel, ", intmean=", intmean, ", selfintmean=", selfintmean, ", cost=",
-                       cost, ", conjratecode=", conjratecode)
-    if(saveplots == TRUE) {
-      filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), ".png")
-      png(filename = filename, height = 785)
-    }
-    matplot.deSolve(out, lty = lty, col = col, ylab = "Abundance",
-                    log = "y", sub = subtitle, lwd = 2, legend = list(x = "bottomright"))
-    grid()
-    abline(h = abuninit)
-    if(saveplots == TRUE) {
-      dev.off()
-    }
-  }
-  
-  if(verbose == TRUE) {
-    print(paste("troot=", attributes(out)$troot))
-    print("iroot=")
-    print(attributes(out)$indroot)
-    print(paste("infgrowth=", infgrowth))
-    print(paste("eqreached=", eqreached))
-    
-    abschange <- abunfinaltemp - abuninit
-    relchange <- abunfinaltemp / abuninit
-    print("Species abundances, and their changes:", quote = FALSE)
-    print(rbind(tested = abuninit, at_perturbation = abunpert, final = abunfinaltemp,
-                absolute_change = abschange, relative_change = relchange))
-  }
-  
   if(model == "gLV") {
     if(eqreached == 0) {
       # It does not make sense to store abundances in case of infinite
@@ -846,6 +832,39 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                       timefinal = timefinal, tmaxshort = tmaxshort,
                       eqreached = eqreached, infgrowth = infgrowth)
   }
+
+  # eqinfoepi is created outside this function before this function is called.
+  if(showplot == TRUE || (model == "gLVConj" && eqinfoepi["eigvalRe"] < 0 &&
+                          !is.na(abunfinal["Ptotal"]) && abunfinal["Ptotal"] > 1)) {
+    subtitle <- paste0(abunmodel, ", intmean=", intmean, ", selfintmean=", selfintmean, ", cost=",
+                       cost, ", conjratecode=", conjratecode, ",\niter=", iter)
+    if(saveplots == TRUE) {
+      filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), ".png")
+      png(filename = filename, height = 785)
+    }
+    matplot.deSolve(out, lty = lty, col = col, ylab = "Abundance",
+                    log = "y", sub = subtitle, lwd = 2, legend = list(x = "bottomright"))
+    grid()
+    abline(h = abuninit)
+    if(saveplots == TRUE) {
+      dev.off()
+    }
+  }
+  
+  if(verbose == TRUE) {
+    print(paste("troot=", attributes(out)$troot))
+    print("iroot=")
+    print(attributes(out)$indroot)
+    print(paste("infgrowth=", infgrowth))
+    print(paste("eqreached=", eqreached))
+    
+    abschange <- abunfinaltemp - abuninit
+    relchange <- abunfinaltemp / abuninit
+    print("Species abundances, and their changes:", quote = FALSE)
+    print(rbind(tested = abuninit, at_perturbation = abunpert, final = abunfinaltemp,
+                absolute_change = abschange, relative_change = relchange))
+  }
+  
   return(abunfinal)
 }
 
@@ -1115,8 +1134,8 @@ for(nspecies in nspeciesset) {
               abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
                                               growthrate = growthrate,
                                               cost = NULL, conjmat = NULL,
-                                              model = "gLV",
-                                              pertpop = pertpop, tmax = 1e4,
+                                              model = "gLV", pertpop = pertpop,
+                                              pertmagn = 1, tmax = 1e4,
                                               showplot = FALSE, verbose = FALSE,
                                               suppresswarninfgrowth = TRUE)
             } else {
@@ -1204,7 +1223,8 @@ for(nspecies in nspeciesset) {
                   abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
                                                       intmat = intmat, growthrate = growthrate,
                                                       cost = cost, conjmat = conjmat,
-                                                      model = "gLVConj", pertpop = pertpopconj, tmax = 1e4,
+                                                      model = "gLVConj", pertpop = pertpopconj,
+                                                      pertmagn = 1, tmax = 1e4, 
                                                       showplot = FALSE, verbose = FALSE,
                                                       suppresswarninfgrowth = TRUE)
                 } else {
@@ -1812,29 +1832,37 @@ if(simulateinvasion == TRUE) {
   }
   CreatePlot(fillvar = "relabunRconjmin",
              filltitle = "Minimum fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunRconjmean",
              filltitle = "Mean fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunRconjmedian",
              filltitle = "Median fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunRconjmax",
              filltitle = "Maximum fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   
   CreatePlot(fillvar = "relabunPconjmin",
              filltitle = "Minimum fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunPconjmean",
              filltitle = "Mean fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunPconjmedian",
              filltitle = "Median fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunPconjmax",
              filltitle = "Maximum fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
 
   CreatePlot(fillvar = "fracPformedbypertpopmin",
              filltitle = paste("Minimum fraction of plasmid-bearing bacteria",
