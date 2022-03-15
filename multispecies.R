@@ -2065,8 +2065,12 @@ for(abunmodel in abunmodelset) {
       nspecies = as.factor(nspecies),
       species = as.factor(1:nspecies),
       abun = switch(abunmodel,
-                    "brokenstick" = brokenstick(nspecies = nspecies, totalabun = totalabun, takelimit = TRUE),
-                    "dompreempt" = dompreempt(nspecies = nspecies, totalabun = totalabun, takelimit = TRUE)),
+                    "brokenstick" = brokenstick(nspecies = nspecies,
+                                                totalabun = totalabun,
+                                                takelimit = TRUE),
+                    "dompreempt" = dompreempt(nspecies = nspecies,
+                                              totalabun = totalabun,
+                                              takelimit = TRUE)),
       model = abunmodel)
     compareabun <- rbind(compareabun, comparetemp)
   }
@@ -2077,12 +2081,18 @@ if(!exists("DateTimeStamp")) {
   DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 }
 
+if(length(abunmodelset) > 1) {
+  facet_rows <- vars(model)
+} else {
+  facet_rows <- NULL
+}
 plotcompareabun <- ggplot(data = compareabun,
                           aes(x = species, y = abun,
                               color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
   scale_x_discrete(limits = factor(1:maxnspecies)) +
-  scale_y_continuous(limits = c(0, totalabun)) +
+  scale_y_continuous(limits = c(0, NA)) +
+  facet_grid(rows = facet_rows, cols = vars(nspecies), labeller = "label_both") +
   theme(legend.position = "bottom", legend.just = "left",
         legend.margin = margin(-5, 0, -5, 0),
         legend.box = "vertical", legend.box.just = "left",
@@ -2102,7 +2112,8 @@ plotcompareabunlog <- ggplot(data = compareabun,
                                  color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
   scale_x_discrete(limits = factor(1:maxnspecies)) +
-  scale_y_continuous(limits = c(NA, totalabun), trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  facet_grid(rows = facet_rows, cols = vars(nspecies), labeller = "label_both") +
   theme(legend.position = "bottom", legend.just = "left",
         legend.margin = margin(-5, 0, -5, 0),
         legend.box = "vertical", legend.box.just = "left",
