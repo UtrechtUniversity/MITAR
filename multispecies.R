@@ -771,10 +771,12 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     }
   }
   
-  if(silenteqnotreached == FALSE && eqreached == 0 && infgrowth != 1) {
+  if(eqreached == 0 && infgrowth != 1) {
     tmaxshort <- 1
-    warning("Equilibrium not reached. Increase tmax to prevent this? Final abundances were\n",
-            paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
+    if(silenteqnotreached == FALSE) {
+      warning("Equilibrium not reached. Increase tmax to prevent this? Final abundances were\n",
+              paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
+    }
   }
   
   if(model == "gLV") {
