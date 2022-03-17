@@ -653,13 +653,18 @@ eventfun <- function(t, state, p) {
 #   - infgrowth indicating if infinite growth was detected
 # If showplots == TRUE, plots over time are either shown or saved, depending on
 #   the global variable saveplots
+# If plotepistabwithP == TRUE, plots over time are plotted or saved to a
+#   .png file if the equilibrium is epidemiologically stable but the total
+#   number of plasmid-bearing bacteria at the end of the simulation is larger
+#   than finalsmallstate.
 # Notes
 #   Although this function returns absolute abundances, various of these are
 #   converted to relative abundances later on in the script.
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                                model, pertpop, pertmagn = 1000,
                                tmax = 1e4, tstep = 1, showplot = TRUE,
-                               verbose = FALSE, silentinfgrowth = FALSE,
+                               plotepistabwithP = FALSE, verbose = FALSE,
+                               silentinfgrowth = FALSE,
                                silenteqnotreached = FALSE) {
   
   # Name abundances, set line type and colors, get derivatives of initial state
@@ -838,9 +843,14 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                       eqreached = eqreached, infgrowth = infgrowth)
   }
   
-  if(showplot == TRUE) {
-    subtitle <- paste0(abunmodel, ", intmean=", intmean, ", selfintmean=", selfintmean, ", cost=",
-                       cost, ", conjratecode=", conjratecode)
+  # eqinfoepi is created outside this function before this function is called.
+  if(showplot == TRUE ||
+     (plotepistabwithP == TRUE && model == "gLVConj" &&
+      !is.na(abunfinal["Ptotal"]) && abunfinal["Ptotal"] > finalsmallstate &&
+      eqinfoepi["eigvalRe"] < 0)) {
+    subtitle <- paste0(abunmodel, ", intmean=", intmean, ",
+                       selfintmean=", selfintmean, ", cost=", cost, ",
+                       conjratecode=", conjratecode, ",\niter=", iter)
     if(saveplots == TRUE) {
       filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), ".png")
       png(filename = filename, height = 785)
