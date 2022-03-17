@@ -1811,29 +1811,37 @@ if(simulateinvasion == TRUE) {
   title <- "Fraction bacteria after perturbation"
   CreatePlot(fillvar = "relabunRconjmin",
              filltitle = "Minimum fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunRconjmean",
              filltitle = "Mean fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunRconjmedian",
              filltitle = "Median fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunRconjmax",
              filltitle = "Maximum fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   
   CreatePlot(fillvar = "relabunPconjmin",
              filltitle = "Minimum fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunPconjmean",
              filltitle = "Mean fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunPconjmedian",
              filltitle = "Median fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "relabunPconjmax",
              filltitle = "Maximum fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing)
 
   CreatePlot(fillvar = "fracPformedbypertpopmin",
              filltitle = paste("Minimum fraction of plasmid-bearing bacteria",
