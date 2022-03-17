@@ -1282,7 +1282,7 @@ for(nspecies in nspeciesset) {
                 abunfinalconj$Ptotal / abuntotalconj,
                 nspeciesconj, abunfinalconj$npopR / nspeciesconj,
                 abunfinalconj$npopP / nspeciesconj,
-                abunfinalconj$P[pertpopconj] / abunfinalconj$Ptotal,
+                sum(abunfinalconj$P[pertpopconj]) / abunfinalconj$Ptotal,
                 matrix(rep(relabunRsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunRconjsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE),
