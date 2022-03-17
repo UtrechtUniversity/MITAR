@@ -543,8 +543,8 @@ geteqinfo <- function(model, abundance, intmat, growthrate,
            jaclow <- jac[(nspecies + 1):(2*nspecies), 1:nspecies]
            if(!isTRUE(all.equal(range(jaclow), c(0, 0), check.attributes = FALSE))) {
              warning(paste("Jacobian matrix does not contain a block of zeros",
-                           "in the lower-left corner,\nso currently used determination",
-                           "of epidemiological stability is invalid"))
+                           "in the lower-left corner,\nso currently used",
+                           "determination of epidemiological stability is invalid"))
              print(jaclow)
            }
            eigval <- eigen(x = jac[(nspecies + 1):(2*nspecies),
@@ -649,7 +649,7 @@ eventfun <- function(t, state, p) {
 #   - tmaxshort indicating tmax was not reached but no infinite growth occured
 #   - eqreached indicating if equilibrium has been reached
 #   - infgrowth indicating if infinite growth was detected
-# If showplots == TRUE, plots over time are either shown or saved, depending on
+# If showplot == TRUE, plots over time are either shown or saved, depending on
 #   the global variable saveplots
 # Notes
 #   Although this function returns absolute abundances, various of these are
@@ -669,9 +669,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     names(abundance) <- paste0(rep("R", nspecies), 1:nspecies)
     lty <- 1
     col <- mycol[1:nspecies]
-    derivatives <- unlist(
-      gLV(t = 0, n = abundance, parms = list(growthrate = growthrate, intmat = intmat))
-    )
+    derivatives <- unlist(gLV(t = 0, n = abundance,
+                              parms = list(growthrate = growthrate, intmat = intmat)))
   }
   
   if(model == "gLVConj") {
@@ -768,8 +767,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
           paste0("Integration was terminated at time = ",
                  round(attributes(out)$troot[which(attributes(out)$indroot == 2)], 2),
                  ", when the sum of abundances became",
-                 "\nlarger than 1e10 times the initial total abundance, indicating unbounded growth.",
-                 "\nAbundances then were ",
+                 "\nlarger than 1e10 times the initial total abundance,",
+                 "indicating unbounded growth.\nAbundances then were ",
                  paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
         )
       }
@@ -842,8 +841,9 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
      (plotepistabwithP == TRUE && model == "gLVConj" &&
       !is.na(abunfinal["Ptotal"]) && abunfinal["Ptotal"] > finalsmallstate &&
       eqinfoepi["eigvalRe"] < 0)) {
-    subtitle <- paste0(abunmodel, ", intmean=", intmean, ", selfintmean=", selfintmean, ", cost=",
-                       cost, ", conjratecode=", conjratecode, ",\niter=", iter)
+    subtitle <- paste0(abunmodel, ", intmean=", intmean, ",
+                       selfintmean=", selfintmean, ", cost=", cost, ",
+                       conjratecode=", conjratecode, ",\niter=", iter)
     if(saveplots == TRUE) {
       filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), ".png")
       png(filename = filename, height = 785)
@@ -908,7 +908,8 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   if(exists("DateTimeStamp") == FALSE) {
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
     if(addstamp == TRUE) {
-      warning("DateTimeStamp created to include in plot does not correspond to filename of the dataset")
+      warning(paste("DateTimeStamp created to include in plot does not",
+                    "correspond to filename of the dataset"))
     }
   }
   if(addstamp == TRUE) {
@@ -1023,8 +1024,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 #### Testing functions ####
 # 
 # nspecies <- 4
-# abunbrokenstick <- brokenstick(nspecies = nspecies, totalabun = totalabun, takelimit = TRUE)
-# abundompreempt <- dompreempt(nspecies = nspecies, totalabun = totalabun, takelimit = TRUE)
+# abunbrokenstick <- brokenstick(nspecies = nspecies, totalabun = totalabun,
+#                                takelimit = TRUE)
+# abundompreempt <- dompreempt(nspecies = nspecies, totalabun = totalabun,
+#                              takelimit = TRUE)
 # abunbrokenstick
 # abundompreempt
 # 
@@ -1032,13 +1035,17 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 # (growthratebrokenstick <- getgrowthrate(abundance = abunbrokenstick, intmat = intmat1))
 # (growthratedompreempt <- getgrowthrate(abundance = abundompreempt, intmat = intmat1))
 # checkequilibrium(abundance = abunbrokenstick, intmat = intmat1,
-#                  growthrate = growthratebrokenstick, printderivatives = TRUE, showplot = TRUE) # At equilibrium
+#                  growthrate = growthratebrokenstick, printderivatives = TRUE,
+#                  showplot = TRUE) # At equilibrium
 # checkequilibrium(abundance = 0.9*abunbrokenstick, intmat = intmat1,
-#                  growthrate = growthratebrokenstick, printderivatives = TRUE, showplot = TRUE) # Not at equilibrium
-# 
-# # geteqinfo returns eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, and eigvalRep
-# geteqinfo(model = "gLV", abundance = abunbrokenstick, intmat = intmat1, growthrate = growthratebrokenstick)
-# geteqinfo(model = "gLV", abundance = abundompreempt, intmat = intmat1, growthrate = growthratedompreempt)
+#                  growthrate = growthratebrokenstick, printderivatives = TRUE,
+#                  showplot = TRUE) # Not at equilibrium
+
+# geteqinfo returns eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, and eigvalRep
+# geteqinfo(model = "gLV", abundance = abunbrokenstick, intmat = intmat1,
+#           growthrate = growthratebrokenstick)
+# geteqinfo(model = "gLV", abundance = abundompreempt, intmat = intmat1,
+#           growthrate = growthratedompreempt)
 
 
 #### Running the simulations ####
