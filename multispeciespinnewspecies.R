@@ -659,7 +659,8 @@ eventfun <- function(t, state, p) {
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                                model, pertpop, pertmagn = 1000,
                                tmax = 1e4, tstep = 1, showplot = TRUE,
-                               verbose = FALSE, suppresswarninfgrowth = FALSE) {
+                               verbose = FALSE, silentinfgrowth = FALSE,
+                               silenteqnotreached = FALSE) {
   
   # Name abundances, set line type and colors, get derivatives of initial state
   # in the plasmid-free model.
@@ -763,7 +764,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     if(any(attributes(out)$indroot == 2)) {
       infgrowth <- 1
       
-      if(suppresswarninfgrowth != TRUE) {
+      if(silentinfgrowth != TRUE) {
         warning(
           paste0("Integration was terminated at time = ",
                  round(attributes(out)$troot[which(attributes(out)$indroot == 2)], 2),
@@ -778,8 +779,10 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   
   if(eqreached == 0 && infgrowth != 1) {
     tmaxshort <- 1
-    warning("Equilibrium not reached. Increase tmax to prevent this? Final abundances were\n",
-            paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
+    if(silenteqnotreached == FALSE) {
+      warning("Equilibrium not reached. Increase tmax to prevent this? Final abundances were\n",
+              paste(names(abunfinaltemp), "=", signif(abunfinaltemp), collapse = ", "))
+    }
   }
   
   if(model == "gLV") {
@@ -1142,7 +1145,8 @@ for(nspecies in nspeciesset) {
                                               model = "gLV", pertpop = pertpop,
                                               pertmagn = 1, tmax = 1e4,
                                               showplot = FALSE, verbose = FALSE,
-                                              suppresswarninfgrowth = TRUE)
+                                              silentinfgrowth = TRUE,
+                                              silenteqnotreached = TRUE)
             } else {
               # No need for simulations if equilibrium is stable
               abunfinal <- list(R = c(0, abundance), Rtotal = sum(abundance),
@@ -1223,7 +1227,8 @@ for(nspecies in nspeciesset) {
                                                       model = "gLVConj", pertpop = pertpopconj,
                                                       pertmagn = 1, tmax = 1e4,
                                                       showplot = FALSE, verbose = FALSE,
-                                                      suppresswarninfgrowth = TRUE)
+                                                      silentinfgrowth = TRUE,
+                                                      silenteqnotreached = TRUE)
                 } else {
                   # No need for simulations if equilibrium is stable
                   abunfinalconj <- list(R = c(0, abundance), Rtotal = sum(abundance),
@@ -1390,13 +1395,33 @@ for(nspecies in nspeciesset) {
   }
 }
 duration <- Sys.time() - starttime
-
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
-warnings()
+
 colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
                         "intmean", "selfintmean", "newgrowthratecode",
                         colnames(summarydata))
 colnames(datatotal) <- colnames(data)
+eqnotreached <- 1 - plotdata[, "eqreachedfrac"]
+eqnotreachedconj <- 1 - plotdata[, "eqreachedconjfrac"]
+if(any(eqnotreached > 0)) {
+  warning(paste0("Fraction of iterations where equilibrium has not been reached ",
+                 "after pertubation with plasmid-free\nbacteria ranges from ",
+                 summary(eqnotreached)["Min."], " to ",
+                 summary(eqnotreached)["Max."]," (mean: ",
+                 summary(eqnotreached)["Mean"], "; median: ",
+                 summary(eqnotreached)["Median"], "). ",
+                 "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
+}
+if(any(eqnotreachedconj > 0)) {
+  warning(paste0("Fraction of iterations where equilibrium has not been reached ",
+                 "after pertubation with plasmid-bearing\nbacteria ranges from ",
+                 summary(eqnotreachedconj)["Min."], " to ",
+                 summary(eqnotreachedconj)["Max."], " (mean: ",
+                 summary(eqnotreachedconj)["Mean"], "; median: ",
+                 summary(eqnotreachedconj)["Median"], "). ",
+                 "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
+}
+warnings()
 
 
 #### Saving output to .csv files ####
