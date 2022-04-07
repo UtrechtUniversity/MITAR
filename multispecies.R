@@ -2109,7 +2109,8 @@ plotcompareabun <- ggplot(data = compareabun,
   scale_x_discrete(limits = factor(1:maxnspecies)) +
   scale_y_continuous(limits = c(0, NA)) +
   facet_grid(rows = facet_rows, cols = vars(nspecies), labeller = "label_both") +
-  theme(legend.position = "bottom", legend.just = "left",
+  theme(panel.grid = element_line(size = 1),
+        legend.position = "bottom", legend.just = "left",
         legend.margin = margin(-5, 0, -5, 0),
         legend.box = "vertical", legend.box.just = "left",
         legend.box.margin = margin(-5, 0, 0, 0)) +
@@ -2120,7 +2121,7 @@ plotcompareabun <- ggplot(data = compareabun,
 print(plotcompareabun)
 if(saveplots == TRUE) {
   filename <- paste0(DateTimeStamp, "compareabunmodel.png")
-  ggsave(filename)
+  ggsave(filename, width = 16, height = 16, units = "cm")
 }
 
 plotcompareabunlog <- ggplot(data = compareabun,
@@ -2130,7 +2131,8 @@ plotcompareabunlog <- ggplot(data = compareabun,
   scale_x_discrete(limits = factor(1:maxnspecies)) +
   scale_y_continuous(trans = "log10") +
   facet_grid(rows = facet_rows, cols = vars(nspecies), labeller = "label_both") +
-  theme(legend.position = "bottom", legend.just = "left",
+  theme(panel.grid = element_line(size = 1),
+        legend.position = "bottom", legend.just = "left",
         legend.margin = margin(-5, 0, -5, 0),
         legend.box = "vertical", legend.box.just = "left",
         legend.box.margin = margin(-5, 0, 0, 0)) +
@@ -2141,7 +2143,7 @@ plotcompareabunlog <- ggplot(data = compareabun,
 print(plotcompareabunlog)
 if(saveplots == TRUE) {
   filename <- paste0(DateTimeStamp, "compareabunmodellog.png")
-  ggsave(filename)
+  ggsave(filename, width = 16, height = 16, units = "cm")
 }
 
 write.csv(compareabun,
