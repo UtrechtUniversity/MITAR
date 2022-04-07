@@ -144,15 +144,15 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 niter <- 100
 niterintmat <- 1
 simulateinvasion <- FALSE
-intmeanset <- seq(from = -1.2e-11, to = 1.2e-11, by = 1e-12)
-selfintmeanset <- seq(from = -1.2e-11, to = 0, by = 1e-12)
+intmeanset <- seq(from = -1e-11, to = 1e-11, by = 1e-12)
+selfintmeanset <- seq(from = -1e-11, to = 0, by = 1e-12)
 
 ## Smaller parameter set to simulate invasion
 niter <- 50
 niterintmat <- 1
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -1.2e-11, to = 1.2e-11, by = 2e-12)
-selfintmeanset <- seq(from = -1.2e-11, to = 0, by = 2e-12)
+intmeanset <- seq(from = -1e-11, to = 1e-11, by = 1e-12)
+selfintmeanset <- seq(from = -1e-11, to = 0, by = 2e-12)
 
 ## Testset
 saveplots <- TRUE
@@ -178,8 +178,8 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 niter <- 10
 niterintmat <- 1
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -1.2e-11, to = 1.2e-11, by = 3e-12)
-selfintmeanset <- seq(from = -1.2e-11, to = 0, by = 3e-12)
+intmeanset <- seq(from = -0.9e-11, to = 0.9e-11, by = 3e-12)
+selfintmeanset <- seq(from = -0.9e-11, to = 0, by = 3e-12)
 
 # Small parameter set to test code
 niter <- 2
