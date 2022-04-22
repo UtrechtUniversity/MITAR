@@ -1331,10 +1331,16 @@ for(nspecies in nspeciesset) {
               # if-else construct.
               if(abunfinalconj$eqreached == 0 | simulateinvasion == FALSE) {
                 nspeciesconj <- NA 
+                fracPformedbypertpop <- NA
               } else {
                 nspeciesconj <- length(which(
                   abunfinalconj$R + abunfinalconj$P > smallstate
                 ))
+                if(abunfinalconj$Ptotal > 0) {
+                  fracPformedbypertpop <- sum(abunfinalconj$P[pertpopconj]) / abunfinalconj$Ptotal
+                } else {
+                  fracPformedbypertpop <- NA
+                }
               }
               
               indexdatanew <- indexdata + nspecies
@@ -1359,7 +1365,7 @@ for(nspecies in nspeciesset) {
                 abunfinalconj$Ptotal / abuntotalconj,
                 nspeciesconj, abunfinalconj$npopR / nspeciesconj,
                 abunfinalconj$npopP / nspeciesconj,
-                sum(abunfinalconj$P[pertpopconj]) / abunfinalconj$Ptotal,
+                fracPformedbypertpop,
                 matrix(rep(relabunRsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunRconjsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE),
