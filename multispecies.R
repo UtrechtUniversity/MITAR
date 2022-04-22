@@ -129,10 +129,10 @@ smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
 totalabun <- 1e11
-nspeciesset <- c(2, 4, 6)
+nspeciesset <- c(2, 8, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
-costset <- c(0.03, 0.09)
+costset <- c(0.05, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
@@ -166,10 +166,10 @@ smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
 totalabun <- 1e11
-nspeciesset <- c(2, 4, 6)
+nspeciesset <- c(2, 8, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
-costset <- c(0.03, 0.09)
+costset <- c(0.05, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
@@ -197,12 +197,12 @@ smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
 totalabun <- 1e11
-nspeciesset <- c(2, 4)
+nspeciesset <- c(2, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 intmeanset <- c(-6e-12, 6e-12)
 selfintmeanset <- c(-1.2e-11, -6e-12)
-costset <- c(0.03, 0.09)
+costset <- c(0.05, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
@@ -223,7 +223,7 @@ smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
 totalabun <- 1e11
-nspeciesset <- c(2, 4, 6)
+nspeciesset <- c(2, 8, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 costset <- seq(from = 0, to = 0.2, by = 0.002)
