@@ -119,12 +119,13 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 
 ## Basis parameter set
+bifurparms <- FALSE
 saveplots <- TRUE
 smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
 totalabun <- 1e11
-nspeciesset <- 1 + c(2, 4, 6)
+nspeciesset <- 1 + c(2, 8, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 # The growth rate of new species is the mean growth rate of the plasmid-free 
@@ -153,23 +154,24 @@ selfintmeanset <- seq(from = -1e-11, to = 0, by = 1e-12)
 niter <- 50
 niterintmat <- 1
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -1e-11, to = 1e-11, by = 2e-12)
-selfintmeanset <- seq(from = -1e-11, to = 0, by = 2e-12)
+intmeanset <- seq(from = -1e-11, to = 1e-11, by = 1e-12)
+selfintmeanset <- seq(from = -1e-11, to = 0, by = 1e-12)
 
 ## Testset
+bifurparms <- FALSE
 saveplots <- TRUE
 smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
 totalabun <- 1e11
-nspeciesset <- 1 + c(2, 4, 6)
+nspeciesset <- 1 + c(2, 8, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 # The growth rate of new species is the mean growth rate of the plasmid-free 
 # species decreased with 2 standard deviations, unchanged, or increased with 2
 # standard deviations when newgrowthratecode == 1, 2, or 3, respectively.
 newgrowthratecode <- 1 # A SINGLE value should be provided
-costset <- c(0.03, 0.09)
+costset <- c(0.05, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
@@ -186,6 +188,7 @@ intmeanset <- seq(from = -0.9e-11, to = 0.9e-11, by = 3e-12)
 selfintmeanset <- seq(from = -0.9e-11, to = 0, by = 3e-12)
 
 ## Small parameter set to test code
+bifurparms <- FALSE
 niter <- 2
 niterintmat <- 1
 simulateinvasion <- TRUE
@@ -194,7 +197,7 @@ smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
 totalabun <- 1e11
-nspeciesset <- 1 + c(2, 4)
+nspeciesset <- 1 + c(2, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 # The growth rate of new species is the mean growth rate of the plasmid-free 
@@ -203,7 +206,7 @@ abunmodelset <- c("dompreempt")
 newgrowthratecode <- 1 # A SINGLE value should be provided
 intmeanset <- c(-6e-12, 6e-12)
 selfintmeanset <- c(-1.2e-11, -6e-12)
-costset <- c(0.03, 0.09)
+costset <- c(0.05, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
