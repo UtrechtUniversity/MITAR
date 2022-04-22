@@ -98,6 +98,10 @@
 ## CreatePlot() ##
 # The diagonals are not displayed correctly if the plotting area is non-square
 
+# Adjust CreatePlot() to be able to take a list of additional arguments, such
+# that these arguments are included in the saved plots. Now as a workaround set
+# save to FALSE and used ggsave() to include the added guides arguments.
+
 
 #### Loading required packages ####
 library(deSolve)   # checkequilibrium and perturbequilibrium call ode() if
@@ -119,6 +123,7 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 
 ## Basis parameter set
+bifurparms <- FALSE
 saveplots <- TRUE
 smallstate <- 1e-3
 finalsmallstate <- 1
@@ -152,9 +157,10 @@ niter <- 50
 niterintmat <- 1
 simulateinvasion <- TRUE
 intmeanset <- seq(from = -1e-11, to = 1e-11, by = 1e-12)
-selfintmeanset <- seq(from = -1e-11, to = 0, by = 2e-12)
+selfintmeanset <- seq(from = -1e-11, to = 0, by = 1e-12)
 
 ## Testset
+bifurparms <- FALSE
 saveplots <- TRUE
 smallstate <- 1e-3
 finalsmallstate <- 1
@@ -182,6 +188,7 @@ intmeanset <- seq(from = -0.9e-11, to = 0.9e-11, by = 3e-12)
 selfintmeanset <- seq(from = -0.9e-11, to = 0, by = 3e-12)
 
 ## Small parameter set to test code
+bifurparms <- FALSE
 niter <- 2
 niterintmat <- 1
 simulateinvasion <- TRUE
@@ -210,6 +217,7 @@ mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
 
 ## Parameter set to create bifurcation-like plots showing the border of
 # epidemiological stability in the conjugation rate/cost space
+bifurparms <- TRUE
 saveplots <- TRUE
 smallstate <- 1e-3
 finalsmallstate <- 1
@@ -218,9 +226,9 @@ totalabun <- 1e11
 nspeciesset <- c(2, 4, 6)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
-costset <- seq(from = 0, to = 0.2, by = 0.01) # seq(from = 0, to = 0.2, by = 0.004)
+costset <- seq(from = 0, to = 0.2, by = 0.002)
 costtype <- "absolute"
-seqconjrate <- 10^seq(from = -13, to = -11, by = 0.1) # 10^seq(from = -13, to = -11, by = 0.04)
+seqconjrate <- 10^seq(from = -13, to = -11, by = 0.02)
 conjrateset <- NULL
 for(conjrate in seqconjrate) {
   conjrateset <- c(conjrateset, list(rep(conjrate, maxnspecies)))
@@ -1587,90 +1595,126 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 # 'plotdata' has not been comverted to a dataframe. To convert it to a dataframe,
 # run plotdata <- as.data.frame(plotdata)
 
-## Show border of ecological stability with heatmap in CreatePlot()
-CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableecol",
-           filltitle = "fracstableecol", filltype = "continuous",
-           limy = c(1, length(conjrateset)), ratio = NULL,
-           labx = "Cost", laby = "Conjugation rate code",
-           facetx = "taxmatcode + intmean", facety = "nspecies",
-           rotate_x_labels = TRUE,
-           filename = "ecostabxcostyconj")
+# ## Show border of ecological stability with heatmap in CreatePlot()
+# CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableecol",
+#            filltitle = "fracstableecol", filltype = "continuous",
+#            limy = c(1, length(conjrateset)), ratio = NULL,
+#            labx = "Cost", laby = "Conjugation rate code",
+#            facetx = "taxmatcode + intmean", facety = "nspecies",
+#            rotate_x_labels = TRUE,
+#            filename = "ecostabxcostyconj")
+# 
+# ## Show border of ecological stability with a contour plot in CreatePlot()
+# # Values in a facet are either all stable, or all unstable (see heatmap above),
+# # making it impossible to plot contours delimiting stable and unstable regions.
+# CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableecol",
+#            contour_var = "fracstableecol", contour_col = "as.factor(nspecies)",
+#            contour_lty = "as.factor(intmean)",
+#            limy = c(1, length(conjrateset)), ratio = NULL,
+#            labx = "Cost", laby = "Conjugation rate code",
+#            facetx = "taxmatcode", facety = "nspecies",
+#            rotate_x_labels = FALSE, save = FALSE) +
+#   guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
 
-## Show border of ecological stability with a contour plot in CreatePlot()
-# Values in a facet are either all stable, or all unstable (see heatmap above),
-# making it impossible to plot contours delimiting stable and unstable regions.
-CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableecol",
-           contour_var = "fracstableecol", contour_col = "as.factor(nspecies)",
-           contour_lty = "as.factor(intmean)",
-           limy = c(1, length(conjrateset)), ratio = NULL,
-           labx = "Cost", laby = "Conjugation rate code",
-           facetx = "taxmatcode", facety = "nspecies",
-           rotate_x_labels = FALSE, save = FALSE) +
-  guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
-
-## Show border of epidemiological stability with a contour plot in CreatePlot()
-CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
-           contour_var = "fracstableepi", contour_col = "as.factor(intmean)",
-           limy = c(1, length(conjrateset)), ratio = NULL,
-           title = "Epidemiological stability",
-           labx = "Cost", laby = "Conjugation rate code",
-           facetx = "taxmatcode", facety = "nspecies + intmean",
-           rotate_x_labels = FALSE, filename = "epistabfacetynspeciesintmean")
-
-CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
-           contour_var = "fracstableepi", contour_col = "as.factor(intmean)",
-           contour_lty = "NULL",
-           limy = c(1, length(conjrateset)), ratio = NULL,
-           title = "Epidemiological stability",
-           labx = "Cost", laby = "Conjugation rate code",
-           facetx = "taxmatcode", facety = "nspecies",
-           rotate_x_labels = FALSE, filename = "epistabfacetynspecies")
-# So intmean does not affect the border of stability in conjugation rate/cost-space
-
-CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
-           contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
-           contour_lty = "NULL",
-           limy = c(1, length(conjrateset)), ratio = NULL,
-           title = "Epidemiological stability",
-           labx = "Cost", laby = "Conjugation rate code",
-           facetx = "taxmatcode", facety = "intmean",
-           rotate_x_labels = FALSE, filename = "epistabfacetyintmean")
-# Invasion is possible for very slightly higher costs for a given conjugation
-# rate in a microbiome of 2 species than in a microbiome of 4 or 6 species when
-# the initially plasmid-bearing species belongs to another class.
-
-# When the plasmid-bearing species belongs to another class, invasion is only
-# possible if costs are slightly lower for a given conjugation rate than when
-# all populations belonging to the same species.
-
-CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
-           contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
-           contour_lty = "as.factor(intmean)",
-           limy = c(1, length(conjrateset)), ratio = NULL,
-           title = "Epidemiological stability",
-           labx = "Cost", laby = "Conjugation rate code",
-           facetx = "taxmatcode", facety = ".",
-           rotate_x_labels = FALSE, filename = "epistab") +
-  guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
-
-CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
-           contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
-           contour_lty = "as.factor(taxmatcode)",
-           limy = c(1, length(conjrateset)), ratio = NULL,
-           title = "Epidemiological stability",
-           labx = "Cost", laby = "Conjugation rate code",
-           facetx = ".", facety = ".",
-           rotate_x_labels = FALSE, filename = "epistabcolnspeciesltytaxmatcode") +
-  guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
-
-# Need to set filltype to continuous to prevent error on missing filllabels
-CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
-           filltitle = "fracstableepi", contour_var = NULL, contour_col = NULL,
-           contour_lty = NULL, filltype = "continuous",
-           limy = c(1, length(conjrateset)), ratio = NULL,
-           labx = "Cost", laby = "Conjugation rate code",
-           facetx = "taxmatcode", facety = "nspecies",
-           rotate_x_labels = FALSE, filename = "epistabheatmap")
+if(bifurparms == TRUE) {
+  ## Show border of epidemiological stability with a contour plot in CreatePlot()
+  # I set save to FALSE and used ggsave() to ensure the added guides arguments are
+  # included in the saved plots.
+  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+             contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
+             limy = c(1, length(conjrateset)), ratio = NULL,
+             title = "Epidemiological stability",
+             labx = "Cost", laby = "Conjugation rate code",
+             facetx = "taxmatcode + intmean", facety = "nspecies",
+             rotate_x_labels = TRUE, save = FALSE) +
+    guides(col = guide_legend(ncol = 1))
+  if(saveplots == TRUE) {
+    ggsave(paste0(DateTimeStamp, "epistabxtaxmatintmeanynspecies.png"))
+  }
+  
+  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+             contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
+             contour_lty = "as.factor(intmean)",
+             limy = c(1, length(conjrateset)), ratio = NULL,
+             title = "Epidemiological stability",
+             labx = "Cost", laby = "Conjugation rate code",
+             facetx = "taxmatcode", facety = "nspecies",
+             rotate_x_labels = FALSE, save = FALSE) +
+    guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
+  if(saveplots == TRUE) {
+    ggsave(paste0(DateTimeStamp, "epistabxtaxmatynspecies.png"))
+  }
+  # So intmean does not affect the border of stability in conjugation rate/cost-space
+  
+  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+             contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
+             limy = c(1, length(conjrateset)), ratio = NULL,
+             title = "Epidemiological stability",
+             labx = "Cost", laby = "Conjugation rate code",
+             facetx = "taxmatcode", facety = "intmean",
+             rotate_x_labels = TRUE, save = FALSE) +
+    guides(col = guide_legend(ncol = 1))
+  if(saveplots == TRUE) {
+    ggsave(paste0(DateTimeStamp, "epistabxtaxmatyintmean.png"))
+  }
+  
+  # Invasion is possible for very slightly higher costs for a given conjugation
+  # rate in a microbiome of 2 species than in a microbiome of 4 or 6 species when
+  # the initially plasmid-bearing species belongs to another class.
+  
+  # When the plasmid-bearing species belongs to another class, invasion is only
+  # possible if costs are slightly lower for a given conjugation rate than when
+  # all populations belonging to the same species.
+  
+  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+             contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
+             contour_lty = "as.factor(intmean)",
+             limy = c(1, length(conjrateset)), ratio = NULL,
+             title = "Epidemiological stability",
+             labx = "Cost", laby = "Conjugation rate code",
+             facetx = "taxmatcode", facety = ".",
+             rotate_x_labels = FALSE, save = FALSE) +
+    guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
+  if(saveplots == TRUE) {
+    ggsave(paste0(DateTimeStamp, "epistabxtaxmat.png"))
+  }
+  
+  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+             contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
+             contour_lty = "as.factor(taxmatcode)",
+             limy = c(1, length(conjrateset)), ratio = NULL,
+             title = "Epidemiological stability",
+             labx = "Cost", laby = "Conjugation rate code",
+             facetx = ".", facety = "nspecies",
+             rotate_x_labels = FALSE, save = FALSE) +
+    guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
+  if(saveplots == TRUE) {
+    ggsave(paste0(DateTimeStamp, "epistabynspecies.png"))
+  }
+  
+  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+             contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
+             contour_lty = "as.factor(taxmatcode)",
+             limy = c(1, length(conjrateset)), ratio = NULL,
+             title = "Epidemiological stability",
+             labx = "Cost", laby = "Conjugation rate code",
+             facetx = ".", facety = ".",
+             rotate_x_labels = FALSE, save = FALSE) +
+    guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
+  if(saveplots == TRUE) {
+    ggsave(paste0(DateTimeStamp, "epistab.png"))
+  }
+  
+  # Need to set filltype to continuous to prevent error on missing filllabels
+  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+             filltitle = "fracstableepi", contour_var = NULL, contour_col = NULL,
+             contour_lty = NULL, filltype = "continuous", limx = range(costset),
+             limy = c(1, length(conjrateset)), ratio = NULL,
+             title = "Epidemiological stability",
+             labx = "Cost", laby = "Conjugation rate code",
+             facetx = "taxmatcode", facety = "nspecies",
+             rotate_x_labels = FALSE, filename = "epistabheatmap")
+}
 
 
 ## Compare equilibrium characteristics for the models without and with plasmids.
