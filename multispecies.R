@@ -939,7 +939,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        labx = "Mean interaction coefficient",
                        laby = "Mean selfinteraction coefficient",
                        tag = NULL, addstamp = FALSE, diagonal = "none",
-                       linezero = FALSE,
+                       linezero = TRUE,
                        facetx = "taxmatcode + abunmodelcode + cost",
                        facety = "conjratecode + nspecies",
                        dropfacets = TRUE,
@@ -1605,7 +1605,7 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 # CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableecol",
 #            filltitle = "fracstableecol", filltype = "continuous",
 #            limy = c(1, length(conjrateset)), ratio = NULL,
-#            labx = "Cost", laby = "Conjugation rate code",
+#            labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
 #            facetx = "taxmatcode + intmean", facety = "nspecies",
 #            rotate_x_labels = TRUE,
 #            filename = "ecostabxcostyconj")
@@ -1617,7 +1617,7 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 #            contour_var = "fracstableecol", contour_col = "as.factor(nspecies)",
 #            contour_lty = "as.factor(intmean)",
 #            limy = c(1, length(conjrateset)), ratio = NULL,
-#            labx = "Cost", laby = "Conjugation rate code",
+#            labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
 #            facetx = "taxmatcode", facety = "nspecies",
 #            rotate_x_labels = FALSE, save = FALSE) +
 #   guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
@@ -1630,7 +1630,7 @@ if(bifurparms == TRUE) {
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              limy = c(1, length(conjrateset)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code",
+             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = "taxmatcode + intmean", facety = "nspecies",
              rotate_x_labels = TRUE, save = FALSE) +
     guides(col = guide_legend(ncol = 1))
@@ -1643,7 +1643,7 @@ if(bifurparms == TRUE) {
              contour_lty = "as.factor(intmean)",
              limy = c(1, length(conjrateset)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code",
+             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = "taxmatcode", facety = "nspecies",
              rotate_x_labels = FALSE, save = FALSE) +
     guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
@@ -1656,7 +1656,7 @@ if(bifurparms == TRUE) {
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              limy = c(1, length(conjrateset)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code",
+             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = "taxmatcode", facety = "intmean",
              rotate_x_labels = TRUE, save = FALSE) +
     guides(col = guide_legend(ncol = 1))
@@ -1677,7 +1677,7 @@ if(bifurparms == TRUE) {
              contour_lty = "as.factor(intmean)",
              limy = c(1, length(conjrateset)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code",
+             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = "taxmatcode", facety = ".",
              rotate_x_labels = FALSE, save = FALSE) +
     guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
@@ -1690,7 +1690,7 @@ if(bifurparms == TRUE) {
              contour_lty = "as.factor(taxmatcode)",
              limy = c(1, length(conjrateset)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code",
+             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = ".", facety = "nspecies",
              rotate_x_labels = FALSE, save = FALSE) +
     guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
@@ -1703,7 +1703,7 @@ if(bifurparms == TRUE) {
              contour_lty = "as.factor(taxmatcode)",
              limy = c(1, length(conjrateset)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code",
+             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = ".", facety = ".",
              rotate_x_labels = FALSE, save = FALSE) +
     guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
@@ -1717,7 +1717,7 @@ if(bifurparms == TRUE) {
              contour_lty = NULL, filltype = "continuous", limx = range(costset),
              limy = c(1, length(conjrateset)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code",
+             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = "taxmatcode", facety = "nspecies",
              rotate_x_labels = FALSE, filename = "epistabheatmap")
 }
