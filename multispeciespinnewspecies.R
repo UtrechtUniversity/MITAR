@@ -1467,25 +1467,27 @@ colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
                         "intmean", "selfintmean", "newgrowthratecode",
                         colnames(summarydata))
 colnames(datatotal) <- colnames(data)
-eqnotreached <- 1 - plotdata[, "eqreachedfrac"]
-eqnotreachedconj <- 1 - plotdata[, "eqreachedconjfrac"]
-if(any(eqnotreached > 0)) {
-  warning(paste0("Fraction of iterations where equilibrium has not been reached ",
-                 "after pertubation with plasmid-free\nbacteria ranges from ",
-                 summary(eqnotreached)["Min."], " to ",
-                 summary(eqnotreached)["Max."]," (mean: ",
-                 summary(eqnotreached)["Mean"], "; median: ",
-                 summary(eqnotreached)["Median"], "). ",
-                 "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
-}
-if(any(eqnotreachedconj > 0)) {
-  warning(paste0("Fraction of iterations where equilibrium has not been reached ",
-                 "after pertubation with plasmid-bearing\nbacteria ranges from ",
-                 summary(eqnotreachedconj)["Min."], " to ",
-                 summary(eqnotreachedconj)["Max."], " (mean: ",
-                 summary(eqnotreachedconj)["Mean"], "; median: ",
-                 summary(eqnotreachedconj)["Median"], "). ",
-                 "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
+if(simulateinvasion == TRUE) {
+  eqnotreached <- 1 - plotdata[, "eqreachedfrac"]
+  eqnotreachedconj <- 1 - plotdata[, "eqreachedconjfrac"]
+  if(any(eqnotreached > 0)) {
+    warning(paste0("Fraction of iterations where equilibrium has not been reached ",
+                   "after pertubation with plasmid-free\nbacteria ranges from ",
+                   summary(eqnotreached)["Min."], " to ",
+                   summary(eqnotreached)["Max."]," (mean: ",
+                   summary(eqnotreached)["Mean"], "; median: ",
+                   summary(eqnotreached)["Median"], "). ",
+                   "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
+  }
+  if(any(eqnotreachedconj > 0)) {
+    warning(paste0("Fraction of iterations where equilibrium has not been reached ",
+                   "after pertubation with plasmid-bearing\nbacteria ranges from ",
+                   summary(eqnotreachedconj)["Min."], " to ",
+                   summary(eqnotreachedconj)["Max."], " (mean: ",
+                   summary(eqnotreachedconj)["Mean"], "; median: ",
+                   summary(eqnotreachedconj)["Median"], "). ",
+                   "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
+  }
 }
 warnings()
 
