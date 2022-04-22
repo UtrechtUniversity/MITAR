@@ -1337,7 +1337,8 @@ for(nspecies in nspeciesset) {
                   abunfinalconj$R + abunfinalconj$P > smallstate
                 ))
                 if(abunfinalconj$Ptotal > 0) {
-                  fracPformedbypertpop <- sum(abunfinalconj$P[pertpopconj]) / abunfinalconj$Ptotal
+                  fracPformedbypertpop <- sum(abunfinalconj$P[pertpopconj]) /
+                    abunfinalconj$Ptotal
                 } else {
                   fracPformedbypertpop <- NA
                 }
@@ -1601,6 +1602,7 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 # 'plotdata' has not been comverted to a dataframe. To convert it to a dataframe,
 # run plotdata <- as.data.frame(plotdata)
 
+
 # ## Show border of ecological stability with heatmap in CreatePlot()
 # CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableecol",
 #            filltitle = "fracstableecol", filltype = "continuous",
@@ -1621,6 +1623,7 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 #            facetx = "taxmatcode", facety = "nspecies",
 #            rotate_x_labels = FALSE, save = FALSE) +
 #   guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
+
 
 if(bifurparms == TRUE) {
   ## Show border of epidemiological stability with a contour plot in CreatePlot()
