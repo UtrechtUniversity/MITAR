@@ -132,7 +132,7 @@ abunmodelset <- c("dompreempt")
 # species decreased with 2 standard deviations, unchanged, or increased with 2
 # standard deviations when newgrowthratecode == 1, 2, or 3, respectively.
 newgrowthratecode <- 1 # A SINGLE value should be provided
-costset <- c(0.03, 0.09)
+costset <- c(0.05, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
