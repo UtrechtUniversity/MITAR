@@ -1636,7 +1636,8 @@ if(bifurparms == TRUE) {
              labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = "taxmatcode + intmean", facety = "nspecies",
              rotate_x_labels = TRUE, save = FALSE) +
-    guides(col = guide_legend(ncol = 1))
+    theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
+    guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmatintmeanynspecies.png"))
   }
@@ -1649,7 +1650,8 @@ if(bifurparms == TRUE) {
              labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = "taxmatcode", facety = "nspecies",
              rotate_x_labels = FALSE, save = FALSE) +
-    guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
+    theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
+    guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmatynspecies.png"))
   }
@@ -1662,7 +1664,8 @@ if(bifurparms == TRUE) {
              labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = "taxmatcode", facety = "intmean",
              rotate_x_labels = TRUE, save = FALSE) +
-    guides(col = guide_legend(ncol = 1))
+    theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
+    guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmatyintmean.png"))
   }
@@ -1683,7 +1686,8 @@ if(bifurparms == TRUE) {
              labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = "taxmatcode", facety = ".",
              rotate_x_labels = FALSE, save = FALSE) +
-    guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
+    theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
+    guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmat.png"))
   }
@@ -1696,7 +1700,8 @@ if(bifurparms == TRUE) {
              labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = ".", facety = "nspecies",
              rotate_x_labels = FALSE, save = FALSE) +
-    guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
+    theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
+    guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabynspecies.png"))
   }
@@ -1709,7 +1714,8 @@ if(bifurparms == TRUE) {
              labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
              facetx = ".", facety = ".",
              rotate_x_labels = FALSE, save = FALSE) +
-    guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
+    theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
+    guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistab.png"))
   }
