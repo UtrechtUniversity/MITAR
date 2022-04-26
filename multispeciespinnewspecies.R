@@ -231,7 +231,7 @@ abunmodelset <- c("dompreempt")
 newgrowthratecode <- 1
 costset <- seq(from = 0, to = 0.2, by = 0.002)
 costtype <- "absolute"
-seqconjrate <- 10^seq(from = -13, to = -11, by = 0.02)
+seqconjrate <- 10^seq(from = -13.5, to = -11.5, by = 0.02)
 conjrateset <- NULL
 for(conjrate in seqconjrate) {
   conjrateset <- c(conjrateset, list(rep(conjrate, maxnspecies)))
@@ -1599,12 +1599,31 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 # 'plotdata' has not been comverted to a dataframe. To convert it to a dataframe,
 # run plotdata <- as.data.frame(plotdata)
 
-
+if(bifurparms == TRUE) {
+  # Add column to dataframe containing conjugation rate
+  # NOTE: originally stored as conjratecode because the conjugation rates of the
+  # various species can be varied and the variable 'conjrate' is a vector of
+  # multiple values, not a single value.
+  plotdata$conjrate <- NA
+  if(length(seqconjrate) != conjratecode) {
+    warning("Value of conjrate code is not equal to length of seqconjrate.
+            Converting conjratecode to conjrate will be incorrect")
+  }
+  for(conjratecode_index in 1:conjratecode) {
+    # using dplyr::near() to allow for small (<1e-6) numeric differences
+    temp_row_index <- which(near(plotdata[, "conjratecode"], conjratecode_index))
+    plotdata[temp_row_index, "conjrate"] <- seqconjrate[conjratecode_index]
+    print(paste("conjratecode_index:", conjratecode_index,
+                "conjrate:", signif(seqconjrate[conjratecode_index]),
+                "log10(conjrate):", log10(seqconjrate[conjratecode_index])))
+  }
+  
+  
 # ## Show border of ecological stability with heatmap in CreatePlot()
-# CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableecol",
+# CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableecol",
 #            filltitle = "fracstableecol", filltype = "continuous",
-#            limy = c(1, length(conjrateset)), ratio = NULL,
-#            labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
+#            limy = range(log10(seqconjrate)), ratio = NULL,
+#            labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
 #            facetx = "taxmatcode + intmean", facety = "nspecies",
 #            rotate_x_labels = TRUE,
 #            filename = "ecostabxcostyconj")
@@ -1612,25 +1631,24 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 # ## Show border of ecological stability with a contour plot in CreatePlot()
 # # Values in a facet are either all stable, or all unstable (see heatmap above),
 # # making it impossible to plot contours delimiting stable and unstable regions.
-# CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableecol",
+# CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableecol",
 #            contour_var = "fracstableecol", contour_col = "as.factor(nspecies)",
 #            contour_lty = "as.factor(intmean)",
-#            limy = c(1, length(conjrateset)), ratio = NULL,
-#            labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
+#            limy = range(log10(seqconjrate)), ratio = NULL,
+#            labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
 #            facetx = "taxmatcode", facety = "nspecies",
 #            rotate_x_labels = FALSE, save = FALSE) +
 #   guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
 
 
-if(bifurparms == TRUE) {
   ## Show border of epidemiological stability with a contour plot in CreatePlot()
   # I set save to FALSE and used ggsave() to ensure the added guides arguments are
   # included in the saved plots.
-  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
-             limy = c(1, length(conjrateset)), ratio = NULL,
+             limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
+             labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode + intmean", facety = "nspecies",
              rotate_x_labels = TRUE, save = FALSE) +
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
@@ -1639,12 +1657,12 @@ if(bifurparms == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmatintmeanynspecies.png"))
   }
   
-  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(intmean)",
-             limy = c(1, length(conjrateset)), ratio = NULL,
+             limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
+             labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = "nspecies",
              rotate_x_labels = FALSE, save = FALSE) +
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
@@ -1654,11 +1672,11 @@ if(bifurparms == TRUE) {
   }
   # So intmean does not affect the border of stability in conjugation rate/cost-space
   
-  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
-             limy = c(1, length(conjrateset)), ratio = NULL,
+             limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
+             labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = "intmean",
              rotate_x_labels = TRUE, save = FALSE) +
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
@@ -1675,12 +1693,12 @@ if(bifurparms == TRUE) {
   # possible if costs are slightly lower for a given conjugation rate than when
   # all populations belonging to the same species.
   
-  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(intmean)",
-             limy = c(1, length(conjrateset)), ratio = NULL,
+             limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
+             labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = ".",
              rotate_x_labels = FALSE, save = FALSE) +
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
@@ -1689,12 +1707,12 @@ if(bifurparms == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmat.png"))
   }
   
-  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(taxmatcode)",
-             limy = c(1, length(conjrateset)), ratio = NULL,
+             limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
+             labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = ".", facety = "nspecies",
              rotate_x_labels = FALSE, save = FALSE) +
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
@@ -1703,12 +1721,12 @@ if(bifurparms == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabynspecies.png"))
   }
   
-  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(taxmatcode)",
-             limy = c(1, length(conjrateset)), ratio = NULL,
+             limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
+             labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = ".", facety = ".",
              rotate_x_labels = FALSE, save = FALSE) +
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
@@ -1718,12 +1736,12 @@ if(bifurparms == TRUE) {
   }
   
   # Need to set filltype to continuous to prevent error on missing filllabels
-  CreatePlot(xvar = "cost", yvar = "conjratecode", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
              filltitle = "fracstableepi", contour_var = NULL, contour_col = NULL,
              contour_lty = NULL, filltype = "continuous", limx = range(costset),
-             limy = c(1, length(conjrateset)), ratio = NULL,
+             limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Conjugation rate code", linezero = FALSE,
+             labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = "nspecies",
              rotate_x_labels = FALSE, filename = "epistabheatmap")
 }
