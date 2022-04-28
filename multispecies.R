@@ -748,19 +748,38 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     pertpop <- pertpop[which(pertpop %in% names(abundance))]
   }
   
-  # Create perturbed abundances. Note that plasmid-baering bacteria replace
-  # plasmid-free bacteria, instead of being added to the plasmid-free equilibrium.
-  # In this way the number of bacteria for each species the same, such that the
-  # ecological equilibrium is only affected by plasmid costs altering growth
-  # rates, not by changes in abundances.
+  # Create perturbed abundances. In the model with plasmid-bearing bacteria, the
+  # equilibrium is perturbed by replacing plasmid-free bacteria with
+  # plasmid-bearing bacteria, instead of adding plasmid-bearing bacteria to the
+  # plasmid-free equilibrium. In that way the number of bacteria for each
+  # species remains the same, such that the ecological equilibrium is only
+  # affected by plasmid costs altering growth rates, not by changes in the
+  # abundance of species. In the model with only plasmid-free bacteria (i.e.,
+  # 'gLV'), this does not work because there are no plasmid-bearing bacteria to
+  # replace plasmid-free bacteria, so with that model (additional) plasmid-free
+  # bacteria are added to the plasmid-free equilibrium.
   abuninit <- abundance
   abunpert <- abundance
   abunpert[pertpop] <- abunpert[pertpop] + pertmagn
-  pertpopP <- which(substr(pertpop, start = 1, stop = 1) == "P")
-  # pertpopP becomes integer(0) in case of perturbation by plasmid-free bacteria
-  if(length(pertpopP) > 0) {
-    pertpopminus <- paste0("R", pertpopP)
-    abunpert[pertpopminus] <- abunpert[pertpopminus] - pertmagn
+  
+  if(model == "gLVConj") {
+    # Plasmid-bearing bacteria of the most-abundant (i.e., species 1) or
+    # least-abundant (i.e., species nspecies) species replace plasmid-free
+    # bacteria of those species.
+    if(PInMostAbun == TRUE) {
+      pertpopminus <- "R1" 
+    } else {
+      pertpopminus <- paste0("R", nspecies)
+    }
+    abunpert[pertpopminus] <-  abunpert[pertpopminus] - pertmagn
+    
+    if(any(abunpert < 0)) {
+      warning(paste("Initial abundances of some populations would become negative",
+                    "because\nthe pertubation is larger than the number of",
+                    "bacteria initially present.\nThese abundances have been set",
+                    "to zero instead."))
+      abunpert[which(abunpert < 0)] <- 0
+    }
   }
   
   if(verbose == TRUE) {
