@@ -140,6 +140,7 @@ conjrateset <- list(rep(1e-12, maxnspecies))
 # to and from the initially plasmid-bearing population (here a newly added
 # species) is reduced a 1000-fold
 taxmattypeset <- c("SameSpecies", "PInOtherClass")
+PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -179,6 +180,7 @@ conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # to and from the initially plasmid-bearing population (here a newly added
 # species) is reduced a 1000-fold
 taxmattypeset <- c("SameSpecies", "PInOtherClass")
+PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 niter <- 10
@@ -214,6 +216,7 @@ conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # to and from the initially plasmid-bearing population (here a newly added
 # species) is reduced a 1000-fold
 taxmattypeset <- c("SameSpecies", "PInOtherClass")
+PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 
@@ -240,6 +243,7 @@ for(conjrate in seqconjrate) {
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
 # from and to the initially plasmid-bearing population is reduced a 1000-fold
 taxmattypeset <- c("SameSpecies", "PInOtherClass")
+PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
 niter <- 1
@@ -774,14 +778,14 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
       pertpopminus <- paste0("R", nspecies)
     }
     abunpert[pertpopminus] <-  abunpert[pertpopminus] - pertmagn
-  }
-  
-  if(any(abunpert < 0)) {
-    warning(paste("Initial abundances of some populations would become negative",
-                  "because\nthe pertubation is larger than the number of",
-                  "bacteria initially present.\nThese abundances have been set",
-                  "to zero instead."))
-    abunpert[which(abunpert < 0)] <- 0
+    
+    if(any(abunpert < 0)) {
+      warning(paste("Initial abundances of some populations would become negative",
+                    "because\nthe pertubation is larger than the number of",
+                    "bacteria initially present.\nThese abundances have been set",
+                    "to zero instead."))
+      abunpert[which(abunpert < 0)] <- 0
+    }
   }
   
   if(verbose == TRUE) {
