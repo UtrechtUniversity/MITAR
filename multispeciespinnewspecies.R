@@ -1609,13 +1609,16 @@ if(bifurparms == TRUE) {
     warning("Value of conjrate code is not equal to length of seqconjrate.
             Converting conjratecode to conjrate will be incorrect")
   }
+  if(!all(near(conjrate, conjrate[1]))) {
+    warning(paste("Species have different conjugation rates, so conversion",
+                  "from conjugationratecode\nto conjugation rate is not meaningful.",
+                  "\nSee the settings section in the script and in the file",
+                  "'settings.csv' for details"))
+  }
   for(conjratecode_index in 1:conjratecode) {
     # using dplyr::near() to allow for small (<1e-6) numeric differences
     temp_row_index <- which(near(plotdata[, "conjratecode"], conjratecode_index))
     plotdata[temp_row_index, "conjrate"] <- seqconjrate[conjratecode_index]
-    print(paste("conjratecode_index:", conjratecode_index,
-                "conjrate:", signif(seqconjrate[conjratecode_index]),
-                "log10(conjrate):", log10(seqconjrate[conjratecode_index])))
   }
   
   
