@@ -805,8 +805,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
   }
   final <- tail(out, 1)
-  timefinal <- final[, 1]
-  abunfinaltemp <- final[, -1]
+  timefinal <- final[, "time"]
+  abunfinaltemp <- final[, -which(colnames(final) == "time")]
   names(abunfinaltemp) <- names(abundance)
   
   # Assume infinite growth occurred if a root was triggered because abundances
