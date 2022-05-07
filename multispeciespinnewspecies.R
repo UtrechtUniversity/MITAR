@@ -2229,6 +2229,28 @@ if(simulateinvasion == TRUE) {
   
   ## Plots comparing species abundances after perturbation with plasmid-bearing
   # bacteria
+  limits <- range(c(plotdata[, "relabunRsp1mean"],
+                    plotdata[, "relabunconjsp1mean"]), na.rm = TRUE)
+  CreatePlot(fillvar = "relabunRsp1mean",
+             filltitle = paste("Mean rel. abundance sp1 after\nperturbation",
+                               "with R of newly\nintroduced species 1"),
+             filltype = "continuous", limits = limits)
+  CreatePlot(fillvar = "relabunconjsp1mean",
+             filltitle = paste("Mean rel. abundance sp1 after\nperturbation",
+                               "with P of newly\nintroduced species 1"),
+             filltype = "continuous", limits = limits)
+  
+  CreatePlot(fillvar = "relabunRsp1mean",
+             filltitle = paste("Mean rel. abundance sp1 after\nperturbation",
+                               "with R of newly\nintroduced species 1"),
+             filltype = "continuous", limits = limitsfraction,
+             filename = "relabunRsp1meancontinuouschangedlim")
+  CreatePlot(fillvar = "relabunconjsp1mean",
+             filltitle = paste("Mean rel. abundance sp1 after\nperturbation",
+                               "with P of newly\nintroduced species 1"),
+             filltype = "continuous", limits = limitsfraction,
+             filename = "relabunconjsp1meancontinuouschangedlim")
+  
   limits <- range(c(plotdata[, "relabunRsp1median"],
                     plotdata[, "relabunconjsp1median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp1median",
