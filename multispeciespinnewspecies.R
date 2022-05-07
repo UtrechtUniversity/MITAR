@@ -125,7 +125,7 @@ smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
 totalabun <- 1e11
-nspeciesset <- 1 + c(2, 8, 16)
+nspeciesset <- 1 + c(2, 4, 8, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 # The growth rate of new species is the mean growth rate of the plasmid-free 
@@ -139,7 +139,7 @@ conjrateset <- list(rep(1e-12, maxnspecies))
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
 # to and from the initially plasmid-bearing population (here a newly added
 # species) is reduced a 1000-fold
-taxmattypeset <- c("SameSpecies", "PInOtherClass")
+taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
 PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
@@ -165,7 +165,7 @@ smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
 totalabun <- 1e11
-nspeciesset <- 1 + c(2, 8, 16)
+nspeciesset <- 1 + c(2, 4, 8, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 # The growth rate of new species is the mean growth rate of the plasmid-free 
@@ -179,7 +179,7 @@ conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
 # to and from the initially plasmid-bearing population (here a newly added
 # species) is reduced a 1000-fold
-taxmattypeset <- c("SameSpecies", "PInOtherClass")
+taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
 PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
@@ -215,7 +215,7 @@ conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
 # to and from the initially plasmid-bearing population (here a newly added
 # species) is reduced a 1000-fold
-taxmattypeset <- c("SameSpecies", "PInOtherClass")
+taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
 PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
@@ -228,7 +228,7 @@ smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
 totalabun <- 1e11
-nspeciesset <- 1 + c(2, 8, 16)
+nspeciesset <- 1 + c(2, 4, 8, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 newgrowthratecode <- 1
@@ -242,7 +242,7 @@ for(conjrate in seqconjrate) {
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
 # from and to the initially plasmid-bearing population is reduced a 1000-fold
-taxmattypeset <- c("SameSpecies", "PInOtherClass")
+taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
 PInMostAbun <- TRUE
 mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
            "darkorange", "green1", "yellow", "hotpink")
@@ -984,7 +984,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     caption <- paste0(caption, ", ", DateTimeStamp)
   }
   
-  # Facets that have only a single unique value are not shown if dropfacets = TRUE
+  # Facets with only a single unique value are not shown if dropfacets = TRUE
   if(dropfacets == TRUE) {
     if(!is.null(facetx) && facetx != ".") {
       elements_facetx <- unlist(strsplit(facetx, split = " + ", fixed = TRUE))
@@ -1581,11 +1581,16 @@ labnspecies <- paste(nspeciesset, "species")
 names(labnspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
-labcost <- paste0("Cost: ", costset, "/h")
+if(bifurparms == FALSE) {
+  labcost <- c("Mean cost", "High cost")
+} else {
+  labcost <- paste0("Cost: ", costset, "/h")
+}
 names(labcost) <- costset
 labconjrate <- paste("Conjset", 1:length(conjrateset))
 names(labconjrate) <- 1:length(conjrateset)
-labtaxmat <- taxmattypeset
+labtaxmat <- c("All conjugation\nrates equal",
+               "InitP low inter-\nspecies rates")
 names(labtaxmat) <- 1:length(taxmattypeset)
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
                        abunmodelcode = labmodel,
@@ -1648,7 +1653,7 @@ if(bifurparms == TRUE) {
   
   
 # ## Show border of ecological stability with heatmap in CreatePlot()
-# CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableecol",
+# CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
 #            filltitle = "fracstableecol", filltype = "continuous",
 #            limy = range(log10(seqconjrate)), ratio = NULL,
 #            labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
@@ -1659,7 +1664,7 @@ if(bifurparms == TRUE) {
 # ## Show border of ecological stability with a contour plot in CreatePlot()
 # # Values in a facet are either all stable, or all unstable (see heatmap above),
 # # making it impossible to plot contours delimiting stable and unstable regions.
-# CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableecol",
+# CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
 #            contour_var = "fracstableecol", contour_col = "as.factor(nspecies)",
 #            contour_lty = "as.factor(intmean)",
 #            limy = range(log10(seqconjrate)), ratio = NULL,
@@ -1672,7 +1677,7 @@ if(bifurparms == TRUE) {
   ## Show border of epidemiological stability with a contour plot in CreatePlot()
   # I set save to FALSE and used ggsave() to ensure the added guides arguments are
   # included in the saved plots.
-  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
@@ -1685,7 +1690,7 @@ if(bifurparms == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmatintmeanynspecies.png"))
   }
   
-  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(intmean)",
              limy = range(log10(seqconjrate)), ratio = NULL,
@@ -1700,7 +1705,7 @@ if(bifurparms == TRUE) {
   }
   # So intmean does not affect the border of stability in conjugation rate/cost-space
   
-  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
@@ -1721,7 +1726,7 @@ if(bifurparms == TRUE) {
   # possible if costs are slightly lower for a given conjugation rate than when
   # all populations belonging to the same species.
   
-  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(intmean)",
              limy = range(log10(seqconjrate)), ratio = NULL,
@@ -1735,7 +1740,7 @@ if(bifurparms == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmat.png"))
   }
   
-  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(taxmatcode)",
              limy = range(log10(seqconjrate)), ratio = NULL,
@@ -1749,7 +1754,9 @@ if(bifurparms == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabynspecies.png"))
   }
   
-  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
+  # Note: assuming sets are chosen such that border of invasion is shown in the
+  # plot
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(taxmatcode)",
              limy = range(log10(seqconjrate)), ratio = NULL,
@@ -1758,7 +1765,14 @@ if(bifurparms == TRUE) {
              facetx = ".", facety = ".",
              rotate_x_labels = FALSE, save = FALSE) +
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
-    guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
+    guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
+    geom_point(data = expand.grid(cost = c(0.05, 0.09), conjrate = -12),
+               inherit.aes = FALSE, mapping = aes(x = cost, y = conjrate),
+               color = "black", size = 2) +
+    annotate("text", label = c("Invasion", "No invasion"),
+             x = quantile(costset, c(0.1, 0.9)),
+             y = quantile(log10(seqconjrate), c(0.9, 0.1)), 
+             hjust = "inward", vjust = "inward", size = 4)
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistab.png"))
   }
@@ -2026,61 +2040,61 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsmeannspecies,
              title = title, subtitle = subplasmidbearing)
   
-  title <- "Number of species going extinct after perturbation"
+  title <- "Number of species extinct after perturbation"
   CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                                near(conjratecode, 1), near(taxmatcode, 1)),
              fillvar = "nspecies - npopRmean",
-             filltitle = "Mean number of\nspecies going extinct",
+             filltitle = "Mean number of\nspecies extinct",
              filltype = "continuous", limits = c(0, maxnspecies),
              title = title, subtitle = subplasmidfree,
              facetx = "abunmodelcode", facety = "nspecies",
              filename = "nspeciesRmeanextinctfewfacets")
   CreatePlot(fillvar = "nspecies - npopRmean",
-             filltitle = "Mean number of\nspecies going extinct",
+             filltitle = "Mean number of\nspecies extinct",
              filltype = "continuous", limits = c(0, maxnspecies),
              title = title, subtitle = subplasmidfree,
              filename = "nspeciesRmeanextinct")
   CreatePlot(fillvar = "nspecies - nspeciesconjmean",
-             filltitle = "Mean number of\nspecies going extinct",
+             filltitle = "Mean number of\nspecies extinct",
              filltype = "continuous", limits = c(0, maxnspecies),
              title = title, subtitle = subplasmidbearing,
              filename = "nspeciesconjmeanextinct")
   
-  title <- "Fraction of species going extinct after perturbation"
+  title <- "Fraction of species extinct after perturbation"
   CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                                near(conjratecode, 1), near(taxmatcode, 1)),
              fillvar = "1 - (npopRmean / nspecies)",
-             filltitle = "Mean fraction of\nspecies going extinct",
+             filltitle = "Mean fraction of\nspecies extinct",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidfree,
              facetx = "abunmodelcode", facety = "nspecies",
              filename = "fracspeciesextinctmeanfewfacets")
   CreatePlot(fillvar = "1 - (npopRmean / nspecies)",
-             filltitle = "Mean fraction of\nspecies going extinct",
+             filltitle = "Mean fraction of\nspecies extinct",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidfree,
              filename = "fracspeciesextinctmean")
   CreatePlot(fillvar = "1 - (nspeciesconjmean / nspecies)",
-             filltitle = "Mean fraction of\nspecies going extinct",
+             filltitle = "Mean fraction of\nspecies extinct",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing,
              filename = "fracspeciesextinctmeanconj")
   
   title <- "Fraction of species after perturbation"
   CreatePlot(fillvar = "fracspeciesRconjmean",
-             filltitle = "Mean fraction of surviving species\nthat have a plasmid-free population",
+             filltitle = "Mean fraction of surviving species\nwith a plasmid-free population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "npopRconjmean / nspecies",
-             filltitle = "Mean fraction of initial species\nthat have a plasmid-free population",
+             filltitle = "Mean fraction of initial species\nwith a plasmid-free population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "fracspeciesPconjmean",
-             filltitle = "Mean fraction of surviving species\nthat have a plasmid-bearing population",
+             filltitle = "Mean fraction of surviving species\nwith a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "npopPconjmean / nspecies",
-             filltitle = "Mean fraction of initial species\nthat have a plasmid-bearing population",
+             filltitle = "Mean fraction of initial species\nwith a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   
@@ -2237,6 +2251,7 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunconjsp1mediancontinuouschangedlim")
   
+
   limits <- range(c(plotdata[, "relabunRsp2median"],
                     plotdata[, "relabunconjsp2median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp2median",
