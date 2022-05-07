@@ -1778,7 +1778,7 @@ if(bifurparms == TRUE) {
   }
   
   # Need to set filltype to continuous to prevent error on missing filllabels
-  CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
              filltitle = "fracstableepi", contour_var = NULL, contour_col = NULL,
              contour_lty = NULL, filltype = "continuous", limx = range(costset),
              limy = range(log10(seqconjrate)), ratio = NULL,
