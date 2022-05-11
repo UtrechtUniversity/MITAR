@@ -682,10 +682,17 @@ eventfun <- function(t, state, p) {
 # Returns abunfinal, a list containing:
 #   - R with absolute abundances of plasmid-free populations for each species,
 #   - Rtotal with the sum of abundances of plasmid-free populations
+#   - npopR with the number of plasmid-free populations
 #   - P with absolute abundances of plasmid-bearing population for each species
 #     (or NULL if model == "gLV")
 #   - Ptotal with the sum of abundances of plasmid-bearing populations (or NULL
 #     if model == "gLV")
+#   - npopP with the number of plasmid-bearing populations
+#   - pertpopconjsurvived indicating the initially plasmid-bearing population
+#     survived. NOTE: current implementation does NOT handle perturbation by
+#     multiple populations
+#   - timepertpopconjextinct indicating the last recorded time the initially
+#     plasmid-bearing population was extant, i.e., abundance > finalsmallstate
 #   - timefinal indicating the last recorded time
 #   - tmaxshort indicating tmax was not reached but no infinite growth occured
 #   - eqreached indicating if equilibrium has been reached
@@ -767,11 +774,12 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   abunpert[pertpop] <- abunpert[pertpop] + pertmagn
   
   if(model == "gLVConj") {
-    # Plasmid-bearing bacteria of the newly introduced species replace
-    # plasmid-free bacteria of species that are already present. species 1 is
-    # the newly introduced species, so the most abundant specie that is already
-    # present is species 2 and the least abundant species that is already
-    # present is species nspecies.
+    # Plasmid-bearing bacteria of the newly introduced species (species 1)
+    # replace plasmid-free bacteria of the most abundant species that is already
+    # present (i.e., species 2) if PInMostAbun == TRUE, and replace plasmid-free
+    # bacteria of the least abundant species that is already present (i.e.,
+    # species nspecies) otherwise.
+
     if(PInMostAbun == TRUE) {
       pertpopminus <- "R2" 
     } else {
@@ -868,6 +876,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     abunfinal <- list(R = abunfinaltemp, Rtotal = sum(abunfinaltemp),
                       npopR = npopR,
                       P = NULL, Ptotal = NULL, npopP = NULL,
+                      pertpopconjsurvived = NULL,
+                      timepertpopconjextinct = NULL,
                       timefinal = timefinal, tmaxshort = tmaxshort,
                       eqreached = eqreached, infgrowth = infgrowth)
   } else {
@@ -878,6 +888,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
       names(abunfinaltemp) <- names(abundance)
       npopR <- NA
       npopP <- NA
+      pertpopconjsurvived <- NA
+      timepertpopconjextinct <- NA
     } else {
       derivatives <- unlist(
         gLVConj(t = 0, n = abunfinaltemp,
@@ -890,6 +902,14 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
       abunfinaltemp[which(derivatives < 0 & abunfinaltemp < finalsmallstate)] <- 0
       npopR <- length(which(abunfinaltemp[indexR] > smallstate))
       npopP <- length(which(abunfinaltemp[indexP] > smallstate))
+      
+      if(abunfinaltemp[pertpopconj] > finalsmallstate) {
+        pertpopconjsurvived <- 1
+        timepertpopconjextinct <- NA
+      } else {
+        pertpopconjsurvived <- 0
+        timepertpopconjextinct <- unname(out[max(which(out[, pertpopconj] >= finalsmallstate)), "time"])
+      }
     }
     
     abunfinal <- list(R = abunfinaltemp[indexR],
@@ -897,7 +917,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                       npopR = npopR, 
                       P = abunfinaltemp[indexP],
                       Ptotal = sum(abunfinaltemp[indexP]),
-                      npopP = npopP,
+                      npopP = npopP, pertpopconjsurvived = pertpopconjsurvived,
+                      timepertpopconjextinct = timepertpopconjextinct,
                       timefinal = timefinal, tmaxshort = tmaxshort,
                       eqreached = eqreached, infgrowth = infgrowth)
   }
@@ -1141,7 +1162,7 @@ nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset, taxmattypeset),
                              use.names = FALSE))
 ncolplotdata <- if(simulateinvasion == TRUE) {
-  17*4 + 4*4*maxnspecies + 38
+  18*4 + 4*4*maxnspecies + 39
 } else {
   3*4 + 30
 }
@@ -1150,7 +1171,7 @@ plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset, taxmattypeset),
                               use.names = FALSE))*niter*sum(nspeciesset)
-datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 58 + 4*maxnspecies)
+datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 60 + 4*maxnspecies)
 indexdatatotal <- 1
 
 # Run simulations
@@ -1185,7 +1206,7 @@ for(nspecies in nspeciesset) {
                      ": started at ", Sys.time()), quote = FALSE)
         nrowdata <- niter * nspecies * length(costset) * length(conjrateset) *
           length(taxmattypeset)
-        data <- matrix(data = NA, nrow = nrowdata, ncol = 58 + 4*maxnspecies)
+        data <- matrix(data = NA, nrow = nrowdata, ncol = 60 + 4*maxnspecies)
         indexdata <- 1
         relabunRsp <- rep(NA, maxnspecies)
         relabunRconjsp <- rep(NA, maxnspecies)
@@ -1246,6 +1267,8 @@ for(nspecies in nspeciesset) {
               abunfinal <- list(R = c(0, abundance), Rtotal = sum(abundance),
                                 npopR = nspecies - 1,
                                 P = NULL, Ptotal = NULL, npopP = NULL,
+                                pertpopconjsurvived = NULL,
+                                timepertpopconjextinct = NULL,
                                 timefinal = 1, tmaxshort = 0,
                                 eqreached = 1, infgrowth = 0)
             }
@@ -1254,6 +1277,8 @@ for(nspecies in nspeciesset) {
             abunfinal <- list(R = rep(NA, nspecies), Rtotal = NA,
                               npopR = NA,
                               P = NULL, Ptotal = NULL, npopP = NULL,
+                              pertpopconjsurvived = NULL,
+                              timepertpopconjextinct = NULL,
                               timefinal = NA, tmaxshort = NA,
                               eqreached = NA, infgrowth = NA)
           }
@@ -1328,7 +1353,8 @@ for(nspecies in nspeciesset) {
                   abunfinalconj <- list(R = c(0, abundance), Rtotal = sum(abundance),
                                         npopR = nspecies - 1,
                                         P = rep(0, nspecies), Ptotal = 0,
-                                        npopP = 0,
+                                        npopP = 0, pertpopconjsurvived = 0,
+                                        timepertpopconjextinct = NA,
                                         timefinal = 1, tmaxshort = 0,
                                         eqreached = 1, infgrowth = 0)
                 }
@@ -1338,7 +1364,8 @@ for(nspecies in nspeciesset) {
                 abunfinalconj <- list(R = rep(NA, nspecies), Rtotal = NA,
                                       npopR = NA,
                                       P = rep(NA, nspecies), Ptotal = NA,
-                                      npopP = NA,
+                                      npopP = NA, pertpopconjsurvived = NA,
+                                      timepertpopconjextinct = NA,
                                       timefinal = NA, tmaxshort = NA,
                                       eqreached = NA, infgrowth = NA)
               }
@@ -1388,7 +1415,8 @@ for(nspecies in nspeciesset) {
                 abunfinalconj$Ptotal / abuntotalconj,
                 nspeciesconj, abunfinalconj$npopR / nspeciesconj,
                 abunfinalconj$npopP / nspeciesconj,
-                fracPformedbypertpop,
+                fracPformedbypertpop, abunfinalconj$pertpopconjsurvived,
+                abunfinalconj$timepertpopconjextinct,
                 matrix(rep(relabunRsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunRconjsp, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE),
@@ -1426,7 +1454,8 @@ for(nspecies in nspeciesset) {
                             "npopR", "npopRconj", "npopPconj", "npopconj",
                             "relabunPconj", "nspeciesconj",
                             "fracspeciesRconj", "fracspeciesPconj",
-                            "fracPformedbypertpop",
+                            "fracPformedbypertpop", "pertpopconjsurvived",
+                            "timepertpopconjextinct",
                             paste0("relabunRsp", 1:maxnspecies),
                             paste0("relabunRconjsp", 1:maxnspecies),
                             paste0("relabunPconjsp", 1:maxnspecies),
@@ -1468,7 +1497,7 @@ for(nspecies in nspeciesset) {
             group_by(cost, conjratecode, taxmatcode) %>%
             summarise(
               across(c(infgrowth, infgrowthconj, eqreached, eqreachedconj,
-                       tmaxshort, tmaxshortconj),
+                       tmaxshort, tmaxshortconj, pertpopconjsurvived),
                      getfracnotzero, .names = "{.col}{.fn}"),
               timefinalmedian = median(timefinal),
               timefinalconjmedian = median(timefinalconj),
@@ -1477,7 +1506,8 @@ for(nspecies in nspeciesset) {
                        starts_with("relabunP"), abuntotalconj,
                        relabunRconj, starts_with("relabunconjsp"),
                        starts_with("npop"), nspeciesconj,
-                       fracspeciesRconj, fracspeciesPconj, fracPformedbypertpop),
+                       fracspeciesRconj, fracspeciesPconj, fracPformedbypertpop,
+                       timepertpopconjextinct),
                      getsummary4, .names = "{.col}{.fn}"),
               .groups = "drop"
             )
@@ -2153,6 +2183,28 @@ if(simulateinvasion == TRUE) {
                                "\nbelonging to the initially plasmid-bearing strain"),
              filltype = "continuous", limits = limitsfraction)
   
+  CreatePlot(fillvar = "pertpopconjsurvivedfrac",
+             filltitle = paste("Fraction of iterations where\ninitially",
+                               "plasmid-bearing\npopulation survived"),
+             filltype = "continuous", limits = limitsfraction)
+  
+  CreatePlot(fillvar = "timepertpopconjextinctmin",
+             filltitle = paste("Minimum time initially plasmid-\nbearing",
+                               "population went\nextinct"),
+             filltype = "continuous")
+  CreatePlot(fillvar = "timepertpopconjextinctmean",
+             filltitle = paste("Mean time initially plasmid-\nbearing",
+                               "population went\nextinct"),
+             filltype = "continuous")
+  CreatePlot(fillvar = "timepertpopconjextinctmedian",
+             filltitle = paste("Median time initially plasmid-\nbearing",
+                               "population went\nextinct"),
+             filltype = "continuous")
+  CreatePlot(fillvar = "timepertpopconjextinctmax",
+             filltitle = paste("Maximum time initially plasmid-\nbearing",
+                               "population went\nextinct"),
+             filltype = "continuous")
+  
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
   # considered. Although costs and conjugation rates do not influence the
@@ -2251,6 +2303,27 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunconjsp1meancontinuouschangedlim")
   
+  CreatePlot(fillvar = "relabunRsp1mean",
+             filltitle = paste("Mean rel. abundance sp1 after\nperturbation",
+                               "with R of newly\nintroduced species 1"),
+             filltype = "continuous", limits = NULL,
+             filename = "relabunRsp1meancontinuousnolim")
+  CreatePlot(fillvar = "relabunconjsp1mean",
+             filltitle = paste("Mean rel. abundance sp1 after\nperturbation",
+                               "with P of newly\nintroduced species 1"),
+             filltype = "continuous", limits = NULL,
+             filename = "relabunconjsp1meancontinuousnolim")
+  
+  CreatePlot(fillvar = "relabunPconjsp1mean",
+             filltitle = paste("Mean rel. abundance P1 after\nperturbation",
+                               "with P of newly\nintroduced species 1"),
+             filltype = "continuous", limits = limitsfraction)
+  CreatePlot(fillvar = "relabunPconjsp1mean",
+             filltitle = paste("Mean rel. abundance P1 after\nperturbation",
+                               "with P of newly\nintroduced species 1"),
+             filltype = "continuous", limits = NULL,
+             filename = "relabunPconjsp1meancontinuousnolim")
+
   limits <- range(c(plotdata[, "relabunRsp1median"],
                     plotdata[, "relabunconjsp1median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp1median",
