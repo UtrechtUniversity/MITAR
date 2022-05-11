@@ -2349,7 +2349,7 @@ for(abunmodel in abunmodelset) {
   for(nspecies in nspeciesset) {
     comparetemp <- data.frame(
       nspecies = as.factor(nspecies),
-      species = as.factor(1:nspecies),
+      species = 1:nspecies,
       abun = switch(abunmodel,
                     "brokenstick" = brokenstick(nspecies = nspecies,
                                                 totalabun = totalabun,
@@ -2376,9 +2376,9 @@ plotcompareabun <- ggplot(data = compareabun,
                           aes(x = species, y = abun,
                               color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
-  scale_x_discrete(limits = factor(1:maxnspecies)) +
+  scale_x_continuous(limits = c(1, maxnspecies)) +
   scale_y_continuous(limits = c(0, NA)) +
-  facet_grid(rows = facet_rows, cols = vars(nspecies), labeller = "label_both") +
+  facet_grid(rows = facet_rows, cols = vars(nspecies), labeller = mylabeller) +
   theme(panel.grid = element_line(size = 1),
         legend.position = "bottom", legend.just = "left",
         legend.margin = margin(-5, 0, -5, 0),
@@ -2398,9 +2398,9 @@ plotcompareabunlog <- ggplot(data = compareabun,
                              aes(x = species, y = abun,
                                  color = nspecies, lty = model)) +
   theme_bw(base_size = 14) +
-  scale_x_discrete(limits = factor(1:maxnspecies)) +
+  scale_x_continuous(limits = c(1, maxnspecies)) +
   scale_y_continuous(trans = "log10") +
-  facet_grid(rows = facet_rows, cols = vars(nspecies), labeller = "label_both") +
+  facet_grid(rows = facet_rows, cols = vars(nspecies), labeller = mylabeller) +
   theme(panel.grid = element_line(size = 1),
         legend.position = "bottom", legend.just = "left",
         legend.margin = margin(-5, 0, -5, 0),
