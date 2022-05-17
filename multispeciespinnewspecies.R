@@ -2195,19 +2195,19 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "timepertpopconjextinctmin",
              filltitle = paste("Minimum time initially plasmid-\nbearing",
                                "population went\nextinct"),
-             filltype = "continuous")
+             filltype = "continuous", rotate_legend = TRUE)
   CreatePlot(fillvar = "timepertpopconjextinctmean",
              filltitle = paste("Mean time initially plasmid-\nbearing",
                                "population went\nextinct"),
-             filltype = "continuous")
+             filltype = "continuous", rotate_legend = TRUE)
   CreatePlot(fillvar = "timepertpopconjextinctmedian",
              filltitle = paste("Median time initially plasmid-\nbearing",
                                "population went\nextinct"),
-             filltype = "continuous")
+             filltype = "continuous", rotate_legend = TRUE)
   CreatePlot(fillvar = "timepertpopconjextinctmax",
              filltitle = paste("Maximum time initially plasmid-\nbearing",
                                "population went\nextinct"),
-             filltype = "continuous")
+             filltype = "continuous", rotate_legend = TRUE)
   
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
