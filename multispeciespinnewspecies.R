@@ -1350,11 +1350,15 @@ for(nspecies in nspeciesset) {
                                                       silenteqnotreached = TRUE)
                 } else {
                   # No need for simulations if equilibrium is stable
+                  # NOTE: timepertpopconjextinct = 0 is only true if pertmagn is
+                  # equal to finalsmallstate. Similarly, timefinal = 1 is not
+                  # strictly true, as it will take some time to reach the new
+                  # equilibrium 
                   abunfinalconj <- list(R = c(0, abundance), Rtotal = sum(abundance),
                                         npopR = nspecies - 1,
                                         P = rep(0, nspecies), Ptotal = 0,
                                         npopP = 0, pertpopconjsurvived = 0,
-                                        timepertpopconjextinct = NA,
+                                        timepertpopconjextinct = 0,
                                         timefinal = 1, tmaxshort = 0,
                                         eqreached = 1, infgrowth = 0)
                 }
@@ -1492,7 +1496,7 @@ for(nspecies in nspeciesset) {
         
         if(simulateinvasion == TRUE) {
           # If invasion was simulated, get summary of generated data for all
-          # combinations of costs and conjugation rates
+          # combinations of costs, conjugation rates, and taxmatcodes
           summarydatasimulation <- as_tibble(data) %>%
             group_by(cost, conjratecode, taxmatcode) %>%
             summarise(
