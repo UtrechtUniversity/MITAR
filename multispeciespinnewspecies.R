@@ -1119,7 +1119,8 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     if(file.exists(filename)) {
       warning("File already exists, not saved again!")
     } else {
-      ggsave(filename)
+      ggsave(filename,
+             width = 1650, height = 2675, units = "px", dpi = 300)
     }
   }
   return(p)
@@ -1721,7 +1722,8 @@ if(bifurparms == TRUE) {
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
-    ggsave(paste0(DateTimeStamp, "epistabxtaxmatintmeanynspecies.png"))
+    ggsave(paste0(DateTimeStamp, "epistabxtaxmatintmeanynspecies.png"),
+           width = 1650, height = 2675, units = "px", dpi = 300)
   }
   
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
@@ -1735,7 +1737,8 @@ if(bifurparms == TRUE) {
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
-    ggsave(paste0(DateTimeStamp, "epistabxtaxmatynspecies.png"))
+    ggsave(paste0(DateTimeStamp, "epistabxtaxmatynspecies.png"),
+           width = 1650, height = 2675, units = "px", dpi = 300)
   }
   # So intmean does not affect the border of stability in conjugation rate/cost-space
   
@@ -1749,7 +1752,8 @@ if(bifurparms == TRUE) {
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
-    ggsave(paste0(DateTimeStamp, "epistabxtaxmatyintmean.png"))
+    ggsave(paste0(DateTimeStamp, "epistabxtaxmatyintmean.png"),
+           width = 1650, height = 2675, units = "px", dpi = 300)
   }
   
   # Invasion is possible for very slightly higher costs for a given conjugation
@@ -1771,7 +1775,8 @@ if(bifurparms == TRUE) {
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
-    ggsave(paste0(DateTimeStamp, "epistabxtaxmat.png"))
+    ggsave(paste0(DateTimeStamp, "epistabxtaxmat.png"),
+           width = 1650, height = 2675, units = "px", dpi = 300)
   }
   
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
@@ -1785,7 +1790,8 @@ if(bifurparms == TRUE) {
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
-    ggsave(paste0(DateTimeStamp, "epistabynspecies.png"))
+    ggsave(paste0(DateTimeStamp, "epistabynspecies.png"),
+           width = 1650, height = 2675, units = "px", dpi = 300)
   }
   
   # Note: assuming sets are chosen such that border of invasion is shown in the
@@ -1808,7 +1814,8 @@ if(bifurparms == TRUE) {
              y = quantile(log10(seqconjrate), c(0.9, 0.1)), 
              hjust = "inward", vjust = "inward", size = 4)
   if(saveplots == TRUE) {
-    ggsave(paste0(DateTimeStamp, "epistab.png"))
+    ggsave(paste0(DateTimeStamp, "epistab.png"),
+           width = 1650, height = 2675, units = "px", dpi = 300)
   }
   
   # Need to set filltype to continuous to prevent error on missing filllabels
@@ -1934,7 +1941,8 @@ ggplot(data = datatotalfilteredspecies,
              cols = vars(taxmatcode, abunmodelcode, cost),
              labeller = mylabeller)
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "eigenvaluesdistr.png"))
+  ggsave(paste0(DateTimeStamp, "eigenvaluesdistr.png"),
+         width = 1650, height = 2675, units = "px", dpi = 300)
 }
 
 ggplot(data = datatotalfilteredspecies,
@@ -1951,7 +1959,8 @@ ggplot(data = datatotalfilteredspecies,
              cols = vars(taxmatcode, abunmodelcode, cost),
              labeller = mylabeller)
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "eigenvaluesdistrconj.png"))
+  ggsave(paste0(DateTimeStamp, "eigenvaluesdistrconj.png"),
+         width = 1650, height = 2675, units = "px", dpi = 300)
 }
 
 if(simulateinvasion == TRUE) {
@@ -2007,7 +2016,8 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthratevsintmean.png"))
+  ggsave(paste0(DateTimeStamp, "growthratevsintmean.png"),
+         width = 1650, height = 2675, units = "px", dpi = 300)
 }
 
 ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
@@ -2018,7 +2028,8 @@ ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthratevsselfintmean.png"))
+  ggsave(paste0(DateTimeStamp, "growthratevsselfintmean.png"),
+         width = 1650, height = 2675, units = "px", dpi = 300)
 }
 
 # Calculate density if only intraspecies interactions are present
