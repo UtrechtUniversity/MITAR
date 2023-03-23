@@ -141,8 +141,9 @@ conjrateset <- list(rep(1e-12, maxnspecies))
 # species) is reduced a 1000-fold
 taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
 PInMostAbun <- TRUE
-mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
-           "darkorange", "green1", "yellow", "hotpink")
+# To plot 16 species need 16 colours, currently only 11 so repeat them.
+mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
+               "darkorange", "green1", "yellow", "hotpink"), 2)
 
 ## Parameters for detailed local stability analysis, not simulating invasion
 niter <- 100
@@ -181,8 +182,8 @@ conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # species) is reduced a 1000-fold
 taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
 PInMostAbun <- TRUE
-mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
-           "darkorange", "green1", "yellow", "hotpink")
+mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
+               "darkorange", "green1", "yellow", "hotpink"), 2)
 niter <- 10
 niterintmat <- 1
 simulateinvasion <- TRUE
@@ -217,8 +218,8 @@ conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
 # species) is reduced a 1000-fold
 taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
 PInMostAbun <- TRUE
-mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
-           "darkorange", "green1", "yellow", "hotpink")
+mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
+               "darkorange", "green1", "yellow", "hotpink"), 2)
 
 ## Parameter set to create bifurcation-like plots showing the border of
 # epidemiological stability in the conjugation rate/cost space
@@ -244,8 +245,8 @@ for(conjrate in seqconjrate) {
 # from and to the initially plasmid-bearing population is reduced a 1000-fold
 taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
 PInMostAbun <- TRUE
-mycol <- c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
-           "darkorange", "green1", "yellow", "hotpink")
+mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
+               "darkorange", "green1", "yellow", "hotpink"), 2)
 niter <- 1
 niterintmat <- 1
 simulateinvasion <- FALSE
@@ -930,15 +931,17 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
       eqinfoepi["eigvalRe"] < 0)) {
     subtitle <- paste0(abunmodel, ", intmean=", intmean, ",
                        selfintmean=", selfintmean, ", cost=", cost, ",
-                       conjratecode=", conjratecode, ",\niter=", iter)
+                       conjratecode=", conjratecode,
+                       ", taxmatcode = ", taxmatcode, ", iter = ", iter)
     if(saveplots == TRUE) {
       filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), ".png")
-      png(filename = filename, height = 785)
+      png(filename = filename, width = 480, height = 785)
     }
     matplot.deSolve(out, lty = lty, col = col, ylab = "Abundance",
-                    log = "y", sub = subtitle, lwd = 2, legend = list(x = "bottomright"))
+                    log = "y", lwd = 2, legend = list(x = "bottomright"))
     grid()
     abline(h = abuninit)
+    mtext(side = 1, line = -1, at = 0, adj = 0, cex = 0.9, subtitle)
     if(saveplots == TRUE) {
       dev.off()
     }
@@ -1106,7 +1109,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     p <- p + geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
   }
   if(linezero == TRUE) {
-    p <- p + geom_vline(xintercept = 0, col = "white", size = 1.1)
+    p <- p + geom_vline(xintercept = 0, col = "grey", size = 1.1)
   }
   if(save == TRUE) {
     if(is.null(filename)) {
