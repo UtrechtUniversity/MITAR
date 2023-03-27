@@ -228,9 +228,9 @@ totalabun <- 1e11
 nspeciesset <- c(2, 4, 8, 16)
 maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
-costset <- seq(from = 0, to = 0.2, by = 0.002)
+costset <- seq(from = 0, to = 0.2, by = 0.001)
 costtype <- "absolute"
-seqconjrate <- 10^seq(from = -13.5, to = -11.5, by = 0.02)
+seqconjrate <- 10^seq(from = -13.5, to = -11.5, by = 0.01)
 conjrateset <- NULL
 for(conjrate in seqconjrate) {
   conjrateset <- c(conjrateset, list(rep(conjrate, maxnspecies)))
@@ -297,7 +297,7 @@ gLV <- function(t, n, parms) {
 # plasmid-bearing species j to plasmid-free species i.
 gLVConj <- function(t, n, parms) {
   with(parms, {
-    S0 <- n[1:nspecies]
+    S0 <- n[seq_len(nspecies)]
     S1 <- n[(nspecies+1):(2*nspecies)]
     
     dS0 <- S0*(growthrate        + intmat %*% (S0 + S1)) - (conjmat %*% S1) * S0
@@ -319,7 +319,7 @@ brokenstick <- function(nspecies, totalabun, takelimit = TRUE, niterabun = 1000)
             length(totalabun) == 1, totalabun > 0)
   if(takelimit == TRUE) {
     abunmat <- matrix(data = NA, nrow = niterabun, ncol = nspecies)
-    for(iterindex in 1:niterabun) {
+    for(iterindex in seq_len(niterabun)) {
       # sorting to get positive differences in the next step
       breakpoints <- sort(runif(nspecies - 1, min = 0, max = totalabun))
       # sorting because otherwise taking the mean does not make sense
@@ -347,11 +347,11 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
             length(totalabun) == 1, totalabun > 0)
   abun <- rep(NA, nspecies)
   if(takelimit == TRUE) {
-    abun <- totalabun*0.75*0.25^((1:nspecies) - 1)
+    abun <- totalabun*0.75*0.25^(seq_len(nspecies) - 1)
   } else {
     remainingabun <- totalabun
-    for(speciesindex in 1:nspecies) {
-      abun.temp <- runif(1, min = 0.5, max = 1)*remainingabun
+    for(speciesindex in seq_len(nspecies)) {
+      abun.temp <- runif(1, min = 0.5, max = 1) * remainingabun
       abun[speciesindex] <- abun.temp
       remainingabun <- remainingabun - abun.temp
     }
@@ -427,14 +427,14 @@ getintmat <- function(nspecies, sparsity = 0,
   if(sparsity > 0) {
     nsparseint <- round(sparsity*(nspecies^2 - nspecies))
     # Create indexmatrix with column- and row indices
-    indexmat <- matrix(c(rep(1:nspecies, nspecies),
-                         rep(1:nspecies, each = nspecies)),
+    indexmat <- matrix(c(rep(seq_len(nspecies), nspecies),
+                         rep(seq_len(nspecies), each = nspecies)),
                        ncol = 2, dimnames = list(NULL, c("row", "column")))
     # Only keep rows of indexmat specifying off-diagonal entries of intmat, to
     # ensure that self-interaction coefficients never become sparse.
-    indexmat <- indexmat[indexmat[, "row"] != indexmat[, "column"], ]
+    indexmat <- indexmat[indexmat[, "row"] != indexmat[, "column"], , drop = FALSE]
     # Sample rows of indexmat to get index of matrix entries that become sparse
-    sparse_index <- sample(1:(dim(indexmat)[1]), nsparseint)
+    sparse_index <- sample(seq_len(dim(indexmat)[1]), nsparseint)
     # Only keep rows of indexmat that were drawn from the sample. Use drop =
     # FALSE to prevent sparse_index becoming a vector of length two such that
     # two elements are set to zero if nsparseint == 1. 
@@ -511,9 +511,9 @@ checkequilibrium <- function(abundance, intmat, growthrate,
 #                        "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies",
 #                        "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies"),
 #                      nrow = 4, ncol = 4, byrow = TRUE)
-#     Only the submatrix taxmat[1:nspecies, 1:nspecies] is used if nspecies <
-#     max(nspeciesset). The use of multiple values for taxmat is NOT supported
-#     (yet).
+#     Only the submatrix taxmat[seq_len(nspecies), seq_len(nspecies)] is used if
+#     nspecies < max(nspeciesset). The use of multiple values for taxmat is
+#     NOT supported (yet).
 # Return:
 #   - conjmat: matrix where the element in column n and row r gives the
 #     conjugation rate from species n to species r.
@@ -524,8 +524,8 @@ checkequilibrium <- function(abundance, intmat, growthrate,
 getconjmat <- function(nspecies, conjrate, taxmat) {
   stopifnot(all(diag(taxmat) == "SameSpecies"),
             isSymmetric.matrix(unname(taxmat)))
-  conjratensp <- conjrate[1:nspecies]
-  taxmatnsp <- taxmat[1:nspecies, 1:nspecies]
+  conjratensp <- conjrate[seq_len(nspecies)]
+  taxmatnsp <- taxmat[seq_len(nspecies), seq_len(nspecies)]
   
   # To obtain interspecies conjugation rates for the different levels of
   # taxonomic relatedness between donor and recipients, the intraspecies
@@ -569,29 +569,29 @@ geteqinfo <- function(model, abundance, intmat, growthrate,
                                              intmat = intmat,
                                              cost = cost,
                                              conjmat = conjmat))
-           jaclow <- jac[(nspecies + 1):(2*nspecies), 1:nspecies]
+           jaclow <- jac[(nspecies + 1):(2*nspecies), seq_len(nspecies)]
            if(!isTRUE(all.equal(range(jaclow), c(0, 0), check.attributes = FALSE))) {
              warning(paste("Jacobian matrix does not contain a block of zeros",
                      "in the lower-left corner,\nso currently used determination",
                      "of ecological stability is invalid"))
              print(jaclow)
            }
-           eigval <- eigen(x = jac[1:nspecies, 1:nspecies],
+           eigval <- eigen(x = jac[seq_len(nspecies), seq_len(nspecies)],
                            symmetric = FALSE, only.values = TRUE)$values
          },
          "epi" = {
            jac <- jacobian.full(y = abundance, func = gLVConj,
                                 parms = list(growthrate = growthrate, intmat = intmat,
                                              cost = cost, conjmat = conjmat))
-           jaclow <- jac[(nspecies + 1):(2*nspecies), 1:nspecies]
+           indexP <- (nspecies + 1):(2*nspecies)
+           jaclow <- jac[indexP, seq_len(nspecies)]
            if(!isTRUE(all.equal(range(jaclow), c(0, 0), check.attributes = FALSE))) {
              warning(paste("Jacobian matrix does not contain a block of zeros",
                            "in the lower-left corner,\nso currently used",
                            "determination of epidemiological stability is invalid"))
              print(jaclow)
            }
-           eigval <- eigen(x = jac[(nspecies + 1):(2*nspecies),
-                                   (nspecies + 1):(2*nspecies)],
+           eigval <- eigen(x = jac[indexP, indexP],
                            symmetric = FALSE, only.values = TRUE)$values
          },
          {
@@ -715,22 +715,22 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   # in the plasmid-free model.
   if(model == "gLV") {
     nspecies <- length(abundance)
-    indexR <- 1:nspecies
-    names(abundance) <- paste0(rep("R", nspecies), 1:nspecies)
+    indexR <- seq_len(nspecies)
+    names(abundance) <- paste0(rep("R", nspecies), seq_len(nspecies))
     lty <- 1
-    col <- mycol[1:nspecies]
+    col <- mycol[seq_len(nspecies)]
     derivatives <- unlist(gLV(t = 0, n = abundance,
                               parms = list(growthrate = growthrate, intmat = intmat)))
   }
   
   if(model == "gLVConj") {
     nspecies <- length(abundance)/2
-    indexR <- 1:nspecies
+    indexR <- seq_len(nspecies)
     indexP <- (nspecies + 1):(2*nspecies)
-    names(abundance) <- c(paste0(rep("R", nspecies), 1:nspecies),
-                          paste0(rep("P", nspecies), 1:nspecies))
+    names(abundance) <- c(paste0(rep("R", nspecies), seq_len(nspecies)),
+                          paste0(rep("P", nspecies), seq_len(nspecies)))
     lty <- rep(c(1, 2), each = nspecies)
-    col <- rep(mycol[1:nspecies], 2)
+    col <- rep(mycol[seq_len(nspecies)], 2)
     if(!all(near(abundance[indexP], 0))) {
       warning("Initial state is NOT plasmid-free.")
     }
@@ -1215,7 +1215,7 @@ for(nspecies in nspeciesset) {
         relabunRconjsp <- rep(NA, maxnspecies)
         relabunPconjsp <- rep(NA, maxnspecies)
 
-        for(iter in 1:niter) {
+        for(iter in seq_len(niter)) {
           stableeq <- FALSE
           iterintmat <- 0
           conjratecode <- NA
@@ -1278,7 +1278,7 @@ for(nspecies in nspeciesset) {
           
           # Model without conjugation, so Rtotal is total abundance as P does
           # not exist 
-          relabunRsp[1:nspecies] <- abunfinal$R / abunfinal$Rtotal
+          relabunRsp[seq_len(nspecies)] <- abunfinal$R / abunfinal$Rtotal
 
           for(cost in costset) {
             conjratecode <- 0
@@ -1346,7 +1346,7 @@ for(nspecies in nspeciesset) {
                                                       cost = cost, conjmat = conjmat,
                                                       model = "gLVConj", pertpop = pertpopconj,
                                                       pertmagn = 1, tmax = 1e4, 
-                                                      showplot = TRUE, verbose = FALSE,
+                                                      showplot = FALSE, verbose = FALSE,
                                                       silentinfgrowth = TRUE,
                                                       silenteqnotreached = TRUE)
                 } else {
@@ -1373,8 +1373,8 @@ for(nspecies in nspeciesset) {
               
               # Total (cells / mL) and relative (fractions of total) abundances
               abuntotalconj <- abunfinalconj$Rtotal + abunfinalconj$Ptotal
-              relabunRconjsp[1:nspecies] <- abunfinalconj$R / abuntotalconj
-              relabunPconjsp[1:nspecies] <- abunfinalconj$P / abuntotalconj
+              relabunRconjsp[seq_len(nspecies)] <- abunfinalconj$R / abuntotalconj
+              relabunPconjsp[seq_len(nspecies)] <- abunfinalconj$P / abuntotalconj
 
               # Using abunfinalconj$R + abunfinalconj$P > smallstate if the
               # abundances are NA leads to 0 instead of NA, so instead use
@@ -1398,7 +1398,7 @@ for(nspecies in nspeciesset) {
               
               data[indexdata:(indexdatanew - 1), ] <- cbind(
                 niter, nspecies, abunmodelcode, intmean, selfintmean,
-                cost, conjratecode, taxmatcode, iter, 1:nspecies, abundance,
+                cost, conjratecode, taxmatcode, iter, seq_len(nspecies), abundance,
                 diag(intmat), c(growthrate), iterintmat,
                 matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
                 matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
@@ -1457,10 +1457,10 @@ for(nspecies in nspeciesset) {
                             "fracspeciesRconj", "fracspeciesPconj",
                             "fracPformedbypertpop", "pertpopconjsurvived",
                             "timepertpopconjextinct",
-                            paste0("relabunRsp", 1:maxnspecies),
-                            paste0("relabunRconjsp", 1:maxnspecies),
-                            paste0("relabunPconjsp", 1:maxnspecies),
-                            paste0("relabunconjsp", 1:maxnspecies))
+                            paste0("relabunRsp", seq_len(maxnspecies)),
+                            paste0("relabunRconjsp", seq_len(maxnspecies)),
+                            paste0("relabunPconjsp", seq_len(maxnspecies)),
+                            paste0("relabunconjsp", seq_len(maxnspecies)))
 
         # Get summary data which do not depend on simulated invasion for all
         # combinations of costs and conjugation rates
@@ -1570,7 +1570,7 @@ if(nrow(datatotal) < 250000) {
 }
 
 # Saving settings
-names(conjrateset) <- paste0("conjrateset", 1:length(conjrateset))
+names(conjrateset) <- paste0("conjrateset", seq_along(conjrateset))
 settings <- c(list(niter = niter, niterintmat = niterintmat,
                    simulateinvasion = simulateinvasion,
                    smallstate = smallstate, smallchange = smallchange,
@@ -1581,7 +1581,7 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
                    costtype = costtype, PInMostAbun = PInMostAbun,
                    duration = duration))
-for(index in 1:length(settings)) {
+for(index in seq_along(settings)) {
   write.table(t(as.data.frame(settings[index])), 
               paste0(DateTimeStamp, "settings.csv"), append = TRUE,
               quote = FALSE, sep = ",", col.names = FALSE)
@@ -1606,8 +1606,8 @@ for(index in 1:length(settings)) {
 
 
 #### Labels and limits for plots ####
-labspecies <- paste("Species", 1:maxnspecies)
-names(labspecies) <- 1:maxnspecies
+labspecies <- paste("Species", seq_len(maxnspecies))
+names(labspecies) <- seq_len(maxnspecies)
 labnspecies <- paste(nspeciesset, "species")
 names(labnspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
@@ -1618,11 +1618,11 @@ if(bifurparms == FALSE) {
   labcost <- paste0("Cost: ", costset, "/h")
 }
 names(labcost) <- costset
-labconjrate <- paste("Conjset", 1:length(conjrateset))
-names(labconjrate) <- 1:length(conjrateset)
+labconjrate <- paste("Conjset", seq_along(conjrateset))
+names(labconjrate) <- seq_along(conjrateset)
 labtaxmat <- c("All conjugation\nrates equal",
                "InitP low inter-\nspecies rates")
-names(labtaxmat) <- 1:length(taxmattypeset)
+names(labtaxmat) <- seq_along(taxmattypeset)
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
                        abunmodelcode = labmodel,
                        cost = labcost, conjratecode = labconjrate,
@@ -1668,7 +1668,7 @@ if(bifurparms == TRUE) {
   plotdata$conjrate <- NA
   if(length(seqconjrate) != conjratecode) {
     warning("Value of conjrate code is not equal to length of seqconjrate.
-            Converting conjratecode to conjrate will be incorrect")
+            Conversion of conjratecode to conjrate will be incorrect")
   }
   if(!all(near(conjrate, conjrate[1]))) {
     warning(paste("Species have different conjugation rates, so conversion",
@@ -1676,7 +1676,7 @@ if(bifurparms == TRUE) {
             "\nSee the settings section in the script and in the file",
             "'settings.csv' for details"))
   }
-  for(conjratecode_index in 1:conjratecode) {
+  for(conjratecode_index in seq_len(conjratecode)) {
     # using dplyr::near() to allow for small (<1e-6) numeric differences
     temp_row_index <- which(near(plotdata[, "conjratecode"], conjratecode_index))
     plotdata[temp_row_index, "conjrate"] <- seqconjrate[conjratecode_index]
@@ -1684,6 +1684,8 @@ if(bifurparms == TRUE) {
 
 
 # ## Show border of ecological stability with heatmap in CreatePlot()
+# # Values in a facet are either all stable, or all unstable (see heatmap above),
+# # making it impossible to plot contours delimiting stable and unstable regions.
 # CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableecol",
 #            filltitle = "fracstableecol", filltype = "continuous",
 #            limy = range(log10(seqconjrate)), ratio = NULL,
@@ -1708,7 +1710,7 @@ if(bifurparms == TRUE) {
   ## Show border of epidemiological stability with a contour plot in CreatePlot()
   # I set save to FALSE and used ggsave() to ensure the added guides arguments are
   # included in the saved plots.
-  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
@@ -1722,7 +1724,7 @@ if(bifurparms == TRUE) {
            width = 1650, height = 2675, units = "px", dpi = 300)
   }
   
-  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(intmean)",
              limy = range(log10(seqconjrate)), ratio = NULL,
@@ -1738,7 +1740,7 @@ if(bifurparms == TRUE) {
   }
   # So intmean does not affect the border of stability in conjugation rate/cost-space
   
-  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
@@ -1760,7 +1762,7 @@ if(bifurparms == TRUE) {
   # possible if costs are slightly lower for a given conjugation rate than when
   # all populations belonging to the same species.
   
-  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(intmean)",
              limy = range(log10(seqconjrate)), ratio = NULL,
@@ -1775,7 +1777,7 @@ if(bifurparms == TRUE) {
            width = 1650, height = 2675, units = "px", dpi = 300)
   }
   
-  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(taxmatcode)",
              limy = range(log10(seqconjrate)), ratio = NULL,
@@ -1792,7 +1794,7 @@ if(bifurparms == TRUE) {
   
   # Note: assuming sets are chosen such that border of invasion is shown in the
   # plot
-  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(taxmatcode)",
              limy = range(log10(seqconjrate)), ratio = NULL,
@@ -2413,7 +2415,7 @@ for(abunmodel in abunmodelset) {
   for(nspecies in nspeciesset) {
     comparetemp <- data.frame(
       nspecies = as.factor(nspecies),
-      species = 1:nspecies,
+      species = seq_len(nspecies),
       abun = switch(abunmodel,
                     "brokenstick" = brokenstick(nspecies = nspecies,
                                                 totalabun = totalabun,
