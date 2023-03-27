@@ -437,7 +437,7 @@ getintmat <- function(nspecies, sparsity = 0,
     # ensure that self-interaction coefficients never become sparse.
     indexmat <- indexmat[indexmat[, "row"] != indexmat[, "column"], , drop = FALSE]
     # Sample rows of indexmat to get index of matrix entries that become sparse
-    sparse.index <- sample(seq_len(dim(indexmat)[1]), nsparseint)
+    sparse_index <- sample(seq_len(dim(indexmat)[1]), nsparseint)
     # Only keep rows of indexmat that were drawn from the sample. Use drop =
     # FALSE to prevent sparse_index becoming a vector of length two such that
     # two elements are set to zero if nsparseint == 1. 
