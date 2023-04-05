@@ -1215,7 +1215,6 @@ for(nspecies in nspeciesset) {
         relabunRsp <- rep(NA, maxnspecies)
         relabunRconjsp <- rep(NA, maxnspecies)
         relabunPconjsp <- rep(NA, maxnspecies)
-        
         for(iter in seq_len(niter)) {
           stableeq <- FALSE
           iterintmat <- 0
@@ -1290,7 +1289,7 @@ for(nspecies in nspeciesset) {
           # Model without conjugation, so Rtotal is total abundance as P does
           # not exist
           relabunRsp[seq_len(nspecies)] <- abunfinal$R / abunfinal$Rtotal
-          
+
           for(cost in costset) {
             conjratecode <- 0
             
@@ -1388,6 +1387,36 @@ for(nspecies in nspeciesset) {
                 # if-else construct.
                 if(abunfinalconj$eqreached == 0 | simulateinvasion == FALSE) {
                   nspeciesconj <- NA 
+              } else {
+                # No simulations over time performed, so set values to NA
+                abunfinalconj <- list(R = rep(NA, nspecies), Rtotal = NA,
+                                      npopR = NA,
+                                      P = rep(NA, nspecies), Ptotal = NA,
+                                      npopP = NA, pertpopconjsurvived = NA,
+                                      timepertpopconjextinct = NA,
+                                      timefinal = NA, tmaxshort = NA,
+                                      eqreached = NA, infgrowth = NA)
+              }
+              
+              # Total (cells / mL) and relative (fractions of total) abundances
+              abuntotalconj <- abunfinalconj$Rtotal + abunfinalconj$Ptotal
+              relabunRconjsp[seq_len(nspecies)] <- abunfinalconj$R / abuntotalconj
+              relabunPconjsp[seq_len(nspecies)] <- abunfinalconj$P / abuntotalconj
+              
+              # Using abunfinalconj$R + abunfinalconj$P > smallstate if the
+              # abundances are NA leads to 0 instead of NA, so instead use
+              # if-else construct.
+              if(abunfinalconj$eqreached == 0 | simulateinvasion == FALSE) {
+                nspeciesconj <- NA 
+                fracPformedbypertpop <- NA
+              } else {
+                nspeciesconj <- length(which(
+                  abunfinalconj$R + abunfinalconj$P > smallstate
+                ))
+                if(abunfinalconj$Ptotal > 0) {
+                  fracPformedbypertpop <- sum(abunfinalconj$P[pertpopconj]) /
+                    abunfinalconj$Ptotal
+                } else {
                   fracPformedbypertpop <- NA
                 } else {
                   nspeciesconj <- length(which(
@@ -1433,6 +1462,39 @@ for(nspecies in nspeciesset) {
                 )
                 indexdata <- indexdatanew
               }
+              
+              indexdatanew <- indexdata + nspecies
+              
+              data[indexdata:(indexdatanew - 1), ] <- cbind(
+                niter, nspecies, abunmodelcode, intmean, selfintmean,
+                cost, conjratecode, taxmatcode, iter, seq_len(nspecies), c(0, abundance),
+                diag(intmat), c(growthrate), newgrowthratecode, iterintmat,
+                matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(eqinfoecol, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(eqinfoepi, nspecies), nrow = nspecies, byrow = TRUE),
+                compstability,
+                abunfinal$infgrowth, abunfinalconj$infgrowth,
+                abunfinal$eqreached, abunfinalconj$eqreached,
+                abunfinal$tmaxshort, abunfinalconj$tmaxshort,
+                abunfinal$timefinal, abunfinalconj$timefinal,
+                abunfinal$Rtotal, abunfinalconj$Rtotal, abunfinalconj$Ptotal,
+                abuntotalconj, abunfinalconj$Rtotal/abuntotalconj,
+                abunfinal$npopR, abunfinalconj$npopR, abunfinalconj$npopP,
+                abunfinalconj$npopR + abunfinalconj$npopP,
+                abunfinalconj$Ptotal / abuntotalconj,
+                nspeciesconj, abunfinalconj$npopR / nspeciesconj,
+                abunfinalconj$npopP / nspeciesconj,
+                fracPformedbypertpop, abunfinalconj$pertpopconjsurvived,
+                abunfinalconj$timepertpopconjextinct,
+                matrix(rep(relabunRsp, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(relabunRconjsp, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE),
+                matrix(rep(relabunRconjsp + relabunPconjsp, nspecies),
+                       nrow = nspecies, byrow = TRUE)
+              )
+              indexdata <- indexdatanew
+            }
             }
           }
         }
