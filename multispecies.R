@@ -1714,14 +1714,14 @@ if(bifurparms == TRUE) {
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
+             labx = "Cost", laby = "Log10(Conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode + intmean", facety = "nspecies",
              rotate_x_labels = TRUE, save = FALSE) +
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmatintmeanynspecies.png"),
-           width = 1650, height = 2675, units = "px", dpi = 300)
+           width = 2150, height = 2150, units = "px", dpi = 300)
   }
   
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
@@ -1736,7 +1736,7 @@ if(bifurparms == TRUE) {
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmatynspecies.png"),
-           width = 1650, height = 2675, units = "px", dpi = 300)
+           width = 2150, height = 2150, units = "px", dpi = 300)
   }
   # So intmean does not affect the border of stability in conjugation rate/cost-space
   
@@ -1751,7 +1751,7 @@ if(bifurparms == TRUE) {
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmatyintmean.png"),
-           width = 1650, height = 2675, units = "px", dpi = 300)
+           width = 2150, height = 2150, units = "px", dpi = 300)
   }
   
   # Invasion is possible for very slightly higher costs for a given conjugation
@@ -1774,7 +1774,7 @@ if(bifurparms == TRUE) {
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabxtaxmat.png"),
-           width = 1650, height = 2675, units = "px", dpi = 300)
+           width = 2150, height = 2150, units = "px", dpi = 300)
   }
   
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
@@ -1789,7 +1789,7 @@ if(bifurparms == TRUE) {
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabynspecies.png"),
-           width = 1650, height = 2675, units = "px", dpi = 300)
+           width = 2150, height = 2150, units = "px", dpi = 300)
   }
   
   # Note: assuming sets are chosen such that border of invasion is shown in the
@@ -1813,7 +1813,7 @@ if(bifurparms == TRUE) {
              hjust = "inward", vjust = "inward", size = 4)
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistab.png"),
-           width = 1650, height = 2675, units = "px", dpi = 300)
+           width = 2150, height = 2150, units = "px", dpi = 300)
   }
   
   # Need to set filltype to continuous to prevent error on missing filllabels
