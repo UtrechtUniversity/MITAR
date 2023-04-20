@@ -369,13 +369,13 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
 # interactions can be set through 'sparsity', with sparsity = 0 leading to a
 # fully connected matrix, and sparsity = 1 leading to all off-diagonal entries
 # equal to 0. Off-diagonal entries are interspecies interaction coefficients
-# drawn from the distribution 'intdistr'. Diagonal entries are self-interactions
-# drawn from the distribution 'selfintdistr', which is truncated to obtain
-# negative self-interactions. To get fixed values for the interactions, choose
-# the uniform distribution and provide the desired value both as the minimum and
-# maximum of the range, or provide the standard deviation of the normal
-# distribution as zero. The other arguments specify the distributions from which
-# interaction coefficients are drawn.
+# drawn from the distribution 'intdistr'. Diagonal entries are intraspecies
+# interactions drawn from the distribution 'selfintdistr', which is truncated to
+# obtain negative intraspecies interactions. To get fixed values for the
+# interactions, choose the uniform distribution and provide the desired value
+# both as the minimum and maximum of the range, or provide the standard
+# deviation of the normal distribution as zero. The other arguments specify the
+# distributions from which interaction coefficients are drawn.
 getintmat <- function(nspecies, sparsity = 0,
                       intdistr = "normal", intmean = 0, intsd = 5e-12,
                       intrange = c(-1.2e-11, 1.2e-11),
@@ -407,8 +407,8 @@ getintmat <- function(nspecies, sparsity = 0,
            stopifnot(length(selfintmean) == 1, length(selfintsd) == 1,
                      selfintsd >= 0)
            # Draw variates from a truncated normal distribution to ensure
-           # negative self-interactions without having to redraw for positive
-           # deviates, using rtnorm() from the package TruncatedNormal.
+           # negative intraspecies interactions without having to redraw for
+           # positive deviates, using rtnorm() from the package TruncatedNormal.
            diag(intmat) <- rtnorm(n = nspecies, mu = selfintmean, sd = selfintsd,
                                   lb = -Inf, ub = 0, method = "invtransfo")
          },
@@ -431,7 +431,7 @@ getintmat <- function(nspecies, sparsity = 0,
                          rep(seq_len(nspecies), each = nspecies)),
                        ncol = 2, dimnames = list(NULL, c("row", "column")))
     # Only keep rows of indexmat specifying off-diagonal entries of intmat, to
-    # ensure that self-interaction coefficients never become sparse.
+    # ensure that intraspecies interaction coefficients never become sparse.
     indexmat <- indexmat[indexmat[, "row"] != indexmat[, "column"], , drop = FALSE]
     # Sample rows of indexmat to get index of matrix entries that become sparse
     sparse_index <- sample(seq_len(dim(indexmat)[1]), nsparseint)
@@ -980,8 +980,8 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        limits = NULL, limx = NULL, limy = NULL, ratio = 1,
                        fillvar, filltitle, filltype = "discrete",
                        title = NULL, subtitle = NULL,
-                       labx = "Mean interaction coefficient",
-                       laby = "Mean selfinteraction coefficient",
+                       labx = "Mean interspecies interaction coefficient",
+                       laby = "Mean intraspecies interaction coefficient",
                        tag = NULL, addstamp = FALSE, diagonal = "none",
                        linezero = TRUE,
                        facetx = "taxmatcode + abunmodelcode + cost",
@@ -1649,8 +1649,8 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
 #   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1) +
 #   coord_fixed(ratio = 1, expand = FALSE) +
 #   theme(legend.position = "bottom") +
-#   labs(x = "Mean interaction coefficient",
-#        y = "Mean selfinteraction coefficient",
+#   labs(x = "Mean interspecies interaction coefficient",
+#        y = "Mean intraspecies interaction coefficient",
 #        caption = paste(niter, "iterations")) +
 #   facet_grid(nspecies ~ abunmodelcode, labeller = mylabeller)
 
@@ -2319,7 +2319,7 @@ if(simulateinvasion == TRUE) {
              filltitle = "Mean rel. abundance sp1 after\nperturbation with R1",
              filltype = "continuous", limits = limits)
   CreatePlot(fillvar = "relabunconjsp1mean",
-             filltitle = "Mean rel. abundance sp1 after\nperturbation with P1",
+             filltitle = "Mean rel. abundance of sp1 after\nperturbation with P1",
              filltype = "continuous", limits = limits)
   
   CreatePlot(fillvar = "relabunRsp1mean",
@@ -2331,14 +2331,12 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunconjsp1meancontinuouschangedlim")
   
-  limits <- range(c(plotdata[, "relabunRsp1median"],
-                    plotdata[, "relabunconjsp1median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp1median",
              filltitle = "Median rel. abundance sp1 after\nperturbation with R1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp1median",
              filltitle = "Median rel. abundance sp1 after\nperturbation with P1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   
   CreatePlot(fillvar = "relabunRsp1median",
              filltitle = "Median rel. abundance sp1 after\nperturbation with R1",
@@ -2349,32 +2347,26 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunconjsp1mediancontinuouschangedlim")
   
-  limits <- range(c(plotdata[, "relabunRsp2median"],
-                    plotdata[, "relabunconjsp2median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp2median",
              filltitle = "Median rel. abundance sp2 after\nperturbation with R1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp2median",
              filltitle = "Median rel. abundance sp2 after\nperturbation with P1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   
-  limits <- range(c(plotdata[, "relabunRsp3median"],
-                    plotdata[, "relabunconjsp3median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp3median",
              filltitle = "Median rel. abundance sp3 after\nperturbation with R1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp3median",
              filltitle = "Median rel. abundance sp3 after\nperturbation with P1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   
-  limits <- range(c(plotdata[, "relabunRsp4median"],
-                    plotdata[, "relabunconjsp4median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp4median",
              filltitle = "Median rel. abundance sp4 after\nperturbation with R1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp4median",
              filltitle = "Median rel. abundance sp4 after\nperturbation with P1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   
   CreatePlot(fillvar = "log10(1 + relabunRsp4median)",
              filltitle = "Log10(1 + Median rel. abundance sp4 after\nperturbation with R1)",
@@ -2383,23 +2375,19 @@ if(simulateinvasion == TRUE) {
              filltitle = "Log10(1 + Median rel. abundance sp4 after\nperturbation with P1)",
              filltype = "continuous")
   
-  limits <- range(c(plotdata[, "relabunRsp5median"],
-                    plotdata[, "relabunconjsp5median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp5median",
              filltitle = "Median rel. abundance sp5 after\nperturbation with R1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp5median",
              filltitle = "Median rel. abundance sp5 after\nperturbation with P1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   
-  limits <- range(c(plotdata[, "relabunRsp6median"],
-                    plotdata[, "relabunconjsp6median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp6median",
              filltitle = "Median rel. abundance sp6 after\nperturbation with R1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp6median",
              filltitle = "Median rel. abundance sp6 after\nperturbation with P1",
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limitsfraction)
   
   CreatePlot(fillvar = "log10(1 + relabunRsp6median)",
              filltitle = "Log10(1 + Median rel. abundance sp6 after\nperturbation with R1)",
