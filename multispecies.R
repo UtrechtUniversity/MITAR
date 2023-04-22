@@ -98,7 +98,8 @@
 ## CreatePlot() ##
 # The diagonals are not displayed correctly if the plotting area is non-square
 
-# Adjust CreatePlot() to be able to take a list of additional arguments, such
+# Adjust CreatePlot() to actually use the arguments supplied in the dots (but I
+# don't know how to determine in which part they should be incorporated), such
 # that these arguments are included in the saved plots. Now as a workaround set
 # save to FALSE and used ggsave() to include the added guides arguments.
 
@@ -114,17 +115,24 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 
 #### Settings and defining parameter space ####
-# If simulateinvasion == TRUE, simulations over time are performed
+# If simulateinvasion == TRUE, simulations over time are performed.
 # If states become smaller than smallstate during the integration, they are set
-# to 0
+# to 0.
 # If the sum of absolute rates of change is equal to smallchange, equilibrium is
-#   assumed to be reached and the integration is terminated
-# See the functions that use the arguments for more detailed info
+#   assumed to be reached and the integration is terminated.
+# See the functions that use the arguments for more detailed info.
 
+# Note: to simulate that each species belongs to a different class, an
+# additional taxmattype has to be added. Then only the interspecies conjugation
+# rates should be reduced, as the intraspecies conjugation rates of all species
+# are still those given in conjrateset. This unchanged intraspecies conjugation
+# rate makes it different from reducing conjrateset 1000-fold and using
+# 'taxmatsame' as taxmattype.
 
 ## Basis parameter set
 bifurparms <- FALSE
 saveplots <- TRUE
+niterintmat <- 1
 smallstate <- 1e-3
 finalsmallstate <- 1
 smallchange <- 1e-2
@@ -137,10 +145,13 @@ costtype <- "absolute"
 conjrateset <- list(rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
 # populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
-# from and to the initially plasmid-bearing population is reduced a 1000-fold
+# to and from the initially plasmid-bearing population (either the most abundant
+# species if PInMostAbun is TRUE, or the least abundant species if PInMostAbun
+# is FALSE) is reduced a 1000-fold
 taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
-# Introduce plasmid in the most abundant species (PInMostAbun == TRUE) or in the
-# least abundant species (PInMostAbun == FALSE)
+# Replace a (plasmid-free) bacterium of the most abundant species (PInMostAbun 
+# == TRUE) or of the least abundant species (PInMostAbun == FALSE) with a
+# plasmid-bearing bacterium of that species.
 PInMostAbun <- TRUE
 # To plot 16 species need 16 colours, currently only 11 so repeat them.
 mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
@@ -148,115 +159,38 @@ mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple
 
 ## Parameters for detailed local stability analysis, not simulating invasion
 niter <- 100
-niterintmat <- 1
 simulateinvasion <- FALSE
 intmeanset <- seq(from = -1e-11, to = 1e-11, by = 1e-12)
 selfintmeanset <- seq(from = -1e-11, to = 0, by = 1e-12)
 
 ## Smaller parameter set to simulate invasion
 niter <- 50
-niterintmat <- 1
 simulateinvasion <- TRUE
 intmeanset <- seq(from = -1e-11, to = 1e-11, by = 1e-12)
 selfintmeanset <- seq(from = -1e-11, to = 0, by = 1e-12)
 
-## Testset
-bifurparms <- FALSE
-saveplots <- TRUE
-smallstate <- 1e-3
-finalsmallstate <- 1
-smallchange <- 1e-2
-totalabun <- 1e11
-nspeciesset <- c(2, 4, 8, 16)
-maxnspecies <- max(nspeciesset)
-abunmodelset <- c("dompreempt")
-costset <- c(0.05, 0.09)
-costtype <- "absolute"
-conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
-# If taxmattype is SameSpecies, the conjugation rate is the same for all
-# populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
-# from and to the initially plasmid-bearing population is reduced a 1000-fold
-taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
-# Introduce plasmid in the most abundant species (PInMostAbun == TRUE) or in the
-# least abundant species (PInMostAbun == FALSE)
-PInMostAbun <- TRUE
-mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
-               "darkorange", "green1", "yellow", "hotpink"), 2)
-
-niter <- 10
-niterintmat <- 1
-simulateinvasion <- TRUE
-intmeanset <- seq(from = -0.9e-11, to = 0.9e-11, by = 3e-12)
-selfintmeanset <- seq(from = -0.9e-11, to = 0, by = 3e-12)
-
 ## Small parameter set to test code
-bifurparms <- FALSE
-niter <- 2
-niterintmat <- 1
-simulateinvasion <- TRUE
-saveplots <- TRUE
-smallstate <- 1e-3
-finalsmallstate <- 1
-smallchange <- 1e-2
-totalabun <- 1e11
-nspeciesset <- c(2, 16)
+nspeciesset <- c(2, 8)
 maxnspecies <- max(nspeciesset)
-abunmodelset <- c("dompreempt")
+conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
+niter <- 2
+simulateinvasion <- TRUE
 intmeanset <- c(-6e-12, 6e-12)
 selfintmeanset <- c(-1.2e-11, -6e-12)
-costset <- c(0.05, 0.09)
-costtype <- "absolute"
-conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
-# If taxmattype is SameSpecies, the conjugation rate is the same for all
-# populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
-# from and to the initially plasmid-bearing population is reduced a 1000-fold
-taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
-# Introduce plasmid in the most abundant species (PInMostAbun == TRUE) or in the
-# least abundant species (PInMostAbun == FALSE)
-PInMostAbun <- TRUE
-mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
-               "darkorange", "green1", "yellow", "hotpink"), 2)
 
 ## Parameter set to create bifurcation-like plots showing the border of
 # epidemiological stability in the conjugation rate/cost space
 bifurparms <- TRUE
-saveplots <- TRUE
-smallstate <- 1e-3
-finalsmallstate <- 1
-smallchange <- 1e-2
-totalabun <- 1e11
-nspeciesset <- c(2, 4, 8, 16)
-maxnspecies <- max(nspeciesset)
-abunmodelset <- c("dompreempt")
 costset <- seq(from = 0, to = 0.2, by = 0.001)
-costtype <- "absolute"
 seqconjrate <- 10^seq(from = -13.5, to = -11.5, by = 0.01)
 conjrateset <- NULL
 for(conjrate in seqconjrate) {
   conjrateset <- c(conjrateset, list(rep(conjrate, maxnspecies)))
 }
-# If taxmattype is SameSpecies, the conjugation rate is the same for all
-# populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
-# from and to the initially plasmid-bearing population is reduced a 1000-fold
-taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
-# Introduce plasmid in the most abundant species (PInMostAbun == TRUE) or in the
-# least abundant species (PInMostAbun == FALSE)
-PInMostAbun <- TRUE
-mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
-               "darkorange", "green1", "yellow", "hotpink"), 2)
 niter <- 1
-niterintmat <- 1
 simulateinvasion <- FALSE
-intmeanset <- c(-1e-11, 0, 1e-11) # seq(from = -1e-11, to = 1e-11, by = 1e-11)
-selfintmeanset <- -0.5e-11 # seq(from = -1e-11, to = 0, by = 1e-11)
-
-
-# Note: to simulate that each species belongs to a different class, an
-# additional taxmattype has to be added. Then only the interspecies conjugation
-# rates should be reduced, as the intraspecies conjugation rates of all species
-# are still those given in conjrateset. This unchanged intraspecies conjugation
-# rate makes it different from reducing conjrateset 1000-fold and using
-# 'taxmatsame' as taxmattype.
+intmeanset <- c(-1e-11, 0, 1e-11)
+selfintmeanset <- -0.5e-11 # c(-1e-11, -0.5e-11, 0)
 
 
 #### Functions ####
@@ -572,8 +506,8 @@ geteqinfo <- function(model, abundance, intmat, growthrate,
            jaclow <- jac[(nspecies + 1):(2*nspecies), seq_len(nspecies)]
            if(!isTRUE(all.equal(range(jaclow), c(0, 0), check.attributes = FALSE))) {
              warning(paste("Jacobian matrix does not contain a block of zeros",
-                     "in the lower-left corner,\nso currently used determination",
-                     "of ecological stability is invalid"))
+                           "in the lower-left corner,\nso currently used determination",
+                           "of ecological stability is invalid"))
              print(jaclow)
            }
            eigval <- eigen(x = jac[seq_len(nspecies), seq_len(nspecies)],
@@ -657,14 +591,14 @@ eventfun <- function(t, state, p) {
 # cost is a vector of plasmid costs in growth rate. 
 # model should be 'gLV' (no plasmids modelled) or 'gLVConj' (to include plasmid-
 #   bearing populations in the model).
-# pertpop is a character vector with the names of the populations to be
+# pertpop is a character vector with the name(s) of the population(s) to be
 #   perturbed, e.g., pertpop = "R1" or pertpop = c("R1", "P1").
 # pertmagn gives the absolute increase in populations for the perturbation
 # tmax and tstep give the timesteps at which abundances should be calculated
 #   (since variable step-size methods are used, those are not the only times
 #   that integration occurs)
-# If showplot == TRUE, the result is plotted (which is slow) or saved to a .png
-#   file if saveplots == TRUE.
+# If showplot == TRUE, the result is plotted (which is slow) or (if saveplots
+#   == TRUE) saved to a .png file.
 # If plotepistabwithP == TRUE, plots over time are plotted or saved to a
 #   .png file if the equilibrium is epidemiologically stable but the total
 #   number of plasmid-bearing bacteria at the end of the simulation is larger
@@ -699,8 +633,6 @@ eventfun <- function(t, state, p) {
 #   - tmaxshort indicating tmax was not reached but no infinite growth occured
 #   - eqreached indicating if equilibrium has been reached
 #   - infgrowth indicating if infinite growth was detected
-# If showplot == TRUE, plots over time are either shown or saved, depending on
-#   the global variable saveplots
 # Notes
 #   Although this function returns absolute abundances, various of these are
 #   converted to relative abundances later on in the script.
@@ -883,8 +815,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
       names(abunfinaltemp) <- names(abundance)
       npopR <- NA
       npopP <- NA
-      pertpopconjsurvived = NA
-      timepertpopconjextinct = NA
+      pertpopconjsurvived <- NA
+      timepertpopconjextinct <- NA
     } else {
       derivatives <- unlist(
         gLVConj(t = 0, n = abunfinaltemp,
@@ -918,16 +850,16 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                       timefinal = timefinal, tmaxshort = tmaxshort,
                       eqreached = eqreached, infgrowth = infgrowth)
   }
-
+  
   # eqinfoepi is created outside this function before this function is called.
   if(showplot == TRUE ||
      (plotepistabwithP == TRUE && model == "gLVConj" &&
       !is.na(abunfinal["Ptotal"]) && abunfinal["Ptotal"] > finalsmallstate &&
       eqinfoepi["eigvalRe"] < 0)) {
-    subtitle <- paste0(abunmodel, ", intmean = ", intmean, 
-                       ", selfintmean = ", selfintmean, "\ncost = ", cost,
-                       ", conjratecode = ", conjratecode,
-                       ", taxmatcode = ", taxmatcode, ", iter = ", iter)
+    subtitle <- paste0(abunmodel, ", intmean: ", intmean,
+                       ", selfintmean: ", selfintmean, "\ncost: ", cost,
+                       ", conjratecode: ", conjratecode,
+                       ", taxmatcode: ", taxmatcode, ", iter: ", iter)
     if(saveplots == TRUE) {
       filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), ".png")
       png(filename = filename, width = 480, height = 785)
@@ -1125,7 +1057,6 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 
 
 #### Testing functions ####
-# 
 # nspecies <- 4
 # abunbrokenstick <- brokenstick(nspecies = nspecies, totalabun = totalabun,
 #                                takelimit = TRUE)
@@ -1143,8 +1074,8 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 # checkequilibrium(abundance = 0.9*abunbrokenstick, intmat = intmat1,
 #                  growthrate = growthratebrokenstick, printderivatives = TRUE,
 #                  showplot = TRUE) # Not at equilibrium
-
-# geteqinfo returns eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, and eigvalRep
+# 
+# # geteqinfo returns eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, and eigvalRep
 # geteqinfo(model = "gLV", abundance = abunbrokenstick, intmat = intmat1,
 #           growthrate = growthratebrokenstick)
 # geteqinfo(model = "gLV", abundance = abundompreempt, intmat = intmat1,
@@ -1176,6 +1107,10 @@ indexdatatotal <- 1
 rowindexplotdata <- 1
 rowindexdata <- 1
 for(nspecies in nspeciesset) {
+  # Note: pertpop and pertpopconj indicate which population acquire a
+  # plasmid-bearing bacterium. The populations that loose one bacterium are
+  # indicated by pertpopminus which is set inside the function
+  # perturbequilibrium.
   if(PInMostAbun == TRUE) {
     pertpop <- "R1"
     pertpopconj <- "P1"
@@ -1183,7 +1118,7 @@ for(nspecies in nspeciesset) {
     pertpop <- paste0("R", nspecies)
     pertpopconj <- paste0("P", nspecies)
   }
-
+  
   for(abunmodel in abunmodelset) {
     if(abunmodel == "brokenstick") {
       abundance <- brokenstick(nspecies = nspecies, totalabun = totalabun,
@@ -1214,7 +1149,7 @@ for(nspecies in nspeciesset) {
         relabunRsp <- rep(NA, maxnspecies)
         relabunRconjsp <- rep(NA, maxnspecies)
         relabunPconjsp <- rep(NA, maxnspecies)
-
+        
         for(iter in seq_len(niter)) {
           stableeq <- FALSE
           iterintmat <- 0
@@ -1277,9 +1212,9 @@ for(nspecies in nspeciesset) {
           }
           
           # Model without conjugation, so Rtotal is total abundance as P does
-          # not exist 
+          # not exist
           relabunRsp[seq_len(nspecies)] <- abunfinal$R / abunfinal$Rtotal
-
+          
           for(cost in costset) {
             conjratecode <- 0
             
@@ -1287,7 +1222,7 @@ for(nspecies in nspeciesset) {
               conjratecode <- conjratecode + 1
               taxmatcode <- 0
               
-            for(taxmattype in taxmattypeset) {
+              for(taxmattype in taxmattypeset) {
                 taxmatcode <- taxmatcode + 1
                 taxmat <- matrix(rep("SameSpecies", nspecies^2),
                                  nrow = nspecies, ncol = nspecies, byrow = TRUE)
@@ -1306,126 +1241,130 @@ for(nspecies in nspeciesset) {
                     taxmat[-nspecies, nspecies] <- "OtherClass"
                   }
                 }
-              conjmat <- getconjmat(nspecies = nspecies,
-                                    conjrate = conjrate, taxmat = taxmat)
-              
-              # Get equilibrium characteristics for plasmid-free equilibrium in
-              # the model with conjugation
-              eqinfoconj <- geteqinfo(model = "gLVConj",
-                                      abundance = c(abundance, rep(0, nspecies)),
-                                      intmat = intmat, growthrate = growthrate,
-                                      cost = cost, conjmat = conjmat)
-              
-              # Get equilibrium characteristics regarding ecological and
-              # epidemiological stability of the plasmid-free equilibrium (see
-              # Roberts and Heesterbeek 2021).
-              eqinfoecol <- geteqinfo(model = "ecol",
-                                      abundance = c(abundance, rep(0, nspecies)),
-                                      intmat = intmat, growthrate = growthrate,
-                                      cost = cost, conjmat = conjmat)
-              eqinfoepi <- geteqinfo(model = "epi",
-                                     abundance = c(abundance, rep(0, nspecies)),
-                                     intmat = intmat, growthrate = growthrate,
-                                     cost = cost, conjmat = conjmat)
-
-              # Append the signs of the real parts of the largest eigenvalues to
-              # indicate change in stability without and with the plasmid (-1 =
-              # stable, 0 = neutral, 1 = unstable). The + 3 ensure numbers are
-              # positive, to prevent paste0(-1, -1) leading to NA because of
-              # as.integer(-1-1))
-              compstability <- as.integer(paste0(eqinfo["eigvalReSign"] + 3,
-                                                 eqinfoconj["eigvalReSign"] + 3))
-              
-              # To simulate invasion of the plasmid-free equilibrium with plasmids,
-              # the abundances of the plasmid-free populations have to be appended
-              # to the abundances of the plasmid-bearing populations
-              if(simulateinvasion == TRUE) {
-                if(eqinfoconj["eigvalRe"] >= 0) {
-                  abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
-                                                      intmat = intmat, growthrate = growthrate,
-                                                      cost = cost, conjmat = conjmat,
-                                                      model = "gLVConj", pertpop = pertpopconj,
-                                                      pertmagn = 1, tmax = 1e4, 
-                                                      showplot = FALSE, verbose = FALSE,
-                                                      silentinfgrowth = TRUE,
-                                                      silenteqnotreached = TRUE)
+                conjmat <- getconjmat(nspecies = nspecies,
+                                      conjrate = conjrate, taxmat = taxmat)
+                
+                # Get equilibrium characteristics for plasmid-free equilibrium in
+                # the model with conjugation
+                eqinfoconj <- geteqinfo(model = "gLVConj",
+                                        abundance = c(abundance, rep(0, nspecies)),
+                                        intmat = intmat, growthrate = growthrate,
+                                        cost = cost, conjmat = conjmat)
+                
+                # Get equilibrium characteristics regarding ecological and
+                # epidemiological stability of the plasmid-free equilibrium (see
+                # Roberts and Heesterbeek 2021).
+                eqinfoecol <- geteqinfo(model = "ecol",
+                                        abundance = c(abundance, rep(0, nspecies)),
+                                        intmat = intmat, growthrate = growthrate,
+                                        cost = cost, conjmat = conjmat)
+                eqinfoepi <- geteqinfo(model = "epi",
+                                       abundance = c(abundance, rep(0, nspecies)),
+                                       intmat = intmat, growthrate = growthrate,
+                                       cost = cost, conjmat = conjmat)
+                
+                # Append the signs of the real parts of the largest eigenvalues to
+                # indicate change in stability without and with the plasmid (-1 =
+                # stable, 0 = neutral, 1 = unstable). The + 3 ensure numbers are
+                # positive, to prevent paste0(-1, -1) leading to NA because of
+                # as.integer(-1-1))
+                compstability <- as.integer(paste0(eqinfo["eigvalReSign"] + 3,
+                                                   eqinfoconj["eigvalReSign"] + 3))
+                
+                # To simulate invasion of the plasmid-free equilibrium with plasmids,
+                # the abundances of the plasmid-free populations have to be appended
+                # to the abundances of the plasmid-bearing populations
+                if(simulateinvasion == TRUE) {
+                  if(eqinfoconj["eigvalRe"] >= 0) {
+                    abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
+                                                        intmat = intmat, growthrate = growthrate,
+                                                        cost = cost, conjmat = conjmat,
+                                                        model = "gLVConj", pertpop = pertpopconj,
+                                                        pertmagn = 1, tmax = 1e4,
+                                                        showplot = FALSE, verbose = FALSE,
+                                                        silentinfgrowth = TRUE,
+                                                        silenteqnotreached = TRUE)
+                  } else {
+                    # No need for simulations if equilibrium is stable
+                    # NOTE: timepertpopconjextinct = 0 is only true if pertmagn is
+                    # equal to finalsmallstate. Similarly, timefinal = 1 is not
+                    # strictly true, as it will take some time to reach the new
+                    # equilibrium
+                    abunfinalconj <- list(R = abundance, Rtotal = sum(abundance),
+                                          npopR = nspecies,
+                                          P = rep(0, nspecies), Ptotal = 0,
+                                          npopP = 0, pertpopconjsurvived = 0,
+                                          timepertpopconjextinct = 0,
+                                          timefinal = 1, tmaxshort = 0,
+                                          eqreached = 1, infgrowth = 0)
+                  }
+                  
                 } else {
-                  # No need for simulations if equilibrium is stable
-                  abunfinalconj <- list(R = abundance, Rtotal = sum(abundance),
-                                        npopR = nspecies,
-                                        P = rep(0, nspecies), Ptotal = 0,
-                                        npopP = 0, pertpopconjsurvived = 0,
-                                        timepertpopconjextinct = 0,
-                                        timefinal = 1, tmaxshort = 0,
-                                        eqreached = 1, infgrowth = 0)
+                  # No simulations over time performed, so set values to NA
+                  abunfinalconj <- list(R = rep(NA, nspecies), Rtotal = NA,
+                                        npopR = NA,
+                                        P = rep(NA, nspecies), Ptotal = NA,
+                                        npopP = NA, pertpopconjsurvived = NA,
+                                        timepertpopconjextinct = NA,
+                                        timefinal = NA, tmaxshort = NA,
+                                        eqreached = NA, infgrowth = NA)
                 }
                 
-              } else {
-                # No simulations over time performed, so set values to NA
-                abunfinalconj <- list(R = rep(NA, nspecies), Rtotal = NA,
-                                  npopR = NA,
-                                  P = rep(NA, nspecies), Ptotal = NA,
-                                  npopP = NA, pertpopconjsurvived = NA,
-                                  timepertpopconjextinct = NA,
-                                  timefinal = NA, tmaxshort = NA,
-                                  eqreached = NA, infgrowth = NA)
-              }
-              
-              # Total (cells / mL) and relative (fractions of total) abundances
-              abuntotalconj <- abunfinalconj$Rtotal + abunfinalconj$Ptotal
-              relabunRconjsp[seq_len(nspecies)] <- abunfinalconj$R / abuntotalconj
-              relabunPconjsp[seq_len(nspecies)] <- abunfinalconj$P / abuntotalconj
-
-              # Using abunfinalconj$R + abunfinalconj$P > smallstate if the
-              # abundances are NA leads to 0 instead of NA, so instead use
-              # if-else construct.
-              if(abunfinalconj$eqreached == 0 | simulateinvasion == FALSE) {
-                nspeciesconj <- NA 
-                fracPformedbypertpop <- NA
-              } else {
-                nspeciesconj <- length(which(
-                  abunfinalconj$R + abunfinalconj$P > smallstate
-                ))
-                if(abunfinalconj$Ptotal > 0) {
-                  fracPformedbypertpop <- sum(abunfinalconj$P[pertpopconj]) /
-                    abunfinalconj$Ptotal
-                } else {
+                # Total (cells / mL) and relative (fractions of total) abundances
+                abuntotalconj <- abunfinalconj$Rtotal + abunfinalconj$Ptotal
+                relabunRconjsp[seq_len(nspecies)] <- abunfinalconj$R / abuntotalconj
+                relabunPconjsp[seq_len(nspecies)] <- abunfinalconj$P / abuntotalconj
+                
+                # Using abunfinalconj$R + abunfinalconj$P > smallstate if the
+                # abundances are NA leads to 0 instead of NA, so instead use
+                # if-else construct.
+                if(abunfinalconj$eqreached == 0 | simulateinvasion == FALSE) {
+                  nspeciesconj <- NA 
                   fracPformedbypertpop <- NA
+                } else {
+                  nspeciesconj <- length(which(
+                    abunfinalconj$R + abunfinalconj$P > smallstate
+                  ))
+                  if(abunfinalconj$Ptotal > 0) {
+                    fracPformedbypertpop <- sum(abunfinalconj$P[pertpopconj]) /
+                      abunfinalconj$Ptotal
+                  } else {
+                    fracPformedbypertpop <- NA
+                  }
                 }
+                
+                indexdatanew <- indexdata + nspecies
+                
+                data[indexdata:(indexdatanew - 1), ] <- cbind(
+                  niter, nspecies, abunmodelcode, intmean, selfintmean,
+                  cost, conjratecode, taxmatcode, iter, seq_len(nspecies), abundance,
+                  diag(intmat), c(growthrate), iterintmat,
+                  matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
+                  matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
+                  matrix(rep(eqinfoecol, nspecies), nrow = nspecies, byrow = TRUE),
+                  matrix(rep(eqinfoepi, nspecies), nrow = nspecies, byrow = TRUE),
+                  compstability,
+                  abunfinal$infgrowth, abunfinalconj$infgrowth,
+                  abunfinal$eqreached, abunfinalconj$eqreached,
+                  abunfinal$tmaxshort, abunfinalconj$tmaxshort,
+                  abunfinal$timefinal, abunfinalconj$timefinal,
+                  abunfinal$Rtotal, abunfinalconj$Rtotal, abunfinalconj$Ptotal,
+                  abuntotalconj, abunfinalconj$Rtotal/abuntotalconj,
+                  abunfinal$npopR, abunfinalconj$npopR, abunfinalconj$npopP,
+                  abunfinalconj$npopR + abunfinalconj$npopP,
+                  abunfinalconj$Ptotal / abuntotalconj,
+                  nspeciesconj, abunfinalconj$npopR / nspeciesconj,
+                  abunfinalconj$npopP / nspeciesconj,
+                  fracPformedbypertpop, abunfinalconj$pertpopconjsurvived,
+                  abunfinalconj$timepertpopconjextinct,
+                  matrix(rep(relabunRsp, nspecies), nrow = nspecies, byrow = TRUE),
+                  matrix(rep(relabunRconjsp, nspecies), nrow = nspecies, byrow = TRUE),
+                  matrix(rep(relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE),
+                  matrix(rep(relabunRconjsp + relabunPconjsp, nspecies),
+                         nrow = nspecies, byrow = TRUE)
+                )
+                indexdata <- indexdatanew
               }
-              
-              indexdatanew <- indexdata + nspecies
-              
-              data[indexdata:(indexdatanew - 1), ] <- cbind(
-                niter, nspecies, abunmodelcode, intmean, selfintmean,
-                cost, conjratecode, taxmatcode, iter, seq_len(nspecies), abundance,
-                diag(intmat), c(growthrate), iterintmat,
-                matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(eqinfoconj, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(eqinfoecol, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(eqinfoepi, nspecies), nrow = nspecies, byrow = TRUE),
-                compstability,
-                abunfinal$infgrowth, abunfinalconj$infgrowth,
-                abunfinal$eqreached, abunfinalconj$eqreached,
-                abunfinal$tmaxshort, abunfinalconj$tmaxshort,
-                abunfinal$timefinal, abunfinalconj$timefinal,
-                abunfinal$Rtotal, abunfinalconj$Rtotal, abunfinalconj$Ptotal,
-                abuntotalconj, abunfinalconj$Rtotal/abuntotalconj,
-                abunfinal$npopR, abunfinalconj$npopR, abunfinalconj$npopP,
-                abunfinalconj$npopR + abunfinalconj$npopP,
-                abunfinalconj$Ptotal / abuntotalconj,
-                nspeciesconj, abunfinalconj$npopR / nspeciesconj,
-                abunfinalconj$npopP / nspeciesconj,
-                fracPformedbypertpop, abunfinalconj$pertpopconjsurvived,
-                abunfinalconj$timepertpopconjextinct,
-                matrix(rep(relabunRsp, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(relabunRconjsp, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(relabunPconjsp, nspecies), nrow = nspecies, byrow = TRUE),
-                matrix(rep(relabunRconjsp + relabunPconjsp, nspecies),
-                       nrow = nspecies, byrow = TRUE)
-              )
-              indexdata <- indexdatanew
-            }
             }
           }
         }
@@ -1437,8 +1376,8 @@ for(nspecies in nspeciesset) {
                             "taxmatcode", "iter", "species", "abundance",
                             "selfintdata", "growthrate",
                             "iterintmat",
-                            "eigvalRe", "eigvalIm", "eigvalReSign",
-                            "eigvalImSign", "eigvalRep",
+                            "eigvalRe", "eigvalIm",
+                            "eigvalReSign", "eigvalImSign", "eigvalRep",
                             "eigvalReconj", "eigvalImconj",
                             "eigvalReSignconj", "eigvalImSignconj", "eigvalRepconj",
                             "eigvalReecol", "eigvalImecol",
@@ -1461,7 +1400,7 @@ for(nspecies in nspeciesset) {
                             paste0("relabunRconjsp", seq_len(maxnspecies)),
                             paste0("relabunPconjsp", seq_len(maxnspecies)),
                             paste0("relabunconjsp", seq_len(maxnspecies)))
-
+        
         # Get summary data which do not depend on simulated invasion for all
         # combinations of costs and conjugation rates
         summarydata <- as_tibble(data) %>%
@@ -1579,8 +1518,9 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
-                   costtype = costtype, PInMostAbun = PInMostAbun,
-                   duration = duration))
+                   costtype = costtype,
+                   PIntroduced = if(PInMostAbun) {"PInMostAbun"} else {"PInLeastAbun"},
+                   PInMostAbun = PInMostAbun, duration = duration))
 for(index in seq_along(settings)) {
   write.table(t(as.data.frame(settings[index])), 
               paste0(DateTimeStamp, "settings.csv"), append = TRUE,
@@ -1589,7 +1529,7 @@ for(index in seq_along(settings)) {
 
 
 #### Reading previously saved data from a .csv-file ####
-## To read data from csv-file, uncomment this section and fill in the 
+## To read data from csv-file, uncomment this section and fill in the
 ## needed datetimestamp
 # filename <- "2021_05_04_17_44multispecies.csv"
 # plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
@@ -1672,40 +1612,40 @@ if(bifurparms == TRUE) {
   }
   if(!all(near(conjrate, conjrate[1]))) {
     warning(paste("Species have different conjugation rates, so conversion",
-            "from conjugationratecode\nto conjugation rate is not meaningful.",
-            "\nSee the settings section in the script and in the file",
-            "'settings.csv' for details"))
+                  "from conjugationratecode\nto conjugation rate is not meaningful.",
+                  "\nSee the settings section in the script and in the file",
+                  "'settings.csv' for details"))
   }
   for(conjratecode_index in seq_len(conjratecode)) {
     # using dplyr::near() to allow for small (<1e-6) numeric differences
     temp_row_index <- which(near(plotdata[, "conjratecode"], conjratecode_index))
     plotdata[temp_row_index, "conjrate"] <- seqconjrate[conjratecode_index]
   }
-
-
-# ## Show border of ecological stability with heatmap in CreatePlot()
-# # Values in a facet are either all stable, or all unstable (see heatmap above),
-# # making it impossible to plot contours delimiting stable and unstable regions.
-# CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableecol",
-#            filltitle = "fracstableecol", filltype = "continuous",
-#            limy = range(log10(seqconjrate)), ratio = NULL,
-#            labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
-#            facetx = "taxmatcode + intmean", facety = "nspecies",
-#            rotate_x_labels = TRUE,
-#            filename = "ecostabxcostyconj")
-# 
-# ## Show border of ecological stability with a contour plot in CreatePlot()
-# # Values in a facet are either all stable, or all unstable (see heatmap above),
-# # making it impossible to plot contours delimiting stable and unstable regions.
-# CreatePlot(xvar = "cost", yvar = "conjrate", fillvar = "fracstableecol",
-#            contour_var = "fracstableecol", contour_col = "as.factor(nspecies)",
-#            contour_lty = "as.factor(intmean)",
-#            limy = range(log10(seqconjrate)), ratio = NULL,
-#            labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
-#            facetx = "taxmatcode", facety = "nspecies",
-#            rotate_x_labels = FALSE, save = FALSE) +
-#   guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
-
+  
+  
+  # ## Show border of ecological stability with heatmap in CreatePlot()
+  # # Values in a facet are either all stable, or all unstable (see heatmap above),
+  # # making it impossible to plot contours delimiting stable and unstable regions.
+  # CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
+  #            filltitle = "fracstableecol", filltype = "continuous",
+  #            limy = range(log10(seqconjrate)), ratio = NULL,
+  #            labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
+  #            facetx = "taxmatcode + intmean", facety = "nspecies",
+  #            rotate_x_labels = TRUE,
+  #            filename = "ecostabxcostyconj")
+  # 
+  # ## Show border of ecological stability with a contour plot in CreatePlot()
+  # # Values in a facet are either all stable, or all unstable (see heatmap above),
+  # # making it impossible to plot contours delimiting stable and unstable regions.
+  # CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
+  #            contour_var = "fracstableecol", contour_col = "as.factor(nspecies)",
+  #            contour_lty = "as.factor(intmean)",
+  #            limy = range(log10(seqconjrate)), ratio = NULL,
+  #            labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
+  #            facetx = "taxmatcode", facety = "nspecies",
+  #            rotate_x_labels = FALSE, save = FALSE) +
+  #   guides(col = guide_legend(ncol = 1), lty = guide_legend(ncol = 1))
+  
   
   ## Show border of epidemiological stability with a contour plot in CreatePlot()
   # I set save to FALSE and used ggsave() to ensure the added guides arguments are
@@ -1714,7 +1654,7 @@ if(bifurparms == TRUE) {
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological stability",
-             labx = "Cost", laby = "Log10(Conjugation rate)", linezero = FALSE,
+             labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode + intmean", facety = "nspecies",
              rotate_x_labels = TRUE, save = FALSE) +
     theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
@@ -1957,7 +1897,8 @@ ggplot(data = datatotalfilteredspecies,
              cols = vars(taxmatcode, abunmodelcode, cost),
              labeller = mylabeller)
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "eigenvaluesdistrconj.png"))
+  ggsave(paste0(DateTimeStamp, "eigenvaluesdistrconj.png"),
+         width = 1650, height = 2675, units = "px", dpi = 300)
 }
 
 if(simulateinvasion == TRUE) {
@@ -2013,7 +1954,8 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthratevsintmean.png"))
+  ggsave(paste0(DateTimeStamp, "growthratevsintmean.png"),
+         width = 1650, height = 2675, units = "px", dpi = 300)
 }
 
 ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
@@ -2024,7 +1966,8 @@ ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthratevsselfintmean.png"))
+  ggsave(paste0(DateTimeStamp, "growthratevsselfintmean.png"),
+         width = 1650, height = 2675, units = "px", dpi = 300)
 }
 
 # Calculate density if only intraspecies interactions are present
@@ -2055,13 +1998,15 @@ CreatePlot(fillvar = "iterintmatmax", filltitle =
 if(simulateinvasion == TRUE) {
   subplasmidfree <- "Perturbation with plasmid-free bacteria"
   subplasmidbearing <- "Perturbation with plasmid-bearing bacteria"
+  if(PInMostAbun == FALSE) {
+    title_add <- " (PinLeastAbun)"
+  } else {
+    title_add <- NULL
+  }
   
   limitstime <- range(plotdata[, "timefinalmedian"],
                       plotdata[, "timefinalconjmedian"])
-  title <- "Time to reach equilibrium after perturbation"
-  if(PInMostAbun == FALSE) {
-    title <- paste(title, "(PinLeastAbun)")
-  }
+  title <- paste0("Time to reach equilibrium after perturbation", title_add)
   CreatePlot(fillvar = "timefinalmedian", filltitle = "Median time",
              filltype = "continuous", limits = limitstime,
              title = title, subtitle = subplasmidfree, rotate_legend = TRUE)
@@ -2071,11 +2016,8 @@ if(simulateinvasion == TRUE) {
   
   ## Plots on survival and extinction after perturbation
   limitsmeannspecies <- range(plotdata[, "npopRmean"],
-                          plotdata[, "nspeciesconjmean"], finite = TRUE)
-  title <- "Number of species surviving after perturbation"
-  if(PInMostAbun == FALSE) {
-    title <- paste(title, "(PinLeastAbun)")
-  }
+                              plotdata[, "nspeciesconjmean"], finite = TRUE)
+  title <- paste0("Number of species surviving after perturbation", title_add)
   # Note: In the model without plasmids, the number of populations is equal to
   # the number of species.
   CreatePlot(fillvar = "npopRmean", filltitle = "Mean total number\nof species",
@@ -2086,10 +2028,7 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsmeannspecies,
              title = title, subtitle = subplasmidbearing)
   
-  title <- "Number of species extinct after perturbation"
-  if(PInMostAbun == FALSE) {
-    title <- paste(title, "(PinLeastAbun)")
-  }
+  title <- paste0("Number of species extinct after perturbation", title_add)
   CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                                near(conjratecode, 1), near(taxmatcode, 1)),
              fillvar = "nspecies - npopRmean",
@@ -2109,10 +2048,7 @@ if(simulateinvasion == TRUE) {
              title = title, subtitle = subplasmidbearing,
              filename = "nspeciesconjmeanextinct")
   
-  title <- "Fraction of species extinct after perturbation"
-  if(PInMostAbun == FALSE) {
-    title <- paste(title, "(PinLeastAbun)")
-  }
+  title <- paste0("Fraction of species extinct after perturbation", title_add)
   CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                                near(conjratecode, 1), near(taxmatcode, 1)),
              fillvar = "1 - (npopRmean / nspecies)",
@@ -2132,10 +2068,7 @@ if(simulateinvasion == TRUE) {
              title = title, subtitle = subplasmidbearing,
              filename = "fracspeciesextinctmeanconj")
   
-  title <- "Fraction of species after perturbation"
-  if(PInMostAbun == FALSE) {
-    title <- paste(title, "(PinLeastAbun)")
-  }
+  title <- paste0("Fraction of species after perturbation", title_add)
   CreatePlot(fillvar = "fracspeciesRconjmean",
              filltitle = "Mean fraction of surviving species\nwith a plasmid-free population",
              filltype = "continuous", limits = limitsfraction,
@@ -2156,10 +2089,7 @@ if(simulateinvasion == TRUE) {
   ## Plots of fractions of bacteria that are plasmid-free or plasmid-bearing
   # after perturbations. Only abundances where equilibrium was reached are
   # considered.
-  title <- "Fraction bacteria after perturbation"
-  if(PInMostAbun == FALSE) {
-    title <- paste(title, "(PinLeastAbun)")
-  }
+  title <- paste0("Fraction bacteria after perturbation", title_add)
   CreatePlot(fillvar = "relabunRconjmin",
              filltitle = "Minimum fraction of bacteria\nthat is plasmid-free",
              filltype = "continuous", limits = limitsfraction,
@@ -2193,7 +2123,7 @@ if(simulateinvasion == TRUE) {
              filltitle = "Maximum fraction of bacteria\nthat is plasmid-bearing",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
-
+  
   CreatePlot(fillvar = "fracPformedbypertpopmin",
              filltitle = paste("Minimum fraction of plasmid-bearing bacteria",
                                "\nbelonging to the initially plasmid-bearing strain"),
@@ -2233,7 +2163,6 @@ if(simulateinvasion == TRUE) {
                                "population went\nextinct"),
              filltype = "continuous", rotate_legend = TRUE)
   
-
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
   # considered. Although costs and conjugation rates do not influence the
@@ -2246,10 +2175,7 @@ if(simulateinvasion == TRUE) {
   # because all simulations were discarded because equilibrium was not reached.
   # Therefor I plot log10(1 + x) instead of log10(x). I do not use the built-in
   # function log1p(x) because that uses natural logarithms.
-  title <- "Total abundance after perturbation"
-  if(PInMostAbun == FALSE) {
-    title <- paste(title, "(PinLeastAbun)")
-  }
+  title <- paste0("Total abundance after perturbation", title_add)
   CreatePlot(fillvar = "log10(1 + abuntotalmin)",
              filltitle = "Log10(1 + Minimum of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
@@ -2262,7 +2188,7 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "log10(1 + abuntotalmax)",
              filltitle = "Log10(1 + Maximum of plasmid-\nfree bacteria)",
              filltype = "continuous", title = title, subtitle = subplasmidfree)
-
+  
   ## Plot of total abundances after perturbation with plasmid-bearing bacteria in
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
@@ -2313,91 +2239,104 @@ if(simulateinvasion == TRUE) {
   
   ## Plots comparing species abundances after perturbation with plasmid-bearing
   # bacteria
+  if(PInMostAbun == TRUE) {
+    add_filltitle <- "after\nperturbation with R1"
+    add_filltitleconj <- c("after\nperturbation with P1")
+  } else {
+    add_filltitle <- "after\nperturbation with R of least abun sp."
+    add_filltitleconj <- c("after\nperturbation with P of least abun sp.")
+  }
+  
   limits <- range(c(plotdata[, "relabunRsp1mean"],
                     plotdata[, "relabunconjsp1mean"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp1mean",
-             filltitle = "Mean rel. abundance sp1 after\nperturbation with R1",
+             filltitle = paste("Mean rel. abundance sp1", add_filltitle)
              filltype = "continuous", limits = limits)
   CreatePlot(fillvar = "relabunconjsp1mean",
-             filltitle = "Mean rel. abundance of sp1 after\nperturbation with P1",
+             filltitle = paste("Mean rel. abundance of sp1", add_filltitleconj),
              filltype = "continuous", limits = limits)
   
   CreatePlot(fillvar = "relabunRsp1mean",
-             filltitle = "Mean rel. abundance sp1 after\nperturbation with R1",
+             filltitle = paste("Mean rel. abundance sp1", add_filltitle),
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunRsp1meancontinuouschangedlim")
   CreatePlot(fillvar = "relabunconjsp1mean",
-             filltitle = "Mean rel. abundance sp1 after\nperturbation with P1",
+             filltitle = paste("Mean rel. abundance sp1", add_filltitleconj),
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunconjsp1meancontinuouschangedlim")
   
   CreatePlot(fillvar = "relabunRsp1median",
-             filltitle = "Median rel. abundance sp1 after\nperturbation with R1",
+             filltitle = paste("Median rel. abundance sp1", add_filltitle),
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp1median",
-             filltitle = "Median rel. abundance sp1 after\nperturbation with P1",
+             filltitle = paste("Median rel. abundance sp1", add_filltitleconj),
              filltype = "continuous", limits = limitsfraction)
   
   CreatePlot(fillvar = "relabunRsp1median",
-             filltitle = "Median rel. abundance sp1 after\nperturbation with R1",
+             filltitle = paste("Median rel. abundance sp1", add_filltitle),
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunRsp1mediancontinuouschangedlim")
   CreatePlot(fillvar = "relabunconjsp1median",
-             filltitle = "Median rel. abundance sp1 after\nperturbation with P1",
+             filltitle = paste("Median rel. abundance sp1", add_filltitleconj),
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunconjsp1mediancontinuouschangedlim")
   
   CreatePlot(fillvar = "relabunRsp2median",
-             filltitle = "Median rel. abundance sp2 after\nperturbation with R1",
+             filltitle = paste("Median rel. abundance sp2", add_filltitle),
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp2median",
-             filltitle = "Median rel. abundance sp2 after\nperturbation with P1",
+             filltitle = paste("Median rel. abundance sp2", add_filltitleconj),
              filltype = "continuous", limits = limitsfraction)
   
   CreatePlot(fillvar = "relabunRsp3median",
-             filltitle = "Median rel. abundance sp3 after\nperturbation with R1",
+             filltitle = paste("Median rel. abundance sp3", add_filltitle),
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp3median",
-             filltitle = "Median rel. abundance sp3 after\nperturbation with P1",
+             filltitle = paste("Median rel. abundance sp3", add_filltitleconj),
              filltype = "continuous", limits = limitsfraction)
   
   CreatePlot(fillvar = "relabunRsp4median",
-             filltitle = "Median rel. abundance sp4 after\nperturbation with R1",
+             filltitle = paste("Median rel. abundance sp4", add_filltitle),
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp4median",
-             filltitle = "Median rel. abundance sp4 after\nperturbation with P1",
+             filltitle = paste("Median rel. abundance sp4", add_filltitleconj),
              filltype = "continuous", limits = limitsfraction)
   
   CreatePlot(fillvar = "log10(1 + relabunRsp4median)",
-             filltitle = "Log10(1 + Median rel. abundance sp4 after\nperturbation with R1)",
+             filltitle = paste0("Log10(1 + Median rel. abundance sp4 ",
+                                add_filltitle, ")"),
              filltype = "continuous")
   CreatePlot(fillvar = "log10(1 + relabunconjsp4median)",
-             filltitle = "Log10(1 + Median rel. abundance sp4 after\nperturbation with P1)",
+             filltitle = paste0("Log10(1 + Median rel. abundance sp4 ",
+                                add_filltitleconj, ")"),
              filltype = "continuous")
   
   CreatePlot(fillvar = "relabunRsp5median",
-             filltitle = "Median rel. abundance sp5 after\nperturbation with R1",
+             filltitle = paste("Median rel. abundance sp5", add_filltitle),
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp5median",
-             filltitle = "Median rel. abundance sp5 after\nperturbation with P1",
+             filltitle = paste("Median rel. abundance sp5", add_filltitleconj),
              filltype = "continuous", limits = limitsfraction)
   
   CreatePlot(fillvar = "relabunRsp6median",
-             filltitle = "Median rel. abundance sp6 after\nperturbation with R1",
+             filltitle = paste("Median rel. abundance sp6", add_filltitle),
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "relabunconjsp6median",
-             filltitle = "Median rel. abundance sp6 after\nperturbation with P1",
+             filltitle = paste("Median rel. abundance sp6", add_filltitleconj),
              filltype = "continuous", limits = limitsfraction)
   
   CreatePlot(fillvar = "log10(1 + relabunRsp6median)",
-             filltitle = "Log10(1 + Median rel. abundance sp6 after\nperturbation with R1)",
+             filltitle = paste0("Log10(1 + Median rel. abundance sp6 ",
+                                add_filltitle, ")"),
              filltype = "continuous")
   CreatePlot(fillvar = "log10(1 + relabunconjsp6median)",
-             filltitle = "Log10(1 + Median rel. abundance sp6 after\nperturbation with P1)",
+             filltitle = paste0("Log10(1 + Median rel. abundance sp6 ",
+                                add_filltitleconj, ")"),
              filltype = "continuous")
 }
 
-## Compare abundance models ##
+
+#### Compare abundance models ####
 compareabun <- NULL
 for(abunmodel in abunmodelset) {
   for(nspecies in nspeciesset) {
