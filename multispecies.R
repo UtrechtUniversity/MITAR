@@ -1576,6 +1576,8 @@ limitsfraction <- c(0, 1)
 # within the rounded limits. 
 limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
                       ceiling(max(plotdata[, "growthratemax"])*10)/10)
+stat_type <- c("min", "mean", "median", "max")
+names(stat_type) <- c("Minimum", "Mean", "Median", "Maximum")
 
 
 #### To test plots without using CreatePlot() ####
@@ -1782,6 +1784,7 @@ CreatePlot(fillvar = "fracstable", filltitle = "Fraction stable",
 CreatePlot(fillvar = "fracstableconj",
            filltitle = "Fraction stable\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
+
 CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                              near(conjratecode, 1), near(taxmatcode, 1)),
            fillvar = "1 - fracstable", filltitle = "Fraction unstable",
@@ -1808,41 +1811,16 @@ CreatePlot(fillvar = "fracunstableunstable + fracneutralneutral + fracstablestab
            filltitle = "Fraction stability the same\nwithout and with conjugation",
            filltype = "continuous", limits = limitsfraction)
 
-CreatePlot(fillvar = "fracunstableunstable",
-           filltitle = "Fraction unstable without and\nunstable with conjugation",
-           filltype = "continuous", limits = limitsfraction)
-
-CreatePlot(fillvar = "fracunstableneutral",
-           filltitle = "Fraction unstable without but\nneutral with conjugation",
-           filltype = "continuous", limits = limitsfraction)
-
-CreatePlot(fillvar = "fracunstablestable",
-           filltitle = "Fraction unstable without but\nstable with conjugation",
-           filltype = "continuous", limits = limitsfraction)
-
-CreatePlot(fillvar = "fracneutralunstable",
-           filltitle = "Fraction neutral without but\nunstable with conjugation",
-           filltype = "continuous", limits = limitsfraction)
-
-CreatePlot(fillvar = "fracneutralneutral",
-           filltitle = "Fraction neutral without and\nneutral with conjugation",
-           filltype = "continuous", limits = limitsfraction)
-
-CreatePlot(fillvar = "fracneutralstable",
-           filltitle = "Fraction neutral without but\nstable with conjugation",
-           filltype = "continuous", limits = limitsfraction)
-
-CreatePlot(fillvar = "fracstableunstable",
-           filltitle = "Fraction stable without but\nunstable with conjugation",
-           filltype = "continuous", limits = limitsfraction)
-
-CreatePlot(fillvar = "fracstableneutral",
-           filltitle = "Fraction stable without but\nneutral with conjugation",
-           filltype = "continuous", limits = limitsfraction)
-
-CreatePlot(fillvar = "fracstablestable",
-           filltitle = "Fraction stable without and\nstable with conjugation",
-           filltype = "continuous", limits = limitsfraction)
+eq_states <- c("unstable", "neutral", "stable")
+for(eq_status_without in eq_states) {
+  for(eq_status_with in eq_states) {
+    print(CreatePlot(fillvar = paste0("frac", eq_status_without, eq_status_with),
+                     filltitle = paste0("Fraction ",
+                                        eq_status_without, " without and\n",
+                                        eq_status_with, " with conjugation"),
+                     filltype = "continuous", limits = limitsfraction))
+  }
+}
 
 
 # Show dominant eigenvalues
@@ -1931,14 +1909,11 @@ CreatePlot(fillvar = "fraceigvalRepconj",
 
 ## Growth rates
 # Plot summary data for the calculated growth rates 
-CreatePlot(fillvar = "growthratemin", filltitle = "Minimum growth rate",
-           filltype = "continuous", limits = limitsgrowthrate)
-CreatePlot(fillvar = "growthratemean", filltitle = "Mean growth rate",
-           filltype = "continuous", limits = limitsgrowthrate)
-CreatePlot(fillvar = "growthratemedian", filltitle = "Median growth rate",
-           filltype = "continuous", limits = limitsgrowthrate)
-CreatePlot(fillvar = "growthratemax", filltitle = "Max growth rate",
-           filltype = "continuous", limits = limitsgrowthrate)
+for(ind_stat_type in seq_along(stat_type)) {
+  print(CreatePlot(fillvar = paste0("growthrate", stat_type[ind_stat_type]),
+                   filltitle = paste(names(stat_type[ind_stat_type]), "growth rate"),
+                   filltype = "continuous", limits = limitsgrowthrate))
+}
 
 # Show the relation of interactions and species-specific growth rate required to
 # obtain an equilibrium. Costs and conjugation rate do not affect growth rate,
@@ -1982,18 +1957,12 @@ CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate/selfintmean
 
 ## Plot summary data on the number of iterations in creating intmat needed to
 # find a stable equilibrium with the model without plasmids
-CreatePlot(fillvar = "iterintmatmin", filltitle =
-             paste("Minimum number of\niterations to reach\nstable equilibrium"),
-           filltype = "continuous", limits = c(1, niterintmat))
-CreatePlot(fillvar = "iterintmatmean", filltitle = 
-             paste("Mean number of\niterations to reach\nstable equilibrium"),
-           filltype = "continuous", limits = c(1, niterintmat))
-CreatePlot(fillvar = "iterintmatmedian", filltitle = 
-             paste("Median number of\niterations to reach\nstable equilibrium"),
-           filltype = "continuous", limits = c(1, niterintmat))
-CreatePlot(fillvar = "iterintmatmax", filltitle = 
-             paste("Maximum number of\niterations to reach\nstable equilibrium"),
-           filltype = "continuous", limits = c(1, niterintmat))
+for(ind_stat_type in seq_along(stat_type)) {
+  print(CreatePlot(fillvar = paste0("iterintmat", stat_type[ind_stat_type]),
+                   filltitle = paste(names(stat_type[ind_stat_type]),
+                                     "number of\niterations to reach\nstable equilibrium"),
+                   filltype = "continuous", limits = c(1, niterintmat)))
+}
 
 if(simulateinvasion == TRUE) {
   subplasmidfree <- "Perturbation with plasmid-free bacteria"
@@ -2090,78 +2059,37 @@ if(simulateinvasion == TRUE) {
   # after perturbations. Only abundances where equilibrium was reached are
   # considered.
   title <- paste0("Fraction bacteria after perturbation", title_add)
-  CreatePlot(fillvar = "relabunRconjmin",
-             filltitle = "Minimum fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "relabunRconjmean",
-             filltitle = "Mean fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "relabunRconjmedian",
-             filltitle = "Median fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "relabunRconjmax",
-             filltitle = "Maximum fraction of bacteria\nthat is plasmid-free",
-             filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subplasmidbearing)
-  
-  CreatePlot(fillvar = "relabunPconjmin",
-             filltitle = "Minimum fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "relabunPconjmean",
-             filltitle = "Mean fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "relabunPconjmedian",
-             filltitle = "Median fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "relabunPconjmax",
-             filltitle = "Maximum fraction of bacteria\nthat is plasmid-bearing",
-             filltype = "continuous", limits = limitsfraction,
-             title = title, subtitle = subplasmidbearing)
-  
-  CreatePlot(fillvar = "fracPformedbypertpopmin",
-             filltitle = paste("Minimum fraction of plasmid-bearing bacteria",
-                               "\nbelonging to the initially plasmid-bearing strain"),
-             filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "fracPformedbypertpopmean",
-             filltitle = paste("Mean fraction of plasmid-bearing bacteria",
-                               "\nbelonging to the initially plasmid-bearing strain"),
-             filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "fracPformedbypertpopmedian",
-             filltitle = paste("Median fraction of plasmid-bearing bacteria",
-                               "\nbelonging to the initially plasmid-bearing strain"),
-             filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "fracPformedbypertpopmax",
-             filltitle = paste("Maximum fraction of plasmid-bearing bacteria",
-                               "\nbelonging to the initially plasmid-bearing strain"),
-             filltype = "continuous", limits = limitsfraction)
+  for(ind_stat_type in seq_along(stat_type)) {
+    print(CreatePlot(fillvar = paste0("relabunRconj", stat_type[ind_stat_type]),
+                     filltitle = paste(names(stat_type[ind_stat_type]),
+                                       "fraction of bacteria\nthat is plasmid-free"),
+                     filltype = "continuous", limits = limitsfraction,
+                     title = title, subtitle = subplasmidbearing))
+    
+    print(CreatePlot(fillvar =  paste0("relabunPconj", stat_type[ind_stat_type]),
+                     filltitle = paste(names(stat_type[ind_stat_type]),
+                                       "fraction of bacteria\nthat is plasmid-bearing"),
+                     filltype = "continuous", limits = limitsfraction,
+                     title = title, subtitle = subplasmidbearing))
+    
+    print(CreatePlot(fillvar =  paste0("fracPformedbypertpop", stat_type[ind_stat_type]),
+                     filltitle = paste(names(stat_type[ind_stat_type]),
+                                       "fraction of plasmid-bearing bacteria",
+                                       "\nbelonging to the initially plasmid-bearing strain"),
+                     filltype = "continuous", limits = limitsfraction))
+    
+    print(CreatePlot(fillvar =  paste0("timepertpopconjextinct", stat_type[ind_stat_type]),
+                     filltitle = paste(names(stat_type[ind_stat_type]),
+                                       "time initially plasmid-\nbearing",
+                                       "population went\nextinct"),
+                     filltype = "continuous", rotate_legend = TRUE))
+  }
   
   CreatePlot(fillvar = "pertpopconjsurvivedfrac",
              filltitle = paste("Fraction of iterations where\ninitially",
                                "plasmid-bearing\npopulation survived"),
              filltype = "continuous", limits = limitsfraction)
   
-  CreatePlot(fillvar = "timepertpopconjextinctmin",
-             filltitle = paste("Minimum time initially plasmid-\nbearing",
-                               "population went\nextinct"),
-             filltype = "continuous", rotate_legend = TRUE)
-  CreatePlot(fillvar = "timepertpopconjextinctmean",
-             filltitle = paste("Mean time initially plasmid-\nbearing",
-                               "population went\nextinct"),
-             filltype = "continuous", rotate_legend = TRUE)
-  CreatePlot(fillvar = "timepertpopconjextinctmedian",
-             filltitle = paste("Median time initially plasmid-\nbearing",
-                               "population went\nextinct"),
-             filltype = "continuous", rotate_legend = TRUE)
-  CreatePlot(fillvar = "timepertpopconjextinctmax",
-             filltitle = paste("Maximum time initially plasmid-\nbearing",
-                               "population went\nextinct"),
-             filltype = "continuous", rotate_legend = TRUE)
   
   ## Plot of total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
