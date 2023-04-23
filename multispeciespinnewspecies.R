@@ -909,7 +909,9 @@ getsummary4 <- list(
   median = ~if(any(!is.na(.x))) {median(.x, na.rm = TRUE)} else {NA},
   max = ~if(any(!is.na(.x))) {max(.x, na.rm = TRUE)} else {NA}
 )
-getfracnotzero <- list(frac = ~mean(.x != 0))
+getfracnotzero <- list(
+  frac = ~if(any(!is.na(.x))) {mean(.x != 0, na.rm = TRUE)} else {NA}
+)
 
 # Function to create plots. The plotted object is returned, such that it can be
 # further modified like any other ggplot object.
