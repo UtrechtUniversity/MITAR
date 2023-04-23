@@ -40,7 +40,8 @@
 # into account.
 # I check for repeated eigenvalues, but note that the pair a +/- bi are not
 # repeated eigenvalues. See p. 133 of Edelstein-Keshet 2005 and section 10.4.3.3 from
-# https://eng.libretexts.org/Bookshelves/Industrial_and_Systems_Engineering/Book%3A_Chemical_Process_Dynamics_and_Controls_(Woolf)
+# paste0("https://eng.libretexts.org/Bookshelves/Industrial_and_Systems_Engineering/",
+# "Book%3A_Chemical_Process_Dynamics_and_Controls_(Woolf)")
 
 
 #### Optionally to do ####
@@ -1040,12 +1041,16 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   }
   if(save == TRUE) {
     if(is.null(filename)) {
-      filename <- gsub("/", ".", fillvar)
-      filename <- gsub("\\*", ".", filename)
-      filename <- gsub(" ", "", filename)
-      filename <- paste0(filename, filltype)
+      filename <- paste0(fillvar, filltype)
     }
-    filename <- paste0(DateTimeStamp, filename, ".png")
+    
+    # Add DateTimeStamp, remove spaces, replace non-alphanumeric characters with
+    # underscores, and add the extension to create a valid file name.
+    filename <- paste0(DateTimeStamp, filename)
+    filename <- gsub(" ", "", filename)
+    filename <- gsub("[^[:alnum:]_]", "_", filename)
+    filename <- paste0(filename, ".png")
+    
     if(file.exists(filename)) {
       warning("File already exists, not saved again!")
     } else {
@@ -1495,7 +1500,7 @@ if(simulateinvasion == TRUE) {
 warnings()
 
 
-#### Saving output to .csv files ####
+#### Saving output to CSV files ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 if(PInMostAbun == FALSE) {
   DateTimeStamp <- paste0(DateTimeStamp, "PInLeastAbun")
@@ -1528,15 +1533,19 @@ for(index in seq_along(settings)) {
 }
 
 
-#### Reading previously saved data from a .csv-file ####
-## To read data from csv-file, uncomment this section and fill in the
-## needed datetimestamp
+#### Reading previously saved data from a CSV file ####
+# # To read data from a CSV file, put the CSV file in the working directory
+# # (see getwd()), uncomment this section and change the date-time-stamp in the
+# # file name (the next line prints a list of files in the working directory
+# # that contain 'species' in their name).
+# list.files(pattern = "species", ignore.case = TRUE)
+# # Note that the extension (.csv) should be included in the file name.
 # filename <- "2021_05_04_17_44multispecies.csv"
 # plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
 #                      dec = ".", stringsAsFactors = FALSE)
-# # If plotdata has only one column, probably a semicolon instead of a comma is
-# # used as separator in .csv-files. So read the file again.
-# if(dim(plotdata)[2] == 1) {
+# # If plotdata has only one column, probably a semicolon instead of a comma was
+# # used as separator in the CSV file. So read the file again using that separator.
+# if(near(dim(plotdata)[2], 1)) {
 #   plotdata <- read.csv(filename, header = TRUE, sep = ";", quote = "\"",
 #                        dec = ".", stringsAsFactors = FALSE)
 # }
@@ -1567,17 +1576,17 @@ mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
                        abunmodelcode = labmodel,
                        cost = labcost, conjratecode = labconjrate,
                        taxmatcode = labtaxmat, .default = label_value)
-
 plotdata <- as.data.frame(plotdata)
 datatotal <- as.data.frame(datatotal)
-
 limitsfraction <- c(0, 1)
 # Round the limits to one decimal place, while ensuring that all the data is
-# within the rounded limits. 
+# within the rounded limits.
+# To do:
+# - Switch to safer rounding.
 limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
                       ceiling(max(plotdata[, "growthratemax"])*10)/10)
 stat_type <- c("min", "mean", "median", "max")
-names(stat_type) <- c("Minimum", "Mean", "Median", "Maximum")
+names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 
 
 #### To test plots without using CreatePlot() ####
@@ -1599,7 +1608,7 @@ names(stat_type) <- c("Minimum", "Mean", "Median", "Maximum")
 
 #### Plot output ####
 # The error '$ operator is invalid for atomic vectors' arises if the matrix
-# 'plotdata' has not been comverted to a dataframe. To convert it to a dataframe,
+# 'plotdata' has not been converted to a dataframe. To convert it to a dataframe,
 # run plotdata <- as.data.frame(plotdata)
 
 if(bifurparms == TRUE) {
@@ -1808,7 +1817,7 @@ CreatePlot(fillvar = "fracstableepi",
 
 # Show the effect of adding conjugation on stability
 CreatePlot(fillvar = "fracunstableunstable + fracneutralneutral + fracstablestable",
-           filltitle = "Fraction stability the same\nwithout and with conjugation",
+           filltitle = "Fraction stability\nunchanged\nby conjugation",
            filltype = "continuous", limits = limitsfraction)
 
 eq_states <- c("unstable", "neutral", "stable")
@@ -1821,7 +1830,6 @@ for(eq_status_without in eq_states) {
                      filltype = "continuous", limits = limitsfraction))
   }
 }
-
 
 # Show dominant eigenvalues
 datatotalfilteredspecies <- filter(datatotal, near(species, 1))
@@ -1896,15 +1904,15 @@ if(simulateinvasion == TRUE) {
              filltitle = "Fraction tmax too short\nwith conjugation",
              filltype = "continuous", limits = limitsfraction)
 }
-CreatePlot(fillvar = "fracreal", filltitle = "Fraction real",
+CreatePlot(fillvar = "fracreal", filltitle = "Fraction real\neigenvalues",
            filltype = "continuous", limits = limitsfraction)
 CreatePlot(fillvar = "fracrealconj",
-           filltitle = "Fraction real\nwith conjugation",
+           filltitle = "Fraction real\neigenvalues\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
-CreatePlot(fillvar = "fraceigvalRep", filltitle = "Fraction repeated eigenvalues",
+CreatePlot(fillvar = "fraceigvalRep", filltitle = "Fraction repeated\neigenvalues",
            filltype = "continuous", limits = limitsfraction)
 CreatePlot(fillvar = "fraceigvalRepconj",
-           filltitle = "Fraction repeated eigenvalues\nwith conjugation",
+           filltitle = "Fraction repeated\neigenvalues\nwith conjugation",
            filltype = "continuous", limits = limitsfraction)
 
 ## Growth rates
@@ -1925,7 +1933,8 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = selfintmean), size = 1) +
-  facet_grid(species + nspecies ~ abunmodelcode, labeller = mylabeller) +
+  facet_grid(rows = vars(species, nspecies), cols = vars(abunmodelcode),
+             labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
@@ -1937,7 +1946,8 @@ ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) +
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = intmean), size = 1) +
-  facet_grid(species + nspecies ~ abunmodelcode, labeller = mylabeller) +
+  facet_grid(rows = vars(species, nspecies), cols = vars(abunmodelcode),
+             labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations"))
 if(saveplots == TRUE) {
@@ -2074,8 +2084,8 @@ if(simulateinvasion == TRUE) {
     
     print(CreatePlot(fillvar =  paste0("fracPformedbypertpop", stat_type[ind_stat_type]),
                      filltitle = paste(names(stat_type[ind_stat_type]),
-                                       "fraction of plasmid-bearing bacteria",
-                                       "\nbelonging to the initially plasmid-bearing strain"),
+                                       "fraction of plasmid-bearing\nbacteria",
+                                       "belonging to the\ninitially plasmid-bearing strain"),
                      filltype = "continuous", limits = limitsfraction))
     
     print(CreatePlot(fillvar =  paste0("timepertpopconjextinct", stat_type[ind_stat_type]),
@@ -2091,7 +2101,7 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction)
   
   
-  ## Plot of total abundances after perturbation with plasmid-free bacteria in
+  ## Plot total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
   # considered. Although costs and conjugation rates do not influence the
   # outcome, they are included as facets to facilitate comparison with plots of
@@ -2101,88 +2111,65 @@ if(simulateinvasion == TRUE) {
   # leading to different numbers of gray squares between plots. It is also
   # confusing because gray squares can also indicate no data is available
   # because all simulations were discarded because equilibrium was not reached.
-  # Therefor I plot log10(1 + x) instead of log10(x). I do not use the built-in
+  # Therefore I plot log10(1 + x) instead of log10(x). I do not use the built-in
   # function log1p(x) because that uses natural logarithms.
   title <- paste0("Total abundance after perturbation", title_add)
-  CreatePlot(fillvar = "log10(1 + abuntotalmin)",
-             filltitle = "Log10(1 + Minimum of plasmid-\nfree bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidfree)
-  CreatePlot(fillvar = "log10(1 + abuntotalmean)",
-             filltitle = "Log10(1 + Mean of plasmid-\nfree bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidfree)
-  CreatePlot(fillvar = "log10(1 + abuntotalmedian)",
-             filltitle = "Log10(1 + Median of plasmid-\nfree bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidfree)
-  CreatePlot(fillvar = "log10(1 + abuntotalmax)",
-             filltitle = "Log10(1 + Maximum of plasmid-\nfree bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidfree)
+  for(ind_stat_type in seq_along(stat_type)) {
+    print(CreatePlot(fillvar = paste0("log10(1 + abuntotal", stat_type[ind_stat_type], ")"),
+                     filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
+                                       "abundance of plasmid-\nfree bacteria)"),
+                     filltype = "continuous", title = title, subtitle = subplasmidfree))
+  }
   
   ## Plot of total abundances after perturbation with plasmid-bearing bacteria in
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  CreatePlot(fillvar = "log10(1 + abuntotalconjmin)",
-             filltitle = "Log10(1 + Minimum total\nabundance)", filltype = "continuous",
-             title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(1 + abuntotalconjmean)",
-             filltitle = "Log10(1 + Mean total\nabundance)", filltype = "continuous",
-             title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(1 + abuntotalconjmedian)",
-             filltitle = "Log10(1 + Median total\nabundance)", filltype = "continuous",
-             title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(1 + abuntotalconjmax)",
-             filltitle = "Log10(1 + Maximum total\nabundance)", filltype = "continuous",
-             title = title, subtitle = subplasmidbearing)
+  for(ind_stat_type in seq_along(stat_type)) {
+    print(CreatePlot(fillvar = paste0("log10(1 + abuntotalconj", stat_type[ind_stat_type], ")"),
+                     filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
+                                       "total\nabundance)"),
+                     filltype = "continuous", title = title, subtitle = subplasmidbearing))
+  }
   
   ## Plot total abundances of plasmid-free populations after perturbations in
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  CreatePlot(fillvar = "log10(1 + abunRtotalconjmin)",
-             filltitle = "Log10(1 + Minimum of plasmid-\nfree bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(1 + abunRtotalconjmean)",
-             filltitle = "Log10(1 + Mean of plasmid-\nfree bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(1 + abunRtotalconjmedian)",
-             filltitle = "Log10(1 + Median of plasmid-\nfree bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(1 + abunRtotalconjmax)",
-             filltitle = "Log10(1 + Maximum of plasmid-\nfree bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)  
+  for(ind_stat_type in seq_along(stat_type)) {
+    print(CreatePlot(fillvar = paste0("log10(1 + abunRtotalconj", stat_type[ind_stat_type], ")"),
+                     filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
+                                       "abundance of plasmid-\nfree bacteria)"),
+                     filltype = "continuous", title = title, subtitle = subplasmidbearing))
+  }
   
   ## Plot total abundances of plasmid-bearing populations after perturbations for
   # models with plasmids. Only abundances where equilibrium was reached are
   # considered.
-  CreatePlot(fillvar = "log10(1 + abunPtotalconjmin)",
-             filltitle = "Log10(1 + Minimum of plasmid-\nbearing bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(1 + abunPtotalconjmean)",
-             filltitle = "Log10(1 + Mean of plasmid-\nbearing bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(1 + abunPtotalconjmedian)",
-             filltitle = "Log10(1 + Median of plasmid-\nbearing bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
-  CreatePlot(fillvar = "log10(1 + abunPtotalconjmax)",
-             filltitle = "Log10(1 + Maximum of plasmid-\nbearing bacteria)",
-             filltype = "continuous", title = title, subtitle = subplasmidbearing)
+  for(ind_stat_type in seq_along(stat_type)) {
+    print(CreatePlot(fillvar = paste0("log10(1 + abunPtotalconj", stat_type[ind_stat_type], ")"),
+                     filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
+                                       "abundance of plasmid-\nbearing bacteria)"),
+                     filltype = "continuous", title = title, subtitle = subplasmidbearing))
+  }
+  
   
   ## Plots comparing species abundances after perturbation with plasmid-bearing
   # bacteria
   if(PInMostAbun == TRUE) {
-    add_filltitle <- "after\nperturbation with R1"
-    add_filltitleconj <- c("after\nperturbation with P1")
+    add_filltitle <- "after\nperturbation with R of most-abundant sp."
+    add_filltitleconj <- c("after\nperturbation with P of most-abundant sp.")
   } else {
-    add_filltitle <- "after\nperturbation with R of least abun sp."
-    add_filltitleconj <- c("after\nperturbation with P of least abun sp.")
+    add_filltitle <- "after\nperturbation with R of least-abundant sp."
+    add_filltitleconj <- c("after\nperturbation with P of least-abundant sp.")
   }
   
   limits <- range(c(plotdata[, "relabunRsp1mean"],
                     plotdata[, "relabunconjsp1mean"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp1mean",
-             filltitle = paste("Mean rel. abundance sp1", add_filltitle)
-             filltype = "continuous", limits = limits)
+             filltitle = paste("Mean rel. abundance sp1", add_filltitle),
+             filltype = "continuous", limits = limits, rotate_legend = TRUE)
   CreatePlot(fillvar = "relabunconjsp1mean",
              filltitle = paste("Mean rel. abundance of sp1", add_filltitleconj),
-             filltype = "continuous", limits = limits)
+             filltype = "continuous", limits = limits, rotate_legend = TRUE)
   
   CreatePlot(fillvar = "relabunRsp1mean",
              filltitle = paste("Mean rel. abundance sp1", add_filltitle),
@@ -2193,12 +2180,14 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunconjsp1meancontinuouschangedlim")
   
+  limits <- range(c(plotdata[, "relabunRsp1median"],
+                    plotdata[, "relabunconjsp1median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp1median",
              filltitle = paste("Median rel. abundance sp1", add_filltitle),
-             filltype = "continuous", limits = limitsfraction)
+             filltype = "continuous", limits = limits, rotate_legend = TRUE)
   CreatePlot(fillvar = "relabunconjsp1median",
-             filltitle = paste("Median rel. abundance sp1", add_filltitleconj),
-             filltype = "continuous", limits = limitsfraction)
+             filltitle = paste("Median rel. abundance of sp1", add_filltitleconj),
+             filltype = "continuous", limits = limits, rotate_legend = TRUE)
   
   CreatePlot(fillvar = "relabunRsp1median",
              filltitle = paste("Median rel. abundance sp1", add_filltitle),
@@ -2209,58 +2198,41 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunconjsp1mediancontinuouschangedlim")
   
-  CreatePlot(fillvar = "relabunRsp2median",
-             filltitle = paste("Median rel. abundance sp2", add_filltitle),
-             filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "relabunconjsp2median",
-             filltitle = paste("Median rel. abundance sp2", add_filltitleconj),
-             filltype = "continuous", limits = limitsfraction)
-  
-  CreatePlot(fillvar = "relabunRsp3median",
-             filltitle = paste("Median rel. abundance sp3", add_filltitle),
-             filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "relabunconjsp3median",
-             filltitle = paste("Median rel. abundance sp3", add_filltitleconj),
-             filltype = "continuous", limits = limitsfraction)
-  
-  CreatePlot(fillvar = "relabunRsp4median",
-             filltitle = paste("Median rel. abundance sp4", add_filltitle),
-             filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "relabunconjsp4median",
-             filltitle = paste("Median rel. abundance sp4", add_filltitleconj),
-             filltype = "continuous", limits = limitsfraction)
-  
-  CreatePlot(fillvar = "log10(1 + relabunRsp4median)",
-             filltitle = paste0("Log10(1 + Median rel. abundance sp4 ",
-                                add_filltitle, ")"),
-             filltype = "continuous")
-  CreatePlot(fillvar = "log10(1 + relabunconjsp4median)",
-             filltitle = paste0("Log10(1 + Median rel. abundance sp4 ",
-                                add_filltitleconj, ")"),
-             filltype = "continuous")
-  
-  CreatePlot(fillvar = "relabunRsp5median",
-             filltitle = paste("Median rel. abundance sp5", add_filltitle),
-             filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "relabunconjsp5median",
-             filltitle = paste("Median rel. abundance sp5", add_filltitleconj),
-             filltype = "continuous", limits = limitsfraction)
-  
-  CreatePlot(fillvar = "relabunRsp6median",
-             filltitle = paste("Median rel. abundance sp6", add_filltitle),
-             filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "relabunconjsp6median",
-             filltitle = paste("Median rel. abundance sp6", add_filltitleconj),
-             filltype = "continuous", limits = limitsfraction)
-  
-  CreatePlot(fillvar = "log10(1 + relabunRsp6median)",
-             filltitle = paste0("Log10(1 + Median rel. abundance sp6 ",
-                                add_filltitle, ")"),
-             filltype = "continuous")
-  CreatePlot(fillvar = "log10(1 + relabunconjsp6median)",
-             filltitle = paste0("Log10(1 + Median rel. abundance sp6 ",
-                                add_filltitleconj, ")"),
-             filltype = "continuous")
+  # Print relative abundance of the first and last species after perturbation
+  # without and with plasmids, on a normal scale and a log scale.
+  for(species_i in c(1, nspeciesset))  {
+    for(ind_stat_type in seq_along(stat_type)) {
+      print(CreatePlot(fillvar = paste0("relabunRsp", species_i,
+                                        stat_type[ind_stat_type]),
+                       filltitle = paste0(names(stat_type[ind_stat_type]),
+                                          " rel. abundance sp", species_i, " ",
+                                          add_filltitle),
+                       filltype = "continuous", limits = limitsfraction))
+      
+      print(CreatePlot(fillvar = paste0("log10(1 + relabunRsp", species_i,
+                                        stat_type[ind_stat_type], ")"),
+                       filltitle = paste0("Log10(1 + ",
+                                          names(stat_type[ind_stat_type]),
+                                          " rel. abundance sp", species_i, " ",
+                                          add_filltitle, ")"),
+                       filltype = "continuous", rotate_legend = TRUE))
+      
+      print(CreatePlot(fillvar = paste0("relabunconjsp", species_i,
+                                        stat_type[ind_stat_type]),
+                       filltitle = paste0(names(stat_type[ind_stat_type]),
+                                          " rel. abundance sp", species_i, " ",
+                                          add_filltitleconj),
+                       filltype = "continuous", limits = limitsfraction))
+      
+      print(CreatePlot(fillvar = paste0("log10(1 + relabunconjsp", species_i,
+                                        stat_type[ind_stat_type], ")"),
+                       filltitle = paste0("Log10(1 + ",
+                                          names(stat_type[ind_stat_type]),
+                                          " rel. abundance sp", species_i, " ",
+                                          add_filltitleconj, ")"),
+                       filltype = "continuous", rotate_legend = TRUE))
+    }
+  }
 }
 
 
