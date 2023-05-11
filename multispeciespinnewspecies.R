@@ -417,9 +417,9 @@ checkequilibrium <- function(abundance, intmat, growthrate,
   }
   if(showplot == TRUE) {
     times <- seq(from = 0, to = tmax, by = tstep)
-    out <- ode(y = abundance, t = times, func = gLV,
+    out <- ode(y = abundance, times = times, func = gLV,
                parms = list(growthrate = growthrate, intmat = intmat),
-               rootfun = rootfun,
+               rootfunc = rootfun,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
     ylim <- c(0, 1.1*max(out[, -1]))
     matplot.deSolve(out, ylim = ylim, lwd = 2,
@@ -741,16 +741,16 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   # Perturb equilibrium
   times <- seq(from = 0, to = tmax, by = tstep)
   if(model == "gLV") {
-    out <- ode(y = abunpert, t = times, func = gLV,
+    out <- ode(y = abunpert, times = times, func = gLV,
                parms = list(growthrate = growthrate, intmat = intmat),
-               rootfun = rootfun,
+               rootfuc = rootfun,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
   }
   if(model == "gLVConj") {
-    out <- ode(y = abunpert, t = times, func = gLVConj,
+    out <- ode(y = abunpert, times = times, func = gLVConj,
                parms = list(growthrate = growthrate, intmat = intmat,
                             cost = cost, conjmat = conjmat),
-               rootfun = rootfunconj,
+               rootfunc = rootfunconj,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
   }
   final <- tail(out, 1)
@@ -928,7 +928,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        laby = "Mean intraspecies interaction coefficient",
                        tag = NULL, addstamp = FALSE, diagonal = "none",
                        linezero = TRUE,
-                       facetx = "taxmatcode + abunmodelcode + cost",
+                       facetx = "abunmodelcode + cost + taxmatcode",
                        facety = "conjratecode + nspecies",
                        dropfacets = TRUE,
                        as.table = TRUE,
@@ -1097,6 +1097,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 #           growthrate = growthratebrokenstick)
 # geteqinfo(model = "gLV", abundance = abundompreempt, intmat = intmat1,
 #           growthrate = growthratedompreempt)
+# taxmat <- matrix(rep("SameSpecies", nspecies^2), nrow = nspecies,
+#                  ncol = nspecies, byrow = TRUE)
+# conjmat <- getconjmat(nspecies = nspecies, conjrate = rep(1e-12, nspecies),
+#                       taxmat = taxmat)
 
 
 #### Running the simulations ####
@@ -1493,6 +1497,8 @@ colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
                         "intmean", "selfintmean", "newgrowthratecode",
                         colnames(summarydata))
 colnames(datatotal) <- colnames(data)
+
+warnings()
 if(simulateinvasion == TRUE) {
   eqnotreached <- 1 - plotdata[, "eqreachedfrac"]
   eqnotreachedconj <- 1 - plotdata[, "eqreachedconjfrac"]
@@ -1515,7 +1521,6 @@ if(simulateinvasion == TRUE) {
                    "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
   }
 }
-warnings()
 
 
 #### Saving output to CSV files ####
@@ -1582,9 +1587,9 @@ for(index in seq_along(settings)) {
 
 
 #### Labels and limits for plots ####
-labspecies <- paste("Species", seq_len(maxnspecies))
+labspecies <- paste("Sp.", seq_len(maxnspecies))
 names(labspecies) <- seq_len(maxnspecies)
-labnspecies <- paste(nspeciesset, "species")
+labnspecies <- paste(nspeciesset, "sp.")
 names(labnspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
@@ -1966,11 +1971,11 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
              labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations")) +
-  guides(color = guide_colourbar(label.hjust = 0.2, label.vjust = 0.4,
+  guides(color = guide_colourbar(label.hjust = 1, label.vjust = 1,
                                  label.theme = element_text(angle = 45)))
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthratevsintmean.png"),
-         width = 2*1650, height = 2675, units = "px", dpi = 300)
+         width = 3300, height = 2675, units = "px", dpi = 300)
 }
 
 ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
@@ -1981,11 +1986,11 @@ ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) +
              labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations")) +
-  guides(color = guide_colourbar(label.hjust = 0.2, label.vjust = 0.4,
+  guides(color = guide_colourbar(label.hjust = 1, label.vjust = 1,
                                  label.theme = element_text(angle = 45)))
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthratevsselfintmean.png"),
-         width = 2*1650, height = 2675, units = "px", dpi = 300)
+         width = 3300, height = 2675, units = "px", dpi = 300)
 }
 
 # Calculate density if only intraspecies interactions are present
@@ -2118,7 +2123,7 @@ if(simulateinvasion == TRUE) {
     print(CreatePlot(fillvar =  paste0("fracPformedbypertpop", stat_type[ind_stat_type]),
                      filltitle = paste(names(stat_type[ind_stat_type]),
                                        "fraction of plasmid-bearing\nbacteria",
-                                       "belonging to the\ninitially plasmid-bearing strain"),
+                                       "belonging to the\ninitially plasmid-bearing species"),
                      filltype = "continuous", limits = limitsfraction))
     
     print(CreatePlot(fillvar =  paste0("timepertpopconjextinct", stat_type[ind_stat_type]),
