@@ -108,7 +108,7 @@
 #### Loading required packages ####
 library(deSolve)   # checkequilibrium and perturbequilibrium call ode() if
 # showplot == TRUE and simulateinvasion == TRUE, respectively
-library(dplyr)     # across(), group_by(), near(), summarise()
+library(dplyr)     # across(), full_join(), group_by(), near(), summarise()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
 library(TruncatedNormal) # getintmat calls rtnorm()
@@ -185,6 +185,9 @@ bifurparms <- TRUE
 costset <- seq(from = 0, to = 0.2, by = 0.001)
 seqconjrate <- 10^seq(from = -13.5, to = -11.5, by = 0.01)
 conjrateset <- NULL
+# TO DO:
+# - Shouldn't it be adjusted to have all rates 10^-12 except for interspecies
+#   rates to and from initP?
 for(conjrate in seqconjrate) {
   conjrateset <- c(conjrateset, list(rep(conjrate, maxnspecies)))
 }
@@ -1033,10 +1036,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                                            label.theme = element_text(angle = 90)))
   }
   if(diagonal == "both" || diagonal == "major") {
-    p <- p + geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1)
+    p <- p + geom_abline(intercept = 0, slope = -1, col = "grey", size = 1.1)
   }
   if(diagonal == "both" || diagonal == "minor") {
-    p <- p + geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1)
+    p <- p + geom_abline(intercept = 0, slope = 1, col = "grey", size = 1.1)
   }
   if(linezero == TRUE) {
     p <- p + geom_vline(xintercept = 0, col = "grey", size = 1.1)
@@ -1054,7 +1057,8 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     filename <- paste0(filename, ".png")
     
     if(file.exists(filename)) {
-      warning("File already exists, not saved again!")
+      warning("File '", filename, "' already exists, plot is not saved again!",
+              call. = FALSE)
     } else {
       ggsave(filename, width = 1650, height = 2675, units = "px", dpi = 300)
     }
@@ -1483,19 +1487,19 @@ if(simulateinvasion == TRUE) {
   if(any(eqnotreached > 0)) {
     warning(paste0("Fraction of iterations where equilibrium has not been reached ",
                    "after pertubation with plasmid-free\nbacteria ranges from ",
-                   summary(eqnotreached)["Min."], " to ",
-                   summary(eqnotreached)["Max."]," (mean: ",
-                   summary(eqnotreached)["Mean"], "; median: ",
-                   summary(eqnotreached)["Median"], "). ",
+                   signif(summary(eqnotreached)["Min."], 3), " to ",
+                   signif(summary(eqnotreached)["Max."], 3)," (mean: ",
+                   signif(summary(eqnotreached)["Mean"], 3), "; median: ",
+                   signif(summary(eqnotreached)["Median"], 3), "). ",
                    "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
   }
   if(any(eqnotreachedconj > 0)) {
     warning(paste0("Fraction of iterations where equilibrium has not been reached ",
                    "after pertubation with plasmid-bearing\nbacteria ranges from ",
-                   summary(eqnotreachedconj)["Min."], " to ",
-                   summary(eqnotreachedconj)["Max."], " (mean: ",
-                   summary(eqnotreachedconj)["Mean"], "; median: ",
-                   summary(eqnotreachedconj)["Median"], "). ",
+                   signif(summary(eqnotreachedconj)["Min."], 3), " to ",
+                   signif(summary(eqnotreachedconj)["Max."], 3), " (mean: ",
+                   signif(summary(eqnotreachedconj)["Mean"], 3), "; median: ",
+                   signif(summary(eqnotreachedconj)["Median"], 3), "). ",
                    "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
   }
 }
@@ -1513,6 +1517,13 @@ write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
 if(nrow(datatotal) < 250000) {
   write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
             quote = FALSE, row.names = FALSE)
+} else {
+  for(nspecies in nspeciesset) {
+    filename <- paste0(DateTimeStamp, "multispeciestotal_nsp", nspecies, ".csv")
+    write.csv(datatotal[which(near(nspecies, datatotal[, "nspecies"])), ],
+              file = filename, quote = FALSE, row.names = FALSE)
+    message("Saved file ", filename)
+  }
 }
 
 # Saving settings
@@ -1529,8 +1540,9 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    PIntroduced = if(PInMostAbun) {"PInMostAbun"} else {"PInLeastAbun"},
                    PInMostAbun = PInMostAbun, duration = duration))
 for(index in seq_along(settings)) {
+  # Using write.table instead of write.csv() to be able to use append = TRUE
   write.table(t(as.data.frame(settings[index])), 
-              paste0(DateTimeStamp, "settings.csv"), append = TRUE,
+              file = paste0(DateTimeStamp, "settings.csv"), append = TRUE,
               quote = FALSE, sep = ",", col.names = FALSE)
 }
 
@@ -1542,7 +1554,7 @@ for(index in seq_along(settings)) {
 # # that contain 'species' in their name).
 # list.files(pattern = "species", ignore.case = TRUE)
 # # Note that the extension (.csv) should be included in the file name.
-# filename <- "2021_05_04_17_44multispecies.csv"
+# filename <- "2023_0428_0507multispecies.csv"
 # plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
 #                      dec = ".", stringsAsFactors = FALSE)
 # # If plotdata has only one column, probably a semicolon instead of a comma was
@@ -1554,6 +1566,15 @@ for(index in seq_along(settings)) {
 # plotdata <- as.data.frame(plotdata)
 # DateTimeStamp <- substr(filename, 1, 16)
 # nspeciesset <- sort(unique(plotdata[, "nspecies"]))
+# # Similarly for the datatotal CSV file.
+# filename <- "2023_0428_0507multispeciestotal_nsp248.csv"
+# datatotal <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
+#                      dec = ".", stringsAsFactors = FALSE)
+# filename <- "2023_0428_0507multispeciestotal_nsp16.csv"
+# datatotal_p2 <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
+#                       dec = ".", stringsAsFactors = FALSE)
+# datatotal <- rbind(datatotal, datatotal_p2)
+# rm(datatotal_p2)
 
 
 #### Labels and limits for plots ####
@@ -1598,8 +1619,7 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 #   scale_x_continuous() +
 #   scale_y_continuous() +
 #   scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
-#   geom_abline(intercept = 0, slope = -1, col = "white", size = 1.1) +
-#   geom_abline(intercept = 0, slope = 1, col = "white", size = 1.1) +
+#   geom_vline(xintercept = 0, col = "grey", size = 1.1) +
 #   coord_fixed(ratio = 1, expand = FALSE) +
 #   theme(legend.position = "bottom") +
 #   labs(x = "Mean interspecies interaction coefficient",
@@ -1609,9 +1629,9 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 
 
 #### Plot output ####
-# The error '$ operator is invalid for atomic vectors' arises if the matrix
-# 'plotdata' has not been converted to a dataframe. To convert it to a dataframe,
-# run plotdata <- as.data.frame(plotdata)
+# If the error '$ operator is invalid for atomic vectors' arises, the matrix
+# 'plotdata' has not yet been converted to a dataframe: run
+# plotdata <- as.data.frame(plotdata) to do so.
 
 if(bifurparms == TRUE) {
   # Add column to dataframe containing conjugation rate
@@ -1760,7 +1780,8 @@ if(bifurparms == TRUE) {
     geom_point(data = expand.grid(cost = c(0.05, 0.09), conjrate = -12),
                inherit.aes = FALSE, mapping = aes(x = cost, y = conjrate),
                color = "black", size = 2) +
-    annotate("text", label = c("Invasion", "No invasion"),
+    annotate("text", label = c("Invasion of plasmid-\nbearing bacteria",
+                               "No invasion of plasmid-\nbearing bacteria"),
              x = quantile(costset, c(0.1, 0.9)),
              y = quantile(log10(seqconjrate), c(0.9, 0.1)), 
              hjust = "inward", vjust = "inward", size = 4)
@@ -1931,30 +1952,36 @@ for(ind_stat_type in seq_along(stat_type)) {
 datatotalfiltercostconj <- filter(datatotal, near(cost, costset[1]),
                                   near(conjratecode, 1), near(taxmatcode, 1))
 
+# To do:
+# - The colorbar labels should be shifted to the left
 ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) + 
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = selfintmean), size = 1) +
-  facet_grid(rows = vars(species, nspecies), cols = vars(abunmodelcode),
-             labeller = mylabeller) +
+  facet_grid(rows = vars(nspecies), cols = vars(species, abunmodelcode),
+             labeller = mylabeller, drop = TRUE) +
   scale_color_viridis_c() +
-  labs(caption = paste(niter, "iterations"))
+  labs(caption = paste(niter, "iterations")) +
+  guides(color = guide_colourbar(label.hjust = 0.2, label.vjust = 0.4,
+                                label.theme = element_text(angle = 45)))
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthratevsintmean.png"),
-         width = 1650, height = 2675, units = "px", dpi = 300)
+         width = 2*1650, height = 2675, units = "px", dpi = 300)
 }
 
 ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
   theme_bw() +
   theme(legend.position = "bottom") +
   geom_point(aes(color = intmean), size = 1) +
-  facet_grid(rows = vars(species, nspecies), cols = vars(abunmodelcode),
+  facet_grid(rows = vars(nspecies), cols = vars(species, abunmodelcode),
              labeller = mylabeller) +
   scale_color_viridis_c() +
-  labs(caption = paste(niter, "iterations"))
+  labs(caption = paste(niter, "iterations")) +
+  guides(color = guide_colourbar(label.hjust = 0.2, label.vjust = 0.4,
+                                 label.theme = element_text(angle = 45)))
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthratevsselfintmean.png"),
-         width = 1650, height = 2675, units = "px", dpi = 300)
+         width = 2*1650, height = 2675, units = "px", dpi = 300)
 }
 
 # Calculate density if only intraspecies interactions are present
@@ -2156,6 +2183,11 @@ if(simulateinvasion == TRUE) {
   
   ## Plots comparing species abundances after perturbation with plasmid-bearing
   # bacteria
+  
+  # To do:
+  # - Check script 'pinnew' for use of 'filltitle_R_mean <- paste("Mean rel. abundance of sp1 after\nperturbation with",
+  #   "R of newly\nintroduced species 1")' ect.
+  
   if(PInMostAbun == TRUE) {
     add_filltitle <- "after\nperturbation with R of most-abundant sp."
     add_filltitleconj <- c("after\nperturbation with P of most-abundant sp.")
@@ -2167,47 +2199,33 @@ if(simulateinvasion == TRUE) {
   limits <- range(c(plotdata[, "relabunRsp1mean"],
                     plotdata[, "relabunconjsp1mean"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp1mean",
-             filltitle = paste("Mean rel. abundance sp1", add_filltitle),
-             filltype = "continuous", limits = limits, rotate_legend = TRUE)
-  CreatePlot(fillvar = "relabunconjsp1mean",
-             filltitle = paste("Mean rel. abundance of sp1", add_filltitleconj),
-             filltype = "continuous", limits = limits, rotate_legend = TRUE)
-  
-  CreatePlot(fillvar = "relabunRsp1mean",
-             filltitle = paste("Mean rel. abundance sp1", add_filltitle),
-             filltype = "continuous", limits = limitsfraction,
+             filltitle = paste("Mean rel. abundance of sp1", add_filltitle),
+             filltype = "continuous", limits = limits, rotate_legend = TRUE,
              filename = "relabunRsp1meancontinuouschangedlim")
   CreatePlot(fillvar = "relabunconjsp1mean",
-             filltitle = paste("Mean rel. abundance sp1", add_filltitleconj),
-             filltype = "continuous", limits = limitsfraction,
+             filltitle = paste("Mean rel. abundance of sp1", add_filltitleconj),
+             filltype = "continuous", limits = limits, rotate_legend = TRUE,
              filename = "relabunconjsp1meancontinuouschangedlim")
   
   limits <- range(c(plotdata[, "relabunRsp1median"],
                     plotdata[, "relabunconjsp1median"]), na.rm = TRUE)
   CreatePlot(fillvar = "relabunRsp1median",
-             filltitle = paste("Median rel. abundance sp1", add_filltitle),
-             filltype = "continuous", limits = limits, rotate_legend = TRUE)
-  CreatePlot(fillvar = "relabunconjsp1median",
-             filltitle = paste("Median rel. abundance of sp1", add_filltitleconj),
-             filltype = "continuous", limits = limits, rotate_legend = TRUE)
-  
-  CreatePlot(fillvar = "relabunRsp1median",
-             filltitle = paste("Median rel. abundance sp1", add_filltitle),
-             filltype = "continuous", limits = limitsfraction,
+             filltitle = paste("Median rel. abundance of sp1", add_filltitle),
+             filltype = "continuous", limits = limits, rotate_legend = TRUE,
              filename = "relabunRsp1mediancontinuouschangedlim")
   CreatePlot(fillvar = "relabunconjsp1median",
-             filltitle = paste("Median rel. abundance sp1", add_filltitleconj),
-             filltype = "continuous", limits = limitsfraction,
+             filltitle = paste("Median rel. abundance of sp1", add_filltitleconj),
+             filltype = "continuous", limits = limits, rotate_legend = TRUE,
              filename = "relabunconjsp1mediancontinuouschangedlim")
   
   # Print relative abundance of the first and last species after perturbation
   # without and with plasmids, on a normal scale and a log scale.
-  for(species_i in c(1, nspeciesset))  {
+  for(species_i in unique(c(1, nspeciesset)))  {
     for(ind_stat_type in seq_along(stat_type)) {
       print(CreatePlot(fillvar = paste0("relabunRsp", species_i,
                                         stat_type[ind_stat_type]),
                        filltitle = paste0(names(stat_type[ind_stat_type]),
-                                          " rel. abundance sp", species_i, " ",
+                                          " rel. abundance of sp", species_i, " ",
                                           add_filltitle),
                        filltype = "continuous", limits = limitsfraction))
       
@@ -2215,14 +2233,14 @@ if(simulateinvasion == TRUE) {
                                         stat_type[ind_stat_type], ")"),
                        filltitle = paste0("Log10(1 + ",
                                           names(stat_type[ind_stat_type]),
-                                          " rel. abundance sp", species_i, " ",
+                                          " rel. abundance of sp", species_i, " ",
                                           add_filltitle, ")"),
                        filltype = "continuous", rotate_legend = TRUE))
       
       print(CreatePlot(fillvar = paste0("relabunconjsp", species_i,
                                         stat_type[ind_stat_type]),
                        filltitle = paste0(names(stat_type[ind_stat_type]),
-                                          " rel. abundance sp", species_i, " ",
+                                          " rel. abundance of sp", species_i, " ",
                                           add_filltitleconj),
                        filltype = "continuous", limits = limitsfraction))
       
@@ -2230,7 +2248,7 @@ if(simulateinvasion == TRUE) {
                                         stat_type[ind_stat_type], ")"),
                        filltitle = paste0("Log10(1 + ",
                                           names(stat_type[ind_stat_type]),
-                                          " rel. abundance sp", species_i, " ",
+                                          " rel. abundance of sp", species_i, " ",
                                           add_filltitleconj, ")"),
                        filltype = "continuous", rotate_legend = TRUE))
     }
