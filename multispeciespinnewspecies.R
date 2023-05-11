@@ -108,7 +108,7 @@
 #### Loading required packages ####
 library(deSolve)   # checkequilibrium and perturbequilibrium call ode() if
 # showplot == TRUE and simulateinvasion == TRUE, respectively
-library(dplyr)     # across(), group_by(), near(), summarise()
+library(dplyr)     # across(), full_join(), group_by(), near(), summarise()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
 library(TruncatedNormal) # getintmat calls rtnorm()
@@ -1553,6 +1553,7 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    costtype = costtype, PIntroduced = "PInNewSpecies",
                    PInMostAbun = PInMostAbun, duration = duration))
 for(index in seq_along(settings)) {
+  # Using write.table instead of write.csv() to be able to use append = TRUE
   write.table(t(as.data.frame(settings[index])), 
               file = paste0(DateTimeStamp, "settings.csv"), append = TRUE,
               quote = FALSE, sep = ",", col.names = FALSE)
@@ -1632,9 +1633,9 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 
 
 #### Plot output ####
-# The error '$ operator is invalid for atomic vectors' arises if the matrix
-# 'plotdata' has not been converted to a dataframe. To convert it to a dataframe,
-# run plotdata <- as.data.frame(plotdata)
+# If the error '$ operator is invalid for atomic vectors' arises, the matrix
+# 'plotdata' has not yet been converted to a dataframe: run
+# plotdata <- as.data.frame(plotdata) to do so.
 
 if(bifurparms == TRUE) {
   # Add column to dataframe containing conjugation rate
