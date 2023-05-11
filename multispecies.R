@@ -179,6 +179,16 @@ simulateinvasion <- TRUE
 intmeanset <- c(-6e-12, 6e-12)
 selfintmeanset <- c(-1.2e-11, -6e-12)
 
+## Larger test set
+nspeciesset <- c(2, 8)
+maxnspecies <- max(nspeciesset)
+conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
+niter <- 25
+simulateinvasion <- TRUE
+intmeanset <- c(1e-11, -6e-12, 0, 6e-12, 1e11)
+selfintmeanset <- c(-1e-11, -6e-12, -1e-12)
+
+
 ## Parameter set to create bifurcation-like plots showing the border of
 # epidemiological stability in the conjugation rate/cost space
 bifurparms <- TRUE
@@ -414,9 +424,9 @@ checkequilibrium <- function(abundance, intmat, growthrate,
   }
   if(showplot == TRUE) {
     times <- seq(from = 0, to = tmax, by = tstep)
-    out <- ode(y = abundance, t = times, func = gLV,
+    out <- ode(y = abundance, times = times, func = gLV,
                parms = list(growthrate = growthrate, intmat = intmat),
-               rootfun = rootfun,
+               rootfunc = rootfun,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
     ylim <- c(0, 1.1*max(out[, -1]))
     matplot.deSolve(out, ylim = ylim, lwd = 2,
@@ -735,16 +745,16 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   # Perturb equilibrium
   times <- seq(from = 0, to = tmax, by = tstep)
   if(model == "gLV") {
-    out <- ode(y = abunpert, t = times, func = gLV,
+    out <- ode(y = abunpert, times = times, func = gLV,
                parms = list(growthrate = growthrate, intmat = intmat),
-               rootfun = rootfun,
+               rootfunc = rootfun,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
   }
   if(model == "gLVConj") {
-    out <- ode(y = abunpert, t = times, func = gLVConj,
+    out <- ode(y = abunpert, times = times, func = gLVConj,
                parms = list(growthrate = growthrate, intmat = intmat,
                             cost = cost, conjmat = conjmat),
-               rootfun = rootfunconj,
+               rootfunc = rootfunconj,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
   }
   final <- tail(out, 1)
@@ -922,7 +932,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        laby = "Mean intraspecies interaction coefficient",
                        tag = NULL, addstamp = FALSE, diagonal = "none",
                        linezero = TRUE,
-                       facetx = "taxmatcode + abunmodelcode + cost",
+                       facetx = "abunmodelcode + cost + taxmatcode",
                        facety = "conjratecode + nspecies",
                        dropfacets = TRUE,
                        as.table = TRUE,
@@ -1481,6 +1491,8 @@ print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
                         "intmean", "selfintmean", colnames(summarydata))
 colnames(datatotal) <- colnames(data)
+
+warnings()
 if(simulateinvasion == TRUE) {
   eqnotreached <- 1 - plotdata[, "eqreachedfrac"]
   eqnotreachedconj <- 1 - plotdata[, "eqreachedconjfrac"]
@@ -1503,7 +1515,6 @@ if(simulateinvasion == TRUE) {
                    "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
   }
 }
-warnings()
 
 
 #### Saving output to CSV files ####
@@ -1578,9 +1589,9 @@ for(index in seq_along(settings)) {
 
 
 #### Labels and limits for plots ####
-labspecies <- paste("Species", seq_len(maxnspecies))
+labspecies <- paste("Sp.", seq_len(maxnspecies))
 names(labspecies) <- seq_len(maxnspecies)
-labnspecies <- paste(nspeciesset, "species")
+labnspecies <- paste(nspeciesset, "sp.")
 names(labnspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
@@ -1962,11 +1973,11 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
              labeller = mylabeller, drop = TRUE) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations")) +
-  guides(color = guide_colourbar(label.hjust = 0.2, label.vjust = 0.4,
+  guides(color = guide_colourbar(label.hjust = 1, label.vjust = 1,
                                 label.theme = element_text(angle = 45)))
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthratevsintmean.png"),
-         width = 2*1650, height = 2675, units = "px", dpi = 300)
+         width = 3300, height = 2675, units = "px", dpi = 300)
 }
 
 ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
@@ -1977,11 +1988,11 @@ ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) +
              labeller = mylabeller) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations")) +
-  guides(color = guide_colourbar(label.hjust = 0.2, label.vjust = 0.4,
+  guides(color = guide_colourbar(label.hjust = 1, label.vjust = 1,
                                  label.theme = element_text(angle = 45)))
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthratevsselfintmean.png"),
-         width = 2*1650, height = 2675, units = "px", dpi = 300)
+         width = 3300, height = 2675, units = "px", dpi = 300)
 }
 
 # Calculate density if only intraspecies interactions are present
@@ -2114,7 +2125,7 @@ if(simulateinvasion == TRUE) {
     print(CreatePlot(fillvar =  paste0("fracPformedbypertpop", stat_type[ind_stat_type]),
                      filltitle = paste(names(stat_type[ind_stat_type]),
                                        "fraction of plasmid-bearing\nbacteria",
-                                       "belonging to the\ninitially plasmid-bearing strain"),
+                                       "belonging to the\ninitially plasmid-bearing species"),
                      filltype = "continuous", limits = limitsfraction))
     
     print(CreatePlot(fillvar =  paste0("timepertpopconjextinct", stat_type[ind_stat_type]),
@@ -2293,7 +2304,7 @@ plotcompareabun <- ggplot(data = compareabun,
   scale_y_continuous(limits = c(0, NA)) +
   facet_grid(rows = facet_rows, cols = vars(nspecies), labeller = mylabeller) +
   theme(panel.grid = element_line(size = 1),
-        legend.position = "bottom", legend.just = "left",
+        legend.position = "bottom", legend.justification = "left",
         legend.margin = margin(-5, 0, -5, 0),
         legend.box = "vertical", legend.box.just = "left",
         legend.box.margin = margin(-5, 0, 0, 0)) +
@@ -2315,7 +2326,7 @@ plotcompareabunlog <- ggplot(data = compareabun,
   scale_y_continuous(trans = "log10") +
   facet_grid(rows = facet_rows, cols = vars(nspecies), labeller = mylabeller) +
   theme(panel.grid = element_line(size = 1),
-        legend.position = "bottom", legend.just = "left",
+        legend.position = "bottom", legend.justification = "left",
         legend.margin = margin(-5, 0, -5, 0),
         legend.box = "vertical", legend.box.just = "left",
         legend.box.margin = margin(-5, 0, 0, 0)) +
