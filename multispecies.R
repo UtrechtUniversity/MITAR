@@ -188,7 +188,6 @@ simulateinvasion <- TRUE
 intmeanset <- c(1e-11, -6e-12, 0, 6e-12, 1e11)
 selfintmeanset <- c(-1e-11, -6e-12, -1e-12)
 
-
 ## Parameter set to create bifurcation-like plots showing the border of
 # epidemiological stability in the conjugation rate/cost space
 bifurparms <- TRUE
@@ -1101,6 +1100,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 #           growthrate = growthratebrokenstick)
 # geteqinfo(model = "gLV", abundance = abundompreempt, intmat = intmat1,
 #           growthrate = growthratedompreempt)
+# taxmat <- matrix(rep("SameSpecies", nspecies^2), nrow = nspecies,
+#                  ncol = nspecies, byrow = TRUE)
+# conjmat <- getconjmat(nspecies = nspecies, conjrate = rep(1e-12, nspecies),
+#                       taxmat = taxmat)
 
 
 #### Running the simulations ####
@@ -1128,10 +1131,10 @@ indexdatatotal <- 1
 rowindexplotdata <- 1
 rowindexdata <- 1
 for(nspecies in nspeciesset) {
-  # Note: pertpop and pertpopconj indicate which population acquire a
-  # plasmid-bearing bacterium. The populations that loose one bacterium are
-  # indicated by pertpopminus which is set inside the function
-  # perturbequilibrium.
+  # Note: pertpop and pertpopconj indicate to which population a bacterium is
+  # added. This bacterium is plasmid-bearing in case of pertpopconj and replaces
+  # a bacterium from the population indicated by pertpopminus which is set
+  # inside the function perturbequilibrium().
   if(PInMostAbun == TRUE) {
     pertpop <- "R1"
     pertpopconj <- "P1"
@@ -1556,6 +1559,13 @@ for(index in seq_along(settings)) {
               file = paste0(DateTimeStamp, "settings.csv"), append = TRUE,
               quote = FALSE, sep = ",", col.names = FALSE)
 }
+if(requireNamespace("sessioninfo")) {
+  capture.output(sessioninfo::session_info(),
+                 file = paste0(DateTimeStamp, "sessioninfo.txt"))
+} else {
+  capture.output(sessionInfo(),
+                 file = paste0(DateTimeStamp, "sessioninfo_base.txt"))
+}
 
 
 #### Reading previously saved data from a CSV file ####
@@ -1974,7 +1984,7 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations")) +
   guides(color = guide_colourbar(label.hjust = 1, label.vjust = 1,
-                                label.theme = element_text(angle = 45)))
+                                 label.theme = element_text(angle = 45)))
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthratevsintmean.png"),
          width = 3300, height = 2675, units = "px", dpi = 300)
@@ -2199,6 +2209,7 @@ if(simulateinvasion == TRUE) {
   # - Check script 'pinnew' for use of 'filltitle_R_mean <- paste("Mean rel. abundance of sp1 after\nperturbation with",
   #   "R of newly\nintroduced species 1")' ect.
   
+  warning("Check if 'add_filltitle' and 'add_filltitleconj' are correct!")
   if(PInMostAbun == TRUE) {
     add_filltitle <- "after\nperturbation with R of most-abundant sp."
     add_filltitleconj <- c("after\nperturbation with P of most-abundant sp.")
