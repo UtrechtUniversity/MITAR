@@ -182,6 +182,15 @@ simulateinvasion <- TRUE
 intmeanset <- c(-6e-12, 6e-12)
 selfintmeanset <- c(-1.2e-11, -6e-12)
 
+## Larger test set
+nspeciesset <- 1 + c(2, 8)
+maxnspecies <- max(nspeciesset)
+conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
+niter <- 25
+simulateinvasion <- TRUE
+intmeanset <- c(1e-11, -6e-12, 0, 6e-12, 1e11)
+selfintmeanset <- c(-1e-11, -6e-12, -1e-12)
+
 ## Parameter set to create bifurcation-like plots showing the border of
 # epidemiological stability in the conjugation rate/cost space
 bifurparms <- TRUE
@@ -743,7 +752,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   if(model == "gLV") {
     out <- ode(y = abunpert, times = times, func = gLV,
                parms = list(growthrate = growthrate, intmat = intmat),
-               rootfuc = rootfun,
+               rootfunc = rootfun,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
   }
   if(model == "gLVConj") {
@@ -1128,11 +1137,11 @@ indexdatatotal <- 1
 rowindexplotdata <- 1
 rowindexdata <- 1
 for(nspecies in nspeciesset) {
-  # Note: pertpop and pertpopconj indicate which population acquire a
-  # plasmid-bearing bacterium, which in this model is always the newly
-  # introduced species 1. The populations that loose one bacterium are
-  # indicated by pertpopminus which is set inside the function
-  # perturbequilibrium.
+  # Note: pertpop and pertpopconj indicate to which population a bacterium is
+  # added, which in this model is always the newly introduced species 1. This
+  # bacterium is plasmid-bearing in case of pertpopconj, and replaces a
+  # bacterium from the population indicated by pertpopminus which is set inside
+  # the function perturbequilibrium().
   pertpop <- "R1"
   pertpopconj <- "P1"
   
@@ -1563,6 +1572,13 @@ for(index in seq_along(settings)) {
               file = paste0(DateTimeStamp, "settings.csv"), append = TRUE,
               quote = FALSE, sep = ",", col.names = FALSE)
 }
+if(requireNamespace("sessioninfo")) {
+  capture.output(sessioninfo::session_info(),
+                 file = paste0(DateTimeStamp, "PinNewSp_sessioninfo.txt"))
+} else {
+  capture.output(sessionInfo(),
+                 file = paste0(DateTimeStamp, "PinNewSp_sessioninfo_base.txt"))
+}
 
 
 #### Reading previously saved data from a CSV file ####
@@ -1584,6 +1600,15 @@ for(index in seq_along(settings)) {
 # plotdata <- as.data.frame(plotdata)
 # DateTimeStamp <- substr(filename, 1, 16)
 # nspeciesset <- sort(unique(plotdata[, "nspecies"]))
+# # Similarly for the datatotal CSV file.
+# filename <- "2023_0428_0507PInNewSpeciesmultispeciestotal.csv"
+# datatotal <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
+#                      dec = ".", stringsAsFactors = FALSE)
+# filename <- "2023_0428_0507multispeciestotal_nsp16.csv"
+# datatotal_p2 <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
+#                       dec = ".", stringsAsFactors = FALSE)
+# datatotal <- rbind(datatotal, datatotal_p2)
+# rm(datatotal_p2)
 
 
 #### Labels and limits for plots ####
@@ -1968,7 +1993,7 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
   theme(legend.position = "bottom") +
   geom_point(aes(color = selfintmean), size = 1) +
   facet_grid(rows = vars(nspecies), cols = vars(species, abunmodelcode),
-             labeller = mylabeller) +
+             labeller = mylabeller, drop = TRUE) +
   scale_color_viridis_c() +
   labs(caption = paste(niter, "iterations")) +
   guides(color = guide_colourbar(label.hjust = 1, label.vjust = 1,
@@ -2209,6 +2234,8 @@ if(simulateinvasion == TRUE) {
   filltitle_P_median <- paste("Median rel. abundance of sp1 after\nperturbation with",
                               "P of newly\nintroduced species 1")
   
+  # Note: relabunRspXmean is the mean of the total population because no
+  # plasmids are present (and thus no plasmid-bearing population).
   CreatePlot(fillvar = "relabunRsp1mean", filltitle = filltitle_R_mean,
              filltype = "continuous", limits = limits_mean, rotate_legend = TRUE,
              filename = "relabunRsp1meancontinuouschangedlim")
@@ -2236,12 +2263,13 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunconjsp1mediancontinuouschangedlim")
   
+  warning("Check if 'add_filltitle' and 'add_filltitleconj' are correct!")
   if(PInMostAbun == TRUE) {
     add_filltitle <- "after\nperturbation with R of most-abundant sp."
-    add_filltitleconj <- c("after\nperturbation with P of most-abundant sp.")
+    add_filltitleconj <- "after\nperturbation with P of most-abundant sp."
   } else {
     add_filltitle <- "after\nperturbation with R of least-abundant sp."
-    add_filltitleconj <- c("after\nperturbation with P of least-abundant sp.")
+    add_filltitleconj <- "after\nperturbation with P of least-abundant sp."
   }
   for(species_i in unique(c(1, nspeciesset)))  {
     for(ind_stat_type in seq_along(stat_type)) {
@@ -2277,3 +2305,7 @@ if(simulateinvasion == TRUE) {
     }
   }
 }
+
+
+#### Compare abundance models ####
+# See the script multispecies.R
