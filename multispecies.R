@@ -13,6 +13,10 @@
 
 
 #### References ####
+# Alderliesten JB, Duxbury SJN, Zwart MP, de Visser JAGM, Stegeman S, Fische
+# EAJ. 2020. Effect of donor-recipient relatedness on the plasmid conjugation
+# frequency: a meta-analysis. BMC Microbiology 20:135.
+
 # Edelstein-Keshet L. 2005. Mathematical models in biology. Society for
 # industrial and applied mathematics.
 
@@ -37,26 +41,23 @@
 # to determine the type of equilibrium. However, sometimes the largest
 # eigenvalue does not have a complex part when (some of) the other eigenvalues
 # do have a complex part. If this affects the equilibrium this should be taken
-# into account.
-# I check for repeated eigenvalues, but note that the pair a +/- bi are not
-# repeated eigenvalues. See p. 133 of Edelstein-Keshet 2005 and section 10.4.3.3 from
-# paste0("https://eng.libretexts.org/Bookshelves/Industrial_and_Systems_Engineering/",
-# "Book%3A_Chemical_Process_Dynamics_and_Controls_(Woolf)")
+# into account. A check for repeated eigenvalues is included, but note that the
+# pair a +/- bi are not repeated eigenvalues. See p. 133 of Edelstein-Keshet
+# 2005 and section 10.4.3.3 from paste0("https://eng.libretexts.org/",
+# "Bookshelves/Industrial_and_Systems_Engineering/Book%3A_Chemical_Process",
+# "_Dynamics_and_Controls_(Woolf)")
 
 
 #### Optionally to do ####
+# Supplying the analytic Jacobian to the solver in perturbequilibrium() might
+# speed up the integration. See Box 1 in Lischke 2017 for the structure of the
+# Jacobian.
 
-## General ##
-# To check if enough iterations are used: run several times for niter iterations,
-# if the variation in fraction of stable equilibria is too large, use more
-# iterations.
-
-# Now I use nested loops, instead I could first create a tibble using
-# tidyr::expand_grid(), and then use (l)/(m)apply / purrr:(p)map to iterate over
-# all rows?
-
-# The .groups argument in dplyr::summarise is experimental, so maybe should be
+# The .groups argument in dplyr::summarise() is experimental, so maybe should be
 # dropped. However, excluding it leads to messages every time it is called.
+
+# To check if enough iterations are used: run several times for niter iterations
+# and use more iterations if the variation in outcomes is too large.
 
 # The matrix 'data' is converted to a tibble to efficiently get summary
 # statistics. The tibble with summary statistics is then converted to a matrix
@@ -67,47 +68,10 @@
 # matrix to store data made progress really slow, so I should check how timing
 # is affected when 'data', 'plotdata' or both are tibbles from the start.
 
-## Checking function arguments ##
-# stopifnot() checks conditions of function arguments, but does NOT STOP
-# execution of the script if a condition is not met, but issues a warning.
-# I should use something from ?conditions that actually terminates execution, or
-# use if(!is.numeric(nspecies) || length(nspecies) != 1 || nspecies < 2) {
-# stop("'nspecies' must be a length-1 numeric vector with value larger than 1")}
-# instead of stopifnot(is.numeric(nspecies), length(nspecies) == 1, nspecies > 1).
-
-# Checking function arguments through stopifnot(...) for every iteration in the
-# loop is not needed, and slows down computations (~10%). So instead only use it
-# on the function where everything is put together (i.e., the function that is
-# eventually called in the main script)? Or create a separate checkarg function
-# that has a list containing all variables and criteria, checks the criteria for
-# the supplied arguments. Then call that function only once outside the loop? Or
-# only check input on the first iteration, by including a checkinput argument
-# and use if(checkinput == TRUE) {code to check input}.
-
-## getintmat() ##
-# Add logistic interaction in addition the the linear interaction currently
-# implemented (see https://github.com/EgilFischer/FlockMicrobiome for code).
-
-## geteqinfo() ##
-# Determining the sign of the real and complex parts can be done vectorised
-# outside the loop
-
-## perturbequilibrium() ##
-# I could try if supplying the analytic Jacobian to the solver speeds up the
-# integration. See Box 1 in Lischke 2017.
-
-## CreatePlot() ##
-# The diagonals are not displayed correctly if the plotting area is non-square
-
-# Adjust CreatePlot() to actually use the arguments supplied in the dots (but I
-# don't know how to determine in which part they should be incorporated), such
-# that these arguments are included in the saved plots. Now as a workaround set
-# save to FALSE and used ggsave() to include the added guides arguments.
-
 
 #### Loading required packages ####
-library(deSolve)   # checkequilibrium and perturbequilibrium call ode() if
-# showplot == TRUE and simulateinvasion == TRUE, respectively
+library(deSolve)   # checkequilibrium() and perturbequilibrium() call ode() if
+                   # showplot and simulateinvasion are 'TRUE', respectively
 library(dplyr)     # across(), full_join(), group_by(), near(), summarise()
 library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
@@ -145,15 +109,13 @@ costset <- c(0.05, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-12, maxnspecies))
 # If taxmattype is SameSpecies, the conjugation rate is the same for all
-# populations. If taxmattype is PInOtherClass, the interspecies conjugation rate
-# to and from the initially plasmid-bearing population (either the most abundant
-# species if PInMostAbun is TRUE, or the least abundant species if PInMostAbun
-# is FALSE) is reduced a 1000-fold
-taxmattypeset <- c("PInSameSpecies", "PInOtherClass")
-# Replace a (plasmid-free) bacterium of the most abundant species (PInMostAbun 
-# == TRUE) or of the least abundant species (PInMostAbun == FALSE) with a
-# plasmid-bearing bacterium of that species.
-PInMostAbun <- TRUE
+# populations. If taxmattype is "OtherClass", the interspecies conjugation rate
+# to and from the initially plasmid-bearing population is reduced a 1000-fold.
+taxmattypeset <- c("SameSpecies", "OtherClass")
+# Replace (plasmid-free) bacteria of the most-abundant species (PIntoMostAbun 
+# == TRUE) or of the least-abundant species (PIntoMostAbun == FALSE) with
+# plasmid-bearing bacteria of that species.
+PIntoMostAbun <- TRUE
 # To plot 16 species need 16 colours, currently only 11 so repeat them.
 mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
                "darkorange", "green1", "yellow", "hotpink"), 2)
@@ -446,7 +408,7 @@ checkequilibrium <- function(abundance, intmat, growthrate,
 #     conjugation rates.
 #     Valid values are the character strings "SameSpecies", "SameFamily",
 #     "SameOrder", "SameClass", and "OtherClass". Currently only "SameSpecies"
-#     and, if taxmattypeset contains "PInOtherClass", "OtherClass" are used.
+#     and, if taxmattypeset contains "OtherClass", "OtherClass" are used.
 #     Interspecies conjugation rates are calculated based on the intraspecies
 #     conjugation rates provided in conjrate and the taxonomic relatedness as
 #     provided in this matrix taxmat.
@@ -476,7 +438,9 @@ getconjmat <- function(nspecies, conjrate, taxmat) {
   
   # To obtain interspecies conjugation rates for the different levels of
   # taxonomic relatedness between donor and recipients, the intraspecies
-  # conjugation rates are multiplied with the following conversion factors.
+  # conjugation rates are multiplied with the following conversion factors
+  # (based on the decrease in conjugation frequencies described in Alderliesten
+  # 2020).
   rateconv <- c(SameSpecies = 1, SameFamily = 2.7, SameOrder = 0.1,
                 SameClass = 0.05, OtherClass = 0.001)
   convmat <- matrix(NA, nrow = nspecies, ncol = nspecies)
@@ -598,7 +562,7 @@ eventfun <- function(t, state, p) {
 # abundance: a numeric vector of species abundances at equilibrium (a warning is
 #   issued if they are not at equilibrium). If the model 'gLVConj' is selected,
 #   the abundances of the plasmid-bearing populations should be included in the
-#   vector. If they are not 0, a warning is issued.
+#   vector. If the latter are not 0, a warning is issued.
 # intmat, growthrate, and conjmat are supposed to be the output of getintmat(),
 #   getgrowthrate(), and getconjmat()
 # cost is a vector of plasmid costs in growth rate. 
@@ -622,8 +586,8 @@ eventfun <- function(t, state, p) {
 #   system does not have an inherent carrying capacity. To prevent fatal errors
 #   during the integration caused by state variables going to +Inf, or stepsizes
 #   to 0, a rootfunction is used to terminate the integration if abundances get
-#   very large. A warning is issued and the variable 'infgrowth' is set to 1 if
-#   this occurs.
+#   very large. A warning is issued (unless silentinfgrowth is FALSE) and the
+#   variable 'infgrowth' is set to 1 if this occurs.
 # When the simulation is finished, abundances smaller than finalsmallstate with
 #   a negative derivative (i.e., small abundances that are declining) are set to
 #   zero
@@ -638,8 +602,7 @@ eventfun <- function(t, state, p) {
 #     if model == "gLV")
 #   - npopP with the number of plasmid-bearing populations
 #   - pertpopconjsurvived indicating the initially plasmid-bearing population
-#     survived. NOTE: current implementation does NOT handle perturbation by
-#     multiple populations
+#     survived.
 #   - timepertpopconjextinct indicating the last recorded time the initially
 #     plasmid-bearing population was extant, i.e., abundance > finalsmallstate
 #   - timefinal indicating the last recorded time
@@ -647,8 +610,10 @@ eventfun <- function(t, state, p) {
 #   - eqreached indicating if equilibrium has been reached
 #   - infgrowth indicating if infinite growth was detected
 # Notes
-#   Although this function returns absolute abundances, various of these are
+# - Although this function returns absolute abundances, various of these are
 #   converted to relative abundances later on in the script.
+# - The current implementation of pertpopconjsurvived does NOT handle
+#   perturbation by multiple populations.
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                                model, pertpop, pertmagn = 1000,
                                tmax = 1e4, tstep = 1, showplot = TRUE,
@@ -664,8 +629,11 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     names(abundance) <- paste0(rep("R", nspecies), seq_len(nspecies))
     lty <- 1
     col <- mycol[seq_len(nspecies)]
-    derivatives <- unlist(gLV(t = 0, n = abundance,
-                              parms = list(growthrate = growthrate, intmat = intmat)))
+    derivatives <- unlist(
+      gLV(t = 0, n = abundance,
+          parms = list(growthrate = growthrate, intmat = intmat)
+      )
+    )
   }
   
   if(model == "gLVConj") {
@@ -683,7 +651,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     # equilibrium in that model
     derivatives <- unlist(
       gLV(t = 0, n = abundance[indexR],
-          parms = list(growthrate = growthrate, intmat = intmat))
+          parms = list(growthrate = growthrate, intmat = intmat)
+      )
     )
   }
   
@@ -720,8 +689,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     # Plasmid-bearing bacteria of the most-abundant (i.e., species 1) or
     # least-abundant (i.e., species nspecies) species replace plasmid-free
     # bacteria of those species.
-    if(PInMostAbun == TRUE) {
-      pertpopminus <- "R1" 
+    if(PIntoMostAbun == TRUE) {
+      pertpopminus <- "R1"
     } else {
       pertpopminus <- paste0("R", nspecies)
     }
@@ -843,7 +812,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
       npopR <- length(which(abunfinaltemp[indexR] > smallstate))
       npopP <- length(which(abunfinaltemp[indexP] > smallstate))
       
-      if(abunfinaltemp[pertpopconj] > finalsmallstate) {
+      if(abunfinaltemp[pertpop] > finalsmallstate) {
         pertpopconjsurvived <- 1
         timepertpopconjextinct <- NA
       } else {
@@ -884,6 +853,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     mtext(side = 1, line = -1, at = 0, adj = 0, cex = 0.9, subtitle)
     if(saveplots == TRUE) {
       dev.off()
+      message("Saved plot ", filename)
     }
   }
   
@@ -1044,6 +1014,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     p <- p + guides(fill = guide_colourbar(label.hjust = 0.4, label.vjust = 0.5,
                                            label.theme = element_text(angle = 90)))
   }
+  
   if(diagonal == "both" || diagonal == "major") {
     p <- p + geom_abline(intercept = 0, slope = -1, col = "grey", size = 1.1)
   }
@@ -1131,11 +1102,11 @@ indexdatatotal <- 1
 rowindexplotdata <- 1
 rowindexdata <- 1
 for(nspecies in nspeciesset) {
-  # Note: pertpop and pertpopconj indicate to which population a bacterium is
-  # added. This bacterium is plasmid-bearing in case of pertpopconj and replaces
-  # a bacterium from the population indicated by pertpopminus which is set
-  # inside the function perturbequilibrium().
-  if(PInMostAbun == TRUE) {
+  # Note: pertpop and pertpopconj indicate which population is perturbed by
+  # adding bacteria. In case of pertpopconj the added bacteria are
+  # plasmid-bearing and replace plasmid-free bacteria. In case of pertpop,
+  # the bacteria are plasmid-free and are added to the existing bacteria.
+  if(PIntoMostAbun == TRUE) {
     pertpop <- "R1"
     pertpopconj <- "P1"
   } else {
@@ -1178,6 +1149,7 @@ for(nspecies in nspeciesset) {
           stableeq <- FALSE
           iterintmat <- 0
           conjratecode <- NA
+          taxmatcode <- NA
           
           # If niterintmat > 1 (which is not the default), niterintmat attempts
           # are done to get a combination of interaction matrix and growth rates
@@ -1201,9 +1173,9 @@ for(nspecies in nspeciesset) {
           #               niterintmat, "attempts."))
           # }
           
-          # Simulate invasion with plasmid-free bacteria of plasmid-free
-          # equilibrium in model without conjugation (i.e., test internal
-          # stability)
+          # Simulate invasion of plasmid-free bacteria into the plasmid-free
+          # equilibrium in the model without conjugation (i.e., test internal
+          # stability).
           if(simulateinvasion == TRUE) {
             if(stableeq == FALSE) {
               abunfinal <- perturbequilibrium(abundance = abundance, intmat = intmat,
@@ -1235,8 +1207,8 @@ for(nspecies in nspeciesset) {
                               eqreached = NA, infgrowth = NA)
           }
           
-          # Model without conjugation, so Rtotal is total abundance as P does
-          # not exist
+          # Model without conjugation, so Rtotal is total abundance because P
+          # does not exist
           relabunRsp[seq_len(nspecies)] <- abunfinal$R / abunfinal$Rtotal
           
           for(cost in costset) {
@@ -1250,19 +1222,30 @@ for(nspecies in nspeciesset) {
                 taxmatcode <- taxmatcode + 1
                 taxmat <- matrix(rep("SameSpecies", nspecies^2),
                                  nrow = nspecies, ncol = nspecies, byrow = TRUE)
-                if(taxmattype == "PInOtherClass") {
-                  if(PInMostAbun == TRUE) {
-                    # The plasmid is introduced in the most abundant species,
-                    # so set the first row and column of the matrix to OtherClass,
-                    # with exception of the diagonal which should remain SameSpecies
-                    taxmat[1, -1] <- "OtherClass"
-                    taxmat[-1, 1] <- "OtherClass"                    
+                
+                if(taxmattype != "SameSpecies") {
+                  # If taxmattype is not 'SameSpecies', 'taxmat' has to be
+                  # adjusted to reflect the more-distant relatedness of the
+                  # initially plasmid-bearing species to the initially
+                  # plasmid-free species. If 'PIntoMostAbun' is TRUE the initially
+                  # plasmid-bearing species is the most-abundant species (i.e.,
+                  # species 1), such that the first row and column of the matrix
+                  # taxmat have to be adjusted. If 'PIntoMostAbun' is FALSE this
+                  # is the least-abundant species (i.e., species nspecies), such
+                  # that the last row and column of the matrix taxmat have to be
+                  # adjusted. In both cases the diagonal should remain
+                  # 'SameSpecies' because those reflect intraspecies
+                  # relationships by definition.
+
+                  # Note that PIntoMostAbun is used to determine the initially
+                  # plasmid-bearing species is also the perturbed
+                  # species.
+                  if(PIntoMostAbun == TRUE) {
+                    taxmat[1, -1] <- taxmattype
+                    taxmat[-1, 1] <- taxmattype
                   } else {
-                    # The plasmid is introduced in the least abundant species,
-                    # so set the last row and column of the matrix to OtherClass,
-                    # with exception of the diagonal which should remain SameSpecies
-                    taxmat[nspecies, -nspecies] <- "OtherClass"
-                    taxmat[-nspecies, nspecies] <- "OtherClass"
+                    taxmat[nspecies, -nspecies] <- taxmattype
+                    taxmat[-nspecies, nspecies] <- taxmattype
                   }
                 }
                 conjmat <- getconjmat(nspecies = nspecies,
@@ -1295,9 +1278,11 @@ for(nspecies in nspeciesset) {
                 compstability <- as.integer(paste0(eqinfo["eigvalReSign"] + 3,
                                                    eqinfoconj["eigvalReSign"] + 3))
                 
-                # To simulate invasion of the plasmid-free equilibrium with plasmids,
-                # the abundances of the plasmid-free populations have to be appended
-                # to the abundances of the plasmid-bearing populations
+                # To simulate invasion of plasmid-bearing bacteria into the
+                # plasmid-free equilibrium, the abundances of the plasmid-free
+                # populations have to be appended to the abundances of the
+                # plasmid-bearing populations. 'pertpop' is the population to
+                # which bacteria are added.
                 if(simulateinvasion == TRUE) {
                   if(eqinfoconj["eigvalRe"] >= 0) {
                     abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
@@ -1522,8 +1507,8 @@ if(simulateinvasion == TRUE) {
 
 #### Saving output to CSV files ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
-if(PInMostAbun == FALSE) {
-  DateTimeStamp <- paste0(DateTimeStamp, "PInLeastAbun")
+if(PIntoMostAbun == FALSE) {
+  DateTimeStamp <- paste0(DateTimeStamp, "PIntoLeastAbun")
 }
 
 write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
@@ -1551,8 +1536,8 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
                    costtype = costtype,
-                   PIntroduced = if(PInMostAbun) {"PInMostAbun"} else {"PInLeastAbun"},
-                   PInMostAbun = PInMostAbun, duration = duration))
+                   PFrom = if(PIntoMostAbun) {"PIntoMostAbun"} else {"PIntoLeastAbun"},
+                   PIntoMostAbun = PIntoMostAbun, duration = duration))
 for(index in seq_along(settings)) {
   # Using write.table instead of write.csv() to be able to use append = TRUE
   write.table(t(as.data.frame(settings[index])), 
@@ -2027,8 +2012,8 @@ for(ind_stat_type in seq_along(stat_type)) {
 if(simulateinvasion == TRUE) {
   subplasmidfree <- "Perturbation with plasmid-free bacteria"
   subplasmidbearing <- "Perturbation with plasmid-bearing bacteria"
-  if(PInMostAbun == FALSE) {
-    title_add <- " (PinLeastAbun)"
+  if(PIntoMostAbun == FALSE) {
+    title_add <- " (PintoLeastAbun)"
   } else {
     title_add <- NULL
   }
@@ -2210,7 +2195,7 @@ if(simulateinvasion == TRUE) {
   #   "R of newly\nintroduced species 1")' ect.
   
   warning("Check if 'add_filltitle' and 'add_filltitleconj' are correct!")
-  if(PInMostAbun == TRUE) {
+  if(PIntoMostAbun == TRUE) {
     add_filltitle <- "after\nperturbation with R of most-abundant sp."
     add_filltitleconj <- c("after\nperturbation with P of most-abundant sp.")
   } else {
