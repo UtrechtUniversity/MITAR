@@ -118,10 +118,10 @@ conjrateset <- list(rep(1e-12, maxnspecies))
 # 1) is reduced a 1000-fold.
 taxmattypeset <- c("SameSpecies", "OtherClass")
 # Replace (plasmid-free) bacteria of the most-abundant species (which is species
-# 2 because species 1 is the newly-introduced species) if PIntoMostAbun is TRUE)
-# or of the least-abundant species (which is species nspecies) if PIntoMostAbun
+# 2 because species 1 is the newly-introduced species) if PReplMostAbun is TRUE)
+# or of the least-abundant species (which is species nspecies) if PReplMostAbun
 # is FALSE) with plasmid-bearing bacteria of the newly-introduced species 1.
-PIntoMostAbun <- TRUE
+PReplMostAbun <- TRUE
 # To plot 16 species need 16 colours, currently only 11 so repeat them.
 mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
                "darkorange", "green1", "yellow", "hotpink"), 2)
@@ -694,10 +694,10 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   if(model == "gLVConj") {
     # Plasmid-bearing bacteria of the newly-introduced species (species 1)
     # replace plasmid-free bacteria of the most-abundant species that is already
-    # present (i.e., species 2) if PIntoMostAbun == TRUE, and replace plasmid-free
+    # present (i.e., species 2) if PReplMostAbun == TRUE, and replace plasmid-free
     # bacteria of the least-abundant species that is already present (i.e.,
     # species nspecies) otherwise.
-    if(PIntoMostAbun == TRUE) {
+    if(PReplMostAbun == TRUE) {
       pertpopminus <- "R2" 
     } else {
       pertpopminus <- paste0("R", nspecies)
@@ -1514,8 +1514,8 @@ if(simulateinvasion == TRUE) {
 #### Saving output to CSV files ####
 DateTimeStamp <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M"),
                         "PInNewSp")
-if(PIntoMostAbun == FALSE) {
-  DateTimeStamp <- paste0(DateTimeStamp, "PIntoLeastAbun")
+if(PReplMostAbun == FALSE) {
+  DateTimeStamp <- paste0(DateTimeStamp, "PReplLeastAbun")
 }
 
 write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
@@ -1544,19 +1544,18 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    newgrowthratecode = newgrowthratecode,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
                    costtype = costtype, PFrom = "PInNewSp",
-                   PIntoMostAbun = PIntoMostAbun, duration = duration))
+                   PReplMostAbun = PReplMostAbun, duration = duration))
 for(index in seq_along(settings)) {
   # Using write.table instead of write.csv() to be able to use append = TRUE
   write.table(t(as.data.frame(settings[index])), 
               file = paste0(DateTimeStamp, "settings.csv"), append = TRUE,
               quote = FALSE, sep = ",", col.names = FALSE)
 }
+capture.output(sessionInfo(),
+               file = paste0(DateTimeStamp, "PinNewSp_sessioninfo_base.txt"))
 if(requireNamespace("sessioninfo")) {
   capture.output(sessioninfo::session_info(),
                  file = paste0(DateTimeStamp, "PinNewSp_sessioninfo.txt"))
-} else {
-  capture.output(sessionInfo(),
-                 file = paste0(DateTimeStamp, "PinNewSp_sessioninfo_base.txt"))
 }
 
 
@@ -2019,8 +2018,8 @@ for(ind_stat_type in seq_along(stat_type)) {
 if(simulateinvasion == TRUE) {
   subplasmidfree <- "Perturbation with plasmid-free bacteria"
   subplasmidbearing <- "Perturbation with plasmid-bearing bacteria"
-  if(PIntoMostAbun == FALSE) {
-    title_add <- " (PintoLeastAbun)"
+  if(PReplMostAbun == FALSE) {
+    title_add <- " (PReplLeastAbun)"
   } else {
     title_add <- NULL
   }
@@ -2243,7 +2242,7 @@ if(simulateinvasion == TRUE) {
              filename = "relabunconjsp1mediancontinuouschangedlim")
   
   warning("Check if 'add_filltitle' and 'add_filltitleconj' are correct!")
-  if(PIntoMostAbun == TRUE) {
+  if(PReplMostAbun == TRUE) {
     add_filltitle <- "after\nperturbation with R of most-abundant sp."
     add_filltitleconj <- "after\nperturbation with P of most-abundant sp."
   } else {
