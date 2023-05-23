@@ -108,14 +108,14 @@ abunmodelset <- c("dompreempt")
 costset <- c(0.05, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-12, maxnspecies))
-# If taxmattype is SameSpecies, the conjugation rate is the same for all
+# If taxmattype is "SameSpecies", the conjugation rate is the same for all
 # populations. If taxmattype is "OtherClass", the interspecies conjugation rate
 # to and from the initially plasmid-bearing population is reduced a 1000-fold.
 taxmattypeset <- c("SameSpecies", "OtherClass")
-# Replace (plasmid-free) bacteria of the most-abundant species (PIntoMostAbun 
-# == TRUE) or of the least-abundant species (PIntoMostAbun == FALSE) with
+# Replace (plasmid-free) bacteria of the most-abundant species (PReplMostAbun 
+# == TRUE) or of the least-abundant species (PReplMostAbun == FALSE) with
 # plasmid-bearing bacteria of that species.
-PIntoMostAbun <- TRUE
+PReplMostAbun <- TRUE
 # To plot 16 species need 16 colours, currently only 11 so repeat them.
 mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
                "darkorange", "green1", "yellow", "hotpink"), 2)
@@ -689,7 +689,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     # Plasmid-bearing bacteria of the most-abundant (i.e., species 1) or
     # least-abundant (i.e., species nspecies) species replace plasmid-free
     # bacteria of those species.
-    if(PIntoMostAbun == TRUE) {
+    if(PReplMostAbun == TRUE) {
       pertpopminus <- "R1"
     } else {
       pertpopminus <- paste0("R", nspecies)
@@ -907,7 +907,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        as.table = TRUE,
                        marginx = NULL, marginy = NULL, base_size = 11,
                        rotate_x_labels = TRUE, rotate_legend = FALSE,
-                       save = saveplots, filename = NULL, ...) {
+                       save = saveplots, filename = NULL) {
   caption <- paste(unique(dataplot$niter), "iterations")
   if(exists("DateTimeStamp") == FALSE) {
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
@@ -1014,7 +1014,6 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     p <- p + guides(fill = guide_colourbar(label.hjust = 0.4, label.vjust = 0.5,
                                            label.theme = element_text(angle = 90)))
   }
-  
   if(diagonal == "both" || diagonal == "major") {
     p <- p + geom_abline(intercept = 0, slope = -1, col = "grey", size = 1.1)
   }
@@ -1106,7 +1105,7 @@ for(nspecies in nspeciesset) {
   # adding bacteria. In case of pertpopconj the added bacteria are
   # plasmid-bearing and replace plasmid-free bacteria. In case of pertpop,
   # the bacteria are plasmid-free and are added to the existing bacteria.
-  if(PIntoMostAbun == TRUE) {
+  if(PReplMostAbun == TRUE) {
     pertpop <- "R1"
     pertpopconj <- "P1"
   } else {
@@ -1227,20 +1226,20 @@ for(nspecies in nspeciesset) {
                   # If taxmattype is not 'SameSpecies', 'taxmat' has to be
                   # adjusted to reflect the more-distant relatedness of the
                   # initially plasmid-bearing species to the initially
-                  # plasmid-free species. If 'PIntoMostAbun' is TRUE the initially
+                  # plasmid-free species. If 'PReplMostAbun' is TRUE the initially
                   # plasmid-bearing species is the most-abundant species (i.e.,
                   # species 1), such that the first row and column of the matrix
-                  # taxmat have to be adjusted. If 'PIntoMostAbun' is FALSE this
+                  # taxmat have to be adjusted. If 'PReplMostAbun' is FALSE this
                   # is the least-abundant species (i.e., species nspecies), such
                   # that the last row and column of the matrix taxmat have to be
                   # adjusted. In both cases the diagonal should remain
                   # 'SameSpecies' because those reflect intraspecies
                   # relationships by definition.
 
-                  # Note that PIntoMostAbun is used to determine the initially
+                  # Note that PReplMostAbun is used to determine the initially
                   # plasmid-bearing species is also the perturbed
                   # species.
-                  if(PIntoMostAbun == TRUE) {
+                  if(PReplMostAbun == TRUE) {
                     taxmat[1, -1] <- taxmattype
                     taxmat[-1, 1] <- taxmattype
                   } else {
@@ -1507,8 +1506,8 @@ if(simulateinvasion == TRUE) {
 
 #### Saving output to CSV files ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
-if(PIntoMostAbun == FALSE) {
-  DateTimeStamp <- paste0(DateTimeStamp, "PIntoLeastAbun")
+if(PReplMostAbun == FALSE) {
+  DateTimeStamp <- paste0(DateTimeStamp, "PReplLeastAbun")
 }
 
 write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
@@ -1536,20 +1535,19 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
                    costtype = costtype,
-                   PFrom = if(PIntoMostAbun) {"PIntoMostAbun"} else {"PIntoLeastAbun"},
-                   PIntoMostAbun = PIntoMostAbun, duration = duration))
+                   PFrom = if(PReplMostAbun) {"MostAbun"} else {"LeastAbun"},
+                   PReplMostAbun = PReplMostAbun, duration = duration))
 for(index in seq_along(settings)) {
   # Using write.table instead of write.csv() to be able to use append = TRUE
   write.table(t(as.data.frame(settings[index])), 
               file = paste0(DateTimeStamp, "settings.csv"), append = TRUE,
               quote = FALSE, sep = ",", col.names = FALSE)
 }
+capture.output(sessionInfo(),
+               file = paste0(DateTimeStamp, "sessioninfo_base.txt"))
 if(requireNamespace("sessioninfo")) {
   capture.output(sessioninfo::session_info(),
                  file = paste0(DateTimeStamp, "sessioninfo.txt"))
-} else {
-  capture.output(sessionInfo(),
-                 file = paste0(DateTimeStamp, "sessioninfo_base.txt"))
 }
 
 
@@ -2012,8 +2010,8 @@ for(ind_stat_type in seq_along(stat_type)) {
 if(simulateinvasion == TRUE) {
   subplasmidfree <- "Perturbation with plasmid-free bacteria"
   subplasmidbearing <- "Perturbation with plasmid-bearing bacteria"
-  if(PIntoMostAbun == FALSE) {
-    title_add <- " (PintoLeastAbun)"
+  if(PReplMostAbun == FALSE) {
+    title_add <- " (PReplLeastAbun)"
   } else {
     title_add <- NULL
   }
@@ -2195,7 +2193,7 @@ if(simulateinvasion == TRUE) {
   #   "R of newly\nintroduced species 1")' ect.
   
   warning("Check if 'add_filltitle' and 'add_filltitleconj' are correct!")
-  if(PIntoMostAbun == TRUE) {
+  if(PReplMostAbun == TRUE) {
     add_filltitle <- "after\nperturbation with R of most-abundant sp."
     add_filltitleconj <- c("after\nperturbation with P of most-abundant sp.")
   } else {
