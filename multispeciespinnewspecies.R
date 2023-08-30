@@ -21,7 +21,7 @@
 # industrial and applied mathematics.
 
 # Lischke H, Löffler TJ. 2017. Finding all multiple stable fixpoints of n-species
-# Lotka-Volterra competition models Theoretical Population Biology 115:24-34.
+# Lotka-Volterra competition models. Theoretical Population Biology 115:24-34.
 
 # Roberts MG, Heesterbeek JAP. 2021. Infection dynamics in ecosystems: on the
 # interaction between red and grey squirrels, pox virus, pine martens and trees.
@@ -108,7 +108,7 @@ abunmodelset <- c("dompreempt")
 # The growth rate of new species is the mean growth rate of the plasmid-free 
 # species decreased with 2 standard deviations, unchanged, or increased with 2
 # standard deviations when newgrowthratecode == 1, 2, or 3, respectively.
-newgrowthratecode <- 1 # A SINGLE value should be provided.
+newgrowthratecode <- 2 # A SINGLE value (1, 2 or 3) should be provided.
 costset <- c(0.05, 0.09)
 costtype <- "absolute"
 conjrateset <- list(rep(1e-12, maxnspecies))
@@ -162,9 +162,15 @@ bifurparms <- TRUE
 costset <- seq(from = 0, to = 0.2, by = 0.001)
 seqconjrate <- 10^seq(from = -13.5, to = -11.5, by = 0.01)
 conjrateset <- NULL
-# TO DO:
-# - Shouldn't it be adjusted to have all rates 10^-12 except for interspecies
-#   rates to and from initP?
+# The conjugation rate given here is the 'overall' conjugation rate. For all
+# species, the intraspecies conjugation rate will be equal to this overall
+# conjugation rate. The interspecies conjugation rate will be equal to this
+# overall conjugation rate if all populations belong to the same species.
+# If the initially plasmid-bearing species is considered to be from another
+# taxonomic class than the initially plasmid-free species, these overall
+# conjugation rates are reduced a thousand-fold to obtain the interspecies
+# conjugation rate between initially plasmid-bearing and initially plasmid-free
+# species.
 for(conjrate in seqconjrate) {
   conjrateset <- c(conjrateset, list(rep(conjrate, maxnspecies)))
 }
@@ -248,6 +254,20 @@ brokenstick <- function(nspecies, totalabun, takelimit = TRUE, niterabun = 1000)
   return(abun)
 }
 
+brokenstick_fast <- function(nspecies, totalabun, takelimit = NULL,
+                             niterabun = 1000) {
+  stopifnot(length(nspecies) == 1, nspecies > 1,
+            length(totalabun) == 1, totalabun > 0)
+  abunmat <- matrix(data = NA, nrow = niterabun, ncol = nspecies)
+  for(iterindex in seq_len(niterabun)) {
+    # sorting to get positive differences in the next step
+    breakpoints <- sort(runif(nspecies - 1, min = 0, max = totalabun))
+    # sorting because otherwise taking the mean does not make sense
+    abunmat[iterindex, ] <- sort(diff(c(0, breakpoints, totalabun)))
+  }
+  sort(colMeans(abunmat), decreasing = TRUE)
+}
+
 # Calculate abundances following the dominance preemption model. The first
 # species occupies (preempts) more than half of the total niche, and each
 # subsequent species occupies more than half of the remainder (Tokeshi 1990).
@@ -276,6 +296,17 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
   return(abun)
 }
 
+dompreempt_fast <- function(nspecies, totalabun, takelimit = NULL) {
+  stopifnot(length(nspecies) == 1, nspecies > 1,
+            length(totalabun) == 1, totalabun > 0)
+  abun <- rep(NA, nspecies)
+  abun <- totalabun*0.75*0.25^(seq_len(nspecies) - 1)
+  
+  # Scaling abundances to get specified total abundance
+  abun <- abun / (1 - (0.25^nspecies))
+  return(abun)
+}
+
 # Create a matrix of scaled interaction coefficients for nspecies species with
 # units mL cell^-1 h^-1, where element aij represents cij * ri / Ki in the
 # textbook-notation (see comments on the generalised Lotka-Volterra model given
@@ -290,13 +321,14 @@ dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
 # interactions, choose the uniform distribution and provide the desired value
 # both as the minimum and maximum of the range, or provide the standard
 # deviation of the normal distribution as zero. The other arguments specify the
-# distributions from which interaction coefficients are drawn.
-getintmat <- function(nspecies, sparsity = 0,
-                      intdistr = "normal", intmean = 0, intsd = 5e-12,
-                      intrange = c(-1.2e-11, 1.2e-11),
-                      selfintdistr = "normal",
-                      selfintmean = -6e-13, selfintsd = 9e-12,
-                      selfintrange = c(-1.2e-11, 0)) {
+# distributions from which interaction coefficients are drawn. See getintmat()
+# for a faster, more succinct version of this function.
+getintmat_elaborate <- function(nspecies, sparsity = 0,
+                                intdistr = "normal", intmean = 0, intsd = 5e-12,
+                                intrange = c(-1e-11, 1e-11),
+                                selfintdistr = "normal",
+                                selfintmean = -5e-12, selfintsd = 9e-12,
+                                selfintrange = c(-1e-11, 0)) {
   stopifnot(length(nspecies) == 1, nspecies > 1,
             is.numeric(sparsity), length(sparsity) == 1,
             sparsity >= 0, sparsity <= 1)
@@ -360,10 +392,40 @@ getintmat <- function(nspecies, sparsity = 0,
   return(intmat)
 }
 
+# Create a matrix of scaled interaction coefficients for nspecies species with
+# units mL cell^-1 h^-1, where element aij represents cij * ri / Ki in the
+# textbook-notation (see comments on the generalised Lotka-Volterra model given
+# above), such that elements aii on the diagonal equal ri / Ki, with Ki being
+# the carrying capacity of species i. Off-diagonal entries are interspecies
+# interaction coefficients drawn from a normal distribution with mean and
+# standard deviation given by intmean and intsd, respectively. Diagonal entries
+# are intraspecies interactions drawn from a truncated normal distribution with
+# mean and standard deviation given by selfintmean and selfintsd, respectively,
+# and is truncated to obtain negative intraspecies interactions. See function
+# 'getintmat_elaborate()' for a more elaborate but slower version of this
+# function.
+getintmat <- function(nspecies, intmean = 0, intsd = 5e-12,
+                      selfintmean = -5e-12, selfintsd = 9e-12) {
+  stopifnot(length(nspecies) == 1, nspecies > 1,
+            length(intmean) == 1, length(intsd) == 1, intsd >= 0,
+            length(selfintmean) == 1, length(selfintsd) == 1, selfintsd >= 0)
+  
+  intmat <- matrix(rnorm(n = nspecies^2, mean = intmean, sd = intsd),
+                   nrow = nspecies, ncol = nspecies)
+  
+  # Draw variates from a truncated normal distribution to ensure
+  # negative intraspecies interactions without having to redraw for
+  # positive deviates, using rtnorm() from the package TruncatedNormal.
+  diag(intmat) <- rtnorm(n = nspecies, mu = selfintmean, sd = selfintsd,
+                         lb = -Inf, ub = 0, method = "invtransfo")
+  return(intmat)
+}
+
 # Calculate the required growth rates to obtain the specified species abundances
 # at equilibrium given the interaction matrix. The growth rate can be negative
-# if growth is assumed to be slower than washout.
-getgrowthrate <- function(abundance, intmat) {
+# if growth is assumed to be slower than washout. See getgrowthrate() for a
+# faster, more succinct version of this function.
+getgrowthrate_elaborate <- function(abundance, intmat) {
   stopifnot(length(abundance) == dim(intmat)[1])
   growthrate <- -intmat %*% abundance
   if(any(is.complex(growthrate))) {
@@ -372,6 +434,15 @@ getgrowthrate <- function(abundance, intmat) {
     warning(warntext)
   }
   return(growthrate)
+}
+
+# Calculate the required growth rates to obtain the specified species abundances
+# at equilibrium given the interaction matrix. The growth rate can be negative
+# if growth is assumed to be slower than washout. See getgrowthrate_elaborate()
+# for a more elaborate version of this function.
+getgrowthrate <- function(abundance, intmat) {
+  stopifnot(length(abundance) == dim(intmat)[1])
+  -intmat %*% abundance
 }
 
 # Check if the analytically identified equilibrium is indeed an equilibrium, by
@@ -428,7 +499,7 @@ checkequilibrium <- function(abundance, intmat, growthrate,
 #                      nrow = 4, ncol = 4, byrow = TRUE)
 #     Only the submatrix taxmat[seq_len(nspecies), seq_len(nspecies)] is used if
 #     nspecies < max(nspeciesset). The use of multiple values for taxmat is
-#     NOT supported (yet).
+#     NOT supported.
 # Return:
 #   - conjmat: matrix where the element in column n and row r gives the
 #     conjugation rate from species n to species r.
@@ -459,6 +530,25 @@ getconjmat <- function(nspecies, conjrate, taxmat) {
   # conjrate. Using t(t(convmat) * conjrate) is faster for nspecies > 15
   conjmat <- convmat %*% diag(conjratensp)
   return(conjmat)
+}
+
+# Can be used if taxmat contains nothing else than 'SameSpecies' or 'OtherClass'
+getconjmat_fast <- function(nspecies, conjrate, taxmat) {
+  stopifnot(all(diag(taxmat) == "SameSpecies"),
+            isSymmetric.matrix(unname(taxmat)))
+  sel_sp <- seq_len(nspecies)
+  
+  # To obtain interspecies conjugation rates for the species belonging to
+  # another taxonomic class than the donor, the intraspecies conjugation rates
+  # are multiplied with 0.001 (based on the decrease in conjugation frequencies
+  # described in Alderliesten 2020).
+  convmat <- matrix(1, nrow = nspecies, ncol = nspecies)
+  convmat[which(taxmat[sel_sp, sel_sp] == "OtherClass")] <- 0.001
+  
+  # Multiply column n of convmat giving the conversion factors for conjugation
+  # from donor species n to the different recipient species, with element n of
+  # conjrate.
+  convmat %*% diag(conjrate[sel_sp])
 }
 
 # Get equilibrium characteristics. On ecological and epidemiological stability
@@ -620,6 +710,8 @@ eventfun <- function(t, state, p) {
 #   converted to relative abundances later on in the script.
 # - The current implementation of pertpopconjsurvived does NOT handle
 #   perturbation by multiple populations.
+# - See perturbequilibrium_gLV_fast() and perturbequilibrium_gLVConj_fast for
+#   faster implementations for those models.
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                                model, pertpop, pertmagn = 1000,
                                tmax = 1e4, tstep = 1, showplot = TRUE,
@@ -631,10 +723,11 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   # in the plasmid-free model.
   if(model == "gLV") {
     nspecies <- length(abundance)
+    index_sp <- seq_len(nspecies)
     indexR <- seq_len(nspecies)
-    names(abundance) <- paste0(rep("R", nspecies), seq_len(nspecies))
+    names(abundance) <- paste0(rep("R", nspecies), index_sp)
     lty <- 1
-    col <- mycol[seq_len(nspecies)]
+    col <- mycol[index_sp]
     derivatives <- unlist(
       gLV(t = 0, n = abundance,
           parms = list(growthrate = growthrate, intmat = intmat)
@@ -644,12 +737,13 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   
   if(model == "gLVConj") {
     nspecies <- length(abundance)/2
+    index_sp <- seq_len(nspecies)
     indexR <- seq_len(nspecies)
     indexP <- (nspecies + 1):(2*nspecies)
-    names(abundance) <- c(paste0(rep("R", nspecies), seq_len(nspecies)),
-                          paste0(rep("P", nspecies), seq_len(nspecies)))
+    names(abundance) <- c(paste0(rep("R", nspecies), index_sp),
+                          paste0(rep("P", nspecies), index_sp))
     lty <- rep(c(1, 2), each = nspecies)
-    col <- rep(mycol[seq_len(nspecies)], 2)
+    col <- rep(mycol[index_sp], 2)
     if(!all(near(abundance[indexP], 0))) {
       warning("Initial state is NOT plasmid-free.")
     }
@@ -694,7 +788,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   if(model == "gLVConj") {
     # Plasmid-bearing bacteria of the newly-introduced species (species 1)
     # replace plasmid-free bacteria of the most-abundant species that is already
-    # present (i.e., species 2) if PReplMostAbun == TRUE, and replace plasmid-free
+    # present (i.e., species 2) if PReplMostAbun is TRUE, and replace plasmid-free
     # bacteria of the least-abundant species that is already present (i.e.,
     # species nspecies) otherwise.
     if(PReplMostAbun == TRUE) {
@@ -880,6 +974,190 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   }
   
   return(abunfinal)
+}
+
+# Arguments with default NULL are not used, but retained to allow drop-in
+# replacement of code using perturbequilibrium() assuming the arguments are set.
+perturbequilibrium_gLV_fast <- function(abundance, intmat, growthrate,
+                                        cost = NULL, conjmat = NULL,
+                                        model = NULL, pertpop, pertmagn = 1000,
+                                        tmax = 1e4, tstep = 1,
+                                        showplot = NULL,
+                                        plotepistabwithP = NULL, verbose = NULL,
+                                        silentinfgrowth = NULL,
+                                        silenteqnotreached = NULL) {
+  nspecies <- length(abundance)
+  indexR <- seq_len(nspecies)
+  names(abundance) <- paste0(rep("R", nspecies), indexR)
+  
+  abuninit <- abundance
+  abunpert <- abundance
+  abunpert[pertpop] <- abunpert[pertpop] + pertmagn
+  
+  # Perturb equilibrium
+  times <- c(0:(tstep - 1), seq(from = tstep, to = tmax, by = tstep))
+  out <- ode(y = abunpert, times = times, func = gLV,
+             parms = list(growthrate = growthrate, intmat = intmat),
+             rootfunc = rootfun,
+             events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
+  
+  final <- tail(out, 1)
+  timefinal <- final[, "time"]
+  abunfinaltemp <- final[, -which(colnames(final) == "time")]
+  names(abunfinaltemp) <- names(abundance)
+  
+  # Assume infinite growth occurred if a root was triggered because abundances
+  # became very large
+  infgrowth <- 0
+  eqreached <- 0
+  tmaxshort <- 0
+  if(!is.null(attributes(out)$troot)) {
+    # One or more roots found
+    
+    if(any(attributes(out)$indroot == 1)) {
+      eqreached <- 1  
+    }
+    
+    if(any(attributes(out)$indroot == 2)) {
+      infgrowth <- 1
+    }
+  }
+  
+  if(eqreached == 0 && infgrowth != 1) {
+    tmaxshort <- 1
+  }
+  
+  if(eqreached == 0) {
+    # It does not make sense to store abundances in case of infinite
+    # growth or if equilibrium is not reached, so record those as NA
+    abunfinaltemp <- rep(NA, nspecies)
+    names(abunfinaltemp) <- names(abundance)
+    npopR <- NA
+  } else {
+    derivatives <- unlist(
+      gLV(t = 0, n = abunfinaltemp,
+          parms = list(growthrate = growthrate, intmat = intmat))
+    )
+    abunfinaltemp[which(derivatives < 0 & abunfinaltemp < finalsmallstate)] <- 0
+    npopR <- length(which(abunfinaltemp > smallstate))
+  }
+  
+  list(R = abunfinaltemp, Rtotal = sum(abunfinaltemp),
+       npopR = npopR,
+       P = NULL, Ptotal = NULL, npopP = NULL,
+       pertpopconjsurvived = NULL,
+       timepertpopconjextinct = NULL,
+       timefinal = timefinal, tmaxshort = tmaxshort,
+       eqreached = eqreached, infgrowth = infgrowth)
+}
+
+# Arguments with default NULL are not used, but retained to allow drop-in
+# replacement of code using perturbequilibrium() assuming the arguments are set.
+perturbequilibrium_gLVConj_fast <- function(abundance, intmat, growthrate, cost, conjmat,
+                                            model = NULL, pertpop, pertmagn = 1000,
+                                            tmax = 1e4, tstep = 1, showplot = NA,
+                                            plotepistabwithP = NA, verbose = NA,
+                                            silentinfgrowth = FALSE,
+                                            silenteqnotreached = FALSE) {
+  nspecies <- length(abundance)/2
+  index_sp <- seq_len(nspecies)
+  indexR <- seq_len(nspecies)
+  indexP <- (nspecies + 1):(2*nspecies)
+  names(abundance) <- c(paste0(rep("R", nspecies), index_sp),
+                        paste0(rep("P", nspecies), index_sp))
+  lty <- rep(c(1, 2), each = nspecies)
+  col <- rep(mycol[index_sp], 2)
+  if(!all(near(abundance[indexP], 0))) {
+    warning("Initial state is NOT plasmid-free.")
+  }
+  
+  abuninit <- abundance
+  abunpert <- abundance
+  abunpert[pertpop] <- abunpert[pertpop] + pertmagn
+  
+  # Plasmid-bearing bacteria of the most-abundant (i.e., species 1) or
+  # least-abundant (i.e., species nspecies) species replace plasmid-free
+  # bacteria of those species.
+  if(PReplMostAbun == TRUE) {
+    pertpopminus <- "R1"
+  } else {
+    pertpopminus <- paste0("R", nspecies)
+  }
+  abunpert[pertpopminus] <-  abunpert[pertpopminus] - pertmagn
+  
+  # Perturb equilibrium
+  times <- c(0:(tstep - 1), seq(from = tstep, to = tmax, by = tstep))
+  out <- ode(y = abunpert, times = times, func = gLVConj,
+             parms = list(growthrate = growthrate, intmat = intmat,
+                          cost = cost, conjmat = conjmat),
+             rootfunc = rootfunconj,
+             events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
+  
+  final <- tail(out, 1)
+  timefinal <- final[, "time"]
+  abunfinaltemp <- final[, -which(colnames(final) == "time")]
+  names(abunfinaltemp) <- names(abundance)
+  
+  # Assume infinite growth occurred if a root was triggered because abundances
+  # became very large
+  infgrowth <- 0
+  eqreached <- 0
+  tmaxshort <- 0
+  if(!is.null(attributes(out)$troot)) {
+    # One or more roots found
+    
+    if(any(attributes(out)$indroot == 1)) {
+      eqreached <- 1  
+    }
+    
+    if(any(attributes(out)$indroot == 2)) {
+      infgrowth <- 1
+    }
+  }
+  
+  if(eqreached == 0 && infgrowth != 1) {
+    tmaxshort <- 1
+  }
+  
+  if(eqreached == 0) {
+    # It does not make sense to store abundances in case of infinite
+    # growth or if equilibrium is not reached, so record those as NA
+    abunfinaltemp <- rep(NA, 2*nspecies)
+    names(abunfinaltemp) <- names(abundance)
+    npopR <- NA
+    npopP <- NA
+    pertpopconjsurvived <- NA
+    timepertpopconjextinct <- NA
+  } else {
+    derivatives <- unlist(
+      gLVConj(t = 0, n = abunfinaltemp,
+              parms = list(growthrate = growthrate, intmat = intmat,
+                           cost = cost, conjmat = conjmat))
+    )
+    # Plasmid-bearing populations can reach densities smaller than smallstate
+    # during the integration, because they are constantly produced through
+    # conjugation after being set to 0.
+    abunfinaltemp[which(derivatives < 0 & abunfinaltemp < finalsmallstate)] <- 0
+    npopR <- length(which(abunfinaltemp[indexR] > smallstate))
+    npopP <- length(which(abunfinaltemp[indexP] > smallstate))
+    
+    if(abunfinaltemp[pertpop] > finalsmallstate) {
+      pertpopconjsurvived <- 1
+      timepertpopconjextinct <- NA
+    } else {
+      pertpopconjsurvived <- 0
+      timepertpopconjextinct <- unname(out[max(
+        which(out[, pertpopconj] >= finalsmallstate)), "time"])
+    }
+  }
+  
+  list(R = abunfinaltemp[indexR], Rtotal = sum(abunfinaltemp[indexR]),
+       npopR = npopR,
+       P = abunfinaltemp[indexP], Ptotal = sum(abunfinaltemp[indexP]),
+       npopP = npopP, pertpopconjsurvived = pertpopconjsurvived,
+       timepertpopconjextinct = timepertpopconjextinct,
+       timefinal = timefinal, tmaxshort = tmaxshort,
+       eqreached = eqreached, infgrowth = infgrowth)
 }
 
 # List of functions called within dplyr::summarise() to get summary statistics
@@ -1108,6 +1386,12 @@ indexdatatotal <- 1
 # Run simulations
 rowindexplotdata <- 1
 rowindexdata <- 1
+
+warning("This script is currently set to only simulate the first 10 time steps",
+        " for\nplasmid-free bacteria, to save time and focus on invasion of",
+        " plasmid-bearing\nbacteria. As a result, the equilibrium will almost",
+        " never be reached for\nperturbation with plasmid-free bacteria.")
+
 for(nspecies in nspeciesset) {
   # Note: pertpop and pertpopconj indicate which population is perturbed by
   # adding bacteria, which in this model is always the newly-introduced species
@@ -1121,8 +1405,8 @@ for(nspecies in nspeciesset) {
     if(abunmodel == "brokenstick") {
       # Use nspecies - 1 because the newly-introduced species (species 1) should
       # not yet be taken into account.
-      abundance <- brokenstick(nspecies = nspecies - 1, totalabun = totalabun,
-                               takelimit = TRUE)
+      abundance <- brokenstick_fast(nspecies = nspecies - 1, totalabun = totalabun,
+                                    takelimit = TRUE)
       # Using a number instead of a name, to prevent type-conversion when
       # storing it in matrices.
       abunmodelcode <- 1
@@ -1130,8 +1414,8 @@ for(nspecies in nspeciesset) {
     if(abunmodel == "dompreempt") {
       # Use nspecies - 1 because the newly-introduced species (species 1) should
       # not yet be taken into account.
-      abundance <- dompreempt(nspecies = nspecies - 1, totalabun = totalabun,
-                              takelimit = TRUE)
+      abundance <- dompreempt_fast(nspecies = nspecies - 1, totalabun = totalabun,
+                                   takelimit = TRUE)
       abunmodelcode <- 2
     }
     
@@ -1193,13 +1477,18 @@ for(nspecies in nspeciesset) {
           # Simulate invasion of plasmid-free bacteria into the plasmid-free
           # equilibrium in the model without conjugation (i.e., test internal
           # stability).
+          # WARNING:
+          #   This is currently set to only simulate the first 10 time steps,
+          #   such that equilibrium will almost never be reached. This is done
+          #   to save time and focus on invasion of plasmid-bearing bacteria.
           if(simulateinvasion == TRUE) {
             if(stableeq == FALSE) {
-              abunfinal <- perturbequilibrium(abundance = c(0, abundance), intmat = intmat,
+              abunfinal <- perturbequilibrium_gLV_fast(abundance = c(0, abundance),
+                                                       intmat = intmat,
                                               growthrate = growthrate,
                                               cost = NULL, conjmat = NULL,
                                               model = "gLV", pertpop = pertpop,
-                                              pertmagn = 1, tmax = 1e4,
+                                              pertmagn = 1, tmax = 10, tstep = 1,
                                               showplot = FALSE, verbose = FALSE,
                                               silentinfgrowth = TRUE,
                                               silenteqnotreached = TRUE)
@@ -1253,7 +1542,7 @@ for(nspecies in nspeciesset) {
                   taxmat[1, -1] <- taxmattype
                   taxmat[-1, 1] <- taxmattype
                 }
-                conjmat <- getconjmat(nspecies = nspecies,
+                conjmat <- getconjmat_fast(nspecies = nspecies,
                                       conjrate = conjrate, taxmat = taxmat)
                 
                 # Get equilibrium characteristics for plasmid-free equilibrium in
@@ -1289,11 +1578,12 @@ for(nspecies in nspeciesset) {
                 # plasmid-bearing populations.
                 if(simulateinvasion == TRUE) {
                   if(eqinfoconj["eigvalRe"] >= 0) {
-                    abunfinalconj <- perturbequilibrium(abundance = c(0, abundance, rep(0, nspecies)),
+                    abunfinalconj <- perturbequilibrium_gLVConj_fast(
+                                                        abundance = c(0, abundance, rep(0, nspecies)),
                                                         intmat = intmat, growthrate = growthrate,
                                                         cost = cost, conjmat = conjmat,
                                                         model = "gLVConj", pertpop = pertpopconj,
-                                                        pertmagn = 1, tmax = 1e4,
+                                                        pertmagn = 1, tmax = 5e3, tstep = 10,
                                                         showplot = FALSE, verbose = FALSE,
                                                         silentinfgrowth = TRUE,
                                                         silenteqnotreached = TRUE)
@@ -1511,28 +1801,20 @@ if(simulateinvasion == TRUE) {
 }
 
 
-#### Saving output to CSV files ####
+#### Saving settings and output to CSV files ####
 DateTimeStamp <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M"),
                         "PInNewSp")
 if(PReplMostAbun == FALSE) {
   DateTimeStamp <- paste0(DateTimeStamp, "PReplLeastAbun")
 }
 
-write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
-          quote = FALSE, row.names = FALSE)
-if(nrow(datatotal) < 250000) {
-  write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
-            quote = FALSE, row.names = FALSE)
+if(nrow(plotdata) > 250000) {
+  warning("Not saved 'plotdata' to CSV-file because the number of rows (",
+          nrow(plotdata), ") exceeds 250000.")
 } else {
-  for(nspecies in nspeciesset) {
-    filename <- paste0(DateTimeStamp, "multispeciestotal_nsp", nspecies, ".csv")
-    write.csv(datatotal[which(near(nspecies, datatotal[, "nspecies"])), ],
-              file = filename, quote = FALSE, row.names = FALSE)
-    message("Saved file ", filename)
-  }
+  write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
+            quote = FALSE, row.names = FALSE)
 }
-
-# Saving settings
 names(conjrateset) <- paste0("conjrateset", seq_along(conjrateset))
 settings <- c(list(niter = niter, niterintmat = niterintmat,
                    simulateinvasion = simulateinvasion,
@@ -1557,6 +1839,17 @@ if(requireNamespace("sessioninfo")) {
   capture.output(sessioninfo::session_info(),
                  file = paste0(DateTimeStamp, "PinNewSp_sessioninfo.txt"))
 }
+if(nrow(datatotal) < 250000) {
+  write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
+            quote = FALSE, row.names = FALSE)
+} else {
+  for(nspecies in nspeciesset) {
+    filename <- paste0(DateTimeStamp, "multispeciestotal_nsp", nspecies, ".csv")
+    write.csv(datatotal[which(near(nspecies, datatotal[, "nspecies"])), ],
+              file = filename, quote = FALSE, row.names = FALSE)
+    message("Saved file ", filename)
+  }
+}
 
 
 #### Reading previously saved data from a CSV file ####
@@ -1566,7 +1859,7 @@ if(requireNamespace("sessioninfo")) {
 # # that contain 'species' in their name).
 # list.files(pattern = "species", ignore.case = TRUE)
 # # Note that the extension (.csv) should be included in the file name.
-# filename <- "2021_05_04_17_44PInNewSpeciesmultispecies.csv"
+# filename <- "2023_04_24_22_10PInNewSpeciesmultispecies.csv"
 # plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
 #                      dec = ".", stringsAsFactors = FALSE)
 # # If plotdata has only one column, probably a semicolon instead of a comma was
@@ -1576,17 +1869,27 @@ if(requireNamespace("sessioninfo")) {
 #                        dec = ".", stringsAsFactors = FALSE)
 # }
 # plotdata <- as.data.frame(plotdata)
-# DateTimeStamp <- substr(filename, 1, 16)
+# DateTimeStamp <- substr(filename, 1, 29)
 # nspeciesset <- sort(unique(plotdata[, "nspecies"]))
 # # Similarly for the datatotal CSV file.
-# filename <- "2023_0428_0507PInNewSpeciesmultispeciestotal.csv"
-# datatotal <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
+# filename <- "2023_04_24_22_10PInNewSpeciesmultispeciestotal3.csv"
+# datatotal_p1 <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
 #                      dec = ".", stringsAsFactors = FALSE)
-# filename <- "2023_0428_0507multispeciestotal_nsp16.csv"
+# filename <- "2023_04_24_22_10PInNewSpeciesmultispeciestotal5.csv"
 # datatotal_p2 <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
 #                       dec = ".", stringsAsFactors = FALSE)
-# datatotal <- rbind(datatotal, datatotal_p2)
+# filename <- "2023_04_24_22_10PInNewSpeciesmultispeciestotal9.csv"
+# datatotal_p3 <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
+#                          dec = ".", stringsAsFactors = FALSE)
+# filename <- "2023_04_24_22_10PInNewSpeciesmultispeciestotal17.csv"
+# datatotal_p4 <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
+#                          dec = ".", stringsAsFactors = FALSE)
+# datatotal <- rbind(datatotal_p1, datatotal_p2, datatotal_p3, datatotal_p4)
+# rm(datatotal_p1)
 # rm(datatotal_p2)
+# rm(datatotal_p3)
+# rm(datatotal_p4)
+
 
 
 #### Labels and limits for plots ####
@@ -1698,7 +2001,7 @@ if(bifurparms == TRUE) {
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              limy = range(log10(seqconjrate)), ratio = NULL,
-             title = "Epidemiological stability",
+             title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode + intmean", facety = "nspecies",
              rotate_x_labels = TRUE, save = FALSE) +
@@ -1713,7 +2016,7 @@ if(bifurparms == TRUE) {
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(intmean)",
              limy = range(log10(seqconjrate)), ratio = NULL,
-             title = "Epidemiological stability",
+             title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = "nspecies",
              rotate_x_labels = FALSE, save = FALSE) +
@@ -1728,7 +2031,7 @@ if(bifurparms == TRUE) {
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              limy = range(log10(seqconjrate)), ratio = NULL,
-             title = "Epidemiological stability",
+             title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = "intmean",
              rotate_x_labels = TRUE, save = FALSE) +
@@ -1751,7 +2054,7 @@ if(bifurparms == TRUE) {
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(intmean)",
              limy = range(log10(seqconjrate)), ratio = NULL,
-             title = "Epidemiological stability",
+             title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = ".",
              rotate_x_labels = FALSE, save = FALSE) +
@@ -1766,7 +2069,7 @@ if(bifurparms == TRUE) {
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(taxmatcode)",
              limy = range(log10(seqconjrate)), ratio = NULL,
-             title = "Epidemiological stability",
+             title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = ".", facety = "nspecies",
              rotate_x_labels = FALSE, save = FALSE) +
@@ -1783,7 +2086,7 @@ if(bifurparms == TRUE) {
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(taxmatcode)",
              limy = range(log10(seqconjrate)), ratio = NULL,
-             title = "Epidemiological stability",
+             title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = ".", facety = ".",
              rotate_x_labels = FALSE, save = FALSE) +
@@ -1807,7 +2110,7 @@ if(bifurparms == TRUE) {
              filltitle = "fracstableepi", contour_var = NULL, contour_col = NULL,
              contour_lty = NULL, filltype = "continuous", limx = range(costset),
              limy = range(log10(seqconjrate)), ratio = NULL,
-             title = "Epidemiological stability",
+             title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = "nspecies",
              rotate_x_labels = FALSE, filename = "epistabheatmap")
@@ -1846,6 +2149,12 @@ CreatePlot(fillvar = "1 - fracstableconj",
 CreatePlot(fillvar = "fracstableecol",
            filltitle = "Fraction ecologically\nstable",
            filltype = "continuous", limits = limitsfraction)
+CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+                             near(conjratecode, 1), near(taxmatcode, 1)),
+           fillvar = "fracstableecol",
+           filltitle = "Fraction ecologically\nstable",
+           filltype = "continuous", limits = limitsfraction,
+           filename = "Fig06B")
 CreatePlot(fillvar = "fracstableepi",
            filltitle = "Fraction epidemiologically\nstable",
            filltype = "continuous", limits = limitsfraction)
@@ -1932,12 +2241,24 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "infgrowthconjfrac",
              filltitle = "Fraction infinite growth\nwith conjugation",
              filltype = "continuous", limits = limitsfraction)
+  CreatePlot(fillvar = "infgrowthconjfrac",
+             filltitle = "Fraction infinite growth\nwith conjugation",
+             filltype = "continuous", limits = limitsfraction,
+             filename = "Fig10B")
   CreatePlot(fillvar = "eqreachedconjfrac",
              filltitle = "Fraction equilibrium\nreached with\nconjugation",
              filltype = "continuous", limits = limitsfraction)
+  CreatePlot(fillvar = "eqreachedconjfrac",
+             filltitle = "Fraction equilibrium\nreached with\nconjugation",
+             filltype = "continuous", limits = limitsfraction,
+             filename = "Fig09B")
   CreatePlot(fillvar = "tmaxshortconjfrac",
              filltitle = "Fraction tmax too short\nwith conjugation",
              filltype = "continuous", limits = limitsfraction)
+  CreatePlot(fillvar = "tmaxshortconjfrac",
+             filltitle = "Fraction tmax too short\nwith conjugation",
+             filltype = "continuous", limits = limitsfraction,
+             filename = "Fig11B")
 }
 CreatePlot(fillvar = "fracreal", filltitle = "Fraction real\neigenvalues",
            filltype = "continuous", limits = limitsfraction)
@@ -1958,11 +2279,61 @@ for(ind_stat_type in seq_along(stat_type)) {
                    filltype = "continuous", limits = limitsgrowthrate))
 }
 
+# Plot mean and median growth rate with their own limits
+CreatePlot(fillvar = "growthratemean",
+           filltitle = "Mean growth rate",
+           filltype = "continuous", limits = NULL,
+           filename = "multispeciesgrowthratemeancontinuous_ownlimits")
+CreatePlot(fillvar = "growthratemedian",
+           filltitle = "Median growth rate",
+           filltype = "continuous", limits = NULL,
+           filename = "multispeciesgrowthratemediancontinuous_ownlimits")
+
 # Show the relation of interactions and species-specific growth rate required to
 # obtain an equilibrium. Costs and conjugation rate do not affect growth rate,
 # so data has been filtered to have only one value for them.
 datatotalfiltercostconj <- filter(datatotal, near(cost, costset[1]),
                                   near(conjratecode, 1), near(taxmatcode, 1))
+datatotalfiltercostconjsp1 <- filter(datatotalfiltercostconj,
+                                     near(species, 1))
+ggplot(data = datatotalfiltercostconjsp1,
+       aes(x = intmean, y = growthrate)) + 
+  theme_bw() +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  geom_point(aes(col = iter), size = 0.1) +
+  # coord_cartesian(expand = FALSE) +
+  facet_grid(rows = vars(selfintmean), cols = vars(nspecies),
+             labeller = mylabeller, drop = TRUE, scales = "fixed") +
+  scale_color_viridis_c() +
+  labs(title = "Growth rate of species 1",
+       caption = paste(niter, "iterations")) +
+  guides(color = guide_colourbar())
+if(saveplots == TRUE) {
+  ggsave(paste0(DateTimeStamp, "growthratevsintmean_sp1_col.png"),
+         width = 3300, height = 2675, units = "px", dpi = 300)
+}
+
+ggplot(data = datatotalfiltercostconjsp1,
+       aes(x = intmean, y = growthrate)) + 
+  theme_bw() +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  geom_point(size = 0.1) +
+  coord_cartesian(expand = FALSE) +
+  facet_grid(rows = vars(selfintmean), cols = vars(nspecies),
+             labeller = mylabeller, drop = TRUE, scales = "fixed") +
+  scale_color_viridis_c() +
+  labs(title = "Growth rate of species 1",
+       caption = paste(niter, "iterations")) +
+  guides(color = guide_colourbar())
+if(saveplots == TRUE) {
+  ggsave(paste0(DateTimeStamp, "growthratevsintmean_sp1_black.png"),
+         width = 3300, height = 2675, units = "px", dpi = 300)
+}
+
+datatotalfiltercostconj_iter1 <- datatotalfiltercostconj[
+  which(near(1, datatotalfiltercostconj[, "iter"])), ]
 
 # To do:
 # - The colorbar labels should be shifted to the left
@@ -2082,11 +2453,20 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidfree,
              filename = "fracspeciesextinctmean")
+  CreatePlot(fillvar = "1 - (npopRmean / nspecies)",
+             filltitle = "Mean fraction of\nspecies extinct",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidfree)
   CreatePlot(fillvar = "1 - (nspeciesconjmean / nspecies)",
              filltitle = "Mean fraction of\nspecies extinct",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing,
              filename = "fracspeciesextinctmeanconj")
+  CreatePlot(fillvar = "1 - (nspeciesconjmean / nspecies)",
+             filltitle = "Mean fraction of\nspecies extinct",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing,
+             filename = "Fig08A")
   
   title <- paste0("Fraction of species after perturbation", title_add)
   CreatePlot(fillvar = "fracspeciesRconjmean",
@@ -2101,10 +2481,19 @@ if(simulateinvasion == TRUE) {
              filltitle = "Mean fraction of surviving species\nwith a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "fracspeciesPconjmean",
+             filltitle = "Mean fraction of surviving species\nwith a plasmid-bearing population",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing,
+             filename = "Fig04B")
   CreatePlot(fillvar = "npopPconjmean / nspecies",
              filltitle = "Mean fraction of initial species\nwith a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
+  CreatePlot(fillvar = "npopPconjmean / nspecies",
+             filltitle = "Mean fraction of initial species\nwith a plasmid-bearing population",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing, filename = "Fig08B")
   
   ## Plots of fractions of bacteria that are plasmid-free or plasmid-bearing
   # after perturbations. Only abundances where equilibrium was reached are
@@ -2136,11 +2525,25 @@ if(simulateinvasion == TRUE) {
                      filltype = "continuous", rotate_legend = TRUE))
   }
   
+  CreatePlot(fillvar =  "relabunPconjmean",
+             filltitle = "Mean fraction of bacteria\nthat is plasmid-bearing",
+             filltype = "continuous", limits = limitsfraction,
+             title = title, subtitle = subplasmidbearing, filename = "Fig04A")
+  
+  CreatePlot(fillvar =  "fracPformedbypertpopmean",
+             filltitle = paste("Mean fraction of plasmid-bearing\nbacteria",
+                               "belonging to the\ninitially plasmid-bearing species"),
+             filltype = "continuous", limits = limitsfraction, filename = "Fig03B_PinNew")
+  
   CreatePlot(fillvar = "pertpopconjsurvivedfrac",
              filltitle = paste("Fraction of iterations where\ninitially",
                                "plasmid-bearing\npopulation survived"),
              filltype = "continuous", limits = limitsfraction)
-  
+  CreatePlot(fillvar = "pertpopconjsurvivedfrac",
+             filltitle = paste("Fraction of iterations where\ninitially",
+                               "plasmid-bearing\npopulation survived"),
+             filltype = "continuous", limits = limitsfraction,
+             filename = "Fig12A")
   
   ## Plot total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
@@ -2220,6 +2623,10 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_P_mean,
              filltype = "continuous", limits = limits_mean, rotate_legend = TRUE,
              filename = "relabunconjsp1meancontinuouschangedlim")
+  CreatePlot(fillvar = "log10(1 + relabunconjsp1mean)",
+             filltitle = paste0("Log10(1 + ", filltitle_P_mean, ")"),
+             filltype = "continuous", limits = NULL, rotate_legend = FALSE,
+             filename = "Fig12B")
   
   CreatePlot(fillvar = "relabunRsp1mean", filltitle = filltitle_R_mean,
              filltype = "continuous",
