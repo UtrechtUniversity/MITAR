@@ -114,9 +114,16 @@ conjrateset <- list(rep(1e-12, maxnspecies))
 # populations. If taxmattype is "OtherClass", the interspecies conjugation rate
 # to and from the initially plasmid-bearing population is reduced a 1000-fold.
 taxmattypeset <- c("SameSpecies", "OtherClass")
-# Replace (plasmid-free) bacteria of the most-abundant species (PReplMostAbun 
-# == TRUE) or of the least-abundant species (PReplMostAbun == FALSE) with
-# plasmid-bearing bacteria of that species.
+# If PReplMostAbun is TRUE, some plasmid-free bacteria of the most-abundant
+# species (i.e., species 1) are added to that species to simulate perturbation
+# by plasmid-free bacteria, and some plasmid-free bacteria of the most-abundant
+# species are replaced with plasmid-bearing bacteria of that species to simulate
+# perturbation by plasmid-bearing bacteria.
+# If PReplMostAbun is FALSE, some plasmid-free bacteria of the least-abundant
+# species (i.e., species nspecies) are added to that species to simulate
+# perturbation by plasmid-free bacteria, and some plasmid-free bacteria of the
+# least-abundant species are replaced with plasmid-bearing bacteria of that
+# species to simulate perturbation by plasmid-bearing bacteria.
 PReplMostAbun <- TRUE
 # To plot 16 species need 16 colours, currently only 11 so repeat them.
 mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
@@ -784,9 +791,9 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   abunpert[pertpop] <- abunpert[pertpop] + pertmagn
   
   if(model == "gLVConj") {
-    # Plasmid-bearing bacteria of the most-abundant (i.e., species 1) or
-    # least-abundant (i.e., species nspecies) species replace plasmid-free
-    # bacteria of those species.
+    # Some plasmid-free bacteria of the most-abundant (least-abundant) species
+    # are replaced with plasmid-bearing bacteria of that species to simulate
+    # perturbation by plasmid-bearing bacteria if PReplMostAbun is TRUE (FALSE).
     if(PReplMostAbun == TRUE) {
       pertpopminus <- "R1"
     } else {
@@ -1201,11 +1208,6 @@ indexdatatotal <- 1
 # Run simulations
 rowindexplotdata <- 1
 rowindexdata <- 1
-
-warning("This script is currently set to only simulate the first 10 time steps",
-        " for\nplasmid-free bacteria, to save time and focus on invasion of",
-        " plasmid-bearing\nbacteria. As a result, the equilibrium will almost",
-        " never be reached for\nperturbation with plasmid-free bacteria.")
 
 for(nspecies in nspeciesset) {
   # Note: pertpop and pertpopconj indicate which population is perturbed by
@@ -2416,15 +2418,14 @@ if(simulateinvasion == TRUE) {
                      filltype = "continuous", title = title, subtitle = subplasmidbearing))
   }
   
-  
   ## Plots comparing species abundances after perturbation with plasmid-bearing
   # bacteria
   if(PReplMostAbun == TRUE) {
-    add_filltitle <- "after\nperturbation with R of most-abundant sp."
-    add_filltitleconj <- c("after\nperturbation with P of most-abundant sp.")
+    add_filltitle <- "after\nadding some R of the most-abundant sp."
+    add_filltitleconj <- "after\nreplacing some R of the most-abundant sp. with P of that sp."
   } else {
-    add_filltitle <- "after\nperturbation with R of least-abundant sp."
-    add_filltitleconj <- c("after\nperturbation with P of least-abundant sp.")
+    add_filltitle <- "after\nadding some R of the least-abundant sp."
+    add_filltitleconj <- "after\nreplacing some R of the least-abundant sp. with P of that sp."
   }
   
   limits <- range(c(plotdata[, "relabunRsp1mean"],
@@ -2491,6 +2492,12 @@ CreatePlot(fillvar = "relabunconjsp1mean",
                               add_filltitleconj),
            filltype = "continuous", limits = limitsfraction,
            filename = "Fig03A")
+
+CreatePlot(fillvar = "log10(1e-6 + relabunconjsp1mean)",
+           filltitle = paste0("log10(1e-6 + Mean rel. abundance of initially plasmid-bearing species) ",
+                              add_filltitleconj),
+           filltype = "continuous", limits = NULL,
+           filename = "Fig03Alog")
 
 
 #### Compare abundance models ####
