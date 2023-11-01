@@ -2122,7 +2122,6 @@ ggplot(data = datatotalfiltercostconjsp1,
   theme(legend.position = "bottom",
         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
   geom_point(aes(col = iter), size = 0.1) +
-  # coord_cartesian(expand = FALSE) +
   facet_grid(rows = vars(selfintmean), cols = vars(nspecies),
              labeller = mylabeller, drop = TRUE, scales = "fixed") +
   scale_color_viridis_c() +
@@ -2140,7 +2139,6 @@ ggplot(data = datatotalfiltercostconjsp1,
   theme(legend.position = "bottom",
         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
   geom_point(size = 0.1) +
-  coord_cartesian(expand = FALSE) +
   facet_grid(rows = vars(selfintmean), cols = vars(nspecies),
              labeller = mylabeller, drop = TRUE, scales = "fixed") +
   scale_color_viridis_c() +
@@ -2381,7 +2379,7 @@ if(simulateinvasion == TRUE) {
   for(ind_stat_type in seq_along(stat_type)) {
     print(CreatePlot(fillvar = paste0("log10(1 + abuntotal", stat_type[ind_stat_type], ")"),
                      filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
-                                       "abundance of plasmid-\nfree bacteria)"),
+                                       "abundance of\nplasmid-free bacteria)"),
                      filltype = "continuous", title = title, subtitle = subplasmidfree))
   }
   
@@ -2391,7 +2389,7 @@ if(simulateinvasion == TRUE) {
   for(ind_stat_type in seq_along(stat_type)) {
     print(CreatePlot(fillvar = paste0("log10(1 + abuntotalconj", stat_type[ind_stat_type], ")"),
                      filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
-                                       "total\nabundance)"),
+                                       "total abundance)"),
                      filltype = "continuous", title = title, subtitle = subplasmidbearing))
   }
   
@@ -2401,7 +2399,7 @@ if(simulateinvasion == TRUE) {
   for(ind_stat_type in seq_along(stat_type)) {
     print(CreatePlot(fillvar = paste0("log10(1 + abunRtotalconj", stat_type[ind_stat_type], ")"),
                      filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
-                                       "abundance of plasmid-\nfree bacteria)"),
+                                       "abundance of\nplasmid-free bacteria)"),
                      filltype = "continuous", title = title, subtitle = subplasmidbearing))
   }
   
@@ -2411,7 +2409,7 @@ if(simulateinvasion == TRUE) {
   for(ind_stat_type in seq_along(stat_type)) {
     print(CreatePlot(fillvar = paste0("log10(1 + abunPtotalconj", stat_type[ind_stat_type], ")"),
                      filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
-                                       "abundance of plasmid-\nbearing bacteria)"),
+                                       "abundance of\nplasmid-bearing bacteria)"),
                      filltype = "continuous", title = title, subtitle = subplasmidbearing))
   }
   
@@ -2422,22 +2420,22 @@ if(simulateinvasion == TRUE) {
                          plotdata[, "relabunconjsp1mean"]), na.rm = TRUE)
   limits_median <- range(c(plotdata[, "relabunRsp1median"],
                            plotdata[, "relabunconjsp1median"]), na.rm = TRUE)
-  filltitle_mean <- paste("Mean rel. abundance of sp1 after\nperturbation with",
-                          "R of newly\nintroduced species 1")
-  filltitle_conjmean <- paste("Mean rel. abundance of sp1 after\nperturbation with",
-                              "P of newly\nintroduced species 1")
-  filltitle_P1conjmean <- paste("Mean rel. abundance of P1 after\nperturbation with",
-                                "P of newly\nintroduced species 1")
-  filltitle_median <- paste("Median rel. abundance of sp1 after\nperturbation with",
-                            "R of newly\nintroduced species 1")
-  filltitle_conjmedian <- paste("Median rel. abundance of sp1 after\nperturbation with",
-                                "P of newly\nintroduced species 1")
+  filltitle_mean <- paste("Mean rel. abundance\nof sp1 after perturbation",
+                          "with R\nof newly introduced species 1")
+  filltitle_conjmean <- paste("Mean rel. abundance\nof sp1 afterperturbation",
+                              "with P\nof newly\nintroduced species 1")
+  filltitle_P1conjmean <- paste("Mean rel. abundance\nof P1 after perturbation",
+                                "with P\nof newly introduced species 1")
+  filltitle_median <- paste("Median rel. abundance\nof sp1 after perturbation",
+                            "with R\nof newly introduced species 1")
+  filltitle_conjmedian <- paste("Median rel. abundance\nof sp1 after perturbation",
+                                "with P\nof newly introduced species 1")
   
   # Note: relabunRspXmean is the mean of the total population because no
   # plasmids are present (and thus no plasmid-bearing population).
   CreatePlot(fillvar = "relabunRsp1mean", filltitle = filltitle_mean,
              filltype = "continuous", limits = limitsfraction, rotate_legend = TRUE,
-             filename = "relabunRsp1meancontinuous")
+             filename = "relabunRsp1meancontinuous_alt")
   CreatePlot(fillvar = "relabunRsp1mean", filltitle = filltitle_mean,
              filltype = "continuous", rotate_legend = TRUE,
              filename = "relabunRsp1meancontinuousnolim")
@@ -2451,7 +2449,7 @@ if(simulateinvasion == TRUE) {
   
   CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_conjmean,
              filltype = "continuous", limits = limitsfraction, rotate_legend = TRUE,
-             filename = "relabunconjsp1meancontinuous")
+             filename = "relabunconjsp1meancontinuous_alt")
   CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_conjmean,
              filltype = "continuous", rotate_legend = TRUE,
              filename = "relabunconjsp1meancontinuousnolim")
@@ -2490,11 +2488,15 @@ if(simulateinvasion == TRUE) {
              filename = "relabunconjsp1mediancontinuouschangedlim")
   
   if(PReplMostAbun == TRUE) {
-    add_filltitle <- "after\nreplacing some R of the most-abundant sp. with R of the newly introduced sp."
-    add_filltitleconj <- "after\nreplacing some R of the most-abundant sp. with P of the newly introduced sp."
+    add_filltitle <- paste0("after\nreplacing some R of the most-abundant",
+                            " sp.\nwith R of the newly introduced sp.")
+    add_filltitleconj <- paste0("after\nreplacing some R of the most-abundant",
+                                " sp.\nwith P of the newly introduced sp.")
   } else {
-    add_filltitle <- "after\nreplacing some R of the least-abundant sp. with R of the newly introduced sp."
-    add_filltitleconj <- "after\nreplacing some R of the least-abundant sp. with P of the newly introduced sp."
+    add_filltitle <- paste0("after\nreplacing some R of the least-abundant",
+                            " sp.\nwith R of the newly introduced sp.")
+    add_filltitleconj <- paste0("after\nreplacing some R of the least-abundant",
+                                " sp.\nwith P of the newly introduced sp.")
   }
   for(species_i in unique(c(1, nspeciesset)))  {
     for(ind_stat_type in seq_along(stat_type)) {
