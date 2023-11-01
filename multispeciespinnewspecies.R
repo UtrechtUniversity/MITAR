@@ -117,10 +117,11 @@ conjrateset <- list(rep(1e-12, maxnspecies))
 # to and from the initially plasmid-bearing population (the newly added species
 # 1) is reduced a 1000-fold.
 taxmattypeset <- c("SameSpecies", "OtherClass")
-# Replace (plasmid-free) bacteria of the most-abundant species (which is species
-# 2 because species 1 is the newly-introduced species) if PReplMostAbun is TRUE)
-# or of the least-abundant species (which is species nspecies) if PReplMostAbun
-# is FALSE) with plasmid-bearing bacteria of the newly-introduced species 1.
+# Plasmid-bearing bacteria of the newly-introduced species (species 1) replace
+# plasmid-free bacteria of the most-abundant species that is already present
+# (i.e., species 2, because species 1 is the newly-introduced species) if
+# PReplMostAbun is TRUE, and replace plasmid-free bacteria of the least-abundant
+# species that is already present (i.e., species nspecies) otherwise.
 PReplMostAbun <- TRUE
 # To plot 16 species need 16 colours, currently only 11 so repeat them.
 mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
@@ -2417,63 +2418,83 @@ if(simulateinvasion == TRUE) {
   
   ## Plots comparing species abundances after perturbation with plasmid-bearing
   # bacteria
-  # To do:
-  # - Check if the fill variable is indeed what the filltitle says it is.
   limits_mean <- range(c(plotdata[, "relabunRsp1mean"],
                          plotdata[, "relabunconjsp1mean"]), na.rm = TRUE)
   limits_median <- range(c(plotdata[, "relabunRsp1median"],
                            plotdata[, "relabunconjsp1median"]), na.rm = TRUE)
-  filltitle_R_mean <- paste("Mean rel. abundance of sp1 after\nperturbation with",
-                            "R of newly\nintroduced species 1")
-  filltitle_P_mean <- paste("Mean rel. abundance of sp1 after\nperturbation with",
-                            "P of newly\nintroduced species 1")
-  filltitle_P1_mean <- paste("Mean rel. abundance of P1 after\nperturbation with",
-                             "P of newly\nintroduced species 1")
-  filltitle_R_median <- paste("Median rel. abundance of sp1 after\nperturbation with",
-                              "R of newly\nintroduced species 1")
-  filltitle_P_median <- paste("Median rel. abundance of sp1 after\nperturbation with",
+  filltitle_mean <- paste("Mean rel. abundance of sp1 after\nperturbation with",
+                          "R of newly\nintroduced species 1")
+  filltitle_conjmean <- paste("Mean rel. abundance of sp1 after\nperturbation with",
                               "P of newly\nintroduced species 1")
+  filltitle_P1conjmean <- paste("Mean rel. abundance of P1 after\nperturbation with",
+                                "P of newly\nintroduced species 1")
+  filltitle_median <- paste("Median rel. abundance of sp1 after\nperturbation with",
+                            "R of newly\nintroduced species 1")
+  filltitle_conjmedian <- paste("Median rel. abundance of sp1 after\nperturbation with",
+                                "P of newly\nintroduced species 1")
   
   # Note: relabunRspXmean is the mean of the total population because no
   # plasmids are present (and thus no plasmid-bearing population).
-  CreatePlot(fillvar = "relabunRsp1mean", filltitle = filltitle_R_mean,
+  CreatePlot(fillvar = "relabunRsp1mean", filltitle = filltitle_mean,
+             filltype = "continuous", limits = limitsfraction, rotate_legend = TRUE,
+             filename = "relabunRsp1meancontinuous")
+  CreatePlot(fillvar = "relabunRsp1mean", filltitle = filltitle_mean,
+             filltype = "continuous", rotate_legend = TRUE,
+             filename = "relabunRsp1meancontinuousnolim")
+  CreatePlot(fillvar = "relabunRsp1mean", filltitle = filltitle_mean,
              filltype = "continuous", limits = limits_mean, rotate_legend = TRUE,
              filename = "relabunRsp1meancontinuouschangedlim")
-  CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_P_mean,
+  CreatePlot(fillvar = "log10(1e-6 + relabunRsp1mean)",
+             filltitle = paste0("Log10(1e-6 + ", filltitle_mean, ")"),
+             filltype = "continuous", rotate_legend = FALSE,
+             filename = "relabunRsp1meancontinuousloglim")
+  
+  CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_conjmean,
+             filltype = "continuous", limits = limitsfraction, rotate_legend = TRUE,
+             filename = "relabunconjsp1meancontinuous")
+  CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_conjmean,
+             filltype = "continuous", rotate_legend = TRUE,
+             filename = "relabunconjsp1meancontinuousnolim")
+  CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_conjmean,
              filltype = "continuous", limits = limits_mean, rotate_legend = TRUE,
              filename = "relabunconjsp1meancontinuouschangedlim")
-  CreatePlot(fillvar = "log10(1 + relabunconjsp1mean)",
-             filltitle = paste0("Log10(1 + ", filltitle_P_mean, ")"),
-             filltype = "continuous", limits = NULL, rotate_legend = FALSE,
+  CreatePlot(fillvar = "log10(1e-6 + relabunconjsp1mean)",
+             filltitle = paste0("Log10(1e-6 + ", filltitle_conjmean, ")"),
+             filltype = "continuous", rotate_legend = FALSE,
+             filename = "relabunconjsp1meancontinuousloglim")
+  CreatePlot(fillvar = "log10(1e-6 + relabunconjsp1mean)",
+             filltitle = paste0("Log10(1e-6 + ", filltitle_conjmean, ")"),
+             filltype = "continuous", rotate_legend = FALSE,
              filename = "Fig12B")
   
-  CreatePlot(fillvar = "relabunRsp1mean", filltitle = filltitle_R_mean,
-             filltype = "continuous",
-             filename = "relabunRsp1meancontinuousnolim")
-  CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_P_mean,
-             filltype = "continuous",
-             filename = "relabunconjsp1meancontinuousnolim")
   
-  CreatePlot(fillvar = "relabunPconjsp1mean", filltitle = filltitle_P1_mean,
-             filltype = "continuous", limits = limitsfraction)
-  CreatePlot(fillvar = "relabunPconjsp1mean", filltitle = filltitle_P1_mean,
-             filltype = "continuous",
+  CreatePlot(fillvar = "relabunPconjsp1mean", filltitle = filltitle_P1conjmean,
+             filltype = "continuous", limits = limitsfraction, rotate_legend = TRUE,
+             filename = "relabunPconjsp1meancontinuous")
+  CreatePlot(fillvar = "relabunPconjsp1mean", filltitle = filltitle_P1conjmean,
+             filltype = "continuous", rotate_legend = TRUE,
              filename = "relabunPconjsp1meancontinuousnolim")
+  CreatePlot(fillvar = "relabunPconjsp1mean", filltitle = filltitle_P1conjmean,
+             filltype = "continuous", limits = limits_mean, rotate_legend = TRUE,
+             filename = "relabunPconjsp1meancontinuouschangedlim")
+  CreatePlot(fillvar = "log10(1e-6 + relabunPconjsp1mean)",
+             filltitle = paste0("Log10(1e-6 + ", filltitle_P1conjmean, ")"),
+             filltype = "continuous", rotate_legend = FALSE,
+             filename = "relabunPconjsp1meancontinuousloglim")
   
-  CreatePlot(fillvar = "relabunRsp1median", filltitle = filltitle_R_median,
+  CreatePlot(fillvar = "relabunRsp1median", filltitle = filltitle_median,
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunRsp1mediancontinuouschangedlim")
-  CreatePlot(fillvar = "relabunconjsp1median", filltitle = filltitle_P_median,
+  CreatePlot(fillvar = "relabunconjsp1median", filltitle = filltitle_conjmedian,
              filltype = "continuous", limits = limitsfraction,
              filename = "relabunconjsp1mediancontinuouschangedlim")
   
-  warning("Check if 'add_filltitle' and 'add_filltitleconj' are correct!")
   if(PReplMostAbun == TRUE) {
-    add_filltitle <- "after\nperturbation with R of most-abundant sp."
-    add_filltitleconj <- "after\nperturbation with P of most-abundant sp."
+    add_filltitle <- "after\nreplacing some R of the most-abundant sp. with R of the newly introduced sp."
+    add_filltitleconj <- "after\nreplacing some R of the most-abundant sp. with P of the newly introduced sp."
   } else {
-    add_filltitle <- "after\nperturbation with R of least-abundant sp."
-    add_filltitleconj <- "after\nperturbation with P of least-abundant sp."
+    add_filltitle <- "after\nreplacing some R of the least-abundant sp. with R of the newly introduced sp."
+    add_filltitleconj <- "after\nreplacing some R of the least-abundant sp. with P of the newly introduced sp."
   }
   for(species_i in unique(c(1, nspeciesset)))  {
     for(ind_stat_type in seq_along(stat_type)) {
