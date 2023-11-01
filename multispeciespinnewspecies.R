@@ -366,8 +366,8 @@ getintmat_elaborate <- function(nspecies, sparsity = 0,
                                  min = selfintrange[1], max = selfintrange[2])
          },
          {
+           intmat <- NULL
            stop("'selfintdistr' should be 'normal' or 'uniform'.")
-           diag(intmat) <- NULL
          }
   )
   
