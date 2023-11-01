@@ -343,8 +343,8 @@ getintmat_elaborate <- function(nspecies, sparsity = 0,
                              max = intrange[2])
          },
          {
-           stop("'intdistr' should be 'normal' or 'uniform'.")
            intcoefs <- NULL
+           stop("'intdistr' should be 'normal' or 'uniform'.")
          }
   )
   intmat <- matrix(intcoefs, nrow = nspecies, ncol = nspecies)
@@ -667,9 +667,11 @@ eventfun <- function(t, state, p) {
 # pertpop is a character vector with the name(s) of the population(s) to be
 #   perturbed, e.g., pertpop = "R1" or pertpop = c("R1", "P1").
 # pertmagn gives the absolute increase in populations for the perturbation
-# tmax and tstep give the timesteps at which abundances should be calculated
-#   (since variable step-size methods are used, those are not the only times
-#   that integration occurs)
+# tmax and tstep determine the maximum timestep and the intervals at which
+#   abundances should be calculated. Timesteps of 1 will be used until the first
+#   timestep, to reduce the chance using too large timesteps at the start of the
+#   integration. Since ode() uses variable step-size methods, those are not the
+#   only times that integration occurs.
 # If showplot == TRUE, the result is plotted (which is slow) or (if saveplots
 #   == TRUE) saved to a .png file.
 # If plotepistabwithP == TRUE, plots over time are plotted or saved to a
@@ -714,7 +716,7 @@ eventfun <- function(t, state, p) {
 #   faster implementations for those models.
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                                model, pertpop, pertmagn = 1000,
-                               tmax = 1e4, tstep = 1, showplot = TRUE,
+                               tmax = 5e3, tstep = 10, showplot = TRUE,
                                plotepistabwithP = FALSE, verbose = FALSE,
                                silentinfgrowth = FALSE,
                                silenteqnotreached = FALSE) {
@@ -813,7 +815,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   }
   
   # Perturb equilibrium
-  times <- seq(from = 0, to = tmax, by = tstep)
+  times <- c(0:(tstep - 1), seq(from = tstep, to = tmax, by = tstep))
   if(model == "gLV") {
     out <- ode(y = abunpert, times = times, func = gLV,
                parms = list(growthrate = growthrate, intmat = intmat),
@@ -1204,11 +1206,6 @@ indexdatatotal <- 1
 rowindexplotdata <- 1
 rowindexdata <- 1
 
-warning("This script is currently set to only simulate the first 10 time steps",
-        " for\nplasmid-free bacteria, to save time and focus on invasion of",
-        " plasmid-bearing\nbacteria. As a result, the equilibrium will almost",
-        " never be reached for\nperturbation with plasmid-free bacteria.")
-
 for(nspecies in nspeciesset) {
   # Note: pertpop and pertpopconj indicate which population is perturbed by
   # adding bacteria, which in this model is always the newly-introduced species
@@ -1294,10 +1291,12 @@ for(nspecies in nspeciesset) {
           # Simulate invasion of plasmid-free bacteria into the plasmid-free
           # equilibrium in the model without conjugation (i.e., test internal
           # stability).
-          # WARNING:
-          #   This is currently set to only simulate the first 10 time steps,
-          #   such that equilibrium will almost never be reached. This is done
-          #   to save time and focus on invasion of plasmid-bearing bacteria.
+          if(iter == 1L) {
+            warning("'tmax' is put at 100 for pertubation with plasmid-free",
+                    " bacteria, such that\nequilibrium will be rarely reached.",
+                    " This is done to save time and focus on\ninvasion of",
+                    " plasmid-bearing bacteria.")
+          }
           if(simulateinvasion == TRUE) {
             if(stableeq == FALSE) {
               abunfinal <- perturbequilibrium(abundance = c(0, abundance),
@@ -1305,7 +1304,11 @@ for(nspecies in nspeciesset) {
                                               growthrate = growthrate,
                                               cost = NULL, conjmat = NULL,
                                               model = "gLV", pertpop = pertpop,
-                                              pertmagn = 1, tmax = 10, tstep = 1,
+                                              # HARDCODED tmax = 100 to focus on
+                                              # invasion of plasmid-bearing
+                                              # bacteria, see the warning issued
+                                              # for iter == 1L above.
+                                              pertmagn = 1, tmax = 100, tstep = 10,
                                               showplot = FALSE, verbose = FALSE,
                                               silentinfgrowth = TRUE,
                                               silenteqnotreached = TRUE)
