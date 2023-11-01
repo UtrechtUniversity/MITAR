@@ -339,8 +339,8 @@ getintmat_elaborate <- function(nspecies, sparsity = 0,
                              max = intrange[2])
          },
          {
-           stop("'intdistr' should be 'normal' or 'uniform'.")
            intcoefs <- NULL
+           stop("'intdistr' should be 'normal' or 'uniform'.")
          }
   )
   intmat <- matrix(intcoefs, nrow = nspecies, ncol = nspecies)
@@ -362,8 +362,8 @@ getintmat_elaborate <- function(nspecies, sparsity = 0,
                                  min = selfintrange[1], max = selfintrange[2])
          },
          {
+           intmat <- NULL
            stop("'selfintdistr' should be 'normal' or 'uniform'.")
-           diag(intmat) <- NULL
          }
   )
   
@@ -663,9 +663,11 @@ eventfun <- function(t, state, p) {
 # pertpop is a character vector with the name(s) of the population(s) to be
 #   perturbed, e.g., pertpop = "R1" or pertpop = c("R1", "P1").
 # pertmagn gives the absolute increase in populations for the perturbation
-# tmax and tstep give the timesteps at which abundances should be calculated
-#   (since variable step-size methods are used, those are not the only times
-#   that integration occurs)
+# tmax and tstep determine the maximum timestep and the intervals at which
+#   abundances should be calculated. Timesteps of 1 will be used until the first
+#   timestep, to reduce the chance using too large timesteps at the start of the
+#   integration. Since ode() uses variable step-size methods, those are not the
+#   only times that integration occurs.
 # If showplot == TRUE, the result is plotted (which is slow) or (if saveplots
 #   == TRUE) saved to a .png file.
 # If plotepistabwithP == TRUE, plots over time are plotted or saved to a
@@ -710,7 +712,7 @@ eventfun <- function(t, state, p) {
 #   faster implementations for those models.
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                                model, pertpop, pertmagn = 1000,
-                               tmax = 1e4, tstep = 1, showplot = TRUE,
+                               tmax = 5e3, tstep = 10, showplot = TRUE,
                                plotepistabwithP = FALSE, verbose = FALSE,
                                silentinfgrowth = FALSE,
                                silenteqnotreached = FALSE) {
@@ -807,7 +809,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   }
   
   # Perturb equilibrium
-  times <- seq(from = 0, to = tmax, by = tstep)
+  times <- c(0:(tstep - 1), seq(from = tstep, to = tmax, by = tstep))
   if(model == "gLV") {
     out <- ode(y = abunpert, times = times, func = gLV,
                parms = list(growthrate = growthrate, intmat = intmat),
@@ -968,190 +970,6 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   }
   
   return(abunfinal)
-}
-
-# Arguments with default NULL are not used, but retained to allow drop-in
-# replacement of code using perturbequilibrium() assuming the arguments are set.
-perturbequilibrium_gLV_fast <- function(abundance, intmat, growthrate,
-                                        cost = NULL, conjmat = NULL,
-                                        model = NULL, pertpop, pertmagn = 1000,
-                                        tmax = 1e4, tstep = 1,
-                                        showplot = NULL,
-                                        plotepistabwithP = NULL, verbose = NULL,
-                                        silentinfgrowth = NULL,
-                                        silenteqnotreached = NULL) {
-  nspecies <- length(abundance)
-  indexR <- seq_len(nspecies)
-  names(abundance) <- paste0(rep("R", nspecies), indexR)
-  
-  abuninit <- abundance
-  abunpert <- abundance
-  abunpert[pertpop] <- abunpert[pertpop] + pertmagn
-  
-  # Perturb equilibrium
-  times <- c(0:(tstep - 1), seq(from = tstep, to = tmax, by = tstep))
-  out <- ode(y = abunpert, times = times, func = gLV,
-             parms = list(growthrate = growthrate, intmat = intmat),
-             rootfunc = rootfun,
-             events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
-  
-  final <- tail(out, 1)
-  timefinal <- final[, "time"]
-  abunfinaltemp <- final[, -which(colnames(final) == "time")]
-  names(abunfinaltemp) <- names(abundance)
-  
-  # Assume infinite growth occurred if a root was triggered because abundances
-  # became very large
-  infgrowth <- 0
-  eqreached <- 0
-  tmaxshort <- 0
-  if(!is.null(attributes(out)$troot)) {
-    # One or more roots found
-    
-    if(any(attributes(out)$indroot == 1)) {
-      eqreached <- 1  
-    }
-    
-    if(any(attributes(out)$indroot == 2)) {
-      infgrowth <- 1
-    }
-  }
-  
-  if(eqreached == 0 && infgrowth != 1) {
-    tmaxshort <- 1
-  }
-  
-  if(eqreached == 0) {
-    # It does not make sense to store abundances in case of infinite
-    # growth or if equilibrium is not reached, so record those as NA
-    abunfinaltemp <- rep(NA, nspecies)
-    names(abunfinaltemp) <- names(abundance)
-    npopR <- NA
-  } else {
-    derivatives <- unlist(
-      gLV(t = 0, n = abunfinaltemp,
-          parms = list(growthrate = growthrate, intmat = intmat))
-    )
-    abunfinaltemp[which(derivatives < 0 & abunfinaltemp < finalsmallstate)] <- 0
-    npopR <- length(which(abunfinaltemp > smallstate))
-  }
-  
-  list(R = abunfinaltemp, Rtotal = sum(abunfinaltemp),
-       npopR = npopR,
-       P = NULL, Ptotal = NULL, npopP = NULL,
-       pertpopconjsurvived = NULL,
-       timepertpopconjextinct = NULL,
-       timefinal = timefinal, tmaxshort = tmaxshort,
-       eqreached = eqreached, infgrowth = infgrowth)
-}
-
-# Arguments with default NULL are not used, but retained to allow drop-in
-# replacement of code using perturbequilibrium() assuming the arguments are set.
-perturbequilibrium_gLVConj_fast <- function(abundance, intmat, growthrate, cost, conjmat,
-                                            model = NULL, pertpop, pertmagn = 1000,
-                                            tmax = 1e4, tstep = 1, showplot = NA,
-                                            plotepistabwithP = NA, verbose = NA,
-                                            silentinfgrowth = FALSE,
-                                            silenteqnotreached = FALSE) {
-  nspecies <- length(abundance)/2
-  index_sp <- seq_len(nspecies)
-  indexR <- seq_len(nspecies)
-  indexP <- (nspecies + 1):(2*nspecies)
-  names(abundance) <- c(paste0(rep("R", nspecies), index_sp),
-                        paste0(rep("P", nspecies), index_sp))
-  lty <- rep(c(1, 2), each = nspecies)
-  col <- rep(mycol[index_sp], 2)
-  if(!all(near(abundance[indexP], 0))) {
-    warning("Initial state is NOT plasmid-free.")
-  }
-  
-  abuninit <- abundance
-  abunpert <- abundance
-  abunpert[pertpop] <- abunpert[pertpop] + pertmagn
-  
-  # Plasmid-bearing bacteria of the most-abundant (i.e., species 1) or
-  # least-abundant (i.e., species nspecies) species replace plasmid-free
-  # bacteria of those species.
-  if(PReplMostAbun == TRUE) {
-    pertpopminus <- "R1"
-  } else {
-    pertpopminus <- paste0("R", nspecies)
-  }
-  abunpert[pertpopminus] <-  abunpert[pertpopminus] - pertmagn
-  
-  # Perturb equilibrium
-  times <- c(0:(tstep - 1), seq(from = tstep, to = tmax, by = tstep))
-  out <- ode(y = abunpert, times = times, func = gLVConj,
-             parms = list(growthrate = growthrate, intmat = intmat,
-                          cost = cost, conjmat = conjmat),
-             rootfunc = rootfunconj,
-             events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
-  
-  final <- tail(out, 1)
-  timefinal <- final[, "time"]
-  abunfinaltemp <- final[, -which(colnames(final) == "time")]
-  names(abunfinaltemp) <- names(abundance)
-  
-  # Assume infinite growth occurred if a root was triggered because abundances
-  # became very large
-  infgrowth <- 0
-  eqreached <- 0
-  tmaxshort <- 0
-  if(!is.null(attributes(out)$troot)) {
-    # One or more roots found
-    
-    if(any(attributes(out)$indroot == 1)) {
-      eqreached <- 1  
-    }
-    
-    if(any(attributes(out)$indroot == 2)) {
-      infgrowth <- 1
-    }
-  }
-  
-  if(eqreached == 0 && infgrowth != 1) {
-    tmaxshort <- 1
-  }
-  
-  if(eqreached == 0) {
-    # It does not make sense to store abundances in case of infinite
-    # growth or if equilibrium is not reached, so record those as NA
-    abunfinaltemp <- rep(NA, 2*nspecies)
-    names(abunfinaltemp) <- names(abundance)
-    npopR <- NA
-    npopP <- NA
-    pertpopconjsurvived <- NA
-    timepertpopconjextinct <- NA
-  } else {
-    derivatives <- unlist(
-      gLVConj(t = 0, n = abunfinaltemp,
-              parms = list(growthrate = growthrate, intmat = intmat,
-                           cost = cost, conjmat = conjmat))
-    )
-    # Plasmid-bearing populations can reach densities smaller than smallstate
-    # during the integration, because they are constantly produced through
-    # conjugation after being set to 0.
-    abunfinaltemp[which(derivatives < 0 & abunfinaltemp < finalsmallstate)] <- 0
-    npopR <- length(which(abunfinaltemp[indexR] > smallstate))
-    npopP <- length(which(abunfinaltemp[indexP] > smallstate))
-    
-    if(abunfinaltemp[pertpop] > finalsmallstate) {
-      pertpopconjsurvived <- 1
-      timepertpopconjextinct <- NA
-    } else {
-      pertpopconjsurvived <- 0
-      timepertpopconjextinct <- unname(out[max(
-        which(out[, pertpopconj] >= finalsmallstate)), "time"])
-    }
-  }
-  
-  list(R = abunfinaltemp[indexR], Rtotal = sum(abunfinaltemp[indexR]),
-       npopR = npopR,
-       P = abunfinaltemp[indexP], Ptotal = sum(abunfinaltemp[indexP]),
-       npopP = npopP, pertpopconjsurvived = pertpopconjsurvived,
-       timepertpopconjextinct = timepertpopconjextinct,
-       timefinal = timefinal, tmaxshort = tmaxshort,
-       eqreached = eqreached, infgrowth = infgrowth)
 }
 
 # List of functions called within dplyr::summarise() to get summary statistics
@@ -1464,18 +1282,24 @@ for(nspecies in nspeciesset) {
           # Simulate invasion of plasmid-free bacteria into the plasmid-free
           # equilibrium in the model without conjugation (i.e., test internal
           # stability).
-          # WARNING:
-          #   This is currently set to only simulate the first 10 time steps,
-          #   such that equilibrium will almost never be reached. This is done
-          #   to save time and focus on invasion of plasmid-bearing bacteria.
+          if(iter == 1L) {
+            warning("'tmax' is put at 100 for pertubation with plasmid-free",
+                    " bacteria, such that\nequilibrium will be rarely reached.",
+                    " This is done to save time and focus on\ninvasion of",
+                    " plasmid-bearing bacteria.")
+          }
           if(simulateinvasion == TRUE) {
             if(stableeq == FALSE) {
-              abunfinal <- perturbequilibrium_gLV_fast(abundance = abundance,
-                                                       intmat = intmat,
+              abunfinal <- perturbequilibrium(abundance = abundance,
+                                              intmat = intmat,
                                               growthrate = growthrate,
                                               cost = NULL, conjmat = NULL,
                                               model = "gLV", pertpop = pertpop,
-                                              pertmagn = 1, tmax = 10, tstep = 1,
+                                              # HARDCODED tmax = 100 to focus on
+                                              # invasion of plasmid-bearing
+                                              # bacteria, see the warning issued
+                                              # for iter == 1L above.
+                                              pertmagn = 1, tmax = 100, tstep = 10,
                                               showplot = FALSE, verbose = FALSE,
                                               silentinfgrowth = TRUE,
                                               silenteqnotreached = TRUE)
@@ -1578,7 +1402,7 @@ for(nspecies in nspeciesset) {
                 # which bacteria are added.
                 if(simulateinvasion == TRUE) {
                   if(eqinfoconj["eigvalRe"] >= 0) {
-                    abunfinalconj <- perturbequilibrium_gLVConj_fast(abundance = c(abundance, rep(0, nspecies)),
+                    abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
                                                         intmat = intmat, growthrate = growthrate,
                                                         cost = cost, conjmat = conjmat,
                                                         model = "gLVConj", pertpop = pertpopconj,
@@ -2682,7 +2506,8 @@ for(abunmodel in abunmodelset) {
                                                 takelimit = TRUE),
                     "dompreempt" = dompreempt(nspecies = nspecies,
                                               totalabun = totalabun,
-                                              takelimit = TRUE)),
+                                              takelimit = TRUE),
+                    stop("'abunmodel' should be 'brokenstick' or 'dompreempt'.")),
       model = abunmodel)
     compareabun <- rbind(compareabun, comparetemp)
   }
