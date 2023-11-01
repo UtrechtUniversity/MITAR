@@ -2122,7 +2122,6 @@ ggplot(data = datatotalfiltercostconjsp1,
   theme(legend.position = "bottom",
         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
   geom_point(aes(col = iter), size = 0.1) +
-  coord_cartesian(expand = FALSE) +
   facet_grid(rows = vars(selfintmean), cols = vars(nspecies),
              labeller = mylabeller, drop = TRUE, scales = "fixed") +
   scale_color_viridis_c() +
@@ -2140,7 +2139,6 @@ ggplot(data = datatotalfiltercostconjsp1,
   theme(legend.position = "bottom",
         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
   geom_point(size = 0.1) +
-  coord_cartesian(expand = FALSE) +
   facet_grid(rows = vars(selfintmean), cols = vars(nspecies),
              labeller = mylabeller, drop = TRUE, scales = "fixed") +
   scale_color_viridis_c() +
@@ -2422,10 +2420,10 @@ if(simulateinvasion == TRUE) {
   # bacteria
   if(PReplMostAbun == TRUE) {
     add_filltitle <- "after\nadding some R of the most-abundant sp."
-    add_filltitleconj <- "after\nreplacing some R of the most-abundant sp. with P of that sp."
+    add_filltitleconj <- "after\nreplacing some R of the most-abundant\nsp. with P of that sp."
   } else {
     add_filltitle <- "after\nadding some R of the least-abundant sp."
-    add_filltitleconj <- "after\nreplacing some R of the least-abundant sp. with P of that sp."
+    add_filltitleconj <- "after\nreplacing some R of the least-abundant\nsp. with P of that sp."
   }
   
   limits <- range(c(plotdata[, "relabunRsp1mean"],
@@ -2488,14 +2486,14 @@ if(simulateinvasion == TRUE) {
 }
 
 CreatePlot(fillvar = "relabunconjsp1mean",
-           filltitle = paste0("Mean rel. abundance of initially plasmid-bearing species ",
-                              add_filltitleconj),
+           filltitle = paste0("Mean rel. abundance of initially",
+                              "\nplasmid-bearing species ", add_filltitleconj),
            filltype = "continuous", limits = limitsfraction,
            filename = "Fig03A")
 
 CreatePlot(fillvar = "log10(1e-6 + relabunconjsp1mean)",
-           filltitle = paste0("log10(1e-6 + Mean rel. abundance of initially plasmid-bearing species) ",
-                              add_filltitleconj),
+           filltitle = paste0("log10(1e-6 + Mean rel. abundance of initially",
+                              "\nplasmid-bearing species) ", add_filltitleconj),
            filltype = "continuous", limits = NULL,
            filename = "Fig03Alog")
 
