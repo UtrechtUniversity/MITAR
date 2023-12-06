@@ -132,13 +132,13 @@ mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple
 ## Parameters for detailed local stability analysis, not simulating invasion
 niter <- 100
 simulateinvasion <- FALSE
-intmeanset <- seq(from = -1e-11, to = 1e-11, by = 1e-12)
+intmeanset <- seq(from = -1e-11, to = 5e-12, by = 1e-12)
 selfintmeanset <- seq(from = -1e-11, to = 0, by = 1e-12)
 
 ## Smaller parameter set to simulate invasion
 niter <- 50
 simulateinvasion <- TRUE
-intmeanset <- seq(from = -1e-11, to = 1e-11, by = 1e-12)
+intmeanset <- seq(from = -1e-11, to = 5e-12, by = 1e-12)
 selfintmeanset <- seq(from = -1e-11, to = 0, by = 1e-12)
 
 ## Small parameter set to test code
@@ -162,6 +162,8 @@ selfintmeanset <- c(-1e-11, -6e-12, -1e-12)
 ## Parameter set to create bifurcation-like plots showing the border of
 # epidemiological stability in the conjugation rate/cost space
 bifurparms <- TRUE
+nspeciesset <- c(2, 16) # Check if 4 or 8 species is the same as 16 species.
+maxnspecies <- max(nspeciesset)
 costset <- seq(from = 0, to = 0.2, by = 0.001)
 seqconjrate <- 10^seq(from = -13.5, to = -11.5, by = 0.01)
 conjrateset <- NULL
@@ -179,7 +181,7 @@ for(conjrate in seqconjrate) {
 }
 niter <- 1
 simulateinvasion <- FALSE
-intmeanset <- c(-1e-11, 0, 1e-11)
+intmeanset <- 0 # c(-1e-11, 0, 1e-11)
 selfintmeanset <- -0.5e-11 # c(-1e-11, -0.5e-11, 0)
 
 
@@ -1720,7 +1722,7 @@ names(labnspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
 if(bifurparms == FALSE) {
-  labcost <- c("Mean cost", "High cost")
+  labcost <- c("Mean fitness\ncost", "High fitness\ncost")
 } else {
   labcost <- paste0("Cost: ", costset, "/h")
 }
@@ -1775,11 +1777,11 @@ if(bifurparms == TRUE) {
   # multiple values, not a single value.
   plotdata$conjrate <- NA
   if(length(seqconjrate) != conjratecode) {
-    warning("Value of conjrate code is not equal to length of seqconjrate.
+    stop("Value of conjrate code is not equal to length of seqconjrate.
             Conversion of conjratecode to conjrate will be incorrect")
   }
   if(!all(near(conjrate, conjrate[1]))) {
-    warning(paste("Species have different conjugation rates, so conversion",
+    stop(paste("Species have different conjugation rates, so conversion",
                   "from conjugationratecode\nto conjugation rate is not meaningful.",
                   "\nSee the settings section in the script and in the file",
                   "'settings.csv' for details"))
@@ -1796,7 +1798,7 @@ if(bifurparms == TRUE) {
   # # making it impossible to plot contours delimiting stable and unstable regions.
   # CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
   #            filltitle = "fracstableecol", filltype = "continuous",
-  #            limy = range(log10(seqconjrate)), ratio = NULL,
+  #            limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
   #            labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
   #            facetx = "taxmatcode + intmean", facety = "nspecies",
   #            rotate_x_labels = TRUE,
@@ -1808,7 +1810,7 @@ if(bifurparms == TRUE) {
   # CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
   #            contour_var = "fracstableecol", contour_col = "as.factor(nspecies)",
   #            contour_lty = "as.factor(intmean)",
-  #            limy = range(log10(seqconjrate)), ratio = NULL,
+  #            limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
   #            labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
   #            facetx = "taxmatcode", facety = "nspecies",
   #            rotate_x_labels = FALSE, save = FALSE) +
@@ -1820,7 +1822,7 @@ if(bifurparms == TRUE) {
   # included in the saved plots.
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
-             limy = range(log10(seqconjrate)), ratio = NULL,
+             limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode + intmean", facety = "nspecies",
@@ -1835,7 +1837,7 @@ if(bifurparms == TRUE) {
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(intmean)",
-             limy = range(log10(seqconjrate)), ratio = NULL,
+             limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = "nspecies",
@@ -1850,7 +1852,7 @@ if(bifurparms == TRUE) {
   
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
-             limy = range(log10(seqconjrate)), ratio = NULL,
+             limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = "intmean",
@@ -1873,7 +1875,7 @@ if(bifurparms == TRUE) {
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "nspecies",
              contour_lty = "as.factor(intmean)",
-             limy = range(log10(seqconjrate)), ratio = NULL,
+             limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = ".",
@@ -1888,7 +1890,7 @@ if(bifurparms == TRUE) {
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(taxmatcode)",
-             limy = range(log10(seqconjrate)), ratio = NULL,
+             limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = ".", facety = "nspecies",
@@ -1905,7 +1907,7 @@ if(bifurparms == TRUE) {
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
              contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
              contour_lty = "as.factor(taxmatcode)",
-             limy = range(log10(seqconjrate)), ratio = NULL,
+             limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = ".", facety = ".",
@@ -1929,7 +1931,7 @@ if(bifurparms == TRUE) {
   CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
              filltitle = "fracstableepi", contour_var = NULL, contour_col = NULL,
              contour_lty = NULL, filltype = "continuous", limx = range(costset),
-             limy = range(log10(seqconjrate)), ratio = NULL,
+             limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
              title = "Epidemiological (in)stability",
              labx = "Cost", laby = "Log10(conjugation rate)", linezero = FALSE,
              facetx = "taxmatcode", facety = "nspecies",
@@ -2065,6 +2067,25 @@ if(simulateinvasion == TRUE) {
              filltitle = "Fraction infinite growth\nwith conjugation",
              filltype = "continuous", limits = limitsfraction,
              filename = "Fig10A")
+  ggplot(data = plotdata, aes(x = intmean, y = selfintmean,
+                              fill = infgrowthconjfrac < 0.75 | intmean > 5e-12)) +
+    geom_raster() +
+    theme_bw(base_size = 11) +
+    scale_x_continuous() +
+    scale_y_continuous() +
+    scale_fill_viridis_d(limits = NULL) +
+    coord_fixed(ratio = 1, expand = FALSE) +
+    theme(legend.position = "bottom",
+          axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+    labs(x = "Mean interspecies interaction coefficient",
+         y = "Mean intraspecies interaction coefficient",
+         caption = paste(niter, "iterations")) +
+    facet_grid(conjratecode + nspecies ~ cost + taxmatcode,
+               labeller = label_both, as.table = TRUE, drop = TRUE)
+  if(saveplots == TRUE) {
+    ggsave("Fig10A_alt.png")
+  }
+  
   CreatePlot(fillvar = "eqreachedconjfrac",
              filltitle = "Fraction equilibrium\nreached with\nconjugation",
              filltype = "continuous", limits = limitsfraction)
