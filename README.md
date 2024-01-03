@@ -21,7 +21,14 @@ approximate the bulk-conjugation rates is plotted.
 R-scripts for multispecies models of conjugation:
 * multispecies.R
 * multispeciespinnewspecies.R
+* multispecies_bifur.R
+* multispecies_distr.R
 
-These scripts consider three different scenarios regarding how the plasmid-bearing
-population is introduced: in the most-abundant species, in the least-abundant species,
-or in a species that was not yet present. These models are still under development.
+These scripts are still under development and consider different scenarios
+regarding how the plasmid-bearing population is introduced: in the
+least-abundant or most-abundant species that is already present at the
+plasmid-free equilibrium (multispecies.R), or in a new species that was not
+yet present at the plasmid-free equilibrium and grows slower than, equally fast
+as, or faster than the already-present species (multispeciespinnewspecies.R).
+Scripts multispecies_bifur.R and multispecies_distr.R are used to create some
+of the figures.
