@@ -579,9 +579,9 @@ geteqinfo <- function(model, abundance, intmat, growthrate,
                                              conjmat = conjmat))
            jaclow <- jac[(nspecies + 1):(2*nspecies), seq_len(nspecies)]
            if(!isTRUE(all.equal(range(jaclow), c(0, 0), check.attributes = FALSE))) {
-             warning(paste("Jacobian matrix does not contain a block of zeros",
-                           "in the lower-left corner,\nso currently used determination",
-                           "of ecological stability is invalid"))
+             warning("Jacobian matrix does not contain a block of zeros in the",
+                     " lower-left corner,\nso currently used determination of",
+                     " ecological stability is invalid")
              print(jaclow)
            }
            eigval <- eigen(x = jac[seq_len(nspecies), seq_len(nspecies)],
@@ -594,9 +594,9 @@ geteqinfo <- function(model, abundance, intmat, growthrate,
            indexP <- (nspecies + 1):(2*nspecies)
            jaclow <- jac[indexP, seq_len(nspecies)]
            if(!isTRUE(all.equal(range(jaclow), c(0, 0), check.attributes = FALSE))) {
-             warning(paste("Jacobian matrix does not contain a block of zeros",
-                           "in the lower-left corner,\nso currently used",
-                           "determination of epidemiological stability is invalid"))
+             warning("Jacobian matrix does not contain a block of zeros in the",
+                     " lower-left corner,\nso currently used determination of",
+                     " epidemiological stability is invalid")
              print(jaclow)
            }
            eigval <- eigen(x = jac[indexP, indexP],
@@ -802,10 +802,10 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     abunpert[pertpopminus] <-  abunpert[pertpopminus] - pertmagn
     
     if(any(abunpert < 0)) {
-      warning(paste("Initial abundances of some populations would become negative",
-                    "because\nthe pertubation is larger than the number of",
-                    "bacteria initially present.\nThese abundances have been set",
-                    "to zero instead."))
+      warning("Initial abundances of some populations would become negative",
+              " because\nthe pertubation is larger than the number of bacteria",
+              " initially present.\nThese abundances have been set to zero",
+              " instead.")
       abunpert[which(abunpert < 0)] <- 0
     }
   }
@@ -1019,8 +1019,8 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   if(exists("DateTimeStamp") == FALSE) {
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
     if(addstamp == TRUE) {
-      warning(paste("DateTimeStamp created to include in plot does not",
-                    "correspond to filename of the dataset"))
+      warning("DateTimeStamp created to include in plot does not correspond to",
+              " the filename of the dataset.")
     }
   }
   if(addstamp == TRUE) {
@@ -1286,8 +1286,8 @@ for(nspecies in nspeciesset) {
           # To get a warning if the plasmid-free equilibrium is not stable,
           # uncomment next lines.
           # if(stableeq == FALSE) {
-          # warning(paste("No stable equilibrium has been found in",
-          #               niterintmat, "attempts."))
+          # warning("No stable equilibrium has been found in", niterintmat,
+          #         " attempts.")
           # }
           
           # Simulate invasion of plasmid-free bacteria into the plasmid-free
@@ -1602,22 +1602,24 @@ if(simulateinvasion == TRUE) {
   eqnotreached <- 1 - plotdata[, "eqreachedfrac"]
   eqnotreachedconj <- 1 - plotdata[, "eqreachedconjfrac"]
   if(any(eqnotreached > 0)) {
-    warning(paste0("Fraction of iterations where equilibrium has not been reached ",
-                   "after pertubation with plasmid-free\nbacteria ranges from ",
-                   signif(summary(eqnotreached)["Min."], 3), " to ",
-                   signif(summary(eqnotreached)["Max."], 3)," (mean: ",
-                   signif(summary(eqnotreached)["Mean"], 3), "; median: ",
-                   signif(summary(eqnotreached)["Median"], 3), "). ",
-                   "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
+    warning("Fraction of iterations where equilibrium has not been reached ",
+            " after pertubation with plasmid-free\nbacteria ranges from ",
+            signif(summary(eqnotreached)["Min."], 3), " to ",
+            signif(summary(eqnotreached)["Max."], 3)," (mean: ",
+            signif(summary(eqnotreached)["Mean"], 3), "; median: ",
+            signif(summary(eqnotreached)["Median"], 3), "). ",
+            " Use silenteqnotreached = FALSE in perturbequilibrium() for more",
+            " info")
   }
   if(any(eqnotreachedconj > 0)) {
-    warning(paste0("Fraction of iterations where equilibrium has not been reached ",
-                   "after pertubation with plasmid-bearing\nbacteria ranges from ",
-                   signif(summary(eqnotreachedconj)["Min."], 3), " to ",
-                   signif(summary(eqnotreachedconj)["Max."], 3), " (mean: ",
-                   signif(summary(eqnotreachedconj)["Mean"], 3), "; median: ",
-                   signif(summary(eqnotreachedconj)["Median"], 3), "). ",
-                   "Use silenteqnotreached = FALSE in perturbequilibrium() for more info"))
+    warning("Fraction of iterations where equilibrium has not been reached ",
+            " after pertubation with plasmid-bearing\nbacteria ranges from ",
+            signif(summary(eqnotreachedconj)["Min."], 3), " to ",
+            signif(summary(eqnotreachedconj)["Max."], 3), " (mean: ",
+            signif(summary(eqnotreachedconj)["Mean"], 3), "; median: ",
+            signif(summary(eqnotreachedconj)["Median"], 3), "). ",
+            " Use silenteqnotreached = FALSE in perturbequilibrium() for more",
+            " info")
   }
 }
 
@@ -1780,10 +1782,10 @@ if(bifurparms == TRUE) {
             Conversion of conjratecode to conjrate will be incorrect")
   }
   if(!all(near(conjrate, conjrate[1]))) {
-    stop(paste("Species have different conjugation rates, so conversion",
-                  "from conjugationratecode\nto conjugation rate is not meaningful.",
-                  "\nSee the settings section in the script and in the file",
-                  "'settings.csv' for details"))
+    stop("Species have different conjugation rates, so conversion from",
+         " conjugationratecode\nto conjugation rate is not meaningful.\nSee",
+         " the settings section in the script and in the file 'settings.csv'",
+         " for details")
   }
   for(conjratecode_index in seq_len(conjratecode)) {
     # using dplyr::near() to allow for small (<1e-6) numeric differences
@@ -1898,6 +1900,21 @@ if(bifurparms == TRUE) {
     guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
   if(saveplots == TRUE) {
     ggsave(paste0(DateTimeStamp, "epistabynspecies.png"),
+           width = 2150, height = 2150, units = "px", dpi = 300)
+  }
+  
+  CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+             contour_var = "fracstableepi", contour_col = "as.factor(intmean)",
+             contour_lty = "as.factor(selfintmean)",
+             limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
+             title = "Epidemiological (in)stability",
+             labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
+             linezero = FALSE, facetx = "taxmatcode", facety = "nspecies",
+             rotate_x_labels = FALSE, save = FALSE) +
+    theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
+    guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
+  if(saveplots == TRUE) {
+    ggsave(paste0(DateTimeStamp, "epistabxtaxmatynspeciescolinter.png"),
            width = 2150, height = 2150, units = "px", dpi = 300)
   }
   
