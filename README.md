@@ -18,11 +18,12 @@ simulation options' is set to TRUE, saved as .png-files.
 If the variable 'plotdataapproxbulk' is set to TRUE, the data used to
 approximate the bulk-conjugation rates is plotted.
 
-R-scripts for multispecies models of conjugation:
+R-scripts and matlab-script for multispecies models of conjugation:
 * multispecies.R
 * multispeciespinnewspecies.R
 * multispecies_bifur.R
 * multispecies_distr.R
+* multispecies_analytic.m
 
 These scripts are still under development and consider different scenarios
 regarding how the plasmid-bearing population is introduced: in the
@@ -31,4 +32,6 @@ plasmid-free equilibrium (multispecies.R), or in a new species that was not
 yet present at the plasmid-free equilibrium and grows slower than, equally fast
 as, or faster than the already-present species (multispeciespinnewspecies.R).
 Scripts multispecies_bifur.R and multispecies_distr.R are used to create some
-of the figures.
+of the figures. The matlab-script multispecies_analytic.m is used to obtain
+analytical expressions for the eigenvalues and derive (in)stability criteria
+in the two-species case.
