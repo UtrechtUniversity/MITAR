@@ -68,6 +68,7 @@ maxnspecies <- max(nspeciesset)
 abunmodelset <- c("dompreempt")
 costset <- seq(from = 0, to = 0.2, by = 0.0005)
 costtype <- "absolute"
+costmark <- c(0.05, 0.09) # Plot dotted vertical lines at indicated values if not NULL
 conjrate_base <- 10^-12
 seqconjrate <- 10^seq(from = -13.5, to = -11.5, by = 0.005)
 # If taxmattype is "SameSpecies", the conjugation rate is the same for all
@@ -947,7 +948,8 @@ for(nspecies in nspeciesset) {
         rowindexplotdatanew <- rowindexplotdata + length(costset) *
           length(conjrateset) * length(taxmattypeset)
         plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
-          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean, summarydata))
+          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean,
+                 summarydata))
         rowindexplotdata <- rowindexplotdatanew
       }
     }
@@ -956,8 +958,9 @@ for(nspecies in nspeciesset) {
 duration <- Sys.time() - starttime
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 
-colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
-                        "intmean", "selfintmean", colnames(summarydata))
+colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode", "intmean",
+                        "selfintmean",
+                        colnames(summarydata))
 warnings()
 
 
@@ -1098,7 +1101,7 @@ for(conjratecode_index in seq_len(conjratecode)) {
 # # making it impossible to plot contours delimiting stable and unstable regions.
 # CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
 #            filltitle = "fracstableecol", filltype = "continuous",
-#            limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
+#            limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
 #            labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
 #            linezero = FALSE, facetx = "taxmatcode + intmean", facety = "nspecies",
 #            rotate_x_labels = TRUE,
@@ -1110,7 +1113,7 @@ for(conjratecode_index in seq_len(conjratecode)) {
 # CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
 #            contour_var = "fracstableecol", contour_col = "as.factor(nspecies)",
 #            contour_lty = "as.factor(intmean)",
-#            limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
+#            limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
 #            labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
 #            linezero = FALSE, facetx = "taxmatcode", facety = "nspecies",
 #            rotate_x_labels = FALSE, save = FALSE) +
@@ -1122,28 +1125,30 @@ for(conjratecode_index in seq_len(conjratecode)) {
 # included in the saved plots.
 CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
-           limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
+           limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
            title = "Epidemiological (in)stability",
            labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
            linezero = FALSE, facetx = "taxmatcode + intmean", facety = "nspecies",
            rotate_x_labels = TRUE, save = FALSE) +
   theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
-  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
+  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
+  geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "epistabxtaxmatintmeanynspecies.png"),
          width = 2150, height = 2150, units = "px", dpi = 300)
 }
 
 CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
-           contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
-           contour_lty = "as.factor(intmean)",
-           limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
+           contour_var = "fracstableepi", contour_col = "as.factor(intmean)",
+           contour_lty = NULL,
+           limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
            title = "Epidemiological (in)stability",
            labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
            linezero = FALSE, facetx = "taxmatcode", facety = "nspecies",
            rotate_x_labels = FALSE, save = FALSE) +
   theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
-  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
+  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
+  geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "epistabxtaxmatynspecies.png"),
          width = 2150, height = 2150, units = "px", dpi = 300)
@@ -1152,60 +1157,113 @@ if(saveplots == TRUE) {
 
 CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
-           limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
+           limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
            title = "Epidemiological (in)stability",
            labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
            linezero = FALSE, facetx = "taxmatcode", facety = "intmean",
            rotate_x_labels = TRUE, save = FALSE) +
   theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
-  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
+  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
+  geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "epistabxtaxmatyintmean.png"),
          width = 2150, height = 2150, units = "px", dpi = 300)
 }
 
 CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
-           contour_var = "fracstableepi", contour_col = "nspecies",
+           contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
            contour_lty = "as.factor(intmean)",
-           limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
+           limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
            title = "Epidemiological (in)stability",
-           labx = "Cost", laby = "Log10(cintraspecies conjugation rate initP)",
+           labx = "Cost", laby = "Log10(intraspecies conjugation rate initP)",
            linezero = FALSE, facetx = "taxmatcode", facety = ".",
            rotate_x_labels = FALSE, save = FALSE) +
   theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
-  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
+  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
+  geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "epistabxtaxmat.png"),
          width = 2150, height = 2150, units = "px", dpi = 300)
 }
 
 CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
-           contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
+           contour_var = "fracstableepi", contour_col = "as.factor(intmean)",
            contour_lty = "as.factor(taxmatcode)",
-           limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
+           limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
            title = "Epidemiological (in)stability",
+           labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
+           linezero = FALSE, facetx = "selfintmean", facety = "nspecies",
+           rotate_x_labels = FALSE, save = FALSE) +
+  theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
+  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
+  geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
+if(saveplots == TRUE) {
+  ggsave(paste0(DateTimeStamp, "epistabxselfintynspecies.png"),
+         width = 2150, height = 2150, units = "px", dpi = 300)
+}
+
+##### Compare numeric thresholds with analytic predictions for two-species #####
+abundance <- switch(abunmodel,
+                    brokenstick = {
+                      abundance <- brokenstick_fast(nspecies = 2,
+                                                    totalabun = totalabun,
+                                                    takelimit = TRUE)
+                    },
+                    dompreempt = {
+                      abundance <- dompreempt_fast(nspecies = 2,
+                                                   totalabun = totalabun,
+                                                   takelimit = TRUE)
+                    },
+                    error("'abunmode' should be 'brokenstick' or 'dompreempt'"))
+
+R1 <- abundance[1]
+R2 <- abundance[2]
+g22 <- conjrate_base
+
+temp <- data.frame(conj_inter_init = rep(conjrate_base, nrow(plotdata)))
+row_ind <- which(plotdata$taxmatcode == 2)
+temp[row_ind, "conj_inter_init"] <- temp[row_ind, "conj_inter_init"] / 1e3
+
+temp$p1 <- ((plotdata[, "conjrate"] * R1) - (g22 * R2))^2 +
+  4 * temp[, "conj_inter_init"]^2 * R1 * R2
+temp_plotdata <- plotdata
+temp_plotdata$fracstableepi <- plotdata[, "conjrate"] * R1 + g22 * R2 + sqrt(temp$p1) <
+  2 * plotdata[, "cost"]
+
+plotdata_full <- rbind(cbind(plotdata, type = "numeric"),
+                       cbind(temp_plotdata, type = "analytic"))
+rm(temp_plotdata)
+
+CreatePlot(dataplot = plotdata_full,
+           xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+           contour_var = "fracstableepi", contour_col = "as.factor(type)",
+           contour_lty = "as.factor(taxmatcode)",
+           limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
+           title = "Comparing epidemiological (in)stability",
            labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
            linezero = FALSE, facetx = ".", facety = "nspecies",
            rotate_x_labels = FALSE, save = FALSE) +
   theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
-  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
+  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
+  geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "epistabynspecies.png"),
+  ggsave(paste0(DateTimeStamp, "epistabynspecies_comparison.png"),
          width = 2150, height = 2150, units = "px", dpi = 300)
 }
 
 CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "as.factor(intmean)",
            contour_lty = "as.factor(selfintmean)",
-           limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
+           limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
            title = "Epidemiological (in)stability",
            labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
            linezero = FALSE, facetx = "taxmatcode", facety = "nspecies",
            rotate_x_labels = FALSE, save = FALSE) +
   theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
-  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1))
+  guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
+  geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "epistabxtaxmatynspeciescolinter.png"),
+  ggsave(paste0(DateTimeStamp, "epistabxtaxmatynspeciescolltyinter.png"),
          width = 2150, height = 2150, units = "px", dpi = 300)
 }
 
@@ -1214,13 +1272,14 @@ if(saveplots == TRUE) {
 CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "as.factor(nspecies)",
            contour_lty = "as.factor(taxmatcode)",
-           limx = c(0, NA), limy = range(log10(seqconjrate)), ratio = NULL,
+           limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
            title = "Epidemiological (in)stability",
            labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
            linezero = FALSE, facetx = ".", facety = ".",
            rotate_x_labels = FALSE, save = FALSE) +
   theme(legend.box = "vertical", legend.margin = margin(rep(-5, 4), unit = "pt")) +
   guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
+  geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2) +
   annotate("text", label = c("Invasion of plasmid-\nbearing bacteria",
                              "No invasion of plasmid-\nbearing bacteria"),
            x = quantile(costset, c(0.1, 0.9)),
@@ -1239,4 +1298,5 @@ CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
            title = "Epidemiological (in)stability",
            labx = "Cost", laby = "Log10(intraspecies conjugation rate of initP)",
            linezero = FALSE, facetx = "taxmatcode", facety = "nspecies",
-           rotate_x_labels = FALSE, filename = "epistabheatmap")
+           rotate_x_labels = FALSE, filename = "epistabheatmap") +
+  geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
