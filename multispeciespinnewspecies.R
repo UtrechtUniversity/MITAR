@@ -160,6 +160,8 @@ selfintmeanset <- c(-1e-11, -6e-12, -1e-12)
 ## Parameter set to create bifurcation-like plots showing the border of
 # epidemiological stability in the conjugation rate/cost space
 bifurparms <- TRUE
+nspeciesset <- 1 + c(2, 4, 8, 16)
+maxnspecies <- max(nspeciesset)
 costset <- seq(from = 0, to = 0.2, by = 0.001)
 seqconjrate <- 10^seq(from = -13.5, to = -11.5, by = 0.01)
 conjrateset <- NULL
@@ -178,7 +180,7 @@ for(conjrate in seqconjrate) {
 niter <- 1
 simulateinvasion <- FALSE
 intmeanset <- c(-1e-11, 0, 1e-11)
-selfintmeanset <- -0.5e-11 # c(-1e-11, -0.5e-11, 0)
+selfintmeanset <- c(-1e-11, -0.5e-11, 0)
 
 
 #### Functions ####
@@ -1592,8 +1594,8 @@ for(nspecies in nspeciesset) {
 duration <- Sys.time() - starttime
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 
-colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
-                        "intmean", "selfintmean", "newgrowthratecode",
+colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode", "intmean",
+                        "selfintmean", "newgrowthratecode",
                         colnames(summarydata))
 colnames(datatotal) <- colnames(data)
 
