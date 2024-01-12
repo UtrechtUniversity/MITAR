@@ -13,6 +13,9 @@
 # a (plasmid-free population) of the invading species is already present in the
 # microbiome, and conjugation is, or is not, relatedness-dependent.
 
+# NOTE:
+# - Some functions differ from the functions for the case where the plasmid is
+#   introduced through an already-present species.
 
 #### References ####
 # Alderliesten JB, Duxbury SJN, Zwart MP, de Visser JAGM, Stegeman S, Fische
@@ -1003,6 +1006,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        contour_lty = NULL,
                        limits = NULL, limx = NULL, limy = NULL, ratio = 1,
                        fillvar, filltitle, filltype = "discrete",
+                       filllabels = NULL,
                        title = NULL, subtitle = NULL,
                        labx = "Mean interspecies interaction coefficient",
                        laby = "Mean intraspecies interaction coefficient",
@@ -1588,7 +1592,8 @@ for(nspecies in nspeciesset) {
         rowindexplotdatanew <- rowindexplotdata + length(costset) *
           length(conjrateset) * length(taxmattypeset)
         plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
-          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean, summarydata))
+          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean,
+                 summarydata))
         rowindexplotdata <- rowindexplotdatanew
       }
     }
@@ -1597,8 +1602,9 @@ for(nspecies in nspeciesset) {
 duration <- Sys.time() - starttime
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 
-colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode",
-                        "intmean", "selfintmean", colnames(summarydata))
+colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode", "intmean",
+                        "selfintmean",
+                        colnames(summarydata))
 colnames(datatotal) <- colnames(data)
 
 warnings()
