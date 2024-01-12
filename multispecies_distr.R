@@ -8,7 +8,7 @@ library(ggrepel)
 distr_means_intra <- c(-1e-11, 0)
 distr_sd_intra <- 9e-12
 ub_intra <- 0
-distr_means_inter <- c(-1e-11, 0)
+distr_means_inter <- c(-1e-11, 0, 5e-12)
 distr_sd_inter <- 5e-12
 ub_inter <- Inf
 n_species <- 3
