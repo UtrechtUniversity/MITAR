@@ -1995,7 +1995,14 @@ CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
            fillvar = "fracstableecol",
            filltitle = "Fraction ecologically\nstable",
            filltype = "continuous", limits = limitsfraction, tag = "B",
-           filename = "Fig06B")
+           filename = "Fig09B")
+CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+                             near(conjratecode, 1), near(taxmatcode, 1)),
+           fillvar = "fracstableecol",
+           filltitle = "Fraction ecologically\nstable",
+           filltype = "continuous", limits = limitsfraction, tag = "B",
+           filename = "Fig09B_altres", width = 825, height = 2675)
+
 CreatePlot(fillvar = "fracstableepi",
            filltitle = "Fraction epidemiologically\nstable",
            filltype = "continuous", limits = limitsfraction)
@@ -2104,7 +2111,7 @@ if(simulateinvasion == TRUE) {
     facet_grid(conjratecode + nspecies ~ cost + taxmatcode,
                labeller = label_both, as.table = TRUE, drop = TRUE)
   if(saveplots == TRUE) {
-    ggsave("Fig10B_alt.png")
+    ggsave("Fig13B_alt.png")
   }
   
   CreatePlot(fillvar = "eqreachedconjfrac",
@@ -2506,10 +2513,6 @@ if(simulateinvasion == TRUE) {
              filltitle = paste0("Log10(1e-6 + ", filltitle_conjmean, ")"),
              filltype = "continuous", rotate_legend = FALSE,
              filename = "relabunconjsp1meancontinuousloglim")
-  CreatePlot(fillvar = "log10(1e-6 + relabunconjsp1mean)",
-             filltitle = paste0("Log10(1e-6 + ", filltitle_conjmean, ")"),
-             filltype = "continuous", rotate_legend = FALSE, tag = "B",
-             filename = "Fig12B")
   
   CreatePlot(fillvar = "relabunPconjsp1mean", filltitle = filltitle_P1conjmean,
              filltype = "continuous", limits = limitsfraction, rotate_legend = TRUE,
