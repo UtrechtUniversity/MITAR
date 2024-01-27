@@ -2355,7 +2355,7 @@ if(simulateinvasion == TRUE) {
              filltitle = "Mean fraction of surviving species\nwith a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction, tag = "A",
              title = title, subtitle = subplasmidbearing,
-             filename = "Fig04A")
+             filename = "Fig07A")
   CreatePlot(fillvar = "npopPconjmean / nspecies",
              filltitle = "Mean fraction of initial species\nwith a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction,
@@ -2400,11 +2400,18 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction, tag = "A",
              title = title, subtitle = subplasmidbearing, filename = "Fig03A")
   
+  CreatePlot(fillvar =  "1 - fracPformedbypertpopmean",
+             filltitle = paste("Mean fraction of plasmid-bearing\nbacteria",
+                               "belonging to the\ninitially plasmid-free",
+                               "species"),
+             filltype = "continuous", limits = limitsfraction, tag = "B",
+             filename = "Fig04B")
+  
   CreatePlot(fillvar =  "fracPformedbypertpopmean",
              filltitle = paste("Mean fraction of plasmid-bearing\nbacteria",
                                "belonging to the\ninitially plasmid-bearing species"),
-             filltype = "continuous", limits = limitsfraction, tag = "A",
-             filename = "Fig05A")
+             filltype = "continuous", limits = limitsfraction, tag = "B",
+             filename = "Fig04B_alt")
   
   CreatePlot(fillvar = "pertpopconjsurvivedfrac",
              filltitle = paste("Fraction of iterations where\ninitially",
@@ -2414,7 +2421,7 @@ if(simulateinvasion == TRUE) {
              filltitle = paste("Fraction of iterations where\ninitially",
                                "plasmid-bearing\npopulation survived"),
              filltype = "continuous", limits = limitsfraction, tag = "A",
-             filename = "Fig07A")
+             filename = "Fig06A")
   
   ## Plot total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
@@ -2539,15 +2546,26 @@ if(simulateinvasion == TRUE) {
 CreatePlot(fillvar = "relabunconjsp1mean",
            filltitle = paste0("Mean rel. abundance of initially",
                               "\nplasmid-bearing species ", add_filltitleconj),
-           filltype = "continuous", limits = limitsfraction, tag = "B",
-           filename = "Fig05B")
+           filltype = "continuous", limits = limitsfraction, tag = "A",
+           filename = "Fig04A")
 
 CreatePlot(fillvar = "log10(1e-6 + relabunconjsp1mean)",
            filltitle = paste0("log10(1e-6 + Mean rel. abundance of initially",
                               "\nplasmid-bearing species) ", add_filltitleconj),
-           filltype = "continuous", limits = NULL, tag = "B",
-           filename = "Fig05B_log")
+           filltype = "continuous", limits = NULL, tag = "A",
+           filename = "Fig04A_log")
 
+CreatePlot(fillvar = "1 - relabunconjsp1mean",
+           filltitle = paste0("Mean rel. abundance of initially",
+                              "\nplasmid-free species ", add_filltitleconj),
+           filltype = "continuous", limits = limitsfraction, tag = "A",
+           filename = "Fig04A_alt")
+
+CreatePlot(fillvar = "log10(1 - relabunconjsp1mean + 1e-6)",
+           filltitle = paste0("log10(1e-6 + Mean rel. abundance of initially",
+                              "\nplasmid-free species) ", add_filltitleconj),
+           filltype = "continuous", limits = NULL, tag = "A",
+           filename = "Fig04A_alt_log")
 
 #### Compare abundance models ####
 compareabun <- NULL
