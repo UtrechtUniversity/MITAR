@@ -2352,7 +2352,7 @@ if(simulateinvasion == TRUE) {
              filltitle = "Mean fraction of surviving species\nwith a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction, tag = "B",
              title = title, subtitle = subplasmidbearing,
-             filename = "Fig04B")
+             filename = "Fig06B")
   CreatePlot(fillvar = "npopPconjmean / nspecies",
              filltitle = "Mean fraction of initial species\nwith a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction,
@@ -2397,11 +2397,18 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction, tag = "B",
              title = title, subtitle = subplasmidbearing, filename = "Fig03B")
   
+  CreatePlot(fillvar =  "1 - fracPformedbypertpopmean",
+             filltitle = paste("Mean fraction of plasmid-bearing\nbacteria",
+                               "belonging to the\ninitially plasmid-free",
+                               "species"),
+             filltype = "continuous", limits = limitsfraction, tag = "B",
+             filename = "Fig05B")
+  
   CreatePlot(fillvar =  "fracPformedbypertpopmean",
              filltitle = paste("Mean fraction of plasmid-bearing\nbacteria",
                                "belonging to the\ninitially plasmid-bearing species"),
-             filltype = "continuous", limits = limitsfraction, tag = "A",
-             filename = "Fig06A")
+             filltype = "continuous", limits = limitsfraction, tag = "B",
+             filename = "Fig05B_alt")
   
   CreatePlot(fillvar = "pertpopconjsurvivedfrac",
              filltitle = paste("Fraction of iterations where\ninitially",
@@ -2501,9 +2508,6 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction, rotate_legend = TRUE,
              filename = "relabunconjsp1meancontinuous_alt")
   CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_conjmean,
-             filltype = "continuous", limits = limitsfraction, tag = "B",
-             rotate_legend = FALSE, filename = "Fig06B")
-  CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_conjmean,
              filltype = "continuous", rotate_legend = TRUE,
              filename = "relabunconjsp1meancontinuousnolim")
   CreatePlot(fillvar = "relabunconjsp1mean", filltitle = filltitle_conjmean,
@@ -2555,9 +2559,9 @@ if(simulateinvasion == TRUE) {
                                           add_filltitle),
                        filltype = "continuous", limits = limitsfraction))
       
-      print(CreatePlot(fillvar = paste0("log10(1 + relabunRsp", species_i,
+      print(CreatePlot(fillvar = paste0("log10(1e-6 + relabunRsp", species_i,
                                         stat_type[ind_stat_type], ")"),
-                       filltitle = paste0("Log10(1 + ",
+                       filltitle = paste0("Log10(1e-6 + ",
                                           names(stat_type[ind_stat_type]),
                                           " rel. abundance of sp", species_i, " ",
                                           add_filltitle, ")"),
@@ -2570,9 +2574,9 @@ if(simulateinvasion == TRUE) {
                                           add_filltitleconj),
                        filltype = "continuous", limits = limitsfraction))
       
-      print(CreatePlot(fillvar = paste0("log10(1 + relabunconjsp", species_i,
+      print(CreatePlot(fillvar = paste0("log10(1e-6 + relabunconjsp", species_i,
                                         stat_type[ind_stat_type], ")"),
-                       filltitle = paste0("Log10(1 + ",
+                       filltitle = paste0("Log10(1e-6 + ",
                                           names(stat_type[ind_stat_type]),
                                           " rel. abundance of sp", species_i, " ",
                                           add_filltitleconj, ")"),
@@ -2581,6 +2585,29 @@ if(simulateinvasion == TRUE) {
   }
 }
 
+CreatePlot(fillvar = "relabunconjsp1mean",
+           filltitle = paste0("Mean rel. abundance of initially",
+                              "\nplasmid-bearing species ", add_filltitleconj),
+           filltype = "continuous", limits = limitsfraction, tag = "A",
+           filename = "Fig05A")
+
+CreatePlot(fillvar = "log10(1e-6 + relabunconjsp1mean)",
+           filltitle = paste0("log10(1e-6 + Mean rel. abundance of initially",
+                              "\nplasmid-bearing species) ", add_filltitleconj),
+           filltype = "continuous", limits = NULL, tag = "A",
+           filename = "Fig05A_log")
+
+CreatePlot(fillvar = "1 - relabunconjsp1mean",
+           filltitle = paste0("Mean rel. abundance of initially",
+                              "\nplasmid-free species ", add_filltitleconj),
+           filltype = "continuous", limits = limitsfraction, tag = "A",
+           filename = "Fig05A_alt")
+
+CreatePlot(fillvar = "log10(1 - relabunconjsp1mean + 1e-6)",
+           filltitle = paste0("log10(1e-6 + Mean rel. abundance of initially",
+                              "\nplasmid-free species) ", add_filltitleconj),
+           filltype = "continuous", limits = NULL, tag = "A",
+           filename = "Fig05A_alt_log")
 
 #### Compare abundance models ####
 # See the script multispecies.R
