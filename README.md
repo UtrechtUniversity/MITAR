@@ -1,5 +1,5 @@
 # MITAR
-Repository containing dynamical models for the MITAR project
+Repository containing dynamical models for the MITAR project. 
 
 R-scripts to compare pair-formation models of conjugation with bulk-conjugation models,
 used in Alderliesten JB, Zwart MP, de Visser JAGM, Stegeman A, Fischer EAJ. 2022.
@@ -19,6 +19,7 @@ If the variable 'plotdataapproxbulk' is set to TRUE, the data used to
 approximate the bulk-conjugation rates is plotted.
 
 R-scripts and matlab-script for multispecies models of conjugation:
+Alderliesten et al. In prep.
 * multispecies.R
 * multispeciespinnewspecies.R
 * multispecies_bifur.R
