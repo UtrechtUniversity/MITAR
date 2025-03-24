@@ -141,7 +141,7 @@ simplify(det(JacPfreeEqParmEcol), 'Steps', 100) % product of the eigenvalues, > 
 trace(JacPfreeEqParmEcol) % sum of the eigenvalues, < 0 for stable point
 % R1*a11 + R2*a22 -> always < 0 because (a11, a22) < 0 and (R1, R2) > 0
 % So same result as from the derivation above:
-% stable if a11*a22 > a12*a21; unstable if  LHS < RHS: a11*a22 < a12*a21
+% stable if a11*a22 > a12*a21; unstable if LHS < RHS: a11*a22 < a12*a21
 
 %% Analysis of epidemiological stability: full model
 JacPfreeEpi = JacPfree(3:4, 3:4) % At plasmid-free equilibrium
@@ -159,7 +159,6 @@ discrEpi = traceEpi^2 - 4 * detEpi
 % 4*R1*R2*g12*g21
 eigEpi1 = (traceEpi + sqrt(discrEpi)) / 2
 eigEpi2 = (traceEpi - sqrt(discrEpi)) / 2
-
 % Stable if det > 0 and tr < 0
 
 simplify(eigValsPfreeEqParmEpi(1) - eigEpi2, 'Steps', 200) % 0
@@ -182,9 +181,7 @@ simplify(eigValsPfreeEqParmEpi(2) - eigEpi1, 'Steps', 200) % 0
 % R1*g11 - c2 - c1 + R2*g22 < -1*(R1^2*g11^2 - 2*R1*R2*g11*g22 + 4*g12*g21*R1*R2 -
 % 2*R1*c1*g11 + 2*R1*c2*g11 + R2^2*g22^2 + 2*R2*c1*g22 - 2*R2*c2*g22 + c1^2 - 2*c1*c2 +
 % c2^2)^(1/2)
-
-R1^2*g11^2 - 2*R1*R2*g11*g22 + 4*g12*g21*R1*R2 - 2*R1*c1*g11 + 2*R1*c2*g11 + R2^2*g22^2 + 2*R2*c1*g22 - 2*R2*c2*g22 + c1^2 - 2*c1*c2 + c2^2
-
+R1^2*g11^2 - 2*R1*R2*g11*g22 + 4*g12*g21*R1*R2 - 2*R1*c1*g11 + 2*R1*c2*g11 + R2^2*g22^2 + 2*R2*c1*g22 - 2*R2*c2*g22 + c1^2 - 2*c1*c2 + c2^2 % This line should be removed?
 % R1*g11 - c2 - c1 + R2*g22 < -1*(((R1*g11 - c1) - (R2*g22 - c2))^2 + 4*g12*g21*R1*R2)^(1/2)
 
 % This last rearrangement shows the part inside the root is always positive, so the criterion can be
@@ -308,3 +305,35 @@ JacPfreeD = JacPfree(1:2,  3:4) % At plasmid-free equilibrium
 % At plasmid-free equilibrium considering used parameterization
 JacPfreeEqParmD = JacPfreeEqParm(1:2,  3:4)
 eigValsJacPfreeEqParmD = simplify(eig(JacPfreeEqParmD), 'Steps', 200)
+
+
+%% Find the intersection of the bifurcation lines for the two-species and sixteen-species model
+% To find the intraspecies conjugation rate for which the bifurcation liness cross.
+syms g
+assumeAlso(g > 0)
+
+inv_crit = R1*g11 + R2*g22 + sqrt((R1*g11 - R2*g22)^2 + 4*g12*g21*R1*R2)
+inv_crit_2sp = simplify(subs(inv_crit, [g22, g12, g21], [g, g, g]), 'Steps', 200)
+% The factors 7.5 / 8 and 2.5 / 2 are based on the abundances of the initially plasmid-bearing
+% species and the initially plasmid-free species in the two-species and sixteen-species models.
+inv_crit_16sp = simplify(subs(inv_crit, [R1, R2, g22, g12, g21], [R1 * 7.5 / 8, R2 * 2.5 / 2, g, g, g]), 'Steps', 200)
+
+sol = solve(inv_crit_2sp == inv_crit_16sp, [g11], 'ReturnConditions', true);
+intersect_g11 = simplify(sol.g11, 'Steps', 200)
+sol.conditions
+
+simplify(subs(intersect_g11, [R1, R2], [8 * 10^10, 2 * 10^10]), 'Steps', 200) % g
+% So the bifurcation lines cross where g11 == g, as is indeed shown in the bifurcation-like plot
+% based on numerical simulations.
+
+% Now solve the invasion criterion for case where all conjugation rates are equal to each other.
+inv_crit_all_g = simplify(subs(inv_crit, [g11, g22, g12, g21], [g, g, g, g]), 'Steps', 200)
+% g*(R1 + R2 + ((R1 + R2)^2)^(1/2))
+
+
+%% Solve for g11
+asol1 = solve(eigEpi1 == 0, [g11], 'ReturnConditions', true)
+simplify(asol1.g11, 'Steps', 100) % c1/R1 - (R2*g12*g21)/(c2 - R2*g22)
+
+asol2 = solve(eigEpi2 == 0, [g11], 'ReturnConditions', true)
+simplify(asol2.g11, 'Steps', 100) % c1/R1 - (R2*g12*g21)/(c2 - R2*g22)
