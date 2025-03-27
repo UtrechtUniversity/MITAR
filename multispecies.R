@@ -81,8 +81,9 @@ library(deSolve)   # checkequilibrium() and perturbequilibrium() call ode() if
                    # showplot and simulateinvasion are 'TRUE', respectively
 library(dplyr)     # across(), full_join(), group_by(), near(), summarise()
 library(ggplot2)   # to display data and results
-library(scales)    # to format values on the axes, CreatePlot() calls
-                   # scientific_base10() which calls scales::label_scientific()
+library(scales)    # CreatePlot() calls format_scaled() or format_sci() which
+                   # call scales::label_number() or scales::label_scientific(),
+                   # respectively, to format values on the axes.
 library(rootSolve) # geteqinfo() calls jacobian.full()
 library(TruncatedNormal) # getintmat calls rtnorm()
 # On the pipe operator (%>%), see ?'%>%' and Ch. 18 'Pipes' in Wickham 2017.
@@ -980,11 +981,17 @@ getfracnotzero <- list(
   frac = ~if(any(!is.na(.x))) {mean(.x != 0, na.rm = TRUE)} else {NA}
 )
 
-# Function used by CreatePlot() if argument 'superscript' is "x", "y", or "xy"
-# to format values on the axes with exponents as superscripts. Code from
-# https://stackoverflow.com/q/76523887/22552903, with an update replacing the
-# superseded scales::scientific_format() with scales::label_scientific().
-scientific_base10 <- function(x) {
+# Functions used by CreatePlot() to format values on the axes according to
+# arguments 'format_x' and 'format_y'. If the value is 'scale', format_scaled()
+# is used to scale values by 10^11 and format the result as a normal number. If
+# the value is 'scientific', format_sci() is used to format values in the
+# scientific notation with exponents as superscripts. Code for format_sci() was
+# taken from https://stackoverflow.com/q/76523887/22552903, with an update
+# replacing the superseded scientific_format() by label_scientific().
+format_scaled <- function(x) {
+  scales::label_number(scale = 1e11, trim = FALSE)(x)
+}
+format_sci <- function(x) {
   parse(text = gsub("e", " %.% 10^", scales::label_scientific()(x)))
 }
 
@@ -994,11 +1001,16 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        contour_var = NULL, contour_breaks = 0.5, contour_col = NULL,
                        contour_lty = NULL,
                        limits = NULL, limx = NULL, limy = NULL, ratio = 1,
+                       breaks_legend = c(0, 0.5, 1),
                        fillvar, filltitle, filltype = "discrete",
-                       filllabels = NULL, superscript = "",
+                       filllabels = NULL,
+                       format_x = c("scaled", "scientific", "none"),
+                       format_y = c("scaled", "scientific", "none"),
+                       label_x = c(-1e-11, 0), label_y = c(-1e-11, 0),
                        title = NULL, subtitle = NULL,
                        labx = "Mean interspecies interaction coefficient",
                        laby = "Mean intraspecies interaction coefficient",
+                       caption = NULL,
                        tag = NULL, addstamp = FALSE, diagonal = "none",
                        linezero = TRUE,
                        facetx = "abunmodelcode + cost + taxmatcode",
@@ -1006,10 +1018,15 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        dropfacets = TRUE,
                        as.table = TRUE,
                        marginx = NULL, marginy = NULL, base_size = 13,
-                       rotate_x_labels = TRUE, rotate_legend = FALSE,
+                       rotate_x_labels = FALSE, rotate_legend = FALSE,
                        save = saveplots, width = 1650, height = 2675,
                        filename = NULL) {
-  caption <- paste(unique(dataplot$niter), "iterations")
+  format_x <- match.arg(format_x, several.ok = FALSE)
+  format_y <- match.arg(format_y, several.ok = FALSE)
+  
+  if(length(caption) == 1L && caption == TRUE) {
+    caption <- paste(unique(dataplot$niter), "iterations")
+  }
   if(exists("DateTimeStamp") == FALSE) {
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
     if(addstamp == TRUE) {
@@ -1018,7 +1035,11 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     }
   }
   if(addstamp == TRUE) {
-    caption <- paste0(caption, ", ", DateTimeStamp)
+    if(is.null(caption)) {
+      caption <- DateTimeStamp
+    } else {
+      caption <- paste0(caption, ", ", DateTimeStamp)
+    }
   }
   
   # Facets with only a single unique value are not shown if dropfacets = TRUE
@@ -1062,19 +1083,33 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   
   p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar)) + 
     theme_bw(base_size = base_size) +
-    scale_x_continuous(labels = if(superscript %in% c("x", "xy")) {
-      scientific_base10} else {waiver()},
-      limits = limx, expand = c(0, 0)) +
-    scale_y_continuous(labels = if(superscript %in% c("y", "xy")) {
-      scientific_base10} else {waiver()},
-      limits = limy, expand = c(0, 0)) +
-    facet_grid(as.formula(paste(facety, "~", facetx)), as.table = as.table,
-               labeller = mylabeller) +
-    theme(legend.position = "bottom",
+    theme(legend.box.margin = margin(-5, 0, -5, 0),
+          legend.justification = "center",
+          legend.margin = margin(-5, 0, -5, 0),
+          legend.position = "bottom",
           panel.border = element_blank(),
-          panel.spacing = unit(3, "pt"),
+          panel.spacing.x = unit(3, "pt"),
+          panel.spacing.y = unit(6, "pt"),
           plot.tag.position = c(0.0125, 0.9875),
           strip.background = element_rect(color = NA)) +
+    scale_x_continuous(breaks = label_x,
+                       limits = limx,
+                       expand = c(0, 0),
+                       # guide = guide_axis(check.overlap = TRUE),
+                       labels = switch(format_x,
+                                       scaled = format_scaled(label_x),
+                                       scientific = format_sci(label_x),
+                                       label_x)) +
+    scale_y_continuous(breaks = label_y,
+                       limits = limy,
+                       expand = c(0, 0),
+                       guide = guide_axis(check.overlap = TRUE),
+                       labels = switch(format_y,
+                                       scaled = format_scaled(label_y),
+                                       scientific = format_sci(label_y),
+                                       label_y)) +
+    facet_grid(as.formula(paste(facety, "~", facetx)), as.table = as.table,
+               labeller = mylabeller) +
     labs(title = title, subtitle = subtitle,
          x = labx, y = laby, caption = caption, tag = tag)
   
@@ -1107,7 +1142,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
       p <- p + scale_fill_viridis_b(filltitle, breaks = limits)
     }
     if(filltype == "continuous") {
-      p <- p + scale_fill_viridis_c(filltitle, limits = limits)
+      p <- p + scale_fill_viridis_c(filltitle, breaks = breaks_legend, limits = limits)
     }
   }
   if(rotate_x_labels == TRUE) {
@@ -1124,7 +1159,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     p <- p + geom_abline(intercept = 0, slope = 1, col = "grey", size = 1.1)
   }
   if(linezero == TRUE) {
-    p <- p + geom_vline(xintercept = 0, col = "grey", size = 1.1)
+    p <- p + geom_vline(xintercept = 0, col = "grey", size = 0.5)
   }
   if(save == TRUE) {
     if(is.null(filename)) {
@@ -1691,7 +1726,7 @@ if(requireNamespace("sessioninfo")) {
 #### Labels and limits for plots ####
 labspecies <- paste("Sp.", seq_len(maxnspecies))
 names(labspecies) <- seq_len(maxnspecies)
-labnspecies <- paste(nspeciesset, "sp.")
+labnspecies <- paste(nspeciesset, "species")
 names(labnspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
