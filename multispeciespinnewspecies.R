@@ -781,7 +781,7 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     # bacteria of the least-abundant species that is already present (i.e.,
     # species nspecies) otherwise.
     if(PReplMostAbun == TRUE) {
-      pertpopminus <- "R2" 
+      pertpopminus <- "R2"
     } else {
       pertpopminus <- paste0("R", nspecies)
     }
@@ -965,7 +965,6 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
   return(abunfinal)
 }
 
-
 # List of functions called within dplyr::summarise() to get summary statistics
 # for the input data. If all values in x are NA (which is the case for example
 # when data on species 3 is considered in the two-species model), NA will be
@@ -981,6 +980,14 @@ getfracnotzero <- list(
   frac = ~if(any(!is.na(.x))) {mean(.x != 0, na.rm = TRUE)} else {NA}
 )
 
+# Function used by CreatePlot() if argument 'superscript' is "x", "y", or "xy"
+# to format values on the axes with exponents as superscripts. Code from
+# https://stackoverflow.com/q/76523887/22552903, with an update replacing the
+# superseded scales::scientific_format() with scales::label_scientific().
+scientific_base10 <- function(x) {
+  parse(text = gsub("e", " %.% 10^", scales::label_scientific()(x)))
+}
+
 # Function to create plots. The plotted object is returned, such that it can be
 # further modified like any other ggplot object.
 CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmean",
@@ -988,7 +995,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        contour_lty = NULL,
                        limits = NULL, limx = NULL, limy = NULL, ratio = 1,
                        fillvar, filltitle, filltype = "discrete",
-                       filllabels = NULL,
+                       filllabels = NULL, superscript = "",
                        title = NULL, subtitle = NULL,
                        labx = "Mean interspecies interaction coefficient",
                        laby = "Mean intraspecies interaction coefficient",
@@ -1055,21 +1062,22 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   
   p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar)) + 
     theme_bw(base_size = base_size) +
+    scale_x_continuous(labels = if(superscript %in% c("x", "xy")) {
+      scientific_base10} else {waiver()},
+      limits = limx, expand = c(0, 0)) +
+    scale_y_continuous(labels = if(superscript %in% c("y", "xy")) {
+      scientific_base10} else {waiver()},
+      limits = limy, expand = c(0, 0)) +
     facet_grid(as.formula(paste(facety, "~", facetx)), as.table = as.table,
                labeller = mylabeller) +
-    theme(legend.position = "bottom") +
+    theme(legend.position = "bottom",
+          panel.border = element_blank(),
+          panel.spacing = unit(3, "pt"),
+          plot.tag.position = c(0.0125, 0.9875),
+          strip.background = element_rect(color = NA)) +
     labs(title = title, subtitle = subtitle,
          x = labx, y = laby, caption = caption, tag = tag)
-  if(!is.null(limx)) {
-    p <- p + scale_x_continuous(limits = limx, expand = c(0, 0))
-  } else {
-    p <- p + scale_x_continuous(expand = c(0, 0))
-  }
-  if(!is.null(limy)) {
-    p <- p + scale_y_continuous(limits = limy, expand = c(0, 0))
-  } else {
-    p <- p + scale_y_continuous(expand = c(0, 0))
-  }
+  
   if(!is.null(ratio)) {
     p <- p + coord_fixed(ratio = ratio, expand = FALSE)
   }
@@ -1079,6 +1087,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
   if(!is.null(marginy)) {
     p <- p + theme(strip.text.y = element_text(margin = margin(marginy)))
   }
+  
   if(!is.null(contour_var)) {
     p <- p + geom_contour(aes_string(z = contour_var, color = contour_col,
                                      linetype = contour_lty),
@@ -1165,9 +1174,9 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 # geteqinfo(model = "gLV", abundance = abundompreempt, intmat = intmat1,
 #           growthrate = growthratedompreempt)
 # (taxmat <- matrix(rep("SameSpecies", nspecies^2), nrow = nspecies,
-#                  ncol = nspecies, byrow = TRUE))
+#                   ncol = nspecies, byrow = TRUE))
 # (conjmat <- getconjmat(nspecies = nspecies, conjrate = rep(1e-12, nspecies),
-#                       taxmat = taxmat))
+#                        taxmat = taxmat))
 
 
 #### Running the simulations ####
@@ -1299,7 +1308,7 @@ for(nspecies in nspeciesset) {
                                               silentinfgrowth = TRUE,
                                               silenteqnotreached = TRUE)
             } else {
-              # No need for simulations if equilibrium is stable. # Use nspecies
+              # No need for simulations if equilibrium is stable. Use nspecies
               # - 1 because the newly-introduced species (species 1) will go
               # extinct and thus should not be counted.
               abunfinal <- list(R = c(0, abundance), Rtotal = sum(abundance),
@@ -1395,10 +1404,10 @@ for(nspecies in nspeciesset) {
                                                         silenteqnotreached = TRUE)
                   } else {
                     # No need for simulations if equilibrium is stable
-                    # NOTE: timepertpopconjextinct = 0 is only true if pertmagn is
-                    # equal to finalsmallstate. Similarly, timefinal = 1 is not
-                    # strictly true, as it will take some time to reach the new
-                    # equilibrium 
+                    # NOTE: timepertpopconjextinct = 0 is only true if pertmagn
+                    # is equal to finalsmallstate. Similarly, timefinal = 1 is
+                    # not strictly true, as it will take some time to reach the
+                    # new equilibrium.
                     abunfinalconj <- list(R = c(0, abundance), Rtotal = sum(abundance),
                                           npopR = nspecies - 1,
                                           P = rep(0, nspecies), Ptotal = 0,
@@ -1592,7 +1601,7 @@ if(simulateinvasion == TRUE) {
             signif(summary(eqnotreached)["Min."], 3), " to ",
             signif(summary(eqnotreached)["Max."], 3)," (mean: ",
             signif(summary(eqnotreached)["Mean"], 3), "; median: ",
-            signif(summary(eqnotreached)["Median"], 3), "). ",
+            signif(summary(eqnotreached)["Median"], 3), ").",
             " Use silenteqnotreached = FALSE in perturbequilibrium() for more",
             " info")
   }
@@ -1609,21 +1618,25 @@ if(simulateinvasion == TRUE) {
 }
 
 
-#### Saving settings and output to CSV files ####
+#### Saving settings and output to CSV and RDS files ####
 DateTimeStamp <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M"),
-                        "PInNewSp")
+                        "PInNewSp_")
 if(PReplMostAbun == FALSE) {
-  DateTimeStamp <- paste0(DateTimeStamp, "PReplLeastAbun")
+  DateTimeStamp <- paste0(DateTimeStamp, "PReplLeastAbun_")
 }
 
-saveRDS(object = plotdata, file = paste0(DateTimeStamp, "_plotdata"))
-saveRDS(object = datatotal, file = paste0(DateTimeStamp, "_datatotal"))
+# Saving the data as R-object into an R data file takes much less space than
+# saving it as csv. The R data files can be read into R using
+# readRDS(file = file.path("OutputMS", "YYYY_MM_DD",
+#                          "YYYY_MM_DD_MM_SS_filename.rds"))
+saveRDS(object = plotdata, file = paste0(DateTimeStamp, "plotdata.rds"))
+saveRDS(object = datatotal, file = paste0(DateTimeStamp, "datatotal.rds"))
 
 if(nrow(plotdata) > 250000) {
   warning("Not saved 'plotdata' to CSV-file because the number of rows (",
           nrow(plotdata), ") exceeds 250000.")
 } else {
-  write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
+  write.csv(plotdata, file = paste0(DateTimeStamp, "plotdata.csv"),
             quote = FALSE, row.names = FALSE)
 }
 names(conjrateset) <- paste0("conjrateset", seq_along(conjrateset))
@@ -1650,28 +1663,17 @@ if(requireNamespace("sessioninfo")) {
   capture.output(sessioninfo::session_info(),
                  file = paste0(DateTimeStamp, "sessioninfo.txt"))
 }
-if(nrow(datatotal) < 250000) {
-  write.csv(datatotal, file = paste0(DateTimeStamp, "multispeciestotal.csv"),
-            quote = FALSE, row.names = FALSE)
-} else {
-  for(nspecies in nspeciesset) {
-    filename <- paste0(DateTimeStamp, "multispeciestotal_nsp", nspecies, ".csv")
-    write.csv(datatotal[which(near(nspecies, datatotal[, "nspecies"])), ],
-              file = filename, quote = FALSE, row.names = FALSE)
-    message("Saved file ", filename)
-  }
-}
 
 
 #### Reading previously saved data from a CSV file ####
 # # To read data from a CSV file, put the CSV file in the working directory
 # # (see getwd()), uncomment this section and change the date-time-stamp in the
 # # file name (the next line prints a list of files in the working directory
-# # that contain 'multispecies' in their name).
-# list.files(pattern = "multispecies", ignore.case = TRUE)
+# # that contain 'PInNewSp' in their name).
+# list.files(pattern = "PInNewSp", ignore.case = TRUE)
 # # Note that the extension (.csv) should be included in the file name.
 # filename <- file.path("OutputMS", "YYYY_MM_DD",
-#                       "YYYY_MM_DD_MM_SSPInNewSpmultispecies.csv")
+#                       "YYYY_MM_DD_MM_SSPInNewSp.csv")
 # plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
 #                      dec = ".", stringsAsFactors = FALSE)
 # # If plotdata has only one column, probably a semicolon instead of a comma was
@@ -1683,12 +1685,6 @@ if(nrow(datatotal) < 250000) {
 # plotdata <- as.data.frame(plotdata)
 # DateTimeStamp <- substr(x = filename, start = 21, stop = 36)
 # nspeciesset <- sort(unique(plotdata[, "nspecies"]))
-# 
-# # Similarly for the datatotal CSV file.
-# filename <- file.path("OutputMS", "YYYY_MM_DD",
-#                       "YYYY_MM_DD_MM_SSPInNewSpmultispeciestotal.csv")
-# datatotal <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
-#                       dec = ".", stringsAsFactors = FALSE)
 
 
 #### Labels and limits for plots ####
@@ -1698,17 +1694,19 @@ labnspecies <- paste(nspeciesset, "sp.")
 names(labnspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
-labcost <- paste0("Fitness cost:\n", costset, "/h")
+labcost <- paste0("Fitness cost\n", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", seq_along(conjrateset))
 names(labconjrate) <- seq_along(conjrateset)
-labtaxmat <- c("All conjugation\nrates equal",
-               "InitP low inter-\nspecies rates")
+labtaxmat <- c("all\nconjugation\nrates equal",
+               "lower\nintersp. conj.\nrates initP")
 names(labtaxmat) <- seq_along(taxmattypeset)
+# '.multi_line = FALSE' to collapse facet labels into a single label
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
                        abunmodelcode = labmodel,
                        cost = labcost, conjratecode = labconjrate,
-                       taxmatcode = labtaxmat, .default = label_value)
+                       taxmatcode = labtaxmat, .multi_line = FALSE,
+                       .default = label_value)
 plotdata <- as.data.frame(plotdata)
 datatotal <- as.data.frame(datatotal)
 limitsfraction <- c(0, 1)
@@ -1723,7 +1721,8 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 
 
 #### To test plots without using CreatePlot() ####
-# ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
+# ggplot(data = plotdata,
+#        aes(x = intmean, y = selfintmean, fill = fracstable)) +
 #   geom_raster() +
 #   theme_bw(base_size = 13) +
 #   scale_x_discrete() +
@@ -1731,7 +1730,11 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 #   scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
 #   geom_vline(xintercept = 0, col = "grey", size = 1.1) +
 #   coord_fixed(ratio = 1, expand = FALSE) +
-#   theme(legend.position = "bottom") +
+#   theme(legend.position = "bottom",
+#         panel.border = element_blank(),
+#         panel.spacing = unit(3, "pt"),
+#         plot.tag.position = c(0.0125, 0.9875),
+#         strip.background = element_rect(color = NA)) +
 #   labs(x = "Mean interspecies interaction coefficient",
 #        y = "Mean intraspecies interaction coefficient",
 #        caption = paste(niter, "iterations")) +
@@ -1843,7 +1846,10 @@ ggplot(data = datatotalfilteredspecies,
   scale_x_continuous(limits = limitseigvalRe) +
   scale_y_continuous(limits = limitseigvalIm) +
   geom_point() +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom",
+        panel.border = element_blank(),
+        panel.spacing = unit(3, "pt"),
+        strip.background = element_rect(color = NA)) +
   labs(x = "Real part dominant eigenvalue",
        y = "Imaginary part dominant eigenvalue",
        caption = paste(niter, "iterations")) +
@@ -1861,7 +1867,10 @@ ggplot(data = datatotalfilteredspecies,
   scale_x_continuous(limits = limitseigvalRe) +
   scale_y_continuous(limits = limitseigvalIm) +
   geom_point() +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom",
+        panel.border = element_blank(),
+        panel.spacing = unit(3, "pt"),
+        strip.background = element_rect(color = NA)) +
   labs(x = "Real part dominant eigenvalue (with conjugation)",
        y = "Imaginary part dominant eigenvalue (with conjugation)",
        caption = paste(niter, "iterations")) +
@@ -1891,26 +1900,6 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction, tag = "B",
              filename = "Fig15B")
   
-  ggplot(data = plotdata, aes(x = intmean, y = selfintmean,
-                              fill = infgrowthconjfrac < 0.75 | intmean > 5e-12)) +
-    geom_raster() +
-    theme_bw(base_size = 13) +
-    scale_x_continuous() +
-    scale_y_continuous() +
-    scale_fill_viridis_d(limits = NULL) +
-    coord_fixed(ratio = 1, expand = FALSE) +
-    theme(legend.position = "bottom",
-          axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
-    labs(x = "Mean interspecies interaction coefficient",
-         y = "Mean intraspecies interaction coefficient",
-         caption = paste(niter, "iterations"),
-         tag = "B") +
-    facet_grid(conjratecode + nspecies ~ cost + taxmatcode,
-               labeller = label_both, as.table = TRUE, drop = TRUE)
-  if(saveplots == TRUE) {
-    ggsave("FigX14B_alt.png")
-  }
-  
   CreatePlot(fillvar = "eqreachedconjfrac",
              filltitle = "Fraction of iterations where\nthe equilibrium was reached",
              filltype = "continuous", limits = limitsfraction)
@@ -1919,10 +1908,10 @@ if(simulateinvasion == TRUE) {
              filltype = "continuous", limits = limitsfraction, tag = "B",
              filename = "Fig14B")
   CreatePlot(fillvar = "tmaxshortconjfrac",
-             filltitle = "Fraction of iterations where\ninfinite growth occurred",
+             filltitle = "Fraction of iterations where\ntmax was too short",
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "tmaxshortconjfrac",
-             filltitle = "Fraction of iterations where\ninfinite growth occurred",
+             filltitle = "Fraction of iterations where\ntmax was too short",
              filltype = "continuous", limits = limitsfraction, tag = "B",
              filename = "Fig16B")
 }
@@ -1949,11 +1938,19 @@ for(ind_stat_type in seq_along(stat_type)) {
 CreatePlot(fillvar = "growthratemean",
            filltitle = "Mean growth rate",
            filltype = "continuous", limits = NULL,
-           filename = "multispeciesgrowthratemeancontinuous_ownlimits")
+           filename = "growthratemean_ownlimits")
+CreatePlot(fillvar = "growthratemean",
+           filltitle = "Mean growth rate",
+           filltype = "continuous", limits = NULL,
+           filename = "Fig09")
+CreatePlot(fillvar = "growthratemean",
+           filltitle = "Mean growth rate",
+           filltype = "continuous", limits = NULL, tag = "B",
+           filename = "Fig09B")
 CreatePlot(fillvar = "growthratemedian",
            filltitle = "Median growth rate",
            filltype = "continuous", limits = NULL,
-           filename = "multispeciesgrowthratemediancontinuous_ownlimits")
+           filename = "growthratemedian_ownlimits")
 
 # Show the relation of interactions and species-specific growth rate required to
 # obtain an equilibrium. Costs and conjugation rate do not affect growth rate,
@@ -1963,10 +1960,13 @@ datatotalfiltercostconj <- filter(datatotal, near(cost, costset[1]),
 datatotalfiltercostconjsp1 <- filter(datatotalfiltercostconj,
                                      near(species, 1))
 ggplot(data = datatotalfiltercostconjsp1,
-       aes(x = intmean, y = growthrate)) + 
+       aes(x = intmean, y = growthrate)) +
   theme_bw() +
-  theme(legend.position = "bottom",
-        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "bottom",
+        panel.border = element_blank(),
+        panel.spacing = unit(3, "pt"),
+        strip.background = element_rect(color = NA)) +
   geom_point(aes(col = iter), size = 0.1) +
   facet_grid(rows = vars(selfintmean), cols = vars(nspecies),
              labeller = mylabeller, drop = TRUE, scales = "fixed") +
@@ -1982,8 +1982,11 @@ if(saveplots == TRUE) {
 ggplot(data = datatotalfiltercostconjsp1,
        aes(x = intmean, y = growthrate)) + 
   theme_bw() +
-  theme(legend.position = "bottom",
-        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "bottom",
+        panel.border = element_blank(),
+        panel.spacing = unit(3, "pt"),
+        strip.background = element_rect(color = NA)) +
   geom_point(size = 0.1) +
   facet_grid(rows = vars(selfintmean), cols = vars(nspecies),
              labeller = mylabeller, drop = TRUE, scales = "fixed") +
@@ -2003,7 +2006,10 @@ datatotalfiltercostconj_iter1 <- datatotalfiltercostconj[
 # - The colorbar labels should be shifted to the left
 ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) + 
   theme_bw() +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom",
+        panel.border = element_blank(),
+        panel.spacing = unit(3, "pt"),
+        strip.background = element_rect(color = NA)) +
   geom_point(aes(color = selfintmean), size = 1) +
   facet_grid(rows = vars(nspecies), cols = vars(species, abunmodelcode),
              labeller = mylabeller, drop = TRUE) +
@@ -2018,7 +2024,10 @@ if(saveplots == TRUE) {
 
 ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
   theme_bw() +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom",
+        panel.border = element_blank(),
+        panel.spacing = unit(3, "pt"),
+        strip.background = element_rect(color = NA)) +
   geom_point(aes(color = intmean), size = 1) +
   facet_grid(rows = vars(nspecies), cols = vars(species, abunmodelcode),
              labeller = mylabeller) +
@@ -2144,15 +2153,11 @@ if(simulateinvasion == TRUE) {
              filltitle = "Mean fraction of surviving species\nwith a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
-  if(newgrowthratecode == 2) {
-    CreatePlot(fillvar = "fracspeciesPconjmean",
-               filltitle = "Mean fraction of surviving species\nwith a plasmid-bearing population",
-               filltype = "continuous", limits = limitsfraction, tag = "B",
-               filename = switch(newgrowthratecode,
-                                 1 = "Fig05B", 2 = "Fig04B", 3 = "Fig06B",
-                                 stop("'newgrowthratecode' should be 1, 2 or 3, not ",
-                                      newgrowthratecode)))
-  }
+  CreatePlot(fillvar = "fracspeciesPconjmean",
+             filltitle = "Mean fraction of surviving species\nwith a plasmid-bearing population",
+             filltype = "continuous", limits = limitsfraction, tag = "B",
+             filename = switch(newgrowthratecode,
+                               "Fig05B", "Fig04B", "Fig06B"))
   
   CreatePlot(fillvar = "npopPconjmean / nspecies",
              filltitle = "Mean fraction of initial species\nwith a plasmid-bearing population",
@@ -2161,7 +2166,7 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "npopPconjmean / nspecies",
              filltitle = "Mean fraction of initial species\nwith a plasmid-bearing population",
              filltype = "continuous", limits = limitsfraction, tag = "B",
-             filename = "Fig12B")
+             filename = paste0("Fig12B_growthratecode", newgrowthratecode))
   
   ## Plots of fractions of bacteria that are plasmid-free or plasmid-bearing
   # after perturbations. Only abundances where equilibrium was reached are
@@ -2238,7 +2243,8 @@ if(simulateinvasion == TRUE) {
   # confusing because gray squares can also indicate no data is available
   # because all simulations were discarded because equilibrium was not reached.
   # Therefore I plot log10(1 + x) instead of log10(x). I do not use the built-in
-  # function log1p(x) because that uses natural logarithms.
+  # function log1p(x) because that uses natural logarithms. For
+  # relative abundances I used log(1e-6 + x) because adding 1 is too much.
   title <- paste0("Total abundance after perturbation", title_add)
   for(ind_stat_type in seq_along(stat_type)) {
     print(CreatePlot(fillvar = paste0("log10(1 + abuntotal", stat_type[ind_stat_type], ")"),
@@ -2253,7 +2259,7 @@ if(simulateinvasion == TRUE) {
   for(ind_stat_type in seq_along(stat_type)) {
     print(CreatePlot(fillvar = paste0("log10(1 + abuntotalconj", stat_type[ind_stat_type], ")"),
                      filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
-                                       "total abundance)"),
+                                       "\ntotal abundance)"),
                      filltype = "continuous", title = title, subtitle = subplasmidbearing))
   }
   
@@ -2276,7 +2282,6 @@ if(simulateinvasion == TRUE) {
                                        "abundance of\nplasmid-bearing bacteria)"),
                      filltype = "continuous", title = title, subtitle = subplasmidbearing))
   }
-  
   
   ## Plots comparing species abundances after perturbation with plasmid-bearing
   # bacteria
@@ -2395,7 +2400,7 @@ if(simulateinvasion == TRUE) {
 if(newgrowthratecode == 1) {
   CreatePlot(fillvar = "relabunconjsp1mean",
              filltitle = paste0("Mean relative abundance of the\ninitially",
-                                "plasmid-bearing species"),
+                                " plasmid-bearing species"),
              filltype = "continuous", limits = limitsfraction, tag = "B",
              filename = "Fig19B_growthrate1")
 }
@@ -2403,7 +2408,7 @@ if(newgrowthratecode == 1) {
 if(newgrowthratecode == 2) {
   CreatePlot(fillvar = "relabunconjsp1mean",
              filltitle = paste0("Mean relative abundance of the\ninitially",
-                                "plasmid-bearing species"),
+                                " plasmid-bearing species"),
              filltype = "continuous", limits = limitsfraction, tag = "A",
              filename = "Fig18A")
 }
@@ -2411,20 +2416,14 @@ if(newgrowthratecode == 2) {
 if(newgrowthratecode == 3) {
   CreatePlot(fillvar = "relabunconjsp1mean",
              filltitle = paste0("Mean relative abundance of the\ninitially",
-                                "plasmid-bearing species"),
+                                " plasmid-bearing species"),
              filltype = "continuous", limits = limitsfraction, tag = "B",
              filename = "Fig19B")
 }
 
-CreatePlot(fillvar = "log10(1e-6 + relabunconjsp1mean)",
-           filltitle = paste0("log10(1e-6 + Mean relative abundance of\nthe",
-                              " initially plasmid-bearing species)"),
-           filltype = "continuous", limits = NULL, tag = "A",
-           filename = "Fig18A_log")
-
 CreatePlot(fillvar = "1 - relabunconjsp1mean",
            filltitle = paste0("Mean relative abundance of the\ninitially",
-                              "plasmid-bearing species ", add_filltitleconj),
+                              " plasmid-bearing species ", add_filltitleconj),
            filltype = "continuous", limits = limitsfraction)
 
 CreatePlot(fillvar = "log10(1 - relabunconjsp1mean + 1e-6)",
