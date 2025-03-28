@@ -1019,7 +1019,8 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        as.table = TRUE,
                        marginx = NULL, marginy = NULL, base_size = 13,
                        rotate_x_labels = FALSE, rotate_legend = FALSE,
-                       save = saveplots, width = 1650, height = 2675,
+                       # height = 1545 is enough if legend has 2 lines of text
+                       save = saveplots, width = 1650, height = 1600,
                        filename = NULL) {
   format_x <- match.arg(format_x, several.ok = FALSE)
   format_y <- match.arg(format_y, several.ok = FALSE)
@@ -1829,13 +1830,13 @@ CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
            fillvar = "1 - fracstableecol",
            filltitle = "Fraction of iterations that\nis ecologically unstable",
            filltype = "continuous", limits = limitsfraction, tag = "A",
-           filename = "Fig10A", width = 1650, height = 2675)
+           filename = "Fig10A", width = 1127, height = 2756)
 CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                              near(conjratecode, 1), near(taxmatcode, 1)),
            fillvar = "1 - fracstableecol",
            filltitle = "Fraction of iterations that\nis ecologically unstable",
            filltype = "continuous", limits = limitsfraction, tag = "A",
-           filename = "Fig10A_altres", width = 825, height = 2675)
+           filename = "Fig10A_altres", width = 825, height = 1925)
 CreatePlot(fillvar = "1 - fracstableepi",
            filltitle = "Fraction of iterations that\nis epidemiologically unstable",
            filltype = "continuous", limits = limitsfraction)
@@ -1937,10 +1938,10 @@ if(simulateinvasion == TRUE) {
              filename = "Fig15A")
   
   CreatePlot(fillvar = "eqreachedconjfrac",
-             filltitle = "Fraction of iterations where\nthe equilibrium was reached",
+             filltitle = "Fraction of iterations where\nthe equilibrium was reached ",
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "eqreachedconjfrac",
-             filltitle = "Fraction of iterations where\nthe equilibrium was reached",
+             filltitle = "Fraction of iterations where\nthe equilibrium was reached ",
              filltype = "continuous", limits = limitsfraction, tag = "A",
              filename = "Fig14A")
   CreatePlot(fillvar = "tmaxshortconjfrac",
@@ -1971,19 +1972,27 @@ for(ind_stat_type in seq_along(stat_type)) {
 }
 
 # Plot mean and median growth rate with their own limits
-CreatePlot(fillvar = "growthratemean",
+CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+                             near(conjratecode, 1), near(taxmatcode, 1)),
+           fillvar = "growthratemean",
            filltitle = "Mean growth rate",
            filltype = "continuous", limits = NULL,
            filename = "growthratemean_ownlimits")
-CreatePlot(fillvar = "growthratemean",
-           filltitle = "Mean growth rate",
-           filltype = "continuous", limits = NULL,
-           filename = "Fig09")
-CreatePlot(fillvar = "growthratemean",
+CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+                             near(conjratecode, 1), near(taxmatcode, 1)),
+           fillvar = "growthratemean",
            filltitle = "Mean growth rate",
            filltype = "continuous", limits = NULL, tag = "A",
-           filename = "Fig09A")
-CreatePlot(fillvar = "growthratemedian",
+           filename = "Fig09A", width = 1127, height = 2756)
+CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+                             near(conjratecode, 1), near(taxmatcode, 1)),
+           fillvar = "growthratemean",
+           filltitle = "Mean growth rate",
+           filltype = "continuous", limits = NULL, tag = "A",
+           filename = "Fig09A_altres", width = 825, height = 1925)
+CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+                             near(conjratecode, 1), near(taxmatcode, 1)),
+           fillvar = "growthratemedian",
            filltitle = "Median growth rate",
            filltype = "continuous", limits = NULL,
            filename = "growthratemedian_ownlimits")
@@ -2178,27 +2187,33 @@ if(simulateinvasion == TRUE) {
   
   title <- paste0("Fraction of species after perturbation", title_add)
   CreatePlot(fillvar = "fracspeciesRconjmean",
-             filltitle = "Mean fraction of surviving species\nwith a plasmid-free population",
+             filltitle = paste("Mean fraction of surviving species\nwith a",
+                               "plasmid-free population "),
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "npopRconjmean / nspecies",
-             filltitle = "Mean fraction of initial species\nwith a plasmid-free population",
+             filltitle = paste("Mean fraction of initial species\nwith a",
+                               "plasmid-free population "),
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "fracspeciesPconjmean",
-             filltitle = "Mean fraction of surviving species\nwith a plasmid-bearing population",
+             filltitle = paste("Mean fraction of surviving species\nwith a",
+                               "plasmid-bearing population "),
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "fracspeciesPconjmean",
-             filltitle = "Mean fraction of surviving species\nwith a plasmid-bearing population",
+             filltitle = paste("Mean fraction of surviving species\nwith a",
+                               "plasmid-bearing population "),
              filltype = "continuous", limits = limitsfraction, tag = "A",
              filename = "Fig04A")
   CreatePlot(fillvar = "npopPconjmean / nspecies",
-             filltitle = "Mean fraction of initial species\nwith a plasmid-bearing population",
+             filltitle = paste("Mean fraction of initial species\nwith a",
+                               "plasmid-bearing population "),
              filltype = "continuous", limits = limitsfraction,
              title = title, subtitle = subplasmidbearing)
   CreatePlot(fillvar = "npopPconjmean / nspecies",
-             filltitle = "Mean fraction of initial species\nwith a plasmid-bearing population",
+             filltitle = paste("Mean fraction of initial species\nwith a",
+                               "plasmid-bearing population "),
              filltype = "continuous", limits = limitsfraction, tag = "B",
              filename = "Fig11B")
   
@@ -2244,18 +2259,18 @@ if(simulateinvasion == TRUE) {
              filename = "Fig03A")
   
   CreatePlot(fillvar =  "fracPformedbypertpopmean",
-             filltitle = paste("Mean fraction of plasmid-bearing\nbacteria",
+             filltitle = paste("Mean fraction of plasmid-bearing \nbacteria",
                                "belonging to the\ninitially plasmid-bearing species"),
              filltype = "continuous", limits = limitsfraction, tag = "B",
              filename = "Fig18B_pinmost")
   
   CreatePlot(fillvar = "pertpopconjsurvivedfrac",
              filltitle = paste("Fraction of iterations where\nthe initially",
-                               "plasmid-bearing\npopulation survived"),
+                               "plasmid-bearing \npopulation survived"),
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "pertpopconjsurvivedfrac",
              filltitle = paste("Fraction of iterations where\nthe initially",
-                               "plasmid-bearing\npopulation survived"),
+                               "plasmid-bearing \npopulation survived"),
              filltype = "continuous", limits = limitsfraction, tag = "A",
              filename = "Fig17A")
   
@@ -2399,7 +2414,7 @@ if(simulateinvasion == TRUE) {
 
 CreatePlot(fillvar = "relabunconjsp1mean",
            filltitle = paste0("Mean relative abundance of the\ninitially",
-                              " plasmid-bearing species"),
+                              " plasmid-bearing species "),
            filltype = "continuous", limits = limitsfraction, tag = "A",
            filename = "Fig19A")
 
@@ -2468,9 +2483,9 @@ if(saveplots == TRUE) {
   ggsave(filename, width = 16, height = 16, units = "cm")
 }
 plotcompareabunlog +
+  theme(legend.position = "none") +
   labs(title = NULL, subtitle = NULL)
 ggsave(filename = paste0(DateTimeStamp, "Fig07.png"),
-       plot = plotcompareabunlog,
        width = 16, height = 16, units = "cm")
 
 write.csv(compareabun,
