@@ -104,7 +104,8 @@ p_intra <- ggplot(data = vals_dens_ext,
   theme_bw(base_size = 15) +
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        axis.text.y = element_blank()) +
+        axis.text.y = element_blank(),
+        plot.tag.position = c(0.0125, 0.9875)) +
   scale_colour_manual(values = my_cols_intra) +
   geom_line(size = 0.75) +
   coord_cartesian(xlim = c(-3e-11, 0), expand = FALSE) +
@@ -212,7 +213,8 @@ p_inter <- ggplot(data = vals_dens_ext,
   theme_bw(base_size = 15) +
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        axis.text.y = element_blank()) +
+        axis.text.y = element_blank(),
+        plot.tag.position = c(0.0125, 0.9875)) +
   scale_colour_manual(values = my_cols_inter) +
   geom_line(size = 0.75) +
   coord_cartesian(xlim = c(-3e-11, 2e-11), expand = FALSE) +
