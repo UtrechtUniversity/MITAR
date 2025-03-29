@@ -5,11 +5,11 @@ library(ggrepel)
 
 
 ##### Settings  #####
-distr_means_intra <- c(-1e-11, 0)
-distr_sd_intra <- 9e-12
+distr_means_intra <- c(-1, 0)
+distr_sd_intra <- 0.9
 ub_intra <- 0
-distr_means_inter <- c(-1e-11, 0, 5e-12)
-distr_sd_inter <- 5e-12
+distr_means_inter <- c(-1, 0, 0.5)
+distr_sd_inter <- 0.5
 ub_inter <- Inf
 n_species <- 3
 n_vals <- 2^23 # is rounded up to power of 2, see ?density
@@ -103,12 +103,11 @@ p_intra <- ggplot(data = vals_dens_ext,
                   aes(x = x, y = y, col = set)) +
   theme_bw(base_size = 15) +
   theme(legend.position = "none",
-        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
         axis.text.y = element_blank(),
         plot.tag.position = c(0.0125, 0.9875)) +
   scale_colour_manual(values = my_cols_intra) +
   geom_line(size = 0.75) +
-  coord_cartesian(xlim = c(-3e-11, 0), expand = FALSE) +
+  coord_cartesian(xlim = c(-3, 0), expand = FALSE) +
   labs(x = "Intraspecies interaction coefficient",
        y = "Probability density (arbitrary units)",
        tag = "A")
@@ -151,7 +150,7 @@ ggsave(paste0("distr_intra_labelled", DateTimeStamp, ".png"),
 # Notes:
 # - A faster way to obtain the first columns of vals_dens_ext would be
 #   n_out <- 301
-#   p_x <- rep(seq(from = -3e-11, to = 2e-11, length.out = n_out),
+#   p_x <- rep(seq(from = -3, to = 2, length.out = n_out),
 #              each = length(distr_means_inter))
 #   p_y <- dnorm(x = p_x, mean = distr_means_inter, sd = distr_sd_inter)
 #   p_mean <- rep(distr_means_inter, n_out)
@@ -212,12 +211,11 @@ p_inter <- ggplot(data = vals_dens_ext,
                   aes(x = x, y = y, col = set)) +
   theme_bw(base_size = 15) +
   theme(legend.position = "none",
-        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
         axis.text.y = element_blank(),
         plot.tag.position = c(0.0125, 0.9875)) +
   scale_colour_manual(values = my_cols_inter) +
   geom_line(size = 0.75) +
-  coord_cartesian(xlim = c(-3e-11, 2e-11), expand = FALSE) +
+  coord_cartesian(xlim = c(-3, 2), expand = FALSE) +
   labs(x = "Interspecies interaction coefficient",
        y = "Probability density (arbitrary units)",
        tag = "B")
@@ -225,7 +223,7 @@ p_inter
 ggsave(paste0("distr_inter", DateTimeStamp, ".png"),
        width = 2 * 1650 * 5/6, height = 2675, units = "px", dpi = 300)
 ggsave(paste0(DateTimeStamp, "Fig08B.png"),
-       width = 1650, height = 2675, units = "px", dpi = 300)
+       width = 2 * 1650 * 5/6, height = 2675, units = "px", dpi = 300)
 
 p_inter_lines <- p_inter +
   facet_wrap(facets = vars(set), ncol = 1, labeller = my_labeller_dens) +
