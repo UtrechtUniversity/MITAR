@@ -606,7 +606,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     theme_bw(base_size = base_size) +
     facet_grid(as.formula(paste(facety, "~", facetx)), as.table = as.table,
                labeller = mylabeller) +
-    theme(legend.position = "bottom") +
+    theme(legend.position = "bottom",
+          panel.spacing = unit(3, "pt"),
+          plot.tag.position = c(0.0125, 0.9875),
+          strip.background = element_rect(color = NA)) +
     labs(title = title, subtitle = subtitle,
          x = labx, y = laby, caption = caption, tag = tag)
   if(!is.null(limx)) {
@@ -929,7 +932,7 @@ summary(warnings())
 rm(summarydata)
 
 
-#### Saving settings and output to CSV files ####
+#### Saving settings and output to CSV and RDS files ####
 DateTimeStamp <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M"), "PInNewSp")
 if(nrow(plotdata) > 250000) {
   warning("Not saved 'plotdata' to CSV-file because the number of rows (",
@@ -963,8 +966,12 @@ if(requireNamespace("sessioninfo")) {
                  file = paste0(DateTimeStamp, "sessioninfo.txt"))
 }
 
+# Saving the data as R-object into an R data file takes much less space than
+# saving it as csv. The R data files can be read into R using
+# readRDS(file = file.path("OutputMS", "YYYY_MM_DD",
+#                          "YYYY_MM_DD_MM_SS_plotdata.rds"))
 saveRDS(object = plotdata,
-        file = paste0(DateTimeStamp, "_plotdata.RDS"))
+        file = paste0(DateTimeStamp, "_plotdata.rds"))
 
 
 #### Reading previously saved data from a CSV file ####
@@ -996,23 +1003,24 @@ labnspecies <- paste(nspeciesset, "sp.")
 names(labnspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
-labcost <- paste0("Fitness cost:\n", costset, "/h")
+labcost <- paste0("Fitness cost\n", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", seq_along(conjrateset))
 names(labconjrate) <- seq_along(conjrateset)
-labtaxmat <- c("All conjugation\nrates equal",
-               "InitP low inter-\nspecies rates")
+labtaxmat <- c("all\nconjugation\nrates equal",
+               "lower\nintersp. conj.\nrates initP")
 names(labtaxmat) <- seq_along(taxmattypeset)
+# '.multi_line = FALSE' to collapse facet labels into a single label
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
                        abunmodelcode = labmodel,
                        cost = labcost, conjratecode = labconjrate,
-                       taxmatcode = labtaxmat, .default = label_value)
+                       taxmatcode = labtaxmat, .multi_line = FALSE,
+                       .default = label_value)
 plotdata <- as.data.frame(plotdata)
 plotdata$nspecies <- as.factor(plotdata$nspecies)
 plotdata$intmean <- as.factor(plotdata$intmean)
 plotdata$selfintmean <- as.factor(plotdata$selfintmean)
 plotdata$taxmatcode <- as.factor(plotdata$taxmatcode)
-
 limitsfraction <- c(0, 1)
 # Round the limits to one decimal place, while ensuring that all the data is
 # within the rounded limits.
@@ -1025,7 +1033,8 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 
 
 #### To test plots without using CreatePlot() ####
-# ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
+# ggplot(data = plotdata,
+#        aes(x = intmean, y = selfintmean, fill = fracstable)) +
 #   geom_raster() +
 #   theme_bw(base_size = 13) +
 #   scale_x_discrete() +
@@ -1033,7 +1042,10 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 #   scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
 #   geom_vline(xintercept = 0, col = "grey", size = 1.1) +
 #   coord_fixed(ratio = 1, expand = FALSE) +
-#   theme(legend.position = "bottom") +
+#   theme(legend.position = "bottom",
+#         panel.spacing = unit(3, "pt"),
+#         plot.tag.position = c(0.0125, 0.9875),
+#         strip.background = element_rect(color = NA)) +
 #   labs(x = "Mean interspecies interaction coefficient",
 #        y = "Mean intraspecies interaction coefficient",
 #        caption = paste(niter, "iterations")) +
@@ -1247,7 +1259,11 @@ CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            linezero = FALSE, facetx = "taxmatcode", facety = "nspecies",
            save = FALSE) +
   theme(legend.box = "horizontal",
-        legend.margin = margin(c(-5, 0, -5, 0), unit = "pt")) +
+        legend.margin = margin(c(-5, 0, -5, 0), unit = "pt"),
+        legend.position = "bottom",
+        panel.border = element_blank(),
+        panel.spacing = unit(3, "pt"),
+        strip.background = element_rect(color = NA)) +
   guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
   labs(caption = NULL) +
   geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
@@ -1286,16 +1302,16 @@ if(saveplots == TRUE) {
 }
 
 # Need to set filltype to continuous to prevent error on missing filllabels
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
-           filltitle = "fracstableepi", contour_var = NULL, contour_col = NULL,
+CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+           filltitle = NULL, contour_var = "fracstableepi", contour_col = NULL,
            contour_lty = NULL, filltype = "continuous", ratio = NULL,
            title = "Epidemiological (in)stability",
            labx = "Fitness cost of bearing a plasmid",
            laby = paste0("Log10(intraspecies conjugation rate of\nthe",
                          " initially plasmid-bearing species)"),
-           linezero = FALSE, facetx = "taxmatcode", facety = "nspecies",
-           rotate_x_labels = FALSE, filename = "epistabheatmap") +
-  geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
+           linezero = FALSE, facetx = "intmean + selfintmean",
+           facety = "nspecies + taxmatcode",
+           rotate_x_labels = TRUE, save = TRUE)
 
 CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
            filltitle = "fracstableepi", contour_var = NULL, contour_col = NULL,
@@ -1307,3 +1323,12 @@ CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
            linezero = FALSE, facetx = "taxmatcode + intmean + selfintmean",
            facety = "nspecies", rotate_x_labels = TRUE, width = 9*1650/2,
            height = 2675, filename = "epistabheatmap_morefacets_v3")
+# NB. The conjugation rate of the initially plasmid-bearing species does not
+# have an effect, and the fitness costs of bearing a plasmid has only a single
+# relevant value for each combination of nspecies * taxmatcode * intmean *
+# selfintmean. So it would be much more interesting to have the save layout as
+# other figures in the main text (e.g., Fig. 3) but with the heatmap indicating
+# the minimum costs at which the plasmid can invade! So change the dataset to a
+# larger range of interactions, a single conjugation rate (i.e., the default
+# 1e-12), and a range of costs (note that costs are not relative, so using a
+# range from 0 to 1 for costs is confusing!
