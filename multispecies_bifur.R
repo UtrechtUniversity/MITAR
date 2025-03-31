@@ -617,7 +617,10 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     theme_bw(base_size = base_size) +
     facet_grid(as.formula(paste(facety, "~", facetx)), as.table = as.table,
                labeller = mylabeller) +
-    theme(legend.position = "bottom") +
+    theme(legend.position = "bottom",
+          panel.spacing = unit(7, "pt"),
+          plot.tag.position = c(0.0125, 0.9875),
+          strip.background = element_rect(color = NA)) +
     labs(title = title, subtitle = subtitle,
          x = labx, y = laby, caption = caption, tag = tag)
   if(!is.null(limx)) {
@@ -779,7 +782,7 @@ for(nspecies in nspeciesset) {
           # }
           
           for(cost in costset) {
-            if(abs(cost %% 0.0025) < 1e-5) {
+            if(abs(cost %% (costset[2] * 5)) < 1e-5) {
               print(paste0("cost = ", cost, ", started at ", Sys.time()),
                     quote = FALSE)
             }
@@ -941,7 +944,7 @@ summary(warnings())
 rm(summarydata)
 
 
-#### Saving settings and output to CSV files ####
+#### Saving settings and output to CSV and RDS files ####
 DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 if(PReplMostAbun == FALSE) {
   DateTimeStamp <- paste0(DateTimeStamp, "PReplLeastAbun")
@@ -978,8 +981,12 @@ if(requireNamespace("sessioninfo")) {
                  file = paste0(DateTimeStamp, "sessioninfo.txt"))
 }
 
+# Saving the data as R-object into an R data file takes much less space than
+# saving it as csv. The R data files can be read into R using
+# readRDS(file = file.path("OutputMS", "YYYY_MM_DD",
+#                          "YYYY_MM_DD_MM_SS_plotdata.rds"))
 saveRDS(object = plotdata,
-        file = paste0(DateTimeStamp, "_plotdata.RDS"))
+        file = paste0(DateTimeStamp, "_plotdata.rds"))
 
 
 #### Reading previously saved data from a CSV file ####
@@ -1002,6 +1009,17 @@ saveRDS(object = plotdata,
 # plotdata <- as.data.frame(plotdata)
 # DateTimeStamp <- substr(x = filename, start = 21, stop = 36)
 # nspeciesset <- sort(unique(plotdata[, "nspecies"]))
+DateTimeStamp <- "2025_03_28_15_58"
+plotdata <- readRDS(paste0(DateTimeStamp, "_plotdata.rds"))
+
+# Create variables that do not yet exist if previous data was read into R
+# instead of running the simulations.
+if(!exists("conjratecode")) {
+  conjratecode <- max(plotdata[, "conjratecode"])
+}
+if(!exists("abunmodel")) {
+  abunmodel <- abunmodelset[length(abunmodelset)]
+}
 
 
 #### Labels and limits for plots ####
@@ -1011,17 +1029,19 @@ labnspecies <- paste(nspeciesset, "sp.")
 names(labnspecies) <- nspeciesset
 labmodel <- c("Broken stick", "Dom. preemption")
 names(labmodel) <- c(1, 2)
-labcost <- paste0("Fitness cost:\n", costset, "/h")
+labcost <- paste0("Fitness cost\n", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", seq_along(conjrateset))
 names(labconjrate) <- seq_along(conjrateset)
-labtaxmat <- c("All conjugation\nrates equal",
-               "InitP low inter-\nspecies rates")
+labtaxmat <- c("all\nconjugation\nrates equal",
+               "lower\nintersp. conj.\nrates initP")
 names(labtaxmat) <- seq_along(taxmattypeset)
+# '.multi_line = FALSE' to collapse facet labels into a single label
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
                        abunmodelcode = labmodel,
                        cost = labcost, conjratecode = labconjrate,
-                       taxmatcode = labtaxmat, .default = label_value)
+                       taxmatcode = labtaxmat, .multi_line = FALSE,
+                       .default = label_value)
 plotdata <- as.data.frame(plotdata)
 plotdata$nspecies <- as.factor(plotdata$nspecies)
 plotdata$intmean <- as.factor(plotdata$intmean)
@@ -1039,7 +1059,8 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 
 
 #### To test plots without using CreatePlot() ####
-# ggplot(data = plotdata, aes(x = intmean, y = selfintmean, fill = fracstable)) +
+# ggplot(data = plotdata,
+#        aes(x = intmean, y = selfintmean, fill = fracstable)) +
 #   geom_raster() +
 #   theme_bw(base_size = 13) +
 #   scale_x_discrete() +
@@ -1047,7 +1068,10 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 #   scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
 #   geom_vline(xintercept = 0, col = "grey", size = 1.1) +
 #   coord_fixed(ratio = 1, expand = FALSE) +
-#   theme(legend.position = "bottom") +
+#   theme(legend.position = "bottom",
+#         panel.spacing = unit(3, "pt"),
+#         plot.tag.position = c(0.0125, 0.9875),
+#         strip.background = element_rect(color = NA)) +
 #   labs(x = "Mean interspecies interaction coefficient",
 #        y = "Mean intraspecies interaction coefficient",
 #        caption = paste(niter, "iterations")) +
@@ -1352,7 +1376,7 @@ p_comp_epistab_v2 <- CreatePlot(dataplot = plotdata_manysp,
                                               " of\nthe initially plasmid-bearing",
                                               " species)"),
                                 linezero = FALSE, facetx = ".", facety = ".",
-                                rotate_x_labels = FALSE, save = FALSE) +
+                                base_size = 17, rotate_x_labels = FALSE, save = FALSE) +
   theme(legend.position = "none") +
   scale_colour_manual(values = my_cols) +
   geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2) +
