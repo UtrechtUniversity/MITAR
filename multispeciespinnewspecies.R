@@ -1723,6 +1723,11 @@ if(requireNamespace("sessioninfo")) {
 # plotdata <- as.data.frame(plotdata)
 # DateTimeStamp <- substr(x = filename, start = 21, stop = 36)
 # nspeciesset <- sort(unique(plotdata[, "nspecies"]))
+# list.files(pattern = "data")
+# DateTimeStamp <- "2025_03_26_16_39" # YYYY_MM_DD_YY_MM
+# plotdata <- readRDS(paste0(DateTimeStamp, "PInNewSp_plotdata.rds"))
+# datatotal <- readRDS(paste0(DateTimeStamp, "PInNewSp_datatotal.rds"))
+# newgrowthratecode <- X
 
 
 #### Labels and limits for plots ####
@@ -2472,7 +2477,7 @@ if(newgrowthratecode == 3) {
              filltitle = paste0("Mean relative abundance of the\ninitially",
                                 " plasmid-bearing species "),
              filltype = "continuous", limits = limitsfraction, tag = "B",
-             filename = "Fig19B")
+             filename = "Fig19B_growthrate3")
 }
 
 CreatePlot(fillvar = "1 - relabunconjsp1mean",
