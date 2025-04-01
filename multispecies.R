@@ -106,6 +106,7 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 ## Basis parameter set
 saveplots <- TRUE
+saveplotconjovertime <- FALSE
 niterintmat <- 1
 smallstate <- 1e-3
 finalsmallstate <- 1
@@ -135,9 +136,11 @@ taxmattypeset <- c("SameSpecies", "OtherClass")
 # TRUE, and to the least-abundant species (i.e., species nspecies) if
 # PReplMostAbun is FALSE.
 PReplMostAbun <- TRUE
-# To plot 16 species need 16 colours, currently only 11 so repeat them.
-mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
-               "darkorange", "green1", "yellow", "hotpink"), 2)
+# To plot 16 species need 16 colours, currently only 8 so repeat them. Could add
+# 'darkgreen', 'brown', 'purple'.
+mycol <- rep(c("black", "blue", "red", "darkgrey", "darkorange", "green1",
+               "yellow", "hotpink"), 2)
+
 
 ## Parameters for detailed local stability analysis, not simulating invasion
 niter <- 100
@@ -151,16 +154,7 @@ simulateinvasion <- TRUE
 intmeanset <- seq(from = -1e-11, to = 5e-12, by = 5e-13)
 selfintmeanset <- seq(from = -1e-11, to = 0, by = 5e-13)
 
-## Small parameter set to test code
-nspeciesset <- c(2, 8)
-maxnspecies <- max(nspeciesset)
-conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
-niter <- 2
-simulateinvasion <- TRUE
-intmeanset <- c(-6e-12, 6e-12)
-selfintmeanset <- c(-1.2e-11, -6e-12)
-
-## Larger test set
+## Parameter set to test code
 nspeciesset <- c(2, 8)
 maxnspecies <- max(nspeciesset)
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
@@ -662,8 +656,11 @@ eventfun <- function(t, state, p) {
 #   timestep, to reduce the chance using too large timesteps at the start of the
 #   integration. Since ode() uses variable step-size methods, those are not the
 #   only times that integration occurs.
-# If showplot == TRUE, the result is plotted (which is slow) or (if saveplots
-#   == TRUE) saved to a .png file.
+# If showplot is TRUE, the result is plotted (which is slow) or, if global
+#   variable 'saveplots' is TRUE, saved to a .png file.
+# ylim can be used to set the y-axis limits by providing a vector of length two.
+# addline is a logical indicating if horizontal lines indicating the initial
+#   species abundances should be added to the plot.
 # If plotepistabwithP == TRUE, plots over time are plotted or saved to a
 #   .png file if the equilibrium is epidemiologically stable but the total
 #   number of plasmid-bearing bacteria at the end of the simulation is larger
@@ -707,6 +704,8 @@ eventfun <- function(t, state, p) {
 perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                                model, pertpop, pertmagn = 1000,
                                tmax = 5e3, tstep = 10, showplot = TRUE,
+                               width = 480, height = 512,
+                               ylim = NULL, addline = TRUE,
                                plotepistabwithP = FALSE, verbose = FALSE,
                                silentinfgrowth = FALSE,
                                silenteqnotreached = FALSE) {
@@ -734,7 +733,8 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
     indexP <- (nspecies + 1):(2*nspecies)
     names(abundance) <- c(paste0(rep("R", nspecies), index_sp),
                           paste0(rep("P", nspecies), index_sp))
-    lty <- rep(c(1, 2), each = nspecies)
+    # Broken lines for plasmid-free populations.
+    lty <- rep(c(2, 1), each = nspecies)
     col <- rep(mycol[index_sp], 2)
     if(!all(near(abundance[indexP], 0))) {
       warning("Initial state is NOT plasmid-free.")
@@ -935,14 +935,20 @@ perturbequilibrium <- function(abundance, intmat, growthrate, cost, conjmat,
                        ", conjratecode: ", conjratecode,
                        ", taxmatcode: ", taxmatcode, ", iter: ", iter)
     if(saveplots == TRUE) {
-      filename <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), ".png")
-      png(filename = filename, width = 480, height = 785)
+      filename <- paste0("iter_", iter, "_",
+                         format(Sys.time(), format = "%Y_%m_%d_%H_%M_%OS3"), ".png")
+      png(filename = filename, width = width, height = height)
     }
-    matplot.deSolve(out, lty = lty, col = col, ylab = "Abundance",
-                    log = "y", lwd = 2, legend = list(x = "bottomright"))
+    matplot.deSolve(x = out, ylim = ylim, lty = lty, col = col, main = "",
+                    xlab = "Time", ylab = "Abundance", log = "y", lwd = 2,
+                    # Not showing legend. Alternatively, use list(x = "bottomleft")
+                    legend = NA)
     grid()
-    abline(h = abuninit)
-    mtext(side = 1, line = -1, at = 0, adj = 0, cex = 0.9, subtitle)
+    if(addline) {
+      abline(h = abuninit)
+    }
+    # mtext(side = 1, line = -1, at = 0, adj = 0, cex = 0.9, subtitle)
+    mtext(side = 3, line = 1, at = 0, adj = 0, cex = 0.9, subtitle)
     if(saveplots == TRUE) {
       dev.off()
       message("Saved plot ", filename)
@@ -1431,14 +1437,16 @@ for(nspecies in nspeciesset) {
                 # which bacteria are added.
                 if(simulateinvasion == TRUE) {
                   if(eqinfoconj["eigvalRe"] >= 0) {
-                    abunfinalconj <- perturbequilibrium(abundance = c(abundance, rep(0, nspecies)),
-                                                        intmat = intmat, growthrate = growthrate,
-                                                        cost = cost, conjmat = conjmat,
-                                                        model = "gLVConj", pertpop = pertpopconj,
-                                                        pertmagn = 1, tmax = 5e3, tstep = 10,
-                                                        showplot = FALSE, verbose = FALSE,
-                                                        silentinfgrowth = TRUE,
-                                                        silenteqnotreached = TRUE)
+                    abunfinalconj <- perturbequilibrium(
+                      abundance = c(abundance, rep(0, nspecies)),
+                      intmat = intmat, growthrate = growthrate,
+                      cost = cost, conjmat = conjmat,
+                      model = "gLVConj", pertpop = pertpopconj,
+                      pertmagn = 1, tmax = 5e3, tstep = 10,
+                      showplot = saveplotconjovertime, ylim = c(1e5, 1e11),
+                      addline = FALSE, verbose = FALSE,
+                      silentinfgrowth = TRUE,
+                      silenteqnotreached = TRUE)
                   } else {
                     # No need for simulations if equilibrium is stable
                     # NOTE: timepertpopconjextinct = 0 is only true if pertmagn
@@ -1663,6 +1671,7 @@ if(PReplMostAbun == FALSE) {
 
 # Saving the data as R-object into an R data file takes much less space than
 # saving it as csv. The R data files can be read into R using
+# list.files(pattern = "data")
 # readRDS(file = file.path("OutputMS", "YYYY_MM_DD",
 #                          "YYYY_MM_DD_MM_SS_filename.rds"))
 saveRDS(object = plotdata, file = paste0(DateTimeStamp, "_plotdata.rds"))
