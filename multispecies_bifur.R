@@ -1009,8 +1009,8 @@ saveRDS(object = plotdata,
 # plotdata <- as.data.frame(plotdata)
 # DateTimeStamp <- substr(x = filename, start = 21, stop = 36)
 # nspeciesset <- sort(unique(plotdata[, "nspecies"]))
-DateTimeStamp <- "2025_03_28_15_58"
-plotdata <- readRDS(paste0(DateTimeStamp, "_plotdata.rds"))
+# DateTimeStamp <- "2025_03_28_15_58"
+# plotdata <- readRDS(paste0(DateTimeStamp, "_plotdata.rds"))
 
 # Create variables that do not yet exist if previous data was read into R
 # instead of running the simulations.
@@ -1309,9 +1309,9 @@ p_comp_epistab +
              show.legend = FALSE, linetype = 2)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "epistabynspecies_comparison_nolegend_withlines.png"),
-         width = 2150, height = 2150, units = "px", dpi = 300)
+         width = 2150 / 1.27, height = 2150, units = "px", dpi = 300)
   ggsave(paste0(DateTimeStamp, "Fig13.png"),
-         width = 2150, height = 2150, units = "px", dpi = 300)
+         width = 2150 / 1.27, height = 2150, units = "px", dpi = 300)
 }
 rm(costmark_2sp)
 rm(plotdata_2sp)
