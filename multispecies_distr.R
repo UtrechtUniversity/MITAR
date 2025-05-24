@@ -85,7 +85,8 @@ n_col_max <- max(length(distr_means_intra), length(distr_means_inter))
 if(n_col_max != 3L) {
   stop("Adjust ordering of palette colours to the changed number of interactions.")
 }
-my_cols <- ((scales::hue_pal()(n_col_max))[c(1, 3, 2)])
+# my_cols <- ((scales::hue_pal()(n_col_max))[c(1, 3, 2)])
+my_cols <- c("#e30613", "#82368c", "#009640")
 my_cols_intra <- my_cols[seq_along(distr_means_intra)]
 names(my_cols_intra) <- levels(vals_dens_ext$set)
 
@@ -101,7 +102,7 @@ names(my_cols_intra) <- levels(vals_dens_ext$set)
 #                    show.legend = FALSE, inherit.aes = FALSE)
 p_intra <- ggplot(data = vals_dens_ext,
                   aes(x = x, y = y, col = set)) +
-  theme_bw(base_size = 15) +
+  theme_bw(base_size = 19) +
   theme(legend.position = "none",
         axis.text.y = element_blank(),
         plot.tag.position = c(0.0125, 0.9875)) +
@@ -209,7 +210,7 @@ names(my_cols_inter) <- levels(vals_dens_ext$set)
 # - See 'Notes' above in the section 'Intraspecies'
 p_inter <- ggplot(data = vals_dens_ext,
                   aes(x = x, y = y, col = set)) +
-  theme_bw(base_size = 15) +
+  theme_bw(base_size = 19) +
   theme(legend.position = "none",
         axis.text.y = element_blank(),
         plot.tag.position = c(0.0125, 0.9875)) +
