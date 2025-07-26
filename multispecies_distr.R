@@ -102,7 +102,7 @@ names(my_cols_intra) <- levels(vals_dens_ext$set)
 #                    show.legend = FALSE, inherit.aes = FALSE)
 p_intra <- ggplot(data = vals_dens_ext,
                   aes(x = x, y = y, col = set)) +
-  theme_bw(base_size = 19) +
+  theme_bw(base_size = 21) +
   theme(legend.position = "none",
         axis.text.y = element_blank(),
         plot.tag.position = c(0.0125, 0.9875)) +
@@ -115,7 +115,7 @@ p_intra <- ggplot(data = vals_dens_ext,
 p_intra
 ggsave(paste0("distr_intra", DateTimeStamp, ".png"),
        width = 1650, height = 2675, units = "px", dpi = 300)
-ggsave(paste0(DateTimeStamp, "Fig08A.png"),
+ggsave(paste0(DateTimeStamp, "FigS01A.png"),
        width = 1650, height = 2675, units = "px", dpi = 300)
 
 p_intra_lines <- p_intra +
@@ -210,7 +210,7 @@ names(my_cols_inter) <- levels(vals_dens_ext$set)
 # - See 'Notes' above in the section 'Intraspecies'
 p_inter <- ggplot(data = vals_dens_ext,
                   aes(x = x, y = y, col = set)) +
-  theme_bw(base_size = 19) +
+  theme_bw(base_size = 21) +
   theme(legend.position = "none",
         axis.text.y = element_blank(),
         plot.tag.position = c(0.0125, 0.9875)) +
@@ -223,7 +223,7 @@ p_inter <- ggplot(data = vals_dens_ext,
 p_inter
 ggsave(paste0("distr_inter", DateTimeStamp, ".png"),
        width = 2 * 1650 * 5/6, height = 2675, units = "px", dpi = 300)
-ggsave(paste0(DateTimeStamp, "Fig08B.png"),
+ggsave(paste0(DateTimeStamp, "FigS01B.png"),
        width = 2 * 1650 * 5/6, height = 2675, units = "px", dpi = 300)
 
 p_inter_lines <- p_inter +
