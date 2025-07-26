@@ -63,8 +63,8 @@
 # The .groups argument in dplyr::summarise() is experimental, so maybe should be
 # dropped. However, excluding it leads to messages every time it is called.
 
-# To check if enough iterations are used: run several times for niter iterations
-# and use more iterations if the variation in outcomes is too large.
+# To check if enough simulations are used: run several times for nsimul simulations
+# and use more simulations if the variation in outcomes is too large.
 
 # The matrix 'data' is converted to a tibble to efficiently get summary
 # statistics. The tibble with summary statistics is then converted to a matrix
@@ -114,7 +114,7 @@ smallchange <- 1e-2
 totalabun <- 1e11
 nspeciesset <- c(2, 4, 8, 16)
 maxnspecies <- max(nspeciesset)
-abunmodelset <- c("dompreempt")
+abunmodelset <- c("dompreempt") # One or both of c("dompreempt", "brokenstick")
 costset <- c(0.05, 0.09)
 costtype <- "absolute"
 conjrate_base <- 1e-12
@@ -143,22 +143,33 @@ mycol <- rep(c("black", "blue", "red", "darkgrey", "darkorange", "green1",
 
 
 ## Parameters for detailed local stability analysis, not simulating invasion
-niter <- 100
+nsimul <- 100
 simulateinvasion <- FALSE
 intmeanset <- seq(from = -1e-11, to = 5e-12, by = 5e-13)
 selfintmeanset <- seq(from = -1e-11, to = 0, by = 5e-13)
 
 ## Smaller parameter set to simulate invasion
-niter <- 50
+nsimul <- 50
 simulateinvasion <- TRUE
 intmeanset <- seq(from = -1e-11, to = 5e-12, by = 5e-13)
 selfintmeanset <- seq(from = -1e-11, to = 0, by = 5e-13)
+
+## Small parameter set to show plots over time (FigS10)
+saveplotconjovertime <- TRUE
+nspeciesset <- 4
+maxnspecies <- max(nspeciesset)
+conjrateset <- list(rep(conjrate_base, maxnspecies))
+mycol <- rep(c("#000000", "#E41A1C", "#377EB8", "#FF7F00"), 2)
+nsimul <- 1
+simulateinvasion <- TRUE
+intmeanset <- 0
+selfintmeanset <- -0.5e-11
 
 ## Parameter set to test code
 nspeciesset <- c(2, 8)
 maxnspecies <- max(nspeciesset)
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
-niter <- 25
+nsimul <- 25
 simulateinvasion <- TRUE
 intmeanset <- c(1e-11, -5e-12, 0, 5e-12, 1e-11)
 selfintmeanset <- c(-1e-11, -5e-12, 0)
@@ -255,7 +266,7 @@ brokenstick_fast <- function(nspecies, totalabun, takelimit = NULL,
 # Calculate abundances following the dominance preemption model. The first
 # species occupies (preempts) more than half of the total niche, and each
 # subsequent species occupies more than half of the remainder (Tokeshi 1990).
-# Over many iterations, each species preempts on average (0.5 + 1)/2 = 0.75 of
+# Over many simulations, each species preempts on average (0.5 + 1)/2 = 0.75 of
 # the remainder, such that the abundances converge to the geometric series where
 # the abundance of species i is given by totalabun*k*(1 - k)^(i - 1) with k =
 # 0.75. The geometric model is used instead of the dominance preemption model if
@@ -450,7 +461,7 @@ checkequilibrium <- function(abundance, intmat, growthrate,
                parms = list(growthrate = growthrate, intmat = intmat),
                rootfunc = rootfun,
                events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
-    ylim <- c(0, 1.1*max(out[, -1]))
+    ylim <- c(0, 1.1 * max(out[, -1]))
     matplot.deSolve(out, ylim = ylim, lwd = 2,
                     lty = 1, ylab = "Abundance")
     grid()
@@ -1023,16 +1034,17 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        facety = "conjratecode + nspecies",
                        dropfacets = TRUE,
                        as.table = TRUE,
-                       marginx = NULL, marginy = NULL, base_size = 13,
+                       marginx = NULL, marginy = NULL, base_size = 15,
                        rotate_x_labels = FALSE, rotate_legend = FALSE,
-                       # height = 1545 is enough if legend has 2 lines of text
-                       save = saveplots, width = 1650, height = 1600,
+                       alt_palette = FALSE,
+                       palette = "viridis",
+                       save = saveplots, width = 1850, height = 1680,
                        filename = NULL) {
   format_x <- match.arg(format_x, several.ok = FALSE)
   format_y <- match.arg(format_y, several.ok = FALSE)
   
   if(length(caption) == 1L && caption == TRUE) {
-    caption <- paste(unique(dataplot$niter), "iterations")
+    caption <- paste(unique(dataplot$nsimul), "simulations")
   }
   if(exists("DateTimeStamp") == FALSE) {
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
@@ -1149,7 +1161,8 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
       p <- p + scale_fill_viridis_b(filltitle, breaks = limits)
     }
     if(filltype == "continuous") {
-      p <- p + scale_fill_viridis_c(filltitle, breaks = breaks_legend, limits = limits)
+      p <- p + scale_fill_viridis_c(filltitle, breaks = breaks_legend,
+                                    limits = limits, option = palette)
     }
   }
   if(rotate_x_labels == TRUE) {
@@ -1174,11 +1187,12 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     }
     
     # Add DateTimeStamp, remove spaces, replace non-alphanumeric characters with
-    # underscores, and add the extension to create a valid file name.
+    # underscores, collapse and add the extension to create a single valid file
+    # name.
     filename <- paste0(DateTimeStamp, filename)
     filename <- gsub(" ", "", filename)
     filename <- gsub("[^[:alnum:]_]", "_", filename)
-    filename <- paste0(filename, ".png")
+    filename <- paste0(filename, ".png", collapse = "")
     
     if(file.exists(filename)) {
       warning("File '", filename, "' already exists, plot is not saved again!",
@@ -1237,11 +1251,11 @@ ncolplotdata <- if(simulateinvasion == TRUE) {
 } else {
   3*4 + 29
 }
-print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
+print(paste(nsimul*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = ncolplotdata)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset, taxmattypeset),
-                              use.names = FALSE))*niter*sum(nspeciesset)
+                              use.names = FALSE))*nsimul*sum(nspeciesset)
 datatotal <- matrix(data = NA, nrow = nrowdatatotal, ncol = 59 + 4*maxnspecies)
 indexdatatotal <- 1
 
@@ -1282,7 +1296,7 @@ for(nspecies in nspeciesset) {
         print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
                      ", intmean = ", intmean, ", selfintmean = ", selfintmean,
                      ": started at ", Sys.time()), quote = FALSE)
-        nrowdata <- niter * nspecies * length(costset) * length(conjrateset) *
+        nrowdata <- nsimul * nspecies * length(costset) * length(conjrateset) *
           length(taxmattypeset)
         data <- matrix(data = NA, nrow = nrowdata, ncol = 59 + 4*maxnspecies)
         indexdata <- 1
@@ -1290,7 +1304,7 @@ for(nspecies in nspeciesset) {
         relabunRconjsp <- rep(NA, maxnspecies)
         relabunPconjsp <- rep(NA, maxnspecies)
         
-        for(iter in seq_len(niter)) {
+        for(iter in seq_len(nsimul)) {
           stableeq <- FALSE
           iterintmat <- 0
           conjratecode <- NA
@@ -1499,7 +1513,7 @@ for(nspecies in nspeciesset) {
                 indexdatanew <- indexdata + nspecies
                 
                 data[indexdata:(indexdatanew - 1), ] <- cbind(
-                  niter, nspecies, abunmodelcode, intmean, selfintmean,
+                  nsimul, nspecies, abunmodelcode, intmean, selfintmean,
                   cost, conjratecode, taxmatcode, iter, seq_len(nspecies), abundance,
                   diag(intmat), c(growthrate), iterintmat,
                   matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
@@ -1534,7 +1548,7 @@ for(nspecies in nspeciesset) {
         datatotal[indexdatatotal:(indexdatatotal + nrowdata - 1), ] <- data
         indexdatatotal <- indexdatatotal + nrowdata
         
-        colnames(data) <- c("niter", "nspecies", "abunmodelcode",
+        colnames(data) <- c("nsimul", "nspecies", "abunmodelcode",
                             "intmean", "selfintmean", "cost", "conjratecode",
                             "taxmatcode", "iter", "species", "abundance",
                             "selfintdata", "growthrate",
@@ -1621,7 +1635,7 @@ for(nspecies in nspeciesset) {
         rowindexplotdatanew <- rowindexplotdata + length(costset) *
           length(conjrateset) * length(taxmattypeset)
         plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
-          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean,
+          tibble(nsimul, nspecies, abunmodelcode, intmean, selfintmean,
                  summarydata))
         rowindexplotdata <- rowindexplotdatanew
       }
@@ -1631,7 +1645,7 @@ for(nspecies in nspeciesset) {
 duration <- Sys.time() - starttime
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 
-colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode", "intmean",
+colnames(plotdata) <- c("nsimul", "nspecies", "abunmodelcode", "intmean",
                         "selfintmean",
                         colnames(summarydata))
 colnames(datatotal) <- colnames(data)
@@ -1641,7 +1655,7 @@ if(simulateinvasion == TRUE) {
   eqnotreached <- 1 - plotdata[, "eqreachedfrac"]
   eqnotreachedconj <- 1 - plotdata[, "eqreachedconjfrac"]
   if(any(eqnotreached > 0)) {
-    warning("Fraction of iterations where equilibrium has not been reached",
+    warning("Fraction of simulations where equilibrium has not been reached",
             " after pertubation with plasmid-free\nbacteria ranges from ",
             signif(summary(eqnotreached)["Min."], 3), " to ",
             signif(summary(eqnotreached)["Max."], 3)," (mean: ",
@@ -1651,7 +1665,7 @@ if(simulateinvasion == TRUE) {
             " info")
   }
   if(any(eqnotreachedconj > 0)) {
-    warning("Fraction of iterations where equilibrium has not been reached ",
+    warning("Fraction of simulations where equilibrium has not been reached ",
             " after pertubation with plasmid-bearing\nbacteria ranges from ",
             signif(summary(eqnotreachedconj)["Min."], 3), " to ",
             signif(summary(eqnotreachedconj)["Max."], 3), " (mean: ",
@@ -1685,7 +1699,7 @@ if(nrow(plotdata) > 250000) {
             quote = FALSE, row.names = FALSE)
 }
 names(conjrateset) <- paste0("conjrateset", seq_along(conjrateset))
-settings <- c(list(niter = niter, niterintmat = niterintmat,
+settings <- c(list(nsimul = nsimul, niterintmat = niterintmat,
                    simulateinvasion = simulateinvasion,
                    smallstate = smallstate, smallchange = smallchange,
                    tstep = formals(perturbequilibrium)$tstep,
@@ -1771,7 +1785,7 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 # ggplot(data = plotdata,
 #        aes(x = intmean, y = selfintmean, fill = fracstable)) +
 #   geom_raster() +
-#   theme_bw(base_size = 13) +
+#   theme_bw(base_size = 15) +
 #   scale_x_discrete() +
 #   scale_y_discrete() +
 #   scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
@@ -1784,7 +1798,7 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 #         strip.background = element_rect(color = NA)) +
 #   labs(x = "Mean interspecies interaction coefficient",
 #        y = "Mean intraspecies interaction coefficient",
-#        caption = paste(niter, "iterations")) +
+#        caption = paste(nsimul, "simulations")) +
 #   facet_grid(nspecies ~ abunmodelcode, labeller = mylabeller)
 
 
@@ -1825,29 +1839,24 @@ CreatePlot(fillvar = "1 - fracstableconj",
            filename = "fracunstableconjcontinuous")
 
 CreatePlot(fillvar = "fracstableecol",
-           filltitle = "Fraction of iterations that\nis ecologically stable",
+           filltitle = "Fraction of simulations that\nis ecologically stable",
            filltype = "continuous", limits = limitsfraction)
 CreatePlot(fillvar = "fracstableepi",
-           filltitle = "Fraction of iterations that\nis epidemiologically\nstable",
+           filltitle = "Fraction of simulations that\nis epidemiologically\nstable",
            filltype = "continuous", limits = limitsfraction)
 
 CreatePlot(fillvar = "1 - fracstableecol",
-           filltitle = "Fraction of iterations that\nis ecologically unstable",
+           filltitle = "Fraction of simulations that\nis ecologically unstable",
            filltype = "continuous", limits = limitsfraction)
 CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                              near(conjratecode, 1), near(taxmatcode, 1)),
            fillvar = "1 - fracstableecol",
-           filltitle = "Fraction of iterations that\nis ecologically unstable",
+           filltitle = "Fraction of simulations that\nis ecologically unstable",
            filltype = "continuous", limits = limitsfraction, tag = "A",
-           filename = "Fig10A", width = 1127, height = 2756)
-CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
-                             near(conjratecode, 1), near(taxmatcode, 1)),
-           fillvar = "1 - fracstableecol",
-           filltitle = "Fraction of iterations that\nis ecologically unstable",
-           filltype = "continuous", limits = limitsfraction, tag = "A",
-           filename = "Fig10A_altres", width = 825, height = 1925)
+           palette = "turbo", filename = "FigS03A", width = 1.15 * 1127,
+           height = 1.1 * 2756)
 CreatePlot(fillvar = "1 - fracstableepi",
-           filltitle = "Fraction of iterations that\nis epidemiologically unstable",
+           filltitle = "Fraction of simulations that\nis epidemiologically unstable",
            filltype = "continuous", limits = limitsfraction)
 
 # Show the effect of adding conjugation on stability
@@ -1868,36 +1877,36 @@ for(eq_status_without in eq_states) {
 
 if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "infgrowthfrac",
-             filltitle = "Fraction of iterations where\ninfinite growth occurred",
+             filltitle = "Fraction of simulations where\ninfinite growth occurred",
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "eqreachedfrac",
-             filltitle = "Fraction of iterations where\nthe equilibrium was reached",
+             filltitle = "Fraction of simulations where\nthe equilibrium was reached",
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "tmaxshortfrac",
-             filltitle = "Fraction of iterations where\ntmax was too short",
+             filltitle = "Fraction of simulations where\ntmax was too short",
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "infgrowthconjfrac",
-             filltitle = "Fraction of iterations where\ninfinite growth occurred",
+             filltitle = "Fraction of simulations where\ninfinite growth occurred",
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "infgrowthconjfrac",
-             filltitle = "Fraction of iterations where\ninfinite growth occurred",
+             filltitle = "Fraction of simulations where\ninfinite growth occurred",
              filltype = "continuous", limits = limitsfraction, tag = "A",
-             filename = "Fig15A")
+             palette = "turbo", filename = "FigS08A")
   
   CreatePlot(fillvar = "eqreachedconjfrac",
-             filltitle = "Fraction of iterations where\nthe equilibrium was reached ",
+             filltitle = "Fraction of simulations where\nthe equilibrium was reached ",
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "eqreachedconjfrac",
-             filltitle = "Fraction of iterations where\nthe equilibrium was reached ",
+             filltitle = "Fraction of simulations where\nthe equilibrium was reached ",
              filltype = "continuous", limits = limitsfraction, tag = "A",
-             filename = "Fig14A")
+             palette = "turbo", filename = "FigS07A")
   CreatePlot(fillvar = "tmaxshortconjfrac",
-             filltitle = "Fraction of iterations where\ntmax was too short",
+             filltitle = "Fraction of simulations where\ntmax was too short",
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "tmaxshortconjfrac",
-             filltitle = "Fraction of iterations where\ntmax was too short",
+             filltitle = "Fraction of simulations where\ntmax was too short",
              filltype = "continuous", limits = limitsfraction, tag = "A",
-             filename = "Fig16A")
+             palette = "turbo", filename = "FigS09A")
 }
 
 ## Growth rates
@@ -1915,28 +1924,18 @@ CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
            filltitle = "Mean growth rate",
            filltype = "continuous", limits = NULL,
            filename = "growthratemean_ownlimits")
-CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
+pS02 <- CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                              near(conjratecode, 1), near(taxmatcode, 1)),
            fillvar = "growthratemean",
            filltitle = "Mean growth rate",
-           filltype = "continuous", limits = NULL, tag = "A",
-           filename = "Fig09A", width = 1127, height = 2756)
-p1 +
-  labs(tag = NULL) +
-  facet_wrap(facets = "nspecies", nrow = 2, labeller = label_both)
-ggsave("Fig09_2x2.png", width = 2028, height = 1724, dpi = 300, units = "px")
-
-p1 +
+           filltype = "continuous", limits = NULL, tag = "A", palette = "mako",
+           save = FALSE)
+pS02 +
   labs(y = "Mean intraspecies\ninteraction coefficient", tag = NULL) +
   facet_wrap(facets = "nspecies", nrow = 1, labeller = label_both)
-ggsave("Fig09_1x4.png", width = 2028, height = 704, dpi = 300, units = "px")
+ggsave(paste0(DateTimeStamp, "FigS02.png"), width = 2028, height = 1.1 * 704,
+       dpi = 300, units = "px")
 
-CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
-                             near(conjratecode, 1), near(taxmatcode, 1)),
-           fillvar = "growthratemean",
-           filltitle = "Mean growth rate",
-           filltype = "continuous", limits = NULL, tag = "A",
-           filename = "Fig09A_altres", width = 825, height = 1925)
 CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                              near(conjratecode, 1), near(taxmatcode, 1)),
            fillvar = "growthratemedian",
@@ -1964,7 +1963,7 @@ ggplot(data = datatotalfiltercostconjsp1,
              labeller = mylabeller, drop = TRUE, scales = "fixed") +
   scale_color_viridis_c() +
   labs(title = "Growth rate of species 1",
-       caption = paste(niter, "iterations")) +
+       caption = paste(nsimul, "simulations")) +
   guides(color = guide_colourbar())
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthratevsintmean_sp1_col.png"),
@@ -1984,7 +1983,7 @@ ggplot(data = datatotalfiltercostconjsp1,
              labeller = mylabeller, drop = TRUE, scales = "fixed") +
   scale_color_viridis_c() +
   labs(title = "Growth rate of species 1",
-       caption = paste(niter, "iterations")) +
+       caption = paste(nsimul, "simulations")) +
   guides(color = guide_colourbar())
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "growthratevsintmean_sp1_black.png"),
@@ -2006,7 +2005,7 @@ ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) +
   facet_grid(rows = vars(nspecies), cols = vars(species, abunmodelcode),
              labeller = mylabeller, drop = TRUE) +
   scale_color_viridis_c() +
-  labs(caption = paste(niter, "iterations")) +
+  labs(caption = paste(nsimul, "simulations")) +
   guides(color = guide_colourbar(label.hjust = 1, label.vjust = 1,
                                  label.theme = element_text(angle = 45)))
 if(saveplots == TRUE) {
@@ -2024,7 +2023,7 @@ ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) +
   facet_grid(rows = vars(nspecies), cols = vars(species, abunmodelcode),
              labeller = mylabeller) +
   scale_color_viridis_c() +
-  labs(caption = paste(niter, "iterations")) +
+  labs(caption = paste(nsimul, "simulations")) +
   guides(color = guide_colourbar(label.hjust = 1, label.vjust = 1,
                                  label.theme = element_text(angle = 45)))
 if(saveplots == TRUE) {
@@ -2042,12 +2041,12 @@ CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate/selfintmean
            facetx = "abunmodelcode", facety = "nspecies",
            rotate_legend = TRUE, filename = "carrycaprotated")
 
-## Plot summary data on the number of iterations in creating intmat needed to
+## Plot summary data on the number of simulations in creating intmat needed to
 # find a stable equilibrium with the model without plasmids
 for(ind_stat_type in seq_along(stat_type)) {
   print(CreatePlot(fillvar = paste0("iterintmat", stat_type[ind_stat_type]),
                    filltitle = paste(names(stat_type[ind_stat_type]),
-                                     "number of\niterations to reach\nstable equilibrium"),
+                                     "number of\nsimulations to reach\nstable equilibrium"),
                    filltype = "continuous", limits = c(1, niterintmat)))
 }
 
@@ -2130,7 +2129,7 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "1 - (nspeciesconjmean / nspecies)",
              filltitle = "Mean fraction of species\nthat went extinct",
              filltype = "continuous", limits = limitsfraction, tag = "A",
-             filename = "Fig11A")
+             palette = "plasma", filename = "FigS04A")
   
   title <- paste0("Fraction of species after perturbation", title_add)
   CreatePlot(fillvar = "fracspeciesRconjmean",
@@ -2152,7 +2151,7 @@ if(simulateinvasion == TRUE) {
              filltitle = paste("Mean fraction of surviving species\nwith a",
                                "plasmid-bearing population "),
              filltype = "continuous", limits = limitsfraction, tag = "A",
-             filename = "Fig04A")
+             palette = "plasma", filename = "Fig04A")
   CreatePlot(fillvar = "npopPconjmean / nspecies",
              filltitle = paste("Mean fraction of initial species\nwith a",
                                "plasmid-bearing population "),
@@ -2162,7 +2161,7 @@ if(simulateinvasion == TRUE) {
              filltitle = paste("Mean fraction of initial species\nwith a",
                                "plasmid-bearing population "),
              filltype = "continuous", limits = limitsfraction, tag = "B",
-             filename = "Fig11B")
+             palette = "plasma", filename = "FigS04B")
   
   ## Plots of fractions of bacteria that are plasmid-free or plasmid-bearing
   # after perturbations. Only abundances where equilibrium was reached are
@@ -2206,20 +2205,20 @@ if(simulateinvasion == TRUE) {
              filename = "Fig03A")
   
   CreatePlot(fillvar =  "fracPformedbypertpopmean",
-             filltitle = paste("Mean fraction of plasmid-bearing \nbacteria",
+             filltitle = paste("Mean fraction of plasmid-bearing\nbacteria",
                                "belonging to the\ninitially plasmid-bearing species"),
              filltype = "continuous", limits = limitsfraction, tag = "B",
-             filename = "Fig18B_pinmost")
+             height = 1.05 * 1680, filename = "FigS13B_pinmost")
   
   CreatePlot(fillvar = "pertpopconjsurvivedfrac",
-             filltitle = paste("Fraction of iterations where\nthe initially",
-                               "plasmid-bearing \npopulation survived"),
+             filltitle = paste("Fraction of simulations where\nthe initially",
+                               "plasmid-bearing\npopulation survived"),
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "pertpopconjsurvivedfrac",
-             filltitle = paste("Fraction of iterations where\nthe initially",
-                               "plasmid-bearing \npopulation survived"),
+             filltitle = paste("Fraction of simulations where\nthe initially",
+                               "plasmid-bearing\npopulation survived"),
              filltype = "continuous", limits = limitsfraction, tag = "A",
-             filename = "Fig17A")
+             palette = "turbo", height = 1.05 * 1680, filename = "FigS12A")
   
   ## Plot total abundances after perturbation with plasmid-free bacteria in
   # models without plasmids. Only abundances where equilibrium was reached are
@@ -2363,7 +2362,7 @@ CreatePlot(fillvar = "relabunconjsp1mean",
            filltitle = paste0("Mean relative abundance of the\ninitially",
                               " plasmid-bearing species "),
            filltype = "continuous", limits = limitsfraction, tag = "A",
-           filename = "Fig19A")
+           palette = "rocket", filename = "FigS14A")
 
 
 #### Compare abundance models ####
@@ -2398,7 +2397,7 @@ if(length(abunmodelset) > 1) {
 }
 plotcompareabun <- ggplot(data = compareabun,
                           aes(x = species, y = abun, lty = model)) +
-  theme_bw(base_size = 13) +
+  theme_bw(base_size = 15) +
   scale_x_continuous(breaks = seq(from = 0, to = maxnspecies, by = 4),
                      minor_breaks = NULL, limits = c(1, maxnspecies)) +
   scale_y_continuous(limits = c(0, NA)) +
@@ -2432,7 +2431,7 @@ if(saveplots == TRUE) {
 plotcompareabunlog +
   theme(legend.position = "none") +
   labs(title = NULL, subtitle = NULL)
-ggsave(filename = paste0(DateTimeStamp, "Fig07.png"),
+ggsave(filename = paste0(DateTimeStamp, "compareabunmodellognolegend.png"),
        width = 16, height = 16, units = "cm")
 
 write.csv(compareabun,
@@ -2444,7 +2443,7 @@ for(nspecies in nspeciesset) {
                                c("species", "abun")]
   print(
     ggplot(data = abundata_temp, aes(x = species, y = abun)) +
-      theme_bw(base_size = 13) +
+      theme_bw(base_size = 15) +
       scale_x_continuous(limits = c(1, NA), expand = c(0.025, 0.025)) +
       scale_y_continuous(limits = c(0, 8e10), expand = c(0.025, 0.025)) +
       theme(panel.grid = element_line(size = 1),
@@ -2464,7 +2463,7 @@ for(nspecies in nspeciesset) {
   
   print(
     ggplot(data = abundata_temp, aes(x = species, y = abun)) +
-      theme_bw(base_size = 13) +
+      theme_bw(base_size = 15) +
       scale_x_continuous(limits = c(1, NA), expand = c(0.025, 0.025)) +
       scale_y_continuous(trans = "log10") +
       theme(panel.grid = element_line(size = 1),
