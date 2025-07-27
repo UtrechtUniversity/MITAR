@@ -58,9 +58,6 @@
 # speed up the integration. See Box 1 in Lischke 2017 for the structure of the
 # Jacobian.
 
-# The .groups argument in dplyr::summarise() is experimental, so maybe should be
-# dropped. However, excluding it leads to messages every time it is called.
-
 # To check if enough simulations are used: run several times for nsimul simulations
 # and use more simulations if the variation in outcomes is too large.
 
@@ -1019,7 +1016,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        contour_var = NULL, contour_breaks = 0.5, contour_col = NULL,
                        contour_lty = NULL,
                        limits = NULL, limx = NULL, limy = NULL, ratio = 1,
-                       breaks_legend = c(0, 0.5, 1),
+                       breaks_legend = NULL,
                        fillvar, filltitle, filltype = "discrete",
                        filllabels = NULL,
                        format_x = c("scaled", "scientific", "none"),
@@ -1161,8 +1158,17 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
       p <- p + scale_fill_viridis_b(filltitle, breaks = limits)
     }
     if(filltype == "continuous") {
-      p <- p + scale_fill_viridis_c(filltitle, breaks = breaks_legend,
-                                    limits = limits, option = palette)
+      if(is.null(breaks_legend) && length(limits) == 2L && all(limits == c(0, 1))) {
+        breaks_legend <- c(0, 0.5, 1)
+      }
+      
+      if(is.null(breaks_legend)) {
+        p <- p + scale_fill_viridis_c(filltitle,
+                                      limits = limits, option = palette)
+      } else {
+        p <- p + scale_fill_viridis_c(filltitle, breaks = breaks_legend,
+                                      limits = limits, option = palette)
+      }
     }
   }
   if(rotate_x_labels == TRUE) {
@@ -1779,8 +1785,6 @@ datatotal <- as.data.frame(datatotal)
 limitsfraction <- c(0, 1)
 # Round the limits to one decimal place, while ensuring that all the data is
 # within the rounded limits.
-# To do:
-# - Switch to safer rounding.
 limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
                       ceiling(max(plotdata[, "growthratemax"])*10)/10)
 stat_type <- c("min", "mean", "median", "max")
@@ -1924,13 +1928,6 @@ for(ind_stat_type in seq_along(stat_type)) {
                    filltype = "continuous", limits = limitsgrowthrate))
 }
 
-# Plot mean and median growth rate with their own limits
-CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
-                             near(conjratecode, 1), near(taxmatcode, 1)),
-           fillvar = "growthratemean",
-           filltitle = "Mean growth rate",
-           filltype = "continuous", limits = NULL,
-           filename = "growthratemean_ownlimits")
 pS02 <- CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                              near(conjratecode, 1), near(taxmatcode, 1)),
            fillvar = "growthratemean",
@@ -1943,13 +1940,6 @@ pS02 +
 ggsave(paste0(DateTimeStamp, "FigS02_growthratecode", newgrowthratecode, ".png"),
        width = 2028, height = 1.1 * 704, dpi = 300, units = "px")
 
-CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
-                             near(conjratecode, 1), near(taxmatcode, 1)),
-           fillvar = "growthratemedian",
-           filltitle = "Median growth rate",
-           filltype = "continuous", limits = NULL,
-           filename = "growthratemedian_ownlimits")
-
 # Show the relation of interactions and species-specific growth rate required to
 # obtain an equilibrium. Costs and conjugation rate do not affect growth rate,
 # so data has been filtered to have only one value for them.
@@ -1957,26 +1947,6 @@ datatotalfiltercostconj <- filter(datatotal, near(cost, costset[1]),
                                   near(conjratecode, 1), near(taxmatcode, 1))
 datatotalfiltercostconjsp1 <- filter(datatotalfiltercostconj,
                                      near(species, 1))
-ggplot(data = datatotalfiltercostconjsp1,
-       aes(x = intmean, y = growthrate)) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        legend.position = "bottom",
-        panel.border = element_blank(),
-        panel.spacing = unit(3, "pt"),
-        strip.background = element_rect(color = NA)) +
-  geom_point(aes(col = iter), size = 0.1) +
-  facet_grid(rows = vars(selfintmean), cols = vars(nspecies),
-             labeller = mylabeller, drop = TRUE, scales = "fixed") +
-  scale_color_viridis_c() +
-  labs(title = "Growth rate of species 1",
-       caption = paste(nsimul, "simulations")) +
-  guides(color = guide_colourbar())
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthratevsintmean_sp1_col.png"),
-         width = 3300, height = 2675, units = "px", dpi = 300)
-}
-
 ggplot(data = datatotalfiltercostconjsp1,
        aes(x = intmean, y = growthrate)) + 
   theme_bw() +
@@ -1993,60 +1963,12 @@ ggplot(data = datatotalfiltercostconjsp1,
        caption = paste(nsimul, "simulations")) +
   guides(color = guide_colourbar())
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthratevsintmean_sp1_black.png"),
+  ggsave(paste0(DateTimeStamp, "growthratevsintmean_sp1.png"),
          width = 3300, height = 2675, units = "px", dpi = 300)
 }
 
 datatotalfiltercostconj_iter1 <- datatotalfiltercostconj[
   which(near(1, datatotalfiltercostconj[, "iter"])), ]
-
-# To do:
-# - The colorbar labels should be shifted to the left
-ggplot(data = datatotalfiltercostconj, aes(x = intmean, y = growthrate)) + 
-  theme_bw() +
-  theme(legend.position = "bottom",
-        panel.border = element_blank(),
-        panel.spacing = unit(3, "pt"),
-        strip.background = element_rect(color = NA)) +
-  geom_point(aes(color = selfintmean), size = 1) +
-  facet_grid(rows = vars(nspecies), cols = vars(species, abunmodelcode),
-             labeller = mylabeller, drop = TRUE) +
-  scale_color_viridis_c() +
-  labs(caption = paste(nsimul, "simulations")) +
-  guides(color = guide_colourbar(label.hjust = 1, label.vjust = 1,
-                                 label.theme = element_text(angle = 45)))
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthratevsintmean.png"),
-         width = 3300, height = 2675, units = "px", dpi = 300)
-}
-
-ggplot(data = datatotalfiltercostconj, aes(x = selfintmean, y = growthrate)) + 
-  theme_bw() +
-  theme(legend.position = "bottom",
-        panel.border = element_blank(),
-        panel.spacing = unit(3, "pt"),
-        strip.background = element_rect(color = NA)) +
-  geom_point(aes(color = intmean), size = 1) +
-  facet_grid(rows = vars(nspecies), cols = vars(species, abunmodelcode),
-             labeller = mylabeller) +
-  scale_color_viridis_c() +
-  labs(caption = paste(nsimul, "simulations")) +
-  guides(color = guide_colourbar(label.hjust = 1, label.vjust = 1,
-                                 label.theme = element_text(angle = 45)))
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "growthratevsselfintmean.png"),
-         width = 3300, height = 2675, units = "px", dpi = 300)
-}
-
-# Calculate density if only intraspecies interactions are present
-CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate/selfintmean",
-           filltitle = "Mean carrying capacity", filltype = "continuous",
-           facetx = "abunmodelcode", facety = "nspecies",
-           filename = "carrycap")
-CreatePlot(dataplot = datatotalfiltercostconj, fillvar = "growthrate/selfintmean",
-           filltitle = "Mean carrying capacity", filltype = "continuous",
-           facetx = "abunmodelcode", facety = "nspecies",
-           rotate_legend = TRUE, filename = "carrycaprotated")
 
 ## Plot summary data on the number of simulations in creating intmat needed to
 # find a stable equilibrium with the model without plasmids
@@ -2285,7 +2207,8 @@ if(simulateinvasion == TRUE) {
     print(CreatePlot(fillvar = paste0("log10(1 + abunPtotalconj", stat_type[ind_stat_type], ")"),
                      filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
                                        "abundance of\nplasmid-bearing bacteria)"),
-                     filltype = "continuous", title = title, subtitle = subplasmidbearing))
+                     filltype = "continuous", title = title,
+                     subtitle = subplasmidbearing, rotate_legend = TRUE))
   }
   
   ## Plots comparing species abundances after perturbation with plasmid-bearing
