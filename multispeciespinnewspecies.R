@@ -109,7 +109,10 @@ smallchange <- 1e-2
 totalabun <- 1e11
 nspeciesset <- 1 + c(2, 4, 8, 16)
 maxnspecies <- max(nspeciesset)
-abunmodelset <- c("dompreempt") # One or both of c("dompreempt", "brokenstick")
+abunmodel_options <- c("brokenstick", "dompreempt", "equalabun")
+labmodel <- c("Broken stick", "Dom. preemption", "Equal abundance")
+names(labmodel) <- seq_along(labmodel)
+abunmodelset <- abunmodel_options[1] # Can also use multiple values
 # The growth rate of new species is the mean growth rate of the plasmid-free 
 # species decreased with 2 standard deviations, unchanged, or increased with 2
 # standard deviations when newgrowthratecode == 1, 2, or 3, respectively.
@@ -150,7 +153,7 @@ simulateinvasion <- TRUE
 intmeanset <- seq(from = -1e-11, to = 5e-12, by = 5e-13)
 selfintmeanset <- seq(from = -1e-11, to = 0, by = 5e-13)
 
-## Small parameter set to show plots over time (FigS11)
+## Small parameter set to show plots over time (FigS08)
 saveplotconjovertime <- TRUE
 nspeciesset <- 1 + 4
 maxnspecies <- max(nspeciesset)
@@ -162,10 +165,11 @@ intmeanset <- 0
 selfintmeanset <- -0.5e-11
 
 ## Parameter set to test code
+saveplotconjovertime <- FALSE
 nspeciesset <- 1 + c(2, 8)
 maxnspecies <- max(nspeciesset)
 conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
-nsimul <- 25
+nsimul <- 5
 simulateinvasion <- TRUE
 intmeanset <- c(1e-11, -5e-12, 0, 5e-12, 1e-11)
 selfintmeanset <- c(-1e-11, -5e-12, 0)
@@ -296,6 +300,11 @@ dompreempt_fast <- function(nspecies, totalabun, takelimit = NULL) {
   # Scaling abundances to get specified total abundance
   abun <- abun / (1 - (0.25^nspecies))
   return(abun)
+}
+
+equalabun <- function(nspecies, totalabun, takelimit = NULL) {
+  stopifnot(length(nspecies) == 1, length(totalabun) == 1, totalabun > 0)
+  rep(totalabun / nspecies, nspecies)
 }
 
 # Create a matrix of scaled interaction coefficients for nspecies species with
@@ -1193,11 +1202,12 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
     }
     
     # Add DateTimeStamp, remove spaces, replace non-alphanumeric characters with
-    # underscores and add the extension to create a valid file name.
+    # underscores, collapse and add the extension to create a single valid file
+    # name.
     filename <- paste0(DateTimeStamp, filename)
     filename <- gsub(" ", "", filename)
     filename <- gsub("[^[:alnum:]_]", "_", filename)
-    filename <- paste0(filename, ".png")
+    filename <- paste0(filename, ".png", collapse = "")
     
     if(file.exists(filename)) {
       warning("File '", filename, "' already exists, plot is not saved again!",
@@ -1248,6 +1258,8 @@ starttime <- Sys.time()
 nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset, taxmattypeset),
                              use.names = FALSE))
+# When changing the number of columns, also update the line
+# 'data <- matrix(data = NA, nrow = nrowdata, ncol = 60 + 4*maxnspecies)' below.
 ncolplotdata <- if(simulateinvasion == TRUE) {
   18*4 + 4*4*maxnspecies + 39
 } else {
@@ -1275,22 +1287,22 @@ for(nspecies in nspeciesset) {
   pertpopconj <- "P1"
   
   for(abunmodel in abunmodelset) {
-    if(abunmodel == "brokenstick") {
-      # Use nspecies - 1 because the newly-introduced species (species 1) should
-      # not yet be taken into account.
-      abundance <- brokenstick_fast(nspecies = nspecies - 1, totalabun = totalabun,
-                                    takelimit = TRUE)
-      # Using a number instead of a name, to prevent type-conversion when
-      # storing it in matrices.
-      abunmodelcode <- 1
-    }
-    if(abunmodel == "dompreempt") {
-      # Use nspecies - 1 because the newly-introduced species (species 1) should
-      # not yet be taken into account.
-      abundance <- dompreempt_fast(nspecies = nspecies - 1, totalabun = totalabun,
-                                   takelimit = TRUE)
-      abunmodelcode <- 2
-    }
+    # Use nspecies - 1 because the newly-introduced species (species 1) should
+    # not yet be taken into account.
+    abundance <- switch(
+      abunmodel,
+      brokenstick = brokenstick_fast(nspecies = nspecies - 1,
+                                     totalabun = totalabun, takelimit = TRUE),
+      dompreempt = dompreempt_fast(nspecies = nspecies - 1,
+                                   totalabun = totalabun, takelimit = TRUE),
+      equalabun = equalabun(nspecies = nspecies - 1, totalabun = totalabun),
+      stop("'abunmodel' should be one of '",
+           paste(abunmodel_options, collapse = "', '"),
+           "', not '", abunmodel, "'."))
+    
+    # Using a number instead of a name, to prevent type-conversion when
+    # storing it in matrices.
+    abunmodelcode <- match(x = abunmodel, table = abunmodel_options)
     
     for(intmean in intmeanset) {
       
@@ -1321,7 +1333,7 @@ for(nspecies in nspeciesset) {
                                 intmean = intmean, selfintmean = selfintmean)
             growthrateeq <- getgrowthrate(abundance = abundance,
                                           intmat = intmat[-1, -1])
-            # The growth rate of new species is the mean growth rate of the
+            # The growth rate of the new species is the mean growth rate of the
             # plasmid-free species decreased with 2 standard deviations,
             # unchanged, or increased with 2 standard deviations when
             # 'newgrowthratecode' is 1, 2, or 3, respectively.
@@ -1398,6 +1410,7 @@ for(nspecies in nspeciesset) {
           for(cost in costset) {
             conjratecode <- 0
             
+            # Use conjrate <- conjrateset[[1]] to manually select the first element
             for(conjrate in conjrateset) {
               conjratecode <- conjratecode + 1
               taxmatcode <- 0
@@ -1414,7 +1427,7 @@ for(nspecies in nspeciesset) {
                   # species is always the newly-introduced species 1, such that
                   # the first row and column of the matrix taxmat have to be
                   # adjusted. The diagonal should remain 'SameSpecies' because
-                  # those reflect intraspecies relationships by definition.
+                  # those values reflect intraspecies relationships by definition.
                   taxmat[1, -1] <- taxmattype
                   taxmat[-1, 1] <- taxmattype
                 }
@@ -1454,7 +1467,7 @@ for(nspecies in nspeciesset) {
                 # populations have to be appended to the abundances of the
                 # plasmid-bearing populations.
                 if(simulateinvasion == TRUE) {
-                  if(eqinfoconj["eigvalRe"] >= 0) {
+                  if(eqinfoconj["eigvalRe"] >= 0 || saveplotconjovertime) {
                     abunfinalconj <- perturbequilibrium(
                       abundance = c(0, abundance, rep(0, nspecies)),
                       intmat = intmat, growthrate = growthrate,
@@ -1659,7 +1672,7 @@ if(simulateinvasion == TRUE) {
   eqnotreached <- 1 - plotdata[, "eqreachedfrac"]
   eqnotreachedconj <- 1 - plotdata[, "eqreachedconjfrac"]
   if(any(eqnotreached > 0)) {
-    warning("Fraction of simulations where equilibrium has not been reached ",
+    warning("Fraction of simulations where equilibrium has not been reached",
             " after pertubation with plasmid-free\nbacteria ranges from ",
             signif(summary(eqnotreached)["Min."], 3), " to ",
             signif(summary(eqnotreached)["Max."], 3)," (mean: ",
@@ -1683,23 +1696,22 @@ if(simulateinvasion == TRUE) {
 
 #### Saving settings and output to CSV and RDS files ####
 DateTimeStamp <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M"),
-                        "PInNewSp_")
+                        "_PInNewSp")
 if(PReplMostAbun == FALSE) {
-  DateTimeStamp <- paste0(DateTimeStamp, "PReplLeastAbun_")
+  DateTimeStamp <- paste0(DateTimeStamp, "_PReplLeastAbun")
 }
 
 # Saving the data as R-object into an R data file takes much less space than
-# saving it as csv. The R data files can be read into R using
-# readRDS(file = file.path("OutputMS", "YYYY_MM_DD",
-#                          "YYYY_MM_DD_MM_SS_filename.rds"))
-saveRDS(object = plotdata, file = paste0(DateTimeStamp, "plotdata.rds"))
-saveRDS(object = datatotal, file = paste0(DateTimeStamp, "datatotal.rds"))
+# saving it as csv. On reading the data back into R, see the section 'Reading
+# previously saved data from a CSV file' below.
+saveRDS(object = plotdata, file = paste0(DateTimeStamp, "_plotdata.rds"))
+saveRDS(object = datatotal, file = paste0(DateTimeStamp, "_datatotal.rds"))
 
 if(nrow(plotdata) > 250000) {
   warning("Not saved 'plotdata' to CSV-file because the number of rows (",
           nrow(plotdata), ") exceeds 250000.")
 } else {
-  write.csv(plotdata, file = paste0(DateTimeStamp, "plotdata.csv"),
+  write.csv(plotdata, file = paste0(DateTimeStamp, "_plotdata.csv"),
             quote = FALSE, row.names = FALSE)
 }
 names(conjrateset) <- paste0("conjrateset", seq_along(conjrateset))
@@ -1717,46 +1729,54 @@ settings <- c(list(nsimul = nsimul, niterintmat = niterintmat,
 for(index in seq_along(settings)) {
   # Using write.table instead of write.csv() to be able to use append = TRUE
   write.table(t(as.data.frame(settings[index])), 
-              file = paste0(DateTimeStamp, "settings.csv"), append = TRUE,
+              file = paste0(DateTimeStamp, "_settings.csv"), append = TRUE,
               quote = FALSE, sep = ",", col.names = FALSE)
 }
 capture.output(sessionInfo(),
-               file = paste0(DateTimeStamp, "sessioninfo_base.txt"))
+               file = paste0(DateTimeStamp, "_sessioninfo_base.txt"))
 if(requireNamespace("sessioninfo")) {
   capture.output(sessioninfo::session_info(),
-                 file = paste0(DateTimeStamp, "sessioninfo.txt"))
+                 file = paste0(DateTimeStamp, "_sessioninfo.txt"))
 }
 
 
-#### Reading previously saved data from a CSV file ####
-# # To read data from a CSV file, put the CSV file in the working directory
-# # (see getwd()), uncomment this section and change the date-time-stamp in the
-# # file name (the next line prints a list of files in the working directory
-# # that contain 'PInNewSp' in their name).
-# list.files(pattern = "PInNewSp", ignore.case = TRUE)
-# # Note that the extension (.csv) should be included in the file name.
-# filename <- file.path("OutputMS", "YYYY_MM_DD",
-#                       "YYYY_MM_DD_MM_SSPInNewSp.csv")
-# plotdata <- read.csv(filename, header = TRUE, sep = ",", quote = "\"",
-#                      dec = ".", stringsAsFactors = FALSE)
-# # If plotdata has only one column, probably a semicolon instead of a comma was
-# # used as separator in the CSV file. So read the file again using that separator.
-# if(near(ncol(plotdata), 1L)) {
-#   plotdata <- read.csv(filename, header = TRUE, sep = ";", quote = "\"",
-#                        dec = ".", stringsAsFactors = FALSE)
-# }
-# plotdata <- as.data.frame(plotdata)
-# DateTimeStamp <- substr(x = filename, start = 21, stop = 36)
+#### Reading previously saved data from R data files or from a CSV file ####
+# Put the R data files in the working directory:
+# getwd()                      # Prints the current working directory
+# list.files(pattern = "data") # Prints file names that contain 'data'.
+
+# Then provide the DateTimeStamp corresponding to the desired file (which can be
+# copied from the filenames printed above):
+# DateTimeStamp <- "YYYY_mm_dd_HH_MM_PInNewSp"
+
+# Then read the R data files into R by choosing the appropriate section below.
+
+##### Reading from R data files #####
+# plotdata <- as.data.frame(
+#   readRDS(file = file.path(getwd(), paste0(DateTimeStamp, "_plotdata.rds"))))
+# datatotal <- as.data.frame(
+#   readRDS(file = file.path(getwd(), paste0(DateTimeStamp, "_datatotal.rds"))))
 # nspeciesset <- sort(unique(plotdata[, "nspecies"]))
-# list.files(pattern = "data")
-# DateTimeStamp <- "2025_03_26_16_39" # YYYY_MM_DD_YY_MM
-## Note: if the error 'cannot open compressed file
-##   'YYYY_MM_DD_YY_MMPInNewSp_plotdata.rds', probable reason 'No such file or
-##   directory' occurs, you have to delete '.rds' from the filename supplied to
-##   readRDS() or add it to the filename of the actual file.
-# plotdata <- readRDS(paste0(DateTimeStamp, "PInNewSp_plotdata.rds"))
-# datatotal <- readRDS(paste0(DateTimeStamp, "PInNewSp_datatotal.rds"))
-# newgrowthratecode <- X
+
+# The error 'cannot open compressed file 'YYYY_mm_dd_HH_MM_plotdata.rds',
+# probable reason 'No such file or directory' occurs if the file is not in the
+# working directory (which can be checked by using list.files()) or the
+# extension '.rds' is not present in the filename of the actual file. In the
+# latter case, either remove '.rds' from the filename supplied to readRDS() or
+# add '.rds' to the filename of the actual file.
+
+##### Reading from csv-files #####
+# plotdata <- read.csv(
+#   file = file.path(getwd(), paste0(DateTimeStamp, "_plotdata.csv")),
+#   header = TRUE, sep = ",", quote = "\"", dec = ".", stringsAsFactors = FALSE)
+# If plotdata has only one column, probably a semicolon instead of a comma was
+# used as separator in the CSV file. So read the file again using that separator.
+# if(near(ncol(plotdata), 1L)) {
+#   plotdata <- read.csv(
+#     file = file.path(getwd(), paste0(DateTimeStamp, "_plotdata.csv")),
+#     header = TRUE, sep = ";", quote = "\"", dec = ".", stringsAsFactors = FALSE)
+# }
+# nspeciesset <- sort(unique(plotdata[, "nspecies"]))
 
 
 #### Labels and limits for plots ####
@@ -1764,8 +1784,7 @@ labspecies <- paste("Sp.", seq_len(maxnspecies))
 names(labspecies) <- seq_len(maxnspecies)
 labnspecies <- paste(nspeciesset, "species")
 names(labnspecies) <- nspeciesset
-labmodel <- c("Broken stick", "Dom. preemption")
-names(labmodel) <- c(1, 2)
+# labmodel has been defined and named in the settings before the simulations.
 labcost <- paste0("Fitness cost\n", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", seq_along(conjrateset))
@@ -1779,10 +1798,14 @@ mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
                        cost = labcost, conjratecode = labconjrate,
                        taxmatcode = labtaxmat, .multi_line = FALSE,
                        .default = label_value)
-# memory.limit(size = 10000)
+memory.limit(size = 10000)
 plotdata <- as.data.frame(plotdata)
 datatotal <- as.data.frame(datatotal)
 limitsfraction <- c(0, 1)
+newgrowthratecode <- unique(plotdata$newgrowthratecode)
+if(length(newgrowthratecode) > 1L) {
+  stop("'newgrowthratecode' should have length 1!")
+}
 # Round the limits to one decimal place, while ensuring that all the data is
 # within the rounded limits.
 limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
@@ -1902,7 +1925,7 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "infgrowthconjfrac",
              filltitle = "Fraction of simulations where\ninfinite growth occurred",
              filltype = "continuous", limits = limitsfraction, tag = "B",
-             palette = "turbo", filename = "FigS08B")
+             palette = "turbo", filename = "FigS10B")
   
   CreatePlot(fillvar = "eqreachedconjfrac",
              filltitle = "Fraction of simulations where\nthe equilibrium was reached ",
@@ -1910,14 +1933,14 @@ if(simulateinvasion == TRUE) {
   CreatePlot(fillvar = "eqreachedconjfrac",
              filltitle = "Fraction of simulations where\nthe equilibrium was reached ",
              filltype = "continuous", limits = limitsfraction, tag = "B",
-             palette = "turbo", filename = "FigS07B")
+             palette = "turbo", filename = "FigS09B")
   CreatePlot(fillvar = "tmaxshortconjfrac",
              filltitle = "Fraction of simulations where\ntmax was too short",
              filltype = "continuous", limits = limitsfraction)
   CreatePlot(fillvar = "tmaxshortconjfrac",
              filltitle = "Fraction of simulations where\ntmax was too short",
              filltype = "continuous", limits = limitsfraction, tag = "B",
-             palette = "turbo", filename = "FigS09B")
+             palette = "turbo", filename = "FigS11B")
 }
 
 ## Growth rates
@@ -1930,10 +1953,9 @@ for(ind_stat_type in seq_along(stat_type)) {
 
 pS02 <- CreatePlot(dataplot = filter(plotdata, near(cost, costset[1]),
                              near(conjratecode, 1), near(taxmatcode, 1)),
-           fillvar = "growthratemean",
-           filltitle = "Mean growth rate",
-           filltype = "continuous", limits = NULL, tag = "B",
-           palette = "mako", save = FALSE)
+           fillvar = "growthratemean", filltitle = "Mean growth rate",
+           filltype = "continuous", limits = NULL, tag = "B", palette = "mako",
+           save = FALSE)
 pS02 +
   labs(y = "Mean intraspecies\ninteraction coefficient", tag = NULL) +
   facet_wrap(facets = "nspecies", nrow = 1, labeller = label_both)
@@ -1989,7 +2011,7 @@ if(simulateinvasion == TRUE) {
   }
   
   limitstime <- range(plotdata[, "timefinalmedian"],
-                      plotdata[, "timefinalconjmedian"])
+                      plotdata[, "timefinalconjmedian"], na.rm = TRUE)
   title <- paste0("Time to reach equilibrium after perturbation", title_add)
   CreatePlot(fillvar = "timefinalmedian", filltitle = "Median time",
              filltype = "continuous", limits = limitstime,
@@ -2177,7 +2199,8 @@ if(simulateinvasion == TRUE) {
     print(CreatePlot(fillvar = paste0("log10(1 + abuntotal", stat_type[ind_stat_type], ")"),
                      filltitle = paste("Log10(1 +", names(stat_type[ind_stat_type]),
                                        "abundance of\nplasmid-free bacteria)"),
-                     filltype = "continuous", title = title, subtitle = subplasmidfree))
+                     filltype = "continuous", title = title,
+                     rotate_legend = TRUE, subtitle = subplasmidfree))
   }
   
   ## Plot of total abundances after perturbation with plasmid-bearing bacteria in
@@ -2325,6 +2348,7 @@ if(simulateinvasion == TRUE) {
   }
 }
 
+if(PReplMostAbun) {
 if(newgrowthratecode == 1) {
   CreatePlot(fillvar = "relabunconjsp1mean",
              filltitle = paste0("Mean relative abundance of the\ninitially",
@@ -2359,7 +2383,7 @@ CreatePlot(fillvar = "log10(1 - relabunconjsp1mean + 1e-6)",
                               " initially plasmid-free species) ",
                               add_filltitleconj),
            filltype = "continuous", limits = NULL)
-
+}
 
 #### Compare abundance models ####
 # See the script multispecies.R
