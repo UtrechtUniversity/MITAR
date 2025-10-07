@@ -949,13 +949,6 @@ DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
 if(PReplMostAbun == FALSE) {
   DateTimeStamp <- paste0(DateTimeStamp, "PReplLeastAbun")
 }
-if(nrow(plotdata) > 250000) {
-  warning("Not saved 'plotdata' to CSV-file because the number of rows (",
-          nrow(plotdata), ") exceeds 250000.")
-} else {
-  write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
-            quote = FALSE, row.names = FALSE)
-}
 names(conjrateset) <- paste0("conjrateset", seq_along(conjrateset))
 settings <- c(list(niter = niter, niterintmat = niterintmat,
                    simulateinvasion = FALSE,
