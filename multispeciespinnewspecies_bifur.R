@@ -547,9 +547,9 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        facety = "conjratecode + nspecies",
                        dropfacets = TRUE,
                        as.table = TRUE,
-                       marginx = NULL, marginy = NULL, base_size = 13,
+                       marginx = NULL, marginy = NULL, base_size = 15,
                        rotate_x_labels = TRUE, rotate_legend = FALSE,
-                       save = saveplots, width = 1650, height = 2675,
+                       save = saveplots, width = 1850, height = 2675,
                        filename = NULL) {
   caption <- paste(unique(dataplot$niter), "iterations")
   if(exists("DateTimeStamp") == FALSE) {
@@ -934,13 +934,6 @@ rm(summarydata)
 
 #### Saving settings and output to CSV and RDS files ####
 DateTimeStamp <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M"), "PInNewSp")
-if(nrow(plotdata) > 250000) {
-  warning("Not saved 'plotdata' to CSV-file because the number of rows (",
-          nrow(plotdata), ") exceeds 250000.")
-} else {
-  write.csv(plotdata, file = paste0(DateTimeStamp, "multispecies.csv"),
-            quote = FALSE, row.names = FALSE)
-}
 names(conjrateset) <- paste0("conjrateset", seq_along(conjrateset))
 settings <- c(list(niter = niter, niterintmat = niterintmat,
                    simulateinvasion = FALSE,
@@ -1007,8 +1000,8 @@ labcost <- paste0("Fitness cost\n", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", seq_along(conjrateset))
 names(labconjrate) <- seq_along(conjrateset)
-labtaxmat <- c("all\nconjugation\nrates equal",
-               "lower\nintersp. conj.\nrates initP")
+labtaxmat <- c("all conj. rates\nequal",
+               "lower intersp.\nconj. rates initP\n")
 names(labtaxmat) <- seq_along(taxmattypeset)
 # '.multi_line = FALSE' to collapse facet labels into a single label
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
@@ -1030,26 +1023,6 @@ limitsgrowthrate <- c(floor(min(plotdata[, "growthratemin"])*10)/10,
                       ceiling(max(plotdata[, "growthratemax"])*10)/10)
 stat_type <- c("min", "mean", "median", "max")
 names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
-
-
-#### To test plots without using CreatePlot() ####
-# ggplot(data = plotdata,
-#        aes(x = intmean, y = selfintmean, fill = fracstable)) +
-#   geom_raster() +
-#   theme_bw(base_size = 13) +
-#   scale_x_discrete() +
-#   scale_y_discrete() +
-#   scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
-#   geom_vline(xintercept = 0, col = "grey", size = 1.1) +
-#   coord_fixed(ratio = 1, expand = FALSE) +
-#   theme(legend.position = "bottom",
-#         panel.spacing = unit(3, "pt"),
-#         plot.tag.position = c(0.0125, 0.9875),
-#         strip.background = element_rect(color = NA)) +
-#   labs(x = "Mean interspecies interaction coefficient",
-#        y = "Mean intraspecies interaction coefficient",
-#        caption = paste(niter, "iterations")) +
-#   facet_grid(nspecies ~ abunmodelcode, labeller = mylabeller)
 
 
 #### Plot output ####
@@ -1088,7 +1061,8 @@ CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
            laby = paste0("Log10(intraspecies conjugation rate of\nthe",
                          " initially plasmid-bearing species)"),
            linezero = FALSE, facetx = "taxmatcode + intmean", facety = "nspecies",
-           filename = "ecostabxcostyconj")
+           rotate_legend = TRUE,
+           filename = "ecostabxcostyconj", width = 1.75 * 1850, height = 2675)
 
 
 ## Show border of epidemiological stability with a contour plot in CreatePlot()
@@ -1110,7 +1084,7 @@ CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
   geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "epistabxtaxmatintmeanynspecies.png"),
-         width = 2150, height = 2150, units = "px", dpi = 300)
+         width = 1.75 * 1850, height = 2675, units = "px", dpi = 300)
 }
 
 CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
@@ -1164,7 +1138,7 @@ CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
                          " initially plasmid-bearing species)"),
            linezero = FALSE, facetx = "taxmatcode", facety = ".",
            save = FALSE) +
-  theme(legend.box = "horizontal",
+  theme(legend.box = "vertical",
         legend.margin = margin(c(-5, 0, -5, 0), unit = "pt")) +
   guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
   geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2)
