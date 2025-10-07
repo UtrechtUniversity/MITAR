@@ -558,9 +558,9 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
                        facety = "conjratecode + nspecies",
                        dropfacets = TRUE,
                        as.table = TRUE,
-                       marginx = NULL, marginy = NULL, base_size = 13,
+                       marginx = NULL, marginy = NULL, base_size = 15,
                        rotate_x_labels = TRUE, rotate_legend = FALSE,
-                       save = saveplots, width = 1650, height = 2675,
+                       save = saveplots, width = 1850, height = 2675,
                        filename = NULL) {
   caption <- paste(unique(dataplot$niter), "iterations")
   if(exists("DateTimeStamp") == FALSE) {
@@ -1062,7 +1062,7 @@ names(stat_type) <- c("Min.", "Mean", "Median", "Max.")
 # ggplot(data = plotdata,
 #        aes(x = intmean, y = selfintmean, fill = fracstable)) +
 #   geom_raster() +
-#   theme_bw(base_size = 13) +
+#   theme_bw(base_size = 15) +
 #   scale_x_discrete() +
 #   scale_y_discrete() +
 #   scale_fill_viridis_c("Fraction stable", limits = limitsfraction) +
@@ -1223,8 +1223,9 @@ if(saveplots == TRUE) {
 # Customise colour palette
 val_name <- "taxmatcode"
 p_nspecies <- as.factor(plotdata[, val_name, drop = TRUE])
-my_cols <- (scales::hue_pal()(nlevels(p_nspecies) + 1L))[
-  seq_len(nlevels(p_nspecies))]
+# my_cols <- (scales::hue_pal()(nlevels(p_nspecies) + 1L))[
+#   seq_len(nlevels(p_nspecies))]
+my_cols <- c("#FFC20A", "#0C7BDC")
 names(my_cols) <- levels(p_nspecies)
 
 abundance <- switch(abunmodel,
@@ -1271,7 +1272,6 @@ p_comp_epistab <- CreatePlot(
   xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
   contour_var = "fracstableepi", contour_col = "taxmatcode", contour_lty = "type",
   limx = range(c(0, costset)), limy = range(log10(seqconjrate)), ratio = NULL,
-  title = "Comparing epidemiological (in)stability",
   labx = "Fitness cost of bearing a plasmid",
   laby = paste0("Log10(intraspecies conjugation rate",
                 " of\nthe initially plasmid-bearing",
@@ -1279,20 +1279,18 @@ p_comp_epistab <- CreatePlot(
   linezero = FALSE, facetx = ".", facety = "nspecies", rotate_x_labels = FALSE,
   save = FALSE) +
   theme(legend.box = "horizontal",
-        legend.margin = margin(c(-5, 0, -5, 0), unit = "pt")) +
-  scale_colour_manual(values = my_cols) +
+        legend.direction = "vertical",
+        legend.margin = margin(c(-5, 0, -5, 0), unit = "pt"),
+        legend.title = element_blank()) +
+  scale_colour_manual(values = my_cols,
+                      labels = c("All conjugation rates equal",
+                                 paste0("Lower interspecies conjugation rates",
+                                        " to and\nfrom the initially",
+                                        " plasmid-bearing species"))) +
   labs(caption = NULL)
 p_comp_epistab
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "epistabynspecies_comparison.png"),
-         width = 2150, height = 2150, units = "px", dpi = 300)
-}
-
-p_comp_epistab +
-  theme(legend.position = "none") +
-  labs(title = NULL)
-if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "epistabynspecies_comparison_nolegend.png"),
          width = 2150, height = 2150, units = "px", dpi = 300)
 }
 
@@ -1303,14 +1301,13 @@ costmark_2sp <- rep((conjrate_base * abundance[2] +
                     each = nrow(plotdata_2sp) / length(conjrate_inter_reduced))
 
 p_comp_epistab +
-  theme(legend.position = "none") +
-  labs(title = NULL) +
   geom_vline(data = plotdata_2sp, aes(xintercept = costmark_2sp),
-             show.legend = FALSE, linetype = 2)
+             show.legend = FALSE, linetype = 2) +
+  guides(linetype = "none")
 if(saveplots == TRUE) {
   ggsave(paste0(DateTimeStamp, "epistabynspecies_comparison_nolegend_withlines.png"),
          width = 2150 / 1.27, height = 2150, units = "px", dpi = 300)
-  ggsave(paste0(DateTimeStamp, "Fig13.png"),
+  ggsave(paste0(DateTimeStamp, "FigS06.png"),
          width = 2150 / 1.27, height = 2150, units = "px", dpi = 300)
 }
 rm(costmark_2sp)
@@ -1367,7 +1364,7 @@ offset_y <- (log10(max(plotdata[, "conjrate"])) -
 p_comp_epistab_v2 <- CreatePlot(dataplot = plotdata_manysp,
                                 xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
                                 contour_var = "fracstableepi", contour_col = val_name,
-                                contour_lty = NULL,
+                                contour_lty = val_name,
                                 limx = range(c(0, costset)),
                                 limy = range(log10(seqconjrate)),
                                 ratio = NULL,
@@ -1377,8 +1374,20 @@ p_comp_epistab_v2 <- CreatePlot(dataplot = plotdata_manysp,
                                               " species)"),
                                 linezero = FALSE, facetx = ".", facety = ".",
                                 base_size = 17, rotate_x_labels = FALSE, save = FALSE) +
-  theme(legend.position = "none") +
-  scale_colour_manual(values = my_cols) +
+  theme(legend.box.margin = margin(-5, 0, 0, -75),
+        legend.direction = "horizontal",
+        legend.box = "horizontal",
+        legend.justification = "left",
+        legend.margin = margin(-5, 0, -5, 0),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        plot.margin = margin(10, 12, 10, 5)) +
+  guides(linetype = "none") +
+  scale_colour_manual(values = c('1' = "#FFC20A", '2' = "#0C7BDC"),
+                      labels = c("All conjugation rates equal",
+                                 paste0("Lower interspecies conjugation rates",
+                                        " to and\nfrom the initially",
+                                        " plasmid-bearing species"))) +
   geom_vline(xintercept = costmark, show.legend = FALSE, linetype = 2) +
   geom_vline(xintercept = asymp_cost, show.legend = FALSE, linetype = 2) +
   labs(caption = NULL) +
@@ -1543,6 +1552,6 @@ CreatePlot(dataplot = data_taxmatcode_1,
   labs(caption = NULL) +
   guides(fill = guide_legend(ncol = 3, byrow = TRUE))
 if(saveplots == TRUE) {
-  ggsave(paste0(DateTimeStamp, "compareinvasion_v4_legend.png"),
+  ggsave(paste0(DateTimeStamp, "compareinvasion_withlegend.png"),
          width = 2150, height = 2150, units = "px", dpi = 300)
 }
