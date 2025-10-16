@@ -445,13 +445,14 @@ getgrowthrate <- function(abundance, intmat) {
 }
 
 # Check if the analytically identified equilibrium is indeed an equilibrium, by
-# checking if the derivative at the presumed equilibrium is zero. If showplot =
-# TRUE, a time course starting from the presumed equilibrium is shown.
-# The roots should terminate the simulation when equilibrium is reached, but if
-# one starts in an equilibrium, this will not happen.
+# checking if the derivative at the presumed equilibrium is zero. If showplot is
+# TRUE, a time course starting from the presumed equilibrium is shown. If
+# stopatequilibrium is TRUE, roots terminate the simulation when equilibrium is
+# reached, but if one starts in an equilibrium, this will not happen and the
+# simulation will continue until tmax is reached.
 checkequilibrium <- function(abundance, intmat, growthrate,
-                             printderivatives = FALSE,
-                             showplot = FALSE, tmax = 100, tstep = 0.1) {
+                             printderivatives = TRUE, showplot = TRUE,
+                             stopatequilibrium = TRUE, tmax = 100, tstep = 0.1) {
   derivatives <- unlist(gLV(t = 0, n = abundance,
                             parms = list(growthrate = growthrate, intmat = intmat)))
   atequilibrium <- all(near(0, derivatives))
@@ -463,8 +464,10 @@ checkequilibrium <- function(abundance, intmat, growthrate,
     times <- seq(from = 0, to = tmax, by = tstep)
     out <- ode(y = abundance, times = times, func = gLV,
                parms = list(growthrate = growthrate, intmat = intmat),
-               rootfunc = rootfun,
-               events = list(func = eventfun, root = TRUE, terminalroot = c(1, 2)))
+               rootfun = rootfun,
+               events = list(
+                 func = eventfun, root = TRUE,
+                 terminalroot = if(stopatequilibrium) {c(1, 2)} else {2}))
     ylim <- c(0, 1.1 * max(out[, -1]))
     matplot.deSolve(out, ylim = ylim, lwd = 2,
                     lty = 1, ylab = "Abundance")
@@ -1234,7 +1237,7 @@ CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmea
 #                  showplot = TRUE) # At equilibrium
 # checkequilibrium(abundance = 0.9*abunbrokenstick, intmat = intmat1,
 #                  growthrate = growthratebrokenstick, printderivatives = TRUE,
-#                  showplot = TRUE) # Not at equilibrium
+#                  showplot = TRUE, tmax = 1000) # Not at equilibrium
 # 
 # # geteqinfo returns eigvalRe, eigvalIm, eigvalReSign, eigvalImSign, and eigvalRep
 # geteqinfo(model = "gLV", abundance = abunbrokenstick, intmat = intmat1,
@@ -1676,6 +1679,8 @@ if(simulateinvasion == TRUE) {
             signif(summary(eqnotreached)["Median"], 3), ").",
             " Use silenteqnotreached = FALSE in perturbequilibrium() for more",
             " info")
+    plot(density(eqnotreached), main = "Density of not reaching equilibria")
+    grid()
   }
   if(any(eqnotreachedconj > 0)) {
     warning("Fraction of simulations where equilibrium has not been reached ",
@@ -1686,6 +1691,9 @@ if(simulateinvasion == TRUE) {
             signif(summary(eqnotreachedconj)["Median"], 3), "). ",
             " Use silenteqnotreached = FALSE in perturbequilibrium() for more",
             " info")
+    plot(density(eqnotreachedconj),
+         main = "Density of not reaching\nequilibria with conjugation")
+    grid()
   }
 }
 
@@ -2301,7 +2309,7 @@ if(simulateinvasion == TRUE) {
   }
 }
 
-if(PReplMostAbun) {
+if(PReplMostAbun && simulateinvasion) {
   CreatePlot(fillvar = "relabunconjsp1mean",
              filltitle = paste0("Mean relative abundance of the\ninitially",
                                 " plasmid-bearing species "),
