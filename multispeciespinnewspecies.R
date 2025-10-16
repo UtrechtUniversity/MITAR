@@ -2348,7 +2348,7 @@ if(simulateinvasion == TRUE) {
   }
 }
 
-if(PReplMostAbun) {
+if(PReplMostAbun && simulateinvasion) {
 if(newgrowthratecode == 1) {
   CreatePlot(fillvar = "relabunconjsp1mean",
              filltitle = paste0("Mean relative abundance of the\ninitially",
