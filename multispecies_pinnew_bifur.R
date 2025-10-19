@@ -4,17 +4,6 @@
 ################################################################################
 
 
-#### Introduction ####
-# Use bifurcation-like plots of the result of simulations with a generalised
-# Lotka-Volterra model elaborated with plasmid-bearing populations and
-# conjugation to show how the intraspecies conjugation rate of the initially
-# plasmid-bearing species should change to enable invasion of plasmids if the
-# interspecies conjugation rate to and from that species are reduced. The
-# bifurcation-like plots in the main scripts reflect a different scenario: they
-# show how all conjugation rates simultaneously should change to enable invasion
-# of plasmids. 
-
-
 #### References ####
 # Roberts MG, Heesterbeek JAP. 2021. Infection dynamics in ecosystems: on the
 # interaction between red and grey squirrels, pox virus, pine martens and trees.
@@ -33,60 +22,45 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 
 #### Load required functions ####
-source("./ms_funcs.R")
+source("./multispecies_funcs.R")
 
 
 #### Settings and defining parameter space ####
-# Note: to simulate that each species belongs to a different class, an
-# additional taxmattype has to be added. Then only the interspecies conjugation
-# rates should be reduced, as the intraspecies conjugation rates of all species
-# are still those given in conjrateset. This unchanged intraspecies conjugation
-# rate makes it different from reducing conjrateset 1000-fold and using
-# 'taxmatsame' as taxmattype.
 
-## Parameter set to create bifurcation-like plots showing the border of
-# epidemiological stability in the conjugation rate/cost space
-saveplots <- TRUE
-niterintmat <- 1
-smallstate <- NA
-finalsmallstate <- NA
-smallchange <- NA
+##### Basis parameter set #####
 totalabun <- 1e11
+abunmodelset <- c("dompreempt")
 nspeciesset <- 1 + c(2, 4, 8, 16) # Because species do matter for threshold of costs
 maxnspecies <- max(nspeciesset)
-abunmodelset <- c("dompreempt")
 newgrowthratecode <- 2
-costset <- seq(from = 0, to = 1, by = 0.0025)
-costtype <- "absolute"
 costmark <- NULL # Plot dotted vertical lines at indicated values if not NULL
+# The conjugation rate given here is the 'overall' conjugation rate. For all
+# species, the intraspecies conjugation rate will be equal to this overall
+# conjugation rate. The interspecies conjugation rate will be equal to this
+# overall conjugation rate if all populations belong to the same species.
 conjrate_base <- 1e-12
 seqconjrate <- 10^seq(from = -13.0, to = -11.5, by = 0.05)
+conjrateset <- NULL
+for(conjrate in seqconjrate) {
+  conjrateset <- c(conjrateset, list(rep(conjrate, maxnspecies)))
+}
 # If taxmattype is "SameSpecies", the conjugation rate is the same for all
 # populations, and equal to 'conjrateset' given above. If taxmattype is
 # "OtherClass", the interspecies conjugation rate to and from the initially
 # plasmid-bearing population (the newly added species 1) is reduced a 1000-fold.
 taxmattypeset <- c("SameSpecies", "OtherClass")
-# To plot 16 species need 16 colours, currently only 11 so repeat them.
-mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
-               "darkorange", "green1", "yellow", "hotpink"), 2)
-
-# The conjugation rate given here is the 'overall' conjugation rate. For all
-# species, the intraspecies conjugation rate will be equal to this overall
-# conjugation rate. The interspecies conjugation rate will be equal to this
-# overall conjugation rate if all populations belong to the same species.
-# If the initially plasmid-bearing species is considered to be from another
-# taxonomic class than the initially plasmid-free species, these overall
-# conjugation rates are reduced a thousand-fold to obtain the interspecies
-# conjugation rate between initially plasmid-bearing and initially plasmid-free
-# species.
-# See also 'conjrate_base' defined above.
-conjrateset <- NULL
-for(conjrate in seqconjrate) {
-  conjrateset <- c(conjrateset, list(rep(conjrate, maxnspecies)))
-}
-niter <- 1
+smallstate <- NA
+finalsmallstate <- NA
+smallchange <- NA
+saveplots <- TRUE
+niterintmat <- 1
+nsimul <- 1
 intmeanset <- c(-1e-11, 0, 5e-12)
 selfintmeanset <- c(-1e-11, -5e-12, 0)
+costset <- seq(from = 0, to = 1, by = 0.0025)
+# Repeat 8 colours to plot 16 species.
+mycol <- rep(c("black", "blue", "red", "darkgreen", "darkgrey", "brown", "purple",
+               "darkorange", "green1", "yellow", "hotpink"), 2)
 
 
 #### Running the simulations ####
@@ -100,11 +74,11 @@ starttime <- Sys.time()
 nrowplotdata <- prod(lengths(list(nspeciesset, abunmodelset, intmeanset,
                                   selfintmeanset, costset, conjrateset, taxmattypeset),
                              use.names = FALSE))
-print(paste(niter*nrowplotdata, "simulations to run."), quote = FALSE)
+print(paste(nsimul*nrowplotdata, "simulations to run."), quote = FALSE)
 plotdata <- matrix(data = NA, nrow = nrowplotdata, ncol = 3*4 + 30)
 nrowdatatotal <- prod(lengths(list(abunmodelset,intmeanset, selfintmeanset,
                                    costset, conjrateset, taxmattypeset),
-                              use.names = FALSE))*niter*sum(nspeciesset)
+                              use.names = FALSE))*nsimul*sum(nspeciesset)
 indexdatatotal <- 1
 
 # Run simulations
@@ -132,7 +106,7 @@ for(nspecies in nspeciesset) {
         print(paste0("nspecies = ", nspecies, ", abundance model = ", abunmodel,
                      ", intmean = ", intmean, ", selfintmean = ", selfintmean,
                      ": started at ", Sys.time()), quote = FALSE)
-        nrowdata <- niter * nspecies * length(costset) * length(conjrateset) *
+        nrowdata <- nsimul * nspecies * length(costset) * length(conjrateset) *
           length(taxmattypeset)
         data <- matrix(data = NA, nrow = nrowdata, ncol = 36)
         indexdata <- 1
@@ -140,7 +114,7 @@ for(nspecies in nspeciesset) {
         relabunRconjsp <- rep(NA, maxnspecies)
         relabunPconjsp <- rep(NA, maxnspecies)
         
-        for(iter in seq_len(niter)) {
+        for(iter in seq_len(nsimul)) {
           stableeq <- FALSE
           iterintmat <- 0
           conjratecode <- NA
@@ -250,7 +224,7 @@ for(nspecies in nspeciesset) {
                 indexdatanew <- indexdata + nspecies
                 
                 data[indexdata:(indexdatanew - 1), ] <- cbind(
-                  niter, nspecies, abunmodelcode, intmean, selfintmean,
+                  nsimul, nspecies, abunmodelcode, intmean, selfintmean,
                   cost, conjratecode, taxmatcode, iter, seq_len(nspecies), c(0, abundance),
                   diag(intmat), c(growthrate), newgrowthratecode, iterintmat,
                   matrix(rep(eqinfo, nspecies), nrow = nspecies, byrow = TRUE),
@@ -265,7 +239,7 @@ for(nspecies in nspeciesset) {
         }
         indexdatatotal <- indexdatatotal + nrowdata
         
-        colnames(data) <- c("niter", "nspecies", "abunmodelcode",
+        colnames(data) <- c("nsimul", "nspecies", "abunmodelcode",
                             "intmean", "selfintmean", "cost", "conjratecode",
                             "taxmatcode", "iter", "species", "abundance",
                             "selfintdata", "growthrate", "newgrowthratecode",
@@ -312,7 +286,7 @@ for(nspecies in nspeciesset) {
         rowindexplotdatanew <- rowindexplotdata + length(costset) *
           length(conjrateset) * length(taxmattypeset)
         plotdata[rowindexplotdata:(rowindexplotdatanew - 1), ] <- as.matrix.data.frame(
-          tibble(niter, nspecies, abunmodelcode, intmean, selfintmean,
+          tibble(nsimul, nspecies, abunmodelcode, intmean, selfintmean,
                  newgrowthratecode, summarydata))
         rowindexplotdata <- rowindexplotdatanew
       }
@@ -322,7 +296,7 @@ for(nspecies in nspeciesset) {
 duration <- Sys.time() - starttime
 print(paste0("Finished simulations: ", Sys.time()), quote = FALSE)
 
-colnames(plotdata) <- c("niter", "nspecies", "abunmodelcode", "intmean",
+colnames(plotdata) <- c("nsimul", "nspecies", "abunmodelcode", "intmean",
                         "selfintmean", "newgrowthratecode",
                         colnames(summarydata))
 summary(warnings())
@@ -332,7 +306,7 @@ rm(summarydata)
 #### Saving settings and output to CSV and RDS files ####
 DateTimeStamp <- paste0(format(Sys.time(), format = "%Y_%m_%d_%H_%M"), "PInNewSp")
 names(conjrateset) <- paste0("conjrateset", seq_along(conjrateset))
-settings <- c(list(niter = niter, niterintmat = niterintmat,
+settings <- c(list(nsimul = nsimul, niterintmat = niterintmat,
                    simulateinvasion = FALSE,
                    smallstate = smallstate, smallchange = smallchange,
                    tstep = NA,
@@ -341,8 +315,7 @@ settings <- c(list(niter = niter, niterintmat = niterintmat,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    newgrowthratecode = newgrowthratecode,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
-                   costtype = costtype, PFrom = "PInNewSp",
-                   PReplMostAbun = TRUE, duration = duration))
+                   PFrom = "PInNewSp", PReplMostAbun = TRUE, duration = duration))
 for(index in seq_along(settings)) {
   # Using write.table instead of write.csv() to be able to use append = TRUE
   write.table(t(as.data.frame(settings[index])), 
@@ -391,8 +364,8 @@ labspecies <- paste("Sp.", seq_len(maxnspecies))
 names(labspecies) <- seq_len(maxnspecies)
 labnspecies <- paste(nspeciesset, "sp.")
 names(labnspecies) <- nspeciesset
-labmodel <- c("Broken stick", "Dom. preemption")
-names(labmodel) <- c(1, 2)
+abunmodel_lab <- c("Broken stick", "Dom. preemption")
+names(abunmodel_lab) <- c(1, 2)
 labcost <- paste0("Fitness cost\n", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", seq_along(conjrateset))
@@ -402,7 +375,7 @@ labtaxmat <- c("all conj. rates\nequal",
 names(labtaxmat) <- seq_along(taxmattypeset)
 # '.multi_line = FALSE' to collapse facet labels into a single label
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
-                       abunmodelcode = labmodel,
+                       abunmodelcode = abunmodel_lab,
                        cost = labcost, conjratecode = labconjrate,
                        taxmatcode = labtaxmat, .multi_line = FALSE,
                        .default = label_value)
