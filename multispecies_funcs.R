@@ -19,7 +19,7 @@
 
 #### Notes ####
 # - Some functions differ between the script multispecies.R and
-#   multispeciespinnewspecies.R because these scripts differ in introducing the
+#   multispecies_pinnew.R because these scripts differ in introducing the
 #   plasmid through an existing species or a new species.
 
 
@@ -1384,7 +1384,7 @@ CreatePlot_bifur <- function(dataplot = plotdata, xvar = "intmean", yvar = "self
                              rotate_x_labels = TRUE, rotate_legend = FALSE,
                              save = saveplots, width = 1850, height = 2675,
                              filename = NULL) {
-  caption <- paste(unique(dataplot$niter), "iterations")
+  caption <- paste(unique(dataplot$niter), "simulations")
   if(exists("DateTimeStamp") == FALSE) {
     DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
     if(addstamp == TRUE) {
