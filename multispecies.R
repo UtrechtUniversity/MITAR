@@ -4,14 +4,6 @@
 ################################################################################
 
 
-#### Introduction ####
-# How does varying the richness, evenness, and diversity influence the ability
-# of bacteria to invade an existing microbiome. How is this altered if the
-# invading bacterium carries a plasmid, and conjugation is, or is not,
-# relatedness-dependent. We use simulations with a generalised Lotka-Volterra
-# model to answer these questions.
-
-
 #### References ####
 # Roberts MG, Heesterbeek JAP. 2021. Infection dynamics in ecosystems: on the
 # interaction between red and grey squirrels, pox virus, pine martens and trees.
@@ -46,51 +38,35 @@ library(TruncatedNormal) # getintmat calls rtnorm()
 
 
 #### Load required functions ####
-source("./ms_funcs.R")
+source("./multispecies_funcs.R")
 
 
 #### Settings and defining parameter space ####
-# If simulateinvasion == TRUE, simulations over time are performed.
-# If states become smaller than smallstate during the integration, they are set
-# to 0.
-# If the sum of absolute rates of change is equal to smallchange, equilibrium is
-#   assumed to be reached and the integration is terminated.
-# See the functions that use the arguments for more detailed info.
+##### Notes #####
+# - See the annotation of the functions that use the arguments for more detailed
+#   information.
+# - To simulate that each species belongs to a different class, an additional
+#   taxmattype has to be added. Then only the interspecies conjugation rates
+#   should be reduced, as the intraspecies conjugation rates of all species are
+#   still those given in conjrateset. This unchanged intraspecies conjugation
+#   rate makes it different from reducing conjrateset 1000-fold and using
+#   'taxmatsame' as taxmattype.
 
-# Note: to simulate that each species belongs to a different class, an
-# additional taxmattype has to be added. Then only the interspecies conjugation
-# rates should be reduced, as the intraspecies conjugation rates of all species
-# are still those given in conjrateset. This unchanged intraspecies conjugation
-# rate makes it different from reducing conjrateset 1000-fold and using
-# 'taxmatsame' as taxmattype.
-
-## Basis parameter set
-saveplots <- TRUE
-saveplotconjovertime <- FALSE
-niterintmat <- 1
-smallstate <- 1e-3
-finalsmallstate <- 1
-smallchange <- 1e-2
+##### Basis parameter set #####
 totalabun <- 1e11
-nspeciesset <- c(2, 4, 8, 16)
-maxnspecies <- max(nspeciesset)
 abunmodel_options <- c("brokenstick", "dompreempt", "equalabun")
-labmodel <- c("Broken stick", "Dom. preemption", "Equal abundance")
-names(labmodel) <- seq_along(labmodel)
+abunmodel_lab <- c("Broken stick", "Dom. preemption", "Equal abundance")
 abunmodelset <- abunmodel_options[1] # Can also use multiple values
 costset <- c(0.05, 0.09)
-costtype <- "absolute"
-conjrate_base <- 1e-12
 # The conjugation rate given here is the 'overall' conjugation rate. For all
 # species, the intraspecies conjugation rate will be equal to this overall
 # conjugation rate. See 'taxmattypeset' on the interspecies conjugation rates.
-conjrateset <- list(rep(conjrate_base, maxnspecies))
+conjrate_base <- 1e-12
 # If taxmattype is "SameSpecies", the conjugation rate is the same for all
 # populations, and equal to 'conjrateset' given above. If taxmattype is
 # "OtherClass", the interspecies conjugation rate to and from the initially
 # plasmid-bearing population (either the most-abundant or the least-abundant
-# species, depending 'PReplMostAbun' defined below) on the newly added species
-# 1) is reduced a 1000-fold.
+# species, depending 'PReplMostAbun' defined below) is reduced a 1000-fold.
 taxmattypeset <- c("SameSpecies", "OtherClass")
 # Some plasmid-free bacteria are added to simulate perturbation by plasmid-free
 # bacteria, and some plasmid-free bacteria are replaced with plasmid-bearing
@@ -99,47 +75,38 @@ taxmattypeset <- c("SameSpecies", "OtherClass")
 # TRUE, and to the least-abundant species (i.e., species nspecies) if
 # PReplMostAbun is FALSE.
 PReplMostAbun <- TRUE
-# To plot 16 species need 16 colours, currently only 8 so repeat them. Could add
-# 'darkgreen', 'brown', 'purple'.
+simulateinvasion <- TRUE # Should simulations over time be performed?
+# Variables that become smaller than smallstate during the integration are set to 0.
+smallstate <- 1e-3
+finalsmallstate <- 1
+# If the sum of absolute rates of change is equal to smallchange, equilibrium is
+# assumed to be reached and the integration is terminated.
+smallchange <- 1e-2
+niterintmat <- 1
+saveplots <- TRUE
+nspeciesset <- c(2, 4, 8, 16)
+intmeanset <- seq(from = -1e-11, to = 5e-12, by = 5e-13)
+selfintmeanset <- seq(from = -1e-11, to = 0, by = 5e-13)
+nsimul <- 50
+saveplotconjovertime <- FALSE
+# Repeat 8 colours to plot 16 species.
 mycol <- rep(c("black", "blue", "red", "darkgrey", "darkorange", "green1",
                "yellow", "hotpink"), 2)
 
-
-## Parameters for detailed local stability analysis, not simulating invasion
-nsimul <- 100
-simulateinvasion <- FALSE
-intmeanset <- seq(from = -1e-11, to = 5e-12, by = 5e-13)
-selfintmeanset <- seq(from = -1e-11, to = 0, by = 5e-13)
-
-## Smaller parameter set to simulate invasion
-nsimul <- 50
-simulateinvasion <- TRUE
-intmeanset <- seq(from = -1e-11, to = 5e-12, by = 5e-13)
-selfintmeanset <- seq(from = -1e-11, to = 0, by = 5e-13)
-
-## Small parameter set to show plots over time (FigS07)
-saveplotconjovertime <- TRUE
-nspeciesset <- 4
-maxnspecies <- max(nspeciesset)
-conjrateset <- list(rep(conjrate_base, maxnspecies))
-mycol <- rep(c("#000000", "#E41A1C", "#377EB8", "#FF7F00"), 2)
-nsimul <- 1
-simulateinvasion <- TRUE
-intmeanset <- 0
-selfintmeanset <- -0.5e-11
-
-## Parameter set to test code
-saveplotconjovertime <- FALSE
-nspeciesset <- c(2, 8)
-maxnspecies <- max(nspeciesset)
-conjrateset <- list(rep(1e-13, maxnspecies), rep(1e-12, maxnspecies))
-nsimul <- 5
-simulateinvasion <- TRUE
-intmeanset <- c(1e-11, -5e-12, 0, 5e-12, 1e-11)
-selfintmeanset <- c(-1e-11, -5e-12, 0)
+##### Small parameter set to show plots over time (FigS07) #####
+# nspeciesset <- 4
+# intmeanset <- 0
+# selfintmeanset <- -0.5e-11
+# nsimul <- 1
+# saveplotconjovertime <- TRUE
+# mycol <- rep(c("#000000", "#E41A1C", "#377EB8", "#FF7F00"), 2)
 
 
 #### Running the simulations ####
+names(abunmodel_lab) <- seq_along(abunmodel_lab)
+maxnspecies <- max(nspeciesset)
+conjrateset <- list(rep(conjrate_base, maxnspecies))
+
 set.seed(seed = 314, kind = "default", normal.kind = "default",
          sample.kind = "default")
 starttime <- Sys.time()
@@ -618,7 +585,6 @@ settings <- c(list(nsimul = nsimul, niterintmat = niterintmat,
                    abunmodelset = abunmodelset, totalabun = totalabun,
                    intmeanset = intmeanset, selfintmeanset = selfintmeanset,
                    costset = costset, conjrateset, taxmattype = taxmattypeset,
-                   costtype = costtype,
                    PFrom = if(PReplMostAbun) {"MostAbun"} else {"LeastAbun"},
                    PReplMostAbun = PReplMostAbun, duration = duration))
 for(index in seq_along(settings)) {
@@ -679,7 +645,7 @@ labspecies <- paste("Sp.", seq_len(maxnspecies))
 names(labspecies) <- seq_len(maxnspecies)
 labnspecies <- paste(nspeciesset, "species")
 names(labnspecies) <- nspeciesset
-# labmodel has been defined and named in the settings before the simulations.
+# abunmodel_lab has been defined and named in the settings before the simulations.
 labcost <- paste0("Fitness cost\n", costset, "/h")
 names(labcost) <- costset
 labconjrate <- paste("Conjset", seq_along(conjrateset))
@@ -689,7 +655,7 @@ labtaxmat <- c("all\nconjugation\nrates equal",
 names(labtaxmat) <- seq_along(taxmattypeset)
 # '.multi_line = FALSE' to collapse facet labels into a single label
 mylabeller <- labeller(species = labspecies, nspecies = labnspecies,
-                       abunmodelcode = labmodel,
+                       abunmodelcode = abunmodel_lab,
                        cost = labcost, conjratecode = labconjrate,
                        taxmatcode = labtaxmat, .multi_line = FALSE,
                        .default = label_value)
