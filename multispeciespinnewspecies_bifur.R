@@ -14,29 +14,11 @@
 # show how all conjugation rates simultaneously should change to enable invasion
 # of plasmids. 
 
-# NOTE:
-# - Some functions differ from the functions in the script multispecies_bifur.R
-#   which models the case where the plasmid is introduced through an
-#   already-present species.
-
 
 #### References ####
-# Alderliesten JB, Duxbury SJN, Zwart MP, de Visser JAGM, Stegeman S, Fischer
-# EAJ. 2020. Effect of donor-recipient relatedness on the plasmid conjugation
-# frequency: a meta-analysis. BMC Microbiology 20:135.
-
-# Edelstein-Keshet L. 2005. Mathematical models in biology. Society for
-# industrial and applied mathematics.
-
-# Lischke H, Löffler TJ. 2017. Finding all multiple stable fixpoints of n-species
-# Lotka-Volterra competition models. Theoretical Population Biology 115:24-34.
-
 # Roberts MG, Heesterbeek JAP. 2021. Infection dynamics in ecosystems: on the
 # interaction between red and grey squirrels, pox virus, pine martens and trees.
 # Journal of the Royal Society, Interface 18(183):20210551.
-
-# Tokeshi M. 1990. Niche apportionment or random assortment: species abundance
-# patterns revisited. Journal of animal ecology 59(3):1129-1146.
 
 # Wickham H, Grolemund G. 2017. R for data science: import, tidy, transform,
 # visualize, and model data. Online version: https://r4ds.had.co.nz/index.html
@@ -48,6 +30,10 @@ library(ggplot2)   # to display data and results
 library(rootSolve) # geteqinfo() calls jacobian.full()
 library(TruncatedNormal) # getintmat calls rtnorm()
 # On the pipe operator (%>%), see ?'%>%' and Ch. 18 'Pipes' in Wickham 2017.
+
+
+#### Load required functions ####
+source("./ms_funcs.R")
 
 
 #### Settings and defining parameter space ####
@@ -101,595 +87,6 @@ for(conjrate in seqconjrate) {
 niter <- 1
 intmeanset <- c(-1e-11, 0, 5e-12)
 selfintmeanset <- c(-1e-11, -5e-12, 0)
-
-
-#### Functions ####
-# The generalised Lotka-Volterra model. n is a vector of species densities (cell
-# mL^-1), dn/dt is a vector of the change in these densities per time (cell
-# mL^-1 time^-1), growthrate is a vector of growth rates (h^-1), intmat is a
-# matrix of scaled interaction coefficients with units mL cell^-1 h^-1, where
-# element aij represents cij * ri / Ki in the textbook-notation given below,
-# such that elements aii on the diagonal equal ri / Ki, with Ki being the
-# carrying capacity of species i.
-
-# Textbooks (e.g., Eq. 9 in Edelstein-Keshet 2005, p. 224) explicitly include
-# the carrying capacities into gLV models:
-# dn1/dt = r1*n1*((K1 -     n1 - c12*n2)/K1) = r1*n1*(1 - (    n1 + c12*n2)/K1)
-# dn2/dt = r2*n2*((K2 - c21*n1 -     n2)/K2) = r2*n2*(1 - (c21*n1 +     n2)/K2)
-# In matrix-notation this becomes: dn/dt = r*n*(1 - (1/K) * intmat %*% n).
-# Ki is the carrying capacity of species 1 (cells mL^-1), and the interaction
-# matrix gives dimensionless interaction coefficients where element cij gives
-# the decline (if cij is positive) or increase (if cij is negative) in the
-# growth rate of species i caused by one individual of species j. The diagonal
-# entries of intmat are the intraspecies interaction coefficients cii and should
-# be -1 to ensure that species in isolation grow to their carrying capacities K.
-
-# Instead of normal multiplication using n, matrix multiplication using
-# diag(n) can be used. This results in diag(n) %*% (growthrates + intmat %*% n).
-gLV <- function(t, n, parms) {
-  with(parms, {
-    dn <- n*(growthrate + intmat %*% n)
-    return(list(c(dn)))
-  })
-}
-
-# Define the generalised Lotka-Volterra model with conjugation. Vector n with
-# species abundances is split into vector S0 for plasmid-free bacteria and
-# vector S1 for plasmid-bearing bacteria. cost is a vector giving the absolute
-# reduction in growth rate when carrying a plasmid. conjmat is a matrix with
-# conjugation rates, where element cij gives the rate of conjugation from
-# plasmid-bearing species j to plasmid-free species i.
-gLVConj <- function(t, n, parms) {
-  with(parms, {
-    S0 <- n[seq_len(nspecies)]
-    S1 <- n[(nspecies+1):(2*nspecies)]
-    
-    dS0 <- S0*(growthrate        + intmat %*% (S0 + S1)) - (conjmat %*% S1) * S0
-    dS1 <- S1*(growthrate - cost + intmat %*% (S0 + S1)) + (conjmat %*% S1) * S0
-    
-    dn <- c(dS0, dS1)
-    return(list(dn))
-  })
-}
-
-# Calculate absolute species abundances from the specified total abundance if
-# species abundances are proportional to the length of fragments of a stick that
-# is broken randomly at nspecies - 1 points, following the broken stick model
-# (= MacArthur fraction model) in the description of Tokeshi (1990). With the
-# default takelimits = TRUE, this is done niterabun times and the mean abundance
-# for each species is returned.
-brokenstick <- function(nspecies, totalabun, takelimit = TRUE, niterabun = 1000) {
-  stopifnot(length(nspecies) == 1, nspecies > 1,
-            length(totalabun) == 1, totalabun > 0)
-  if(takelimit == TRUE) {
-    abunmat <- matrix(data = NA, nrow = niterabun, ncol = nspecies)
-    for(iterindex in seq_len(niterabun)) {
-      # sorting to get positive differences in the next step
-      breakpoints <- sort(runif(nspecies - 1, min = 0, max = totalabun))
-      # sorting because otherwise taking the mean does not make sense
-      abunmat[iterindex, ] <- sort(diff(c(0, breakpoints, totalabun)))
-    }
-    abun <- sort(colMeans(abunmat), decreasing = TRUE)
-  } else {
-    breakpoints <- sort(runif(nspecies - 1, min = 0, max = totalabun))
-    abun <- sort(diff(c(0, breakpoints, totalabun)), decreasing = TRUE)
-  }
-  return(abun)
-}
-
-brokenstick_fast <- function(nspecies, totalabun, takelimit = NULL,
-                             niterabun = 1000) {
-  stopifnot(length(nspecies) == 1, nspecies > 1,
-            length(totalabun) == 1, totalabun > 0)
-  abunmat <- matrix(data = NA, nrow = niterabun, ncol = nspecies)
-  for(iterindex in seq_len(niterabun)) {
-    # sorting to get positive differences in the next step
-    breakpoints <- sort(runif(nspecies - 1, min = 0, max = totalabun))
-    # sorting because otherwise taking the mean does not make sense
-    abunmat[iterindex, ] <- sort(diff(c(0, breakpoints, totalabun)))
-  }
-  sort(colMeans(abunmat), decreasing = TRUE)
-}
-
-# Calculate abundances following the dominance preemption model. The first
-# species occupies (preempts) more than half of the total niche, and each
-# subsequent species occupies more than half of the remainder (Tokeshi 1990).
-# Over many iterations, each species preempts on average (0.5 + 1)/2 = 0.75 of
-# the remainder, such that the abundances converge to the geometric series where
-# the abundance of species i is given by totalabun*k*(1 - k)^(i - 1) with k =
-# 0.75. The geometric model is used instead of the dominance preemption model if
-# takelimit = TRUE, which is the default. The abundances are divided by
-# 1 - (1 - 0.75)^nspecies to obtain the user-defined total abundance (Tokeshi 1990).
-dompreempt <- function(nspecies, totalabun, takelimit = TRUE) {
-  stopifnot(length(nspecies) == 1, nspecies > 1,
-            length(totalabun) == 1, totalabun > 0)
-  abun <- rep(NA, nspecies)
-  if(takelimit == TRUE) {
-    abun <- totalabun*0.75*0.25^(seq_len(nspecies) - 1)
-  } else {
-    remainingabun <- totalabun
-    for(speciesindex in seq_len(nspecies)) {
-      abun.temp <- runif(1, min = 0.5, max = 1) * remainingabun
-      abun[speciesindex] <- abun.temp
-      remainingabun <- remainingabun - abun.temp
-    }
-  }
-  # Scaling abundances to get specified total abundance
-  abun <- abun / (1 - (0.25^nspecies))
-  return(abun)
-}
-
-dompreempt_fast <- function(nspecies, totalabun, takelimit = NULL) {
-  stopifnot(length(nspecies) == 1, nspecies > 1,
-            length(totalabun) == 1, totalabun > 0)
-  abun <- rep(NA, nspecies)
-  abun <- totalabun*0.75*0.25^(seq_len(nspecies) - 1)
-  
-  # Scaling abundances to get specified total abundance
-  abun <- abun / (1 - (0.25^nspecies))
-  return(abun)
-}
-
-# Create a matrix of scaled interaction coefficients for nspecies species with
-# units mL cell^-1 h^-1, where element aij represents cij * ri / Ki in the
-# textbook-notation (see comments on the generalised Lotka-Volterra model given
-# above), such that elements aii on the diagonal equal ri / Ki, with Ki being
-# the carrying capacity of species i. The fraction of sparse interspecies
-# interactions can be set through 'sparsity', with sparsity = 0 leading to a
-# fully connected matrix, and sparsity = 1 leading to all off-diagonal entries
-# equal to 0. Off-diagonal entries are interspecies interaction coefficients
-# drawn from the distribution 'intdistr'. Diagonal entries are intraspecies
-# interactions drawn from the distribution 'selfintdistr', which is truncated to
-# obtain negative intraspecies interactions. To get fixed values for the
-# interactions, choose the uniform distribution and provide the desired value
-# both as the minimum and maximum of the range, or provide the standard
-# deviation of the normal distribution as zero. The other arguments specify the
-# distributions from which interaction coefficients are drawn. See getintmat()
-# for a faster, more succinct version of this function.
-getintmat_elaborate <- function(nspecies, sparsity = 0,
-                                intdistr = "normal", intmean = 0, intsd = 5e-12,
-                                intrange = c(-1e-11, 1e-11),
-                                selfintdistr = "normal",
-                                selfintmean = -5e-12, selfintsd = 9e-12,
-                                selfintrange = c(-1e-11, 0)) {
-  stopifnot(length(nspecies) == 1, nspecies > 1,
-            is.numeric(sparsity), length(sparsity) == 1,
-            sparsity >= 0, sparsity <= 1)
-  switch(intdistr,
-         normal = {
-           stopifnot(length(intmean) == 1, length(intsd) == 1, intsd >= 0)
-           intcoefs <- rnorm(n = nspecies^2, mean = intmean, sd = intsd)
-         },
-         uniform = {
-           stopifnot(length(intrange) == 2, intrange[1] <= intrange[2])
-           intcoefs <- runif(n = nspecies^2, min = intrange[1],
-                             max = intrange[2])
-         },
-         {
-           intcoefs <- NULL
-           stop("'intdistr' should be 'normal' or 'uniform'.")
-         }
-  )
-  intmat <- matrix(intcoefs, nrow = nspecies, ncol = nspecies)
-  
-  switch(selfintdistr,
-         normal = {
-           stopifnot(length(selfintmean) == 1, length(selfintsd) == 1,
-                     selfintsd >= 0)
-           # Draw variates from a truncated normal distribution to ensure
-           # negative intraspecies interactions without having to redraw for
-           # positive deviates, using rtnorm() from the package TruncatedNormal.
-           diag(intmat) <- rtnorm(n = nspecies, mu = selfintmean, sd = selfintsd,
-                                  lb = -Inf, ub = 0, method = "invtransfo")
-         },
-         uniform = {
-           stopifnot(length(selfintrange) == 2, selfintrange[1] <= selfintrange[2],
-                     selfintrange[2] <= 0)
-           diag(intmat) <- runif(n = nspecies,
-                                 min = selfintrange[1], max = selfintrange[2])
-         },
-         {
-           intmat <- NULL
-           stop("'selfintdistr' should be 'normal' or 'uniform'.")
-         }
-  )
-  
-  if(sparsity > 0) {
-    nsparseint <- round(sparsity*(nspecies^2 - nspecies))
-    # Create indexmatrix with column- and row indices
-    indexmat <- matrix(c(rep(seq_len(nspecies), nspecies),
-                         rep(seq_len(nspecies), each = nspecies)),
-                       ncol = 2, dimnames = list(NULL, c("row", "column")))
-    # Only keep rows of indexmat specifying off-diagonal entries of intmat, to
-    # ensure that intraspecies interaction coefficients never become sparse.
-    indexmat <- indexmat[indexmat[, "row"] != indexmat[, "column"], , drop = FALSE]
-    # Sample rows of indexmat to get index of matrix entries that become sparse
-    sparse_index <- sample(seq_len(dim(indexmat)[1]), nsparseint)
-    # Only keep rows of indexmat that were drawn from the sample. Use drop =
-    # FALSE to prevent sparse_index becoming a vector of length two such that
-    # two elements are set to zero if nsparseint == 1. 
-    indexmat <- indexmat[sparse_index, , drop = FALSE]
-    # Set entries of the interaction matrix indicated by indexmat to zero.
-    intmat[indexmat] <- 0
-  }
-  return(intmat)
-}
-
-# Create a matrix of scaled interaction coefficients for nspecies species with
-# units mL cell^-1 h^-1, where element aij represents cij * ri / Ki in the
-# textbook-notation (see comments on the generalised Lotka-Volterra model given
-# above), such that elements aii on the diagonal equal ri / Ki, with Ki being
-# the carrying capacity of species i. Off-diagonal entries are interspecies
-# interaction coefficients drawn from a normal distribution with mean and
-# standard deviation given by intmean and intsd, respectively. Diagonal entries
-# are intraspecies interactions drawn from a truncated normal distribution with
-# mean and standard deviation given by selfintmean and selfintsd, respectively,
-# and is truncated to obtain negative intraspecies interactions. See function
-# 'getintmat_elaborate()' for a more elaborate but slower version of this
-# function.
-getintmat <- function(nspecies, intmean = 0, intsd = 5e-12,
-                      selfintmean = -5e-12, selfintsd = 9e-12) {
-  stopifnot(length(nspecies) == 1, nspecies > 1,
-            length(intmean) == 1, length(intsd) == 1, intsd >= 0,
-            length(selfintmean) == 1, length(selfintsd) == 1, selfintsd >= 0)
-  
-  intmat <- matrix(rnorm(n = nspecies^2, mean = intmean, sd = intsd),
-                   nrow = nspecies, ncol = nspecies)
-  
-  # Draw variates from a truncated normal distribution to ensure
-  # negative intraspecies interactions without having to redraw for
-  # positive deviates, using rtnorm() from the package TruncatedNormal.
-  diag(intmat) <- rtnorm(n = nspecies, mu = selfintmean, sd = selfintsd,
-                         lb = -Inf, ub = 0, method = "invtransfo")
-  return(intmat)
-}
-
-# Calculate the required growth rates to obtain the specified species abundances
-# at equilibrium given the interaction matrix. The growth rate can be negative
-# if growth is assumed to be slower than washout. See getgrowthrate() for a
-# faster, more succinct version of this function.
-getgrowthrate_elaborate <- function(abundance, intmat) {
-  stopifnot(length(abundance) == dim(intmat)[1])
-  growthrate <- -intmat %*% abundance
-  if(any(is.complex(growthrate))) {
-    countcomplex <- length(which(Im(growthrate) != 0))
-    warntext <- paste(countcomplex, "growth rates contain an imaginary part.")
-    warning(warntext)
-  }
-  return(growthrate)
-}
-
-# Calculate the required growth rates to obtain the specified species abundances
-# at equilibrium given the interaction matrix. The growth rate can be negative
-# if growth is assumed to be slower than washout. See getgrowthrate_elaborate()
-# for a more elaborate version of this function.
-getgrowthrate <- function(abundance, intmat) {
-  stopifnot(length(abundance) == dim(intmat)[1])
-  -intmat %*% abundance
-}
-
-# Get a matrix with conjugation rates, for different scenarios.
-# Input:
-#   - nspecies: integer indicating the number of species
-#   - conjrate: numeric vector of length nspecies giving the intraspecies
-#     conjugation rates for each species.
-#   - taxmat: matrix where element in column n and row r gives the taxonomic
-#     relatedness between donor species n and recipient species r. Although the
-#     matrix is symmetric, this ordering is needed to correctly calculate the
-#     conjugation rates.
-#     Valid values are the character strings "SameSpecies", "SameFamily",
-#     "SameOrder", "SameClass", and "OtherClass". Currently only "SameSpecies"
-#     and, if taxmattypeset contains "OtherClass", "OtherClass" are used.
-#     Interspecies conjugation rates are calculated based on the intraspecies
-#     conjugation rates provided in conjrate and the taxonomic relatedness as
-#     provided in this matrix taxmat.
-#     By default R fills matrices by column, so byrow = TRUE should be used to
-#     obtain the same matrix as the 'folded' vector.
-#     An example matrix with E. coli, Klebsiella, and two Erwinia species:
-#     taxmat <- matrix(c("SameSpecies", "SameFamily",  "SameOrder",   "SameOrder",
-#                        "SameFamily",  "SameSpecies", "SameOrder",   "SameOrder",
-#                        "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies",
-#                        "SameOrder",   "SameOrder",   "SameSpecies", "SameSpecies"),
-#                      nrow = 4, ncol = 4, byrow = TRUE)
-#     Only the submatrix taxmat[seq_len(nspecies), seq_len(nspecies)] is used if
-#     nspecies < max(nspeciesset). The use of multiple values for taxmat is
-#     NOT supported.
-# Return:
-#   - conjmat: matrix where the element in column n and row r gives the
-#     conjugation rate from species n to species r.
-# Notes:
-# - To obtain a matrix where all values are identical (i.e., where conjugation
-#   is not dependent on relatedness), fill taxmat with all values "SameSpecies"
-#   and use all identical values for conjrate.
-getconjmat <- function(nspecies, conjrate, taxmat) {
-  stopifnot(all(diag(taxmat) == "SameSpecies"),
-            isSymmetric.matrix(unname(taxmat)))
-  conjratensp <- conjrate[seq_len(nspecies)]
-  taxmatnsp <- taxmat[seq_len(nspecies), seq_len(nspecies)]
-  
-  # To obtain interspecies conjugation rates for the different levels of
-  # taxonomic relatedness between donor and recipients, the intraspecies
-  # conjugation rates are multiplied with the following conversion factors
-  # (based on the decrease in conjugation frequencies described in Alderliesten
-  # 2020).
-  rateconv <- c(SameSpecies = 1, SameFamily = 2.7, SameOrder = 0.1,
-                SameClass = 0.05, OtherClass = 0.001)
-  convmat <- matrix(NA, nrow = nspecies, ncol = nspecies)
-  for(taxlevel in names(rateconv)) {
-    convmat[which(taxmatnsp == taxlevel)] <- rateconv[taxlevel]
-  }
-  
-  # Multiply column n of convmat giving the conversion factors for conjugation
-  # from donor species n to the different recipient species, with element n of
-  # conjrate. Using t(t(convmat) * conjrate) is faster for nspecies > 15
-  conjmat <- convmat %*% diag(conjratensp)
-  return(conjmat)
-}
-
-# Can be used if taxmat contains nothing else than 'SameSpecies' or 'OtherClass'
-getconjmat_fast <- function(nspecies, conjrate, taxmat) {
-  stopifnot(all(diag(taxmat) == "SameSpecies"),
-            isSymmetric.matrix(unname(taxmat)))
-  sel_sp <- seq_len(nspecies)
-  
-  # To obtain interspecies conjugation rates for the species belonging to
-  # another taxonomic class than the donor, the intraspecies conjugation rates
-  # are multiplied with 0.001 (based on the decrease in conjugation frequencies
-  # described in Alderliesten 2020).
-  convmat <- matrix(1, nrow = nspecies, ncol = nspecies)
-  convmat[which(taxmat[sel_sp, sel_sp] == "OtherClass")] <- 0.001
-  
-  # Multiply column n of convmat giving the conversion factors for conjugation
-  # from donor species n to the different recipient species, with element n of
-  # conjrate.
-  convmat %*% diag(conjrate[sel_sp])
-}
-
-# Get equilibrium characteristics. On ecological and epidemiological stability
-# see Roberts and Heesterbeek 2021.
-geteqinfo <- function(model, abundance, intmat, growthrate,
-                      cost = NULL, conjmat = NULL) {
-  switch(model,
-         "gLV" = {
-           eigval <- eigen(x = jacobian.full(y = abundance, func = gLV,
-                                             parms = list(growthrate = growthrate,
-                                                          intmat = intmat)),
-                           symmetric = FALSE, only.values = TRUE)$values
-         },
-         "gLVConj" = {
-           eigval <- eigen(x = jacobian.full(y = abundance, func = gLVConj,
-                                             parms = list(growthrate = growthrate,
-                                                          intmat = intmat,
-                                                          cost = cost,
-                                                          conjmat = conjmat)),
-                           symmetric = FALSE, only.values = TRUE)$values
-         },
-         "ecol" = {
-           jac <- jacobian.full(y = abundance, func = gLVConj,
-                                parms = list(growthrate = growthrate,
-                                             intmat = intmat,
-                                             cost = cost,
-                                             conjmat = conjmat))
-           jaclow <- jac[(nspecies + 1):(2*nspecies), seq_len(nspecies)]
-           if(!isTRUE(all.equal(range(jaclow), c(0, 0), check.attributes = FALSE))) {
-             warning("Jacobian matrix does not contain a block of zeros in the",
-                     " lower-left corner,\nso currently used determination of",
-                     " ecological stability is invalid")
-             print(jaclow)
-           }
-           eigval <- eigen(x = jac[seq_len(nspecies), seq_len(nspecies)],
-                           symmetric = FALSE, only.values = TRUE)$values
-         },
-         "epi" = {
-           jac <- jacobian.full(y = abundance, func = gLVConj,
-                                parms = list(growthrate = growthrate, intmat = intmat,
-                                             cost = cost, conjmat = conjmat))
-           indexP <- (nspecies + 1):(2*nspecies)
-           jaclow <- jac[indexP, seq_len(nspecies)]
-           if(!isTRUE(all.equal(range(jaclow), c(0, 0), check.attributes = FALSE))) {
-             warning("Jacobian matrix does not contain a block of zeros in the",
-                     " lower-left corner,\nso currently used determination of",
-                     " epidemiological stability is invalid")
-             print(jaclow)
-           }
-           eigval <- eigen(x = jac[indexP, indexP],
-                           symmetric = FALSE, only.values = TRUE)$values
-         },
-         {
-           eigval <- NULL
-           warning("'model' should be one of 'gLV', 'gLVConj', 'ecol' or 'epi'")
-         }
-  )
-  
-  eigvalRep <- any(duplicated(eigval))
-  # Using sort(eigval) to get eigenvalue with largest real part, because
-  # max(eigval) does not work if eigval is complex. Complex values are sorted
-  # first by the real part, then the imaginary part.
-  eigval <- sort(eigval, decreasing = TRUE)[1]
-  eigvalRe <- Re(eigval)
-  eigvalIm <- Im(eigval)
-  
-  eqinfo <- c(eigvalRe = eigvalRe, eigvalIm = eigvalIm,
-              eigvalReSign = sign(eigvalRe), eigvalImSign = sign(eigvalIm),
-              eigvalRep = eigvalRep)
-  return(eqinfo)
-}
-
-# List of functions called within dplyr::summarise() to get summary statistics
-# for the input data. If all values in x are NA (which is the case for example
-# when data on species 3 is considered in the two-species model), NA will be
-# returned, otherwise the NA values are dropped and the function will be applied
-# to the remaining values.
-getsummary4 <- list(
-  min = ~if(any(!is.na(.x))) {min(.x, na.rm = TRUE)} else {NA},
-  mean = ~if(any(!is.na(.x))) {mean(.x, na.rm = TRUE)} else {NA},
-  median = ~if(any(!is.na(.x))) {median(.x, na.rm = TRUE)} else {NA},
-  max = ~if(any(!is.na(.x))) {max(.x, na.rm = TRUE)} else {NA}
-)
-getfracnotzero <- list(
-  frac = ~if(any(!is.na(.x))) {mean(.x != 0, na.rm = TRUE)} else {NA}
-)
-
-# Function to create plots. The plotted object is returned, such that it can be
-# further modified like any other ggplot object.
-CreatePlot <- function(dataplot = plotdata, xvar = "intmean", yvar = "selfintmean",
-                       contour_var = NULL, contour_breaks = 0.5, contour_col = NULL,
-                       contour_lty = NULL,
-                       limits = NULL, limx = NULL, limy = NULL, ratio = 1,
-                       fillvar, filltitle, filltype = "discrete",
-                       filllabels = NULL,
-                       title = NULL, subtitle = NULL,
-                       labx = "Mean interspecies interaction coefficient",
-                       laby = "Mean intraspecies interaction coefficient",
-                       tag = NULL, addstamp = FALSE, diagonal = "none",
-                       linezero = TRUE,
-                       facetx = "abunmodelcode + cost + taxmatcode",
-                       facety = "conjratecode + nspecies",
-                       dropfacets = TRUE,
-                       as.table = TRUE,
-                       marginx = NULL, marginy = NULL, base_size = 15,
-                       rotate_x_labels = TRUE, rotate_legend = FALSE,
-                       save = saveplots, width = 1850, height = 2675,
-                       filename = NULL) {
-  caption <- paste(unique(dataplot$niter), "iterations")
-  if(exists("DateTimeStamp") == FALSE) {
-    DateTimeStamp <- format(Sys.time(), format = "%Y_%m_%d_%H_%M")
-    if(addstamp == TRUE) {
-      warning("DateTimeStamp created to include in plot does not correspond to",
-              " the filename of the dataset.")
-    }
-  }
-  if(addstamp == TRUE) {
-    caption <- paste0(caption, ", ", DateTimeStamp)
-  }
-  
-  # Facets with only a single unique value are not shown if dropfacets = TRUE
-  if(dropfacets == TRUE) {
-    if(!is.null(facetx) && facetx != ".") {
-      elements_facetx <- unlist(strsplit(facetx, split = " + ", fixed = TRUE))
-      if(!all(elements_facetx %in% colnames(dataplot))) {
-        warning("Dropped facetx variables that are not column names of plotdata")
-        elements_facetx <- elements_facetx[elements_facetx %in% colnames(dataplot)]
-      }
-      include_facetx <- rep(FALSE, length(elements_facetx))
-      for(index_facetx in seq_along(elements_facetx)) {
-        if(length(unique(dataplot[, elements_facetx[index_facetx]])) > 1) {
-          include_facetx[index_facetx] <- TRUE
-        }
-      }
-      facetx <- paste0(elements_facetx[include_facetx], collapse = " + ")
-      if(facetx == "") {
-        facetx <- "."
-      }
-    }
-    
-    if(!is.null(facety) && facety != ".") {
-      elements_facety <- unlist(strsplit(facety, split = " + ", fixed = TRUE))
-      if(!all(elements_facety %in% colnames(dataplot))) {
-        warning("Dropped facety variables that are not column names of plotdata")
-        elements_facety <- elements_facety[elements_facety %in% colnames(dataplot)]
-      }
-      include_facety <- rep(FALSE, length(elements_facety))
-      for(index_facety in seq_along(elements_facety)) {
-        if(length(unique(dataplot[, elements_facety[index_facety]])) > 1) {
-          include_facety[index_facety] <- TRUE
-        }
-      }
-      facety <- paste0(elements_facety[include_facety], collapse = " + ")
-      if(facety == "") {
-        facety <- "."
-      }
-    }
-  }
-  
-  p <- ggplot(data = dataplot, aes_string(x = xvar, y = yvar, fill = fillvar)) + 
-    theme_bw(base_size = base_size) +
-    facet_grid(as.formula(paste(facety, "~", facetx)), as.table = as.table,
-               labeller = mylabeller) +
-    theme(legend.position = "bottom",
-          panel.spacing = unit(3, "pt"),
-          plot.tag.position = c(0.0125, 0.9875),
-          strip.background = element_rect(color = NA)) +
-    labs(title = title, subtitle = subtitle,
-         x = labx, y = laby, caption = caption, tag = tag)
-  if(!is.null(limx)) {
-    p <- p + scale_x_continuous(limits = limx, expand = c(0, 0))
-  } else {
-    p <- p + scale_x_continuous(expand = c(0, 0))
-  }
-  if(!is.null(limy)) {
-    p <- p + scale_y_continuous(limits = limy, expand = c(0, 0))
-  } else {
-    p <- p + scale_y_continuous(expand = c(0, 0))
-  }
-  if(!is.null(ratio)) {
-    p <- p + coord_fixed(ratio = ratio, expand = FALSE)
-  }
-  if(!is.null(marginx)) {
-    p <- p + theme(strip.text.x = element_text(margin = margin(marginx)))
-  }
-  if(!is.null(marginy)) {
-    p <- p + theme(strip.text.y = element_text(margin = margin(marginy)))
-  }
-  if(!is.null(contour_var)) {
-    p <- p + geom_contour(aes_string(z = contour_var, color = contour_col,
-                                     linetype = contour_lty),
-                          breaks = contour_breaks, size = 1)
-  } else {
-    p <- p + geom_raster()
-    if(filltype == "discrete") {
-      p <- p + scale_fill_viridis_d(filltitle,
-                                    limits = if(is.null(limits)) {
-                                      as.factor(c(-1, 1))
-                                    } else {
-                                      factor(limits)
-                                    },
-                                    labels = filllabels)
-    }
-    if(filltype == "binned") {
-      p <- p + scale_fill_viridis_b(filltitle, breaks = limits)
-    }
-    if(filltype == "continuous") {
-      p <- p + scale_fill_viridis_c(filltitle, limits = limits)
-    }
-  }
-  if(rotate_x_labels == TRUE) {
-    p <- p + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
-  }
-  if(rotate_legend == TRUE) {
-    p <- p + guides(fill = guide_colourbar(label.hjust = 0.4, label.vjust = 0.5,
-                                           label.theme = element_text(angle = 90)))
-  }
-  if(diagonal == "both" || diagonal == "major") {
-    p <- p + geom_abline(intercept = 0, slope = -1, col = "grey", size = 1.1)
-  }
-  if(diagonal == "both" || diagonal == "minor") {
-    p <- p + geom_abline(intercept = 0, slope = 1, col = "grey", size = 1.1)
-  }
-  if(linezero == TRUE) {
-    p <- p + geom_vline(xintercept = 0, col = "grey", size = 1.1)
-  }
-  if(save == TRUE) {
-    if(is.null(filename)) {
-      filename <- paste0(fillvar, filltype)
-    }
-    
-    # Add DateTimeStamp, remove spaces, replace non-alphanumeric characters with
-    # underscores, and add the extension to create a valid file name.
-    filename <- paste0(DateTimeStamp, filename)
-    filename <- gsub(" ", "", filename)
-    filename <- gsub("[^[:alnum:]_]", "_", filename)
-    filename <- paste0(filename, ".png")
-    
-    if(file.exists(filename)) {
-      warning("File '", filename, "' already exists, plot is not saved again!",
-              call. = FALSE)
-    } else {
-      ggsave(filename, width = width, height = height, units = "px", dpi = 300)
-    }
-  }
-  return(p)
-}
 
 
 #### Running the simulations ####
@@ -1052,10 +449,10 @@ for(conjratecode_index in seq_len(conjratecode)) {
            "conjrate"] <- seqconjrate[conjratecode_index]
 }
 
-## Show border of ecological stability with heatmap in CreatePlot()
+## Show border of ecological stability with heatmap in CreatePlot_bifur()
 # Values in a facet are either all stable, or all unstable, making it impossible
 # to plot contours delimiting stable and unstable regions.
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
+CreatePlot_bifur(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
            filltitle = "fracstableecol", filltype = "continuous", ratio = NULL,
            labx = "Fitness cost of bearing a plasmid",
            laby = paste0("Log10(intraspecies conjugation rate of\nthe",
@@ -1065,10 +462,10 @@ CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableecol",
            filename = "ecostabxcostyconj", width = 1.75 * 1850, height = 2675)
 
 
-## Show border of epidemiological stability with a contour plot in CreatePlot()
+## Show border of epidemiological stability with a contour plot in CreatePlot_bifur()
 # 'save' is set to FALSE and ggsave() is used to ensure the added guides
 # arguments are included in the saved plots.
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+CreatePlot_bifur(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "nspecies",
            limx = range(c(0, costset)), limy = range(log10(seqconjrate)),
            ratio = NULL,
@@ -1087,7 +484,7 @@ if(saveplots == TRUE) {
          width = 1.75 * 1850, height = 2675, units = "px", dpi = 300)
 }
 
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+CreatePlot_bifur(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "intmean",
            contour_lty = NULL,
            limx = range(c(0, costset)), limy = range(log10(seqconjrate)),
@@ -1108,7 +505,7 @@ if(saveplots == TRUE) {
 }
 # So intmean does not affect the border of stability in conjugation rate/cost-space
 
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+CreatePlot_bifur(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "nspecies",
            limx = range(c(0, costset)), limy = range(log10(seqconjrate)),
            ratio = NULL,
@@ -1127,7 +524,7 @@ if(saveplots == TRUE) {
          width = 2150, height = 2150, units = "px", dpi = 300)
 }
 
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+CreatePlot_bifur(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "nspecies",
            contour_lty = "intmean",
            limx = range(c(0, costset)), limy = range(log10(seqconjrate)),
@@ -1147,7 +544,7 @@ if(saveplots == TRUE) {
          width = 2150, height = 2150, units = "px", dpi = 300)
 }
 
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+CreatePlot_bifur(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "intmean",
            contour_lty = "taxmatcode",
            limx = range(c(0, costset)), limy = range(log10(seqconjrate)),
@@ -1199,7 +596,7 @@ rm(row_ind)
 
 temp_plotdata <- rbind(cbind(plotdata, type = "numeric"),
                        cbind(temp_plotdata, type = "analytic"))
-CreatePlot(dataplot = temp_plotdata,
+CreatePlot_bifur(dataplot = temp_plotdata,
            xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "as.factor(type)",
            contour_lty = "taxmatcode",
@@ -1221,7 +618,7 @@ if(saveplots == TRUE) {
 }
 rm(temp_plotdata)
 
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+CreatePlot_bifur(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "intmean",
            contour_lty = "selfintmean",
            limx = range(c(0, costset)), limy = range(log10(seqconjrate)),
@@ -1236,7 +633,8 @@ CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
         legend.margin = margin(c(-5, 0, -5, 0), unit = "pt"),
         legend.position = "bottom",
         panel.border = element_blank(),
-        panel.spacing = unit(3, "pt"),
+        panel.spacing.x = unit(3, "pt"),
+        panel.spacing.y = unit(6, "pt"),
         strip.background = element_rect(color = NA)) +
   guides(col = guide_legend(nrow = 1), lty = guide_legend(nrow = 1)) +
   labs(caption = NULL) +
@@ -1250,7 +648,7 @@ if(saveplots == TRUE) {
 
 # Note: assuming sets are chosen such that border of invasion is shown in the
 # plot
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+CreatePlot_bifur(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            contour_var = "fracstableepi", contour_col = "nspecies",
            contour_lty = "taxmatcode",
            limx = range(c(0, costset)), limy = range(log10(seqconjrate)),
@@ -1276,7 +674,7 @@ if(saveplots == TRUE) {
 }
 
 # Need to set filltype to continuous to prevent error on missing filllabels
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
+CreatePlot_bifur(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            filltitle = NULL, contour_var = "fracstableepi", contour_col = NULL,
            contour_lty = NULL, filltype = "continuous", ratio = NULL,
            title = "Epidemiological (in)stability",
@@ -1287,7 +685,7 @@ CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = NULL,
            facety = "nspecies + taxmatcode",
            rotate_x_labels = TRUE, save = TRUE)
 
-CreatePlot(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
+CreatePlot_bifur(xvar = "cost", yvar = "log10(conjrate)", fillvar = "fracstableepi",
            filltitle = "fracstableepi", contour_var = NULL, contour_col = NULL,
            contour_lty = NULL, filltype = "continuous", ratio = NULL,
            title = NULL,
