@@ -1,33 +1,59 @@
 # MITAR
 Repository containing dynamical models for the
-[MITAR project](https://mitar.sites.uu.nl/). 
+[Microbiome Invasion and Transmission of plasmid-mediated Antimicrobial Resistance (MITAR)](https://mitar.sites.uu.nl/)
+project.
 
 
 ## Workflow
-Most files in this repository are [R-scripts](https://cran.r-project.org/).
-[RStudio](https://posit.co/download/rstudio-desktop/) is a useful IDE for R.
-Help and tools to install R, R packages, and RStudio are available from the
+To use this repository, download it as a ZIP file (use the green 'Code' button
+and choose 'Download ZIP') and unzip the folder. You can move the folder to your
+preferred location, but the R-scripts should be in the same folder as the
+R-project file `MITAR.Rproj`.
+
+If you have not yet installed [R](https://www.r-project.org/), download it from
+[CRAN](https://cran.r-project.org/) and install it. You might want to install an
+integrated development environment for R, such as
+[RStudio](https://posit.co/download/rstudio-desktop/). Brief instructions on
+installing R, RStudio, and R-packages are given below. More extensive
+information is available from the 
 [InstallPkgs GitHub repository](https://github.com/JesseAlderliesten/InstallPkgs).
 
-The R scripts should be in the same folder as the `R Project (.Rproj)` file. The
-used R-packages are loaded in a section `Loading required packages` at the top
-of the script. The main packages are
-[`deSolve`](https://CRAN.R-project.org/package=deSolve) (integrating ODEs),
-[`rootSolve`](https://CRAN.R-project.org/package=rootSolve) (assess equilibria),
-[`TruncatedNormal`](https://CRAN.R-project.org/package=TruncatedNormal) (random
-number generation from truncated distributions),
-[`dplyr`](https://CRAN.R-project.org/package=dplyr) for data handling, and
-[`ggplot2`](https://CRAN.R-project.org/package=ggplot2),
-[`scales`](https://CRAN.R-project.org/package=scales) (to display data and results).
+After R has been installed, install the required R-packages: run R as
+administrator and run the script `installpkgs_mitar.R` to install the required
+R-packages. During the installation, you might be asked to close R and restart
+R. The required packages are:
+[deSolve](https://CRAN.R-project.org/package=deSolve) and
+[rootSolve](https://CRAN.R-project.org/package=rootSolve) to integrate ODEs
+and assess equilibria,
+[TruncatedNormal](https://CRAN.R-project.org/package=TruncatedNormal) for random
+number generation from truncated distributions,
+[dplyr](https://CRAN.R-project.org/package=dplyr) and
+[tidyr](https://CRAN.R-project.org/package=tidyr) for data handling, and
+[ggplot2](https://CRAN.R-project.org/package=ggplot2),
+[ggrepel](https://CRAN.R-project.org/package=ggrepel),
+[scales](https://CRAN.R-project.org/package=scales) and
+[cowplot](https://CRAN.R-project.org/package=cowplot) for plotting.
+
+To run the analyses, open the R-project file `MITAR.Rproj` and run one of the
+R-scripts following the instructions in the section
+[File overview](#File overview) below.
 
 
 ## File overview
 
+### Installing packages
+The R-script to install the R-packages required by the other scripts (see the
+section [Workflow](#Workflow) above):
+
+* installpkgs_mitar.R
+
+### Pair-formation models
 R-scripts to compare pair-formation models of conjugation with bulk-conjugation
 models, used in Alderliesten JB, Zwart MP, de Visser JAGM, Stegeman A, Fischer
 EAJ. 2022. Second compartment widens plasmid invasion conditions:
 two-compartment pair-formation model of conjugation in the gut. Journal of
 Theoretical Biology 533:110937.
+
 * pairformation.R 
 * pairformation2comp.R
 
@@ -41,7 +67,8 @@ simulation options' is set to TRUE, saved as .png-files. If the variable
 'plotdataapproxbulk' is set to TRUE, the data used to approximate the
 bulk-conjugation rates is plotted.
 
-R-scripts and MATLAB-script for multispecies models of conjugation:
+### Multispecies models
+R-scripts and MATLAB-script for multispecies models of conjugation, used in
 Alderliesten JB, Zwart MP, de Visser JAGM, Stegeman A, Fischer EAJ. In prep.
 The effects of ecological interactions and distinct conjugation rates on the
 invasion of a conjugative plasmid in bacterial communities.
@@ -58,16 +85,17 @@ conjugation rates or are thousandfold lower.
 * multispecies.R: simulate invasion through a species that is already present at
 the plasmid-free equilibrium. Interaction coefficients are drawn from
 distributions, species abundandances are specified by species abundance models,
-and then growth rates are calculated as r* = -AB* to obtain an equilibrium.
-* multispecies_altgrow.R: similar to multispecies.R, but here both interaction
-coefficients and growth rates are drawn from distributions, and then species
-abundances are calculated as B* = - A^-1 r to obtain an equilibrium.
+and growth rates are calculated from the interactions and abundances to obtain
+an equilibrium.
+* multispecies_altgrow.R: similar to multispecies.R, but here interaction
+coefficients and growth rates are drawn from distributions and then species
+abundances are calculated from them to obtain an equilibrium.
 * multispecies_analytic.m: MATLAB-script to obtain an analytical expressions for
 the eigenvalues and derive (in)stability criteria in the two-species case.
 * multispecies_bifur.R: R-script to create bifurcation-like plots showing how
 the intraspecies conjugation rate of the initially plasmid-bearing species and
 fitness costs of bearing a plasmid influence the epidemiological stability of
-the plasmid-free equilibrium (Figure 2 and Figure S6).
+the plasmid-free equilibrium (Figures 2 and S6).
 * multispecies_distr.R: R-script to create examples of probability densities for
 the distributions of ecological interaction coefficients (Figure S1).
 * multispecies_funcs.R: R-script containing the functions used by the other
@@ -94,6 +122,10 @@ plasmid-bearing bacteria replace bacteria of the most-abundant species can be
 changed to let them replace bacteria of the least-abundant species by changing
 variable 'PReplMostAbun' from TRUE (the default) to FALSE. For scripts that
 simulate invasion through a new species, the new species that introduces the
-plasmid grows slower than (1), equally fast as (2, default), or faster than (3)
-the already-present species, depending on the value of variable
-'newgrowthratecode'.
+plasmid grows slower than, equally fast as (default), or faster than the
+already-present species, depending on the value of variable
+'newgrowthratecode' (1, 2, or 3, respectively).
+
+
+## Contact
+PI: e.a.j.fischer@uu.nl
