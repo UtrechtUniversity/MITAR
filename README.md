@@ -35,8 +35,7 @@ number generation from truncated distributions,
 [cowplot](https://CRAN.R-project.org/package=cowplot) for plotting.
 
 To run the analyses, open the R-project file `MITAR.Rproj` and run one of the
-R-scripts following the instructions in the section
-[File overview](#File overview) below.
+R-scripts following the instructions in the next section 'File overview'.
 
 
 ## File overview
