@@ -68,9 +68,10 @@ bulk-conjugation rates is plotted.
 
 ### Multispecies models
 R-scripts and MATLAB-script for multispecies models of conjugation, used in
-Alderliesten JB, Zwart MP, de Visser JAGM, Stegeman A, Fischer EAJ. In prep.
+Alderliesten JB, Zwart MP, de Visser JAGM, Stegeman A, Fischer EAJ. 2026.
 The effects of ecological interactions and distinct conjugation rates on the
-invasion of a conjugative plasmid in bacterial communities.
+invasion of a conjugative plasmid in bacterial communities. Ecological Modelling
+512:111418, DOI: https://doi.org/10.1016/j.ecolmodel.2025.111418.
 
 These scripts use a generalised Lotka-Volterra model elaborated with
 plasmid-bearing populations and conjugation to investigate how the richness,
