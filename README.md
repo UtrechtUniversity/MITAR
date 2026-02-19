@@ -16,7 +16,7 @@ integrated development environment for R, such as
 [RStudio](https://posit.co/download/rstudio-desktop/). Brief instructions on
 installing R, RStudio, and R-packages are given below. More extensive
 information is available from the 
-[InstallPkgs GitHub repository](https://github.com/JesseAlderliesten/InstallPkgs).
+[checkrpkgs GitHub repository](https://github.com/JesseAlderliesten/checkrpkgs).
 
 After R has been installed, install the required R-packages: run R as
 administrator and run the script `installpkgs_mitar.R` to install the required
